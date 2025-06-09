@@ -57,7 +57,7 @@
             opacity: 0.6;
         }
         
-        /* Dynamic laser dot array */
+        /* Dynamic laser dot array with rotating beams */
         header::after {
             content: '';
             position: absolute;
@@ -66,44 +66,91 @@
             right: 0;
             bottom: 0;
             background: 
-                radial-gradient(circle at 20% 20%, rgba(0, 255, 100, 0.8) 2px, transparent 3px),
-                radial-gradient(circle at 40% 20%, rgba(0, 150, 255, 0.8) 2px, transparent 3px),
-                radial-gradient(circle at 60% 20%, rgba(100, 255, 150, 0.8) 2px, transparent 3px),
-                radial-gradient(circle at 80% 20%, rgba(0, 200, 255, 0.8) 2px, transparent 3px),
-                radial-gradient(circle at 20% 50%, rgba(50, 255, 200, 0.8) 2px, transparent 3px),
-                radial-gradient(circle at 40% 50%, rgba(0, 100, 200, 0.8) 2px, transparent 3px),
-                radial-gradient(circle at 60% 50%, rgba(150, 255, 100, 0.8) 2px, transparent 3px),
-                radial-gradient(circle at 80% 50%, rgba(0, 180, 255, 0.8) 2px, transparent 3px),
-                radial-gradient(circle at 20% 80%, rgba(100, 200, 255, 0.8) 2px, transparent 3px),
-                radial-gradient(circle at 40% 80%, rgba(0, 255, 150, 0.8) 2px, transparent 3px),
-                radial-gradient(circle at 60% 80%, rgba(0, 150, 200, 0.8) 2px, transparent 3px),
-                radial-gradient(circle at 80% 80%, rgba(150, 255, 200, 0.8) 2px, transparent 3px);
-            background-size: 200px 200px, 220px 220px, 240px 240px, 260px 260px, 280px 280px, 300px 300px, 320px 320px, 340px 340px, 360px 360px, 380px 380px, 400px 400px, 420px 420px;
-            animation: laserDotRotate 25s linear infinite, laserDotPulse 8s ease-in-out infinite alternate;
-            opacity: 0.5;
+                /* Laser dots */
+                radial-gradient(circle at 20% 25%, rgba(0, 255, 150, 1) 2px, rgba(0, 255, 150, 0.4) 3px, transparent 4px),
+                radial-gradient(circle at 50% 25%, rgba(0, 180, 255, 1) 2px, rgba(0, 180, 255, 0.4) 3px, transparent 4px),
+                radial-gradient(circle at 80% 25%, rgba(100, 255, 200, 1) 2px, rgba(100, 255, 200, 0.4) 3px, transparent 4px),
+                radial-gradient(circle at 20% 60%, rgba(0, 255, 100, 1) 2px, rgba(0, 255, 100, 0.4) 3px, transparent 4px),
+                radial-gradient(circle at 50% 60%, rgba(0, 150, 255, 1) 2px, rgba(0, 150, 255, 0.4) 3px, transparent 4px),
+                radial-gradient(circle at 80% 60%, rgba(150, 255, 100, 1) 2px, rgba(150, 255, 100, 0.4) 3px, transparent 4px),
+                
+                /* Rotating beam patterns */
+                conic-gradient(from var(--rotation1) at 20% 25%, transparent 0deg, rgba(0, 255, 150, 0.15) 8deg, transparent 16deg, rgba(0, 255, 150, 0.1) 24deg, transparent 32deg, rgba(0, 255, 150, 0.2) 40deg, transparent 48deg),
+                conic-gradient(from var(--rotation2) at 50% 25%, transparent 0deg, rgba(0, 180, 255, 0.15) 8deg, transparent 16deg, rgba(0, 180, 255, 0.1) 24deg, transparent 32deg, rgba(0, 180, 255, 0.2) 40deg, transparent 48deg),
+                conic-gradient(from var(--rotation3) at 80% 25%, transparent 0deg, rgba(100, 255, 200, 0.15) 8deg, transparent 16deg, rgba(100, 255, 200, 0.1) 24deg, transparent 32deg, rgba(100, 255, 200, 0.2) 40deg, transparent 48deg),
+                conic-gradient(from var(--rotation4) at 20% 60%, transparent 0deg, rgba(0, 255, 100, 0.15) 8deg, transparent 16deg, rgba(0, 255, 100, 0.1) 24deg, transparent 32deg, rgba(0, 255, 100, 0.2) 40deg, transparent 48deg),
+                conic-gradient(from var(--rotation5) at 50% 60%, transparent 0deg, rgba(0, 150, 255, 0.15) 8deg, transparent 16deg, rgba(0, 150, 255, 0.1) 24deg, transparent 32deg, rgba(0, 150, 255, 0.2) 40deg, transparent 48deg),
+                conic-gradient(from var(--rotation6) at 80% 60%, transparent 0deg, rgba(150, 255, 100, 0.15) 8deg, transparent 16deg, rgba(150, 255, 100, 0.1) 24deg, transparent 32deg, rgba(150, 255, 100, 0.2) 40deg, transparent 48deg);
+            
+            background-size: 100% 100%;
+            animation: laserBeamRotations 15s linear infinite, laserDotPulse 8s ease-in-out infinite alternate;
+            opacity: 0.7;
         }
         
-        @keyframes laserDotRotate {
+        @property --rotation1 {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
+        
+        @property --rotation2 {
+            syntax: '<angle>';
+            initial-value: 120deg;
+            inherits: false;
+        }
+        
+        @property --rotation3 {
+            syntax: '<angle>';
+            initial-value: 240deg;
+            inherits: false;
+        }
+        
+        @property --rotation4 {
+            syntax: '<angle>';
+            initial-value: 60deg;
+            inherits: false;
+        }
+        
+        @property --rotation5 {
+            syntax: '<angle>';
+            initial-value: 180deg;
+            inherits: false;
+        }
+        
+        @property --rotation6 {
+            syntax: '<angle>';
+            initial-value: 300deg;
+            inherits: false;
+        }
+        
+        @keyframes laserBeamRotations {
             0% { 
-                transform: rotate(0deg) scale(1);
-            }
-            25% { 
-                transform: rotate(90deg) scale(1.05);
-            }
-            50% { 
-                transform: rotate(180deg) scale(1);
-            }
-            75% { 
-                transform: rotate(270deg) scale(1.05);
+                --rotation1: 0deg;
+                --rotation2: 120deg;
+                --rotation3: 240deg;
+                --rotation4: 60deg;
+                --rotation5: 180deg;
+                --rotation6: 300deg;
             }
             100% { 
-                transform: rotate(360deg) scale(1);
+                --rotation1: 360deg;
+                --rotation2: 480deg;
+                --rotation3: 600deg;
+                --rotation4: 420deg;
+                --rotation5: 540deg;
+                --rotation6: 660deg;
             }
         }
         
         @keyframes laserDotPulse {
-            0% { opacity: 0.3; }
-            100% { opacity: 0.7; }
+            0% { 
+                opacity: 0.5;
+                filter: blur(0px);
+            }
+            100% { 
+                opacity: 0.8;
+                filter: blur(0.3px);
+            }
         }
         
         .header-content {
