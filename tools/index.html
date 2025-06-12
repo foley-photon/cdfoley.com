@@ -378,8 +378,8 @@
                     </div>
                     <div class="tool-content">
                         <div class="formula-display">
-                            w₀ = M² × (λ × f) / (π × w_input)<br>
-                            Focused Diameter = 2 × w₀
+                            φSpot = φDiffraction + φAberration = (4λM²f)/(πDf) + (nDf³)/(f²)<br>
+                            where Df = input beam diameter, n = refractive index
                         </div>
                         
                         <div class="input-group">
@@ -407,10 +407,18 @@
                         </div>
                         
                         <div class="input-group">
-                            <label for="input-diameter">Input Beam Diameter</label>
+                            <label for="input-diameter">Input Beam Diameter (Df)</label>
                             <div class="input-row">
                                 <input type="number" id="input-diameter" step="0.1" placeholder="3.0" value="3.0">
                                 <span class="unit-label">mm</span>
+                            </div>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="refractive-index">Lens Refractive Index (n)</label>
+                            <div class="input-row">
+                                <input type="number" id="refractive-index" step="0.01" placeholder="1.5" value="1.5">
+                                <span class="unit-label">-</span>
                             </div>
                         </div>
                         
@@ -418,12 +426,20 @@
                         
                         <div class="results-section" id="beam-waist-results" style="display: none;">
                             <div class="result-item">
-                                <span class="result-label">Focused Waist Radius (w₀):</span>
-                                <span class="result-value" id="waist-radius">-</span>
+                                <span class="result-label">Diffraction Component:</span>
+                                <span class="result-value" id="diffraction-component">-</span>
                             </div>
                             <div class="result-item">
-                                <span class="result-label">Focused Spot Diameter:</span>
+                                <span class="result-label">Aberration Component:</span>
+                                <span class="result-value" id="aberration-component">-</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Total Spot Diameter:</span>
                                 <span class="result-value" id="spot-diameter">-</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Spot Radius (w₀):</span>
+                                <span class="result-value" id="waist-radius">-</span>
                             </div>
                             <div class="result-item">
                                 <span class="result-label">Rayleigh Range:</span>
@@ -447,7 +463,7 @@
                         
                         <div style="background: #e6f3ff; border: 1px solid #b3d9ff; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
                             <p style="margin: 0; color: #2d3748; font-size: 0.9rem;">
-                                <strong>Note:</strong> This tool automatically uses the wavelength and beam waist radius calculated from the Focused Beam Waist Diameter Calculator.
+                                <strong>Note:</strong> This tool automatically uses the wavelength and beam waist radius calculated from the Focused Beam Waist Diameter Calculator above.
                             </p>
                         </div>
                         
@@ -560,19 +576,31 @@
             const focalLength = parseFloat(document.getElementById('focal-length').value) * 1e-3; // Convert mm to m
             const mSquared = parseFloat(document.getElementById('m-squared').value);
             const inputDiameter = parseFloat(document.getElementById('input-diameter').value) * 1e-3; // Convert mm to m
+            const refractiveIndex = parseFloat(document.getElementById('refractive-index').value);
             
-            if (isNaN(wavelength) || isNaN(focalLength) || isNaN(mSquared) || isNaN(inputDiameter)) {
+            if (isNaN(wavelength) || isNaN(focalLength) || isNaN(mSquared) || isNaN(inputDiameter) || isNaN(refractiveIndex)) {
                 alert('Please enter valid numbers for all fields');
                 return;
             }
             
-            const inputRadius = inputDiameter / 2;
-            const waistRadius = mSquared * (wavelength * focalLength) / (Math.PI * inputRadius);
-            const spotDiameter = 2 * waistRadius;
+            // Calculate using the correct formula: φSpot = φDiffraction + φAberration
+            // φDiffraction = (4λM²f)/(πDf)
+            const diffractionComponent = (4 * wavelength * mSquared * focalLength) / (Math.PI * inputDiameter);
+            
+            // φAberration = (nDf³)/(f²)  
+            const aberrationComponent = (refractiveIndex * Math.pow(inputDiameter, 3)) / Math.pow(focalLength, 2);
+            
+            // Total spot diameter
+            const spotDiameter = diffractionComponent + aberrationComponent;
+            const waistRadius = spotDiameter / 2;
+            
+            // Calculate Rayleigh range using spot radius
             const rayleighRange = Math.PI * Math.pow(waistRadius, 2) / wavelength;
             
-            document.getElementById('waist-radius').textContent = (waistRadius * 1e6).toFixed(1) + ' μm';
+            document.getElementById('diffraction-component').textContent = (diffractionComponent * 1e6).toFixed(1) + ' μm';
+            document.getElementById('aberration-component').textContent = (aberrationComponent * 1e6).toFixed(1) + ' μm';
             document.getElementById('spot-diameter').textContent = (spotDiameter * 1e6).toFixed(1) + ' μm';
+            document.getElementById('waist-radius').textContent = (waistRadius * 1e6).toFixed(1) + ' μm';
             document.getElementById('rayleigh-range-calc').textContent = (rayleighRange * 1e3).toFixed(2) + ' mm';
             
             document.getElementById('beam-waist-results').style.display = 'block';
