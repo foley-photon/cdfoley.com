@@ -445,23 +445,11 @@
                             w(z) = w₀ × √(1 + (z/zᵣ)²)
                         </div>
                         
-                        <div class="input-group">
-                            <label for="rr-wavelength">Wavelength</label>
-                            <div class="input-row">
-                                <input type="number" id="rr-wavelength" step="0.1" placeholder="532" value="532">
-                                <span class="unit-label">nm</span>
-                            </div>
+                        <div style="background: #e6f3ff; border: 1px solid #b3d9ff; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                            <p style="margin: 0; color: #2d3748; font-size: 0.9rem;">
+                                <strong>Note:</strong> This tool automatically uses the wavelength and beam waist radius calculated from the Focused Beam Waist Diameter Calculator above.
+                            </p>
                         </div>
-                        
-                        <div class="input-group">
-                            <label for="beam-waist">Beam Waist Radius (w₀)</label>
-                            <div class="input-row">
-                                <input type="number" id="beam-waist" step="0.1" placeholder="12.4" value="12.4">
-                                <span class="unit-label">μm</span>
-                            </div>
-                        </div>
-                        
-                        <button class="calculate-btn" onclick="calculateRayleighRange()">Calculate Beam Propagation</button>
                         
                         <div class="results-section" id="rayleigh-results" style="display: none;">
                             <div class="result-item">
@@ -588,17 +576,12 @@
             document.getElementById('rayleigh-range-calc').textContent = (rayleighRange * 1e3).toFixed(2) + ' mm';
             
             document.getElementById('beam-waist-results').style.display = 'block';
+            
+            // Automatically calculate Rayleigh range results
+            calculateRayleighRangeFromBeamWaist(wavelength, waistRadius);
         }
         
-        function calculateRayleighRange() {
-            const wavelength = parseFloat(document.getElementById('rr-wavelength').value) * 1e-9; // Convert nm to m
-            const waistRadius = parseFloat(document.getElementById('beam-waist').value) * 1e-6; // Convert μm to m
-            
-            if (isNaN(wavelength) || isNaN(waistRadius)) {
-                alert('Please enter valid numbers for all fields');
-                return;
-            }
-            
+        function calculateRayleighRangeFromBeamWaist(wavelength, waistRadius) {
             const rayleighRange = Math.PI * Math.pow(waistRadius, 2) / wavelength;
             
             // Calculate beam diameter at various distances
@@ -619,6 +602,11 @@
             document.getElementById('beam-at-500').textContent = (beamAt500 * 1e6).toFixed(1) + ' μm';
             
             document.getElementById('rayleigh-results').style.display = 'block';
+        }
+        
+        function calculateRayleighRange() {
+            // This function is no longer used - calculations are handled by calculateBeamWaist
+            return;
         }
         
         function calculatePeakPower() {
@@ -662,22 +650,7 @@
         });
         
         // Auto-update beam waist in Rayleigh range calculator when beam waist calculator is used
-        function syncBeamWaist() {
-            const beamWaistCalc = document.getElementById('waist-radius');
-            if (beamWaistCalc.textContent !== '-') {
-                const value = parseFloat(beamWaistCalc.textContent);
-                if (!isNaN(value)) {
-                    document.getElementById('beam-waist').value = value.toFixed(1);
-                }
-            }
-        }
-        
-        // Override the original calculateBeamWaist to include sync
-        const originalCalculateBeamWaist = calculateBeamWaist;
-        calculateBeamWaist = function() {
-            originalCalculateBeamWaist();
-            setTimeout(syncBeamWaist, 100);
-        };
+        // (This function is no longer needed as calculations are integrated)
     </script>
 </body>
 </html>
