@@ -137,7 +137,7 @@
         
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
             gap: 2rem;
             margin-bottom: 3rem;
         }
@@ -400,16 +400,12 @@
                 <div class="tool-card" id="beam-waist">
                     <div class="tool-header">
                         <h3>Focused Beam Waist Diameter Calculator</h3>
-                        <p>Calculate focused spot size using Sill Optics formula</p>
+                        <p>Calculate focused spot size for Gaussian laser beams</p>
                     </div>
                     <div class="tool-content">
                         <div class="formula-display">
                             d<sub>F</sub> = (4 × λ × f' × M² × APO) / (π × d<sub>L</sub>)<br>
                             T = d<sub>L</sub> / d<sub>EP</sub> (Truncation Ratio)
-                        </div>
-                        
-                        <div class="info-box">
-                            <strong>Based on Sill Optics Formula:</strong> This calculator uses the industry-standard formula with apodization factor (APO) that depends on the truncation ratio T.
                         </div>
                         
                         <div class="input-group">
@@ -457,326 +453,6 @@
                         <div class="results-section" id="beam-waist-results" style="display: none;">
                             <h4>Results</h4>
                             <div class="result-item">
-                                <span class="result-label">Object Coverage:</span>
-                                <span class="result-value" id="object-coverage">-</span>
-                            </div>
-                            
-                            <h4 style="margin-top: 1.5rem; margin-bottom: 1rem;">Resolution Parameters</h4>
-                            <div class="result-item">
-                                <span class="result-label">Pixel Size on Object:</span>
-                                <span class="result-value" id="pixel-size-object">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Spatial Resolution:</span>
-                                <span class="result-value" id="pixels-per-mm">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Total Megapixels:</span>
-                                <span class="result-value" id="total-megapixels">-</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="disclaimer">
-                <h3>⚠️ Important Disclaimer</h3>
-                <p>These calculators are provided for educational and professional reference purposes. Always verify critical calculations independently and consult appropriate safety protocols when working with laser systems. The author assumes no responsibility for the use of these tools in actual laser system design or operation.</p>
-            </div>
-        </main>
-
-        <footer>
-            <p>&copy; 2024 Casey D. Foley, PhD. All rights reserved.</p>
-        </footer>
-    </div>
-
-    <script>
-        // Global variables to store beam waist calculation results
-        let storedWavelength = 0;
-        let storedBeamWaist = 0;
-        
-        function calculateAPO(T) {
-            // APO calculation based on Sill Optics data
-            // Linear interpolation between T=0.5 (APO=1.27) and T=1.0 (APO=1.83)
-            if (T <= 0.5) {
-                return 1.27;
-            } else if (T >= 1.0) {
-                return 1.83;
-            } else {
-                // Linear interpolation
-                return 1.27 + (1.83 - 1.27) * (T - 0.5) / (1.0 - 0.5);
-            }
-        }
-        
-        function calculateBeamWaist() {
-            const wavelength = parseFloat(document.getElementById('wavelength').value);
-            const focalLength = parseFloat(document.getElementById('focal-length').value);
-            const beamDiameter = parseFloat(document.getElementById('beam-diameter').value);
-            const entrancePupil = parseFloat(document.getElementById('entrance-pupil').value);
-            const mSquared = parseFloat(document.getElementById('m-squared').value);
-            
-            if (isNaN(wavelength) || isNaN(focalLength) || isNaN(beamDiameter) || 
-                isNaN(entrancePupil) || isNaN(mSquared)) {
-                alert('Please enter valid numbers for all fields');
-                return;
-            }
-            
-            if (mSquared < 1.0) {
-                alert('M² must be ≥ 1.0 (ideal Gaussian beam)');
-                return;
-            }
-            
-            // Convert wavelength from nm to mm
-            const wavelengthMM = wavelength * 1e-6;
-            
-            // Calculate truncation ratio
-            const T = beamDiameter / entrancePupil;
-            
-            // Calculate apodization factor
-            const APO = calculateAPO(T);
-            
-            // Calculate focused spot diameter using Sill Optics formula
-            // dF = (4 × λ × f' × M² × APO) / (π × dL)
-            const spotDiameter = (4 * wavelengthMM * focalLength * mSquared * APO) / (Math.PI * beamDiameter);
-            
-            // Beam waist radius (w₀ = dF/2)
-            const beamWaist = spotDiameter / 2;
-            
-            // Store for use in Rayleigh calculator
-            storedWavelength = wavelength;
-            storedBeamWaist = beamWaist;
-            
-            // Display results
-            document.getElementById('truncation-ratio').textContent = T.toFixed(3);
-            document.getElementById('apo-factor').textContent = APO.toFixed(3);
-            document.getElementById('spot-diameter').textContent = 
-                (spotDiameter * 1000).toFixed(2) + ' µm (' + spotDiameter.toFixed(4) + ' mm)';
-            document.getElementById('waist-radius').textContent = 
-                (beamWaist * 1000).toFixed(2) + ' µm (' + beamWaist.toFixed(4) + ' mm)';
-            
-            document.getElementById('beam-waist-results').style.display = 'block';
-            
-            // Auto-scroll to results
-            document.getElementById('beam-waist-results').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest' 
-            });
-        }
-        
-        function calculateRayleighRange() {
-            if (storedBeamWaist === 0 || storedWavelength === 0) {
-                alert('Please calculate the focused beam waist first using the calculator above!');
-                return;
-            }
-            
-            const distance = parseFloat(document.getElementById('distance-z').value);
-            
-            if (isNaN(distance)) {
-                alert('Please enter a valid distance');
-                return;
-            }
-            
-            // Convert wavelength from nm to mm
-            const wavelengthMM = storedWavelength * 1e-6;
-            
-            // Calculate Rayleigh range: zR = π × w₀² / λ
-            const rayleighRange = (Math.PI * storedBeamWaist * storedBeamWaist) / wavelengthMM;
-            
-            // Calculate beam radius at distance z: w(z) = w₀ × √(1 + (z/zR)²)
-            const beamRadius = storedBeamWaist * Math.sqrt(1 + Math.pow(distance / rayleighRange, 2));
-            const beamDiameterAtZ = 2 * beamRadius;
-            
-            // Calculate divergence angle (full angle)
-            const divergenceAngle = 2 * Math.atan(wavelengthMM / (Math.PI * storedBeamWaist));
-            const divergenceAngleMrad = divergenceAngle * 1000;
-            const divergenceAngleDeg = divergenceAngle * (180 / Math.PI);
-            
-            // Display results
-            document.getElementById('rr-value').textContent = rayleighRange.toFixed(3) + ' mm';
-            document.getElementById('beam-at-z').textContent = 
-                (beamDiameterAtZ * 1000).toFixed(2) + ' µm (' + beamDiameterAtZ.toFixed(4) + ' mm)';
-            document.getElementById('beam-radius-z').textContent = 
-                (beamRadius * 1000).toFixed(2) + ' µm (' + beamRadius.toFixed(4) + ' mm)';
-            document.getElementById('divergence-angle').textContent = 
-                divergenceAngleMrad.toFixed(3) + ' mrad (' + divergenceAngleDeg.toFixed(3) + '°)';
-            
-            document.getElementById('rayleigh-results').style.display = 'block';
-            
-            // Auto-scroll to results
-            document.getElementById('rayleigh-results').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest' 
-            });
-        }
-        
-        function calculatePeakPower() {
-            const avgPower = parseFloat(document.getElementById('avg-power').value);
-            const repRateKHz = parseFloat(document.getElementById('rep-rate').value);
-            const pulseWidth = parseFloat(document.getElementById('pulse-width').value);
-            const beamDiameter = parseFloat(document.getElementById('beam-diameter-power').value);
-            
-            if (isNaN(avgPower) || isNaN(repRateKHz) || isNaN(pulseWidth) || isNaN(beamDiameter)) {
-                alert('Please enter valid numbers for all fields');
-                return;
-            }
-            
-            // Convert units
-            const repRate = repRateKHz * 1000; // kHz to Hz
-            const pulseWidthS = pulseWidth * 1e-9; // ns to s
-            const beamDiameterM = beamDiameter * 1e-6; // µm to m
-            
-            // Calculate peak power: Ppeak = Pavg / (frep × τ)
-            const peakPower = avgPower / (repRate * pulseWidthS);
-            
-            // Calculate pulse energy: E = Pavg / frep
-            const pulseEnergy = avgPower / repRate;
-            
-            // Calculate beam area (1/e² diameter)
-            const beamArea = Math.PI * Math.pow(beamDiameterM / 2, 2);
-            const beamAreaCm2 = beamArea * 1e4; // m² to cm²
-            
-            // Calculate peak power density: I = Ppeak / A
-            const powerDensity = peakPower / beamAreaCm2;
-            
-            // Calculate fluence: F = I × τ (energy density per pulse)
-            const fluence = powerDensity * pulseWidthS;
-            
-            // Display results
-            document.getElementById('peak-power-value').textContent = 
-                peakPower >= 1e6 ? (peakPower / 1e6).toFixed(2) + ' MW' : 
-                peakPower >= 1e3 ? (peakPower / 1e3).toFixed(2) + ' kW' : 
-                peakPower.toFixed(2) + ' W';
-            
-            document.getElementById('pulse-energy').textContent = 
-                pulseEnergy >= 1e-3 ? (pulseEnergy * 1e3).toFixed(2) + ' mJ' : 
-                (pulseEnergy * 1e6).toFixed(2) + ' µJ';
-            
-            document.getElementById('beam-area').textContent = beamAreaCm2.toExponential(3) + ' cm²';
-            document.getElementById('power-density').textContent = powerDensity.toExponential(2) + ' W/cm²';
-            document.getElementById('fluence').textContent = fluence.toFixed(2) + ' J/cm²';
-            
-            document.getElementById('peak-power-results').style.display = 'block';
-            
-            // Auto-scroll to results
-            document.getElementById('peak-power-results').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest' 
-            });
-        }
-        
-        function updateSensorSize() {
-            const sensorFormat = document.getElementById('sensor-format').value;
-            const sensorSizes = {
-                '1/4': { width: 3.2, height: 2.4 },
-                '1/3': { width: 4.8, height: 3.6 },
-                '1/2.5': { width: 5.8, height: 4.3 },
-                '1/2': { width: 6.4, height: 4.8 },
-                '2/3': { width: 8.8, height: 6.6 },
-                '1': { width: 12.8, height: 9.6 },
-                '4/3': { width: 17.3, height: 13.0 },
-                'aps-c': { width: 23.6, height: 15.7 }
-            };
-            
-            if (sensorFormat !== 'custom' && sensorSizes[sensorFormat]) {
-                document.getElementById('sensor-width').value = sensorSizes[sensorFormat].width;
-                document.getElementById('sensor-height').value = sensorSizes[sensorFormat].height;
-            }
-        }
-        
-        function calculateVisionSystem() {
-            const focalLength = parseFloat(document.getElementById('lens-focal-length').value);
-            const workingDistance = parseFloat(document.getElementById('working-distance').value);
-            const objectWidth = parseFloat(document.getElementById('object-width').value);
-            const objectHeight = parseFloat(document.getElementById('object-height').value);
-            const fNumber = parseFloat(document.getElementById('f-number').value);
-            const sensorWidth = parseFloat(document.getElementById('sensor-width').value);
-            const sensorHeight = parseFloat(document.getElementById('sensor-height').value);
-            const pixelCountH = parseFloat(document.getElementById('pixel-count-h').value);
-            const pixelCountV = parseFloat(document.getElementById('pixel-count-v').value);
-            
-            if (isNaN(focalLength) || isNaN(workingDistance) || isNaN(objectWidth) || 
-                isNaN(objectHeight) || isNaN(fNumber) || isNaN(sensorWidth) || 
-                isNaN(sensorHeight) || isNaN(pixelCountH) || isNaN(pixelCountV)) {
-                alert('Please enter valid numbers for all fields');
-                return;
-            }
-            
-            // Calculate magnification: M = f / (WD - f)
-            const magnification = focalLength / (workingDistance - focalLength);
-            
-            // Calculate field of view: FOV = sensor size / magnification
-            const fovWidth = sensorWidth / Math.abs(magnification);
-            const fovHeight = sensorHeight / Math.abs(magnification);
-            
-            // Calculate depth of field: DOF = 2 × f# × CoC × (1 + |M|)²
-            // Using circle of confusion = 5 µm (typical for machine vision)
-            const circleOfConfusion = 0.005; // 5 µm in mm
-            const depthOfField = 2 * fNumber * circleOfConfusion * Math.pow(1 + Math.abs(magnification), 2);
-            
-            // Check object coverage
-            const objectCoverageH = Math.min((fovWidth / objectWidth) * 100, 100);
-            const objectCoverageV = Math.min((fovHeight / objectHeight) * 100, 100);
-            
-            // Calculate pixel size projected onto object
-            const pixelSizeH = fovWidth / pixelCountH;
-            const pixelSizeV = fovHeight / pixelCountV;
-            
-            // Total megapixels
-            const totalMegapixels = (pixelCountH * pixelCountV) / 1e6;
-            
-            // Display results
-            document.getElementById('magnification').textContent = 
-                magnification.toFixed(3) + 'x' + (magnification < 0 ? ' (inverted)' : '');
-            
-            document.getElementById('field-of-view').textContent = 
-                fovWidth.toFixed(2) + ' × ' + fovHeight.toFixed(2) + ' mm';
-            
-            document.getElementById('depth-of-field').textContent = 
-                depthOfField.toFixed(3) + ' mm';
-            
-            // Object coverage with status indicator
-            let coverageText = objectCoverageH.toFixed(1) + '% × ' + objectCoverageV.toFixed(1) + '%';
-            if (objectCoverageH < 100 || objectCoverageV < 100) {
-                coverageText += ' ⚠️ Partial';
-            } else {
-                coverageText += ' ✓ Complete';
-            }
-            document.getElementById('object-coverage').textContent = coverageText;
-            
-            document.getElementById('pixel-size-object').textContent = 
-                (pixelSizeH * 1000).toFixed(2) + ' × ' + (pixelSizeV * 1000).toFixed(2) + ' µm/pixel';
-            
-            document.getElementById('pixels-per-mm').textContent = 
-                (1/pixelSizeH).toFixed(1) + ' × ' + (1/pixelSizeV).toFixed(1) + ' px/mm';
-            
-            document.getElementById('total-megapixels').textContent = 
-                totalMegapixels.toFixed(2) + ' MP';
-            
-            document.getElementById('vision-results').style.display = 'block';
-            
-            // Auto-scroll to results
-            document.getElementById('vision-results').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest' 
-            });
-        }
-        
-        // Smooth scrolling for navigation
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-    </script>
-</body>
-</html>">
                                 <span class="result-label">Truncation Ratio (T):</span>
                                 <span class="result-value" id="truncation-ratio">-</span>
                             </div>
@@ -1040,4 +716,324 @@
                                 <span class="result-label">Depth of Field (DOF):</span>
                                 <span class="result-value" id="depth-of-field">-</span>
                             </div>
-                            <div class="result-item
+                            <div class="result-item">
+                                <span class="result-label">Object Coverage:</span>
+                                <span class="result-value" id="object-coverage">-</span>
+                            </div>
+                            
+                            <h4 style="margin-top: 1.5rem; margin-bottom: 1rem;">Resolution Parameters</h4>
+                            <div class="result-item">
+                                <span class="result-label">Pixel Size on Object:</span>
+                                <span class="result-value" id="pixel-size-object">-</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Spatial Resolution:</span>
+                                <span class="result-value" id="pixels-per-mm">-</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Total Megapixels:</span>
+                                <span class="result-value" id="total-megapixels">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="disclaimer">
+                <h3>⚠️ Important Disclaimer</h3>
+                <p>These calculators are provided for educational and professional reference purposes. Always verify critical calculations independently and consult appropriate safety protocols when working with laser systems. The author assumes no responsibility for the use of these tools in actual laser system design or operation.</p>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 Casey D. Foley, PhD. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Global variables to store beam waist calculation results
+        let storedWavelength = 0;
+        let storedBeamWaist = 0;
+        
+        function calculateAPO(T) {
+            // APO calculation based on truncation ratio
+            // Linear interpolation between T=0.5 (APO=1.27) and T=1.0 (APO=1.83)
+            if (T <= 0.5) {
+                return 1.27;
+            } else if (T >= 1.0) {
+                return 1.83;
+            } else {
+                // Linear interpolation
+                return 1.27 + (1.83 - 1.27) * (T - 0.5) / (1.0 - 0.5);
+            }
+        }
+        
+        function calculateBeamWaist() {
+            const wavelength = parseFloat(document.getElementById('wavelength').value);
+            const focalLength = parseFloat(document.getElementById('focal-length').value);
+            const beamDiameter = parseFloat(document.getElementById('beam-diameter').value);
+            const entrancePupil = parseFloat(document.getElementById('entrance-pupil').value);
+            const mSquared = parseFloat(document.getElementById('m-squared').value);
+            
+            if (isNaN(wavelength) || isNaN(focalLength) || isNaN(beamDiameter) || 
+                isNaN(entrancePupil) || isNaN(mSquared)) {
+                alert('Please enter valid numbers for all fields');
+                return;
+            }
+            
+            if (mSquared < 1.0) {
+                alert('M² must be ≥ 1.0 (ideal Gaussian beam)');
+                return;
+            }
+            
+            // Convert wavelength from nm to mm
+            const wavelengthMM = wavelength * 1e-6;
+            
+            // Calculate truncation ratio
+            const T = beamDiameter / entrancePupil;
+            
+            // Calculate apodization factor
+            const APO = calculateAPO(T);
+            
+            // Calculate focused spot diameter using standard formula
+            // dF = (4 × λ × f' × M² × APO) / (π × dL)
+            const spotDiameter = (4 * wavelengthMM * focalLength * mSquared * APO) / (Math.PI * beamDiameter);
+            
+            // Beam waist radius (w₀ = dF/2)
+            const beamWaist = spotDiameter / 2;
+            
+            // Store for use in Rayleigh calculator
+            storedWavelength = wavelength;
+            storedBeamWaist = beamWaist;
+            
+            // Display results
+            document.getElementById('truncation-ratio').textContent = T.toFixed(3);
+            document.getElementById('apo-factor').textContent = APO.toFixed(3);
+            document.getElementById('spot-diameter').textContent = 
+                (spotDiameter * 1000).toFixed(2) + ' µm (' + spotDiameter.toFixed(4) + ' mm)';
+            document.getElementById('waist-radius').textContent = 
+                (beamWaist * 1000).toFixed(2) + ' µm (' + beamWaist.toFixed(4) + ' mm)';
+            
+            document.getElementById('beam-waist-results').style.display = 'block';
+            
+            // Auto-scroll to results
+            document.getElementById('beam-waist-results').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest' 
+            });
+        }
+        
+        function calculateRayleighRange() {
+            if (storedBeamWaist === 0 || storedWavelength === 0) {
+                alert('Please calculate the focused beam waist first using the calculator above!');
+                return;
+            }
+            
+            const distance = parseFloat(document.getElementById('distance-z').value);
+            
+            if (isNaN(distance)) {
+                alert('Please enter a valid distance');
+                return;
+            }
+            
+            // Convert wavelength from nm to mm
+            const wavelengthMM = storedWavelength * 1e-6;
+            
+            // Calculate Rayleigh range: zR = π × w₀² / λ
+            const rayleighRange = (Math.PI * storedBeamWaist * storedBeamWaist) / wavelengthMM;
+            
+            // Calculate beam radius at distance z: w(z) = w₀ × √(1 + (z/zR)²)
+            const beamRadius = storedBeamWaist * Math.sqrt(1 + Math.pow(distance / rayleighRange, 2));
+            const beamDiameterAtZ = 2 * beamRadius;
+            
+            // Calculate divergence angle (full angle)
+            const divergenceAngle = 2 * Math.atan(wavelengthMM / (Math.PI * storedBeamWaist));
+            const divergenceAngleMrad = divergenceAngle * 1000;
+            const divergenceAngleDeg = divergenceAngle * (180 / Math.PI);
+            
+            // Display results
+            document.getElementById('rr-value').textContent = rayleighRange.toFixed(3) + ' mm';
+            document.getElementById('beam-at-z').textContent = 
+                (beamDiameterAtZ * 1000).toFixed(2) + ' µm (' + beamDiameterAtZ.toFixed(4) + ' mm)';
+            document.getElementById('beam-radius-z').textContent = 
+                (beamRadius * 1000).toFixed(2) + ' µm (' + beamRadius.toFixed(4) + ' mm)';
+            document.getElementById('divergence-angle').textContent = 
+                divergenceAngleMrad.toFixed(3) + ' mrad (' + divergenceAngleDeg.toFixed(3) + '°)';
+            
+            document.getElementById('rayleigh-results').style.display = 'block';
+            
+            // Auto-scroll to results
+            document.getElementById('rayleigh-results').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest' 
+            });
+        }
+        
+        function calculatePeakPower() {
+            const avgPower = parseFloat(document.getElementById('avg-power').value);
+            const repRateKHz = parseFloat(document.getElementById('rep-rate').value);
+            const pulseWidth = parseFloat(document.getElementById('pulse-width').value);
+            const beamDiameter = parseFloat(document.getElementById('beam-diameter-power').value);
+            
+            if (isNaN(avgPower) || isNaN(repRateKHz) || isNaN(pulseWidth) || isNaN(beamDiameter)) {
+                alert('Please enter valid numbers for all fields');
+                return;
+            }
+            
+            // Convert units
+            const repRate = repRateKHz * 1000; // kHz to Hz
+            const pulseWidthS = pulseWidth * 1e-9; // ns to s
+            const beamDiameterM = beamDiameter * 1e-6; // µm to m
+            
+            // Calculate peak power: Ppeak = Pavg / (frep × τ)
+            const peakPower = avgPower / (repRate * pulseWidthS);
+            
+            // Calculate pulse energy: E = Pavg / frep
+            const pulseEnergy = avgPower / repRate;
+            
+            // Calculate beam area (1/e² diameter)
+            const beamArea = Math.PI * Math.pow(beamDiameterM / 2, 2);
+            const beamAreaCm2 = beamArea * 1e4; // m² to cm²
+            
+            // Calculate peak power density: I = Ppeak / A
+            const powerDensity = peakPower / beamAreaCm2;
+            
+            // Calculate fluence: F = I × τ (energy density per pulse)
+            const fluence = powerDensity * pulseWidthS;
+            
+            // Display results
+            document.getElementById('peak-power-value').textContent = 
+                peakPower >= 1e6 ? (peakPower / 1e6).toFixed(2) + ' MW' : 
+                peakPower >= 1e3 ? (peakPower / 1e3).toFixed(2) + ' kW' : 
+                peakPower.toFixed(2) + ' W';
+            
+            document.getElementById('pulse-energy').textContent = 
+                pulseEnergy >= 1e-3 ? (pulseEnergy * 1e3).toFixed(2) + ' mJ' : 
+                (pulseEnergy * 1e6).toFixed(2) + ' µJ';
+            
+            document.getElementById('beam-area').textContent = beamAreaCm2.toExponential(3) + ' cm²';
+            document.getElementById('power-density').textContent = powerDensity.toExponential(2) + ' W/cm²';
+            document.getElementById('fluence').textContent = fluence.toFixed(2) + ' J/cm²';
+            
+            document.getElementById('peak-power-results').style.display = 'block';
+            
+            // Auto-scroll to results
+            document.getElementById('peak-power-results').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest' 
+            });
+        }
+        
+        function updateSensorSize() {
+            const sensorFormat = document.getElementById('sensor-format').value;
+            const sensorSizes = {
+                '1/4': { width: 3.2, height: 2.4 },
+                '1/3': { width: 4.8, height: 3.6 },
+                '1/2.5': { width: 5.8, height: 4.3 },
+                '1/2': { width: 6.4, height: 4.8 },
+                '2/3': { width: 8.8, height: 6.6 },
+                '1': { width: 12.8, height: 9.6 },
+                '4/3': { width: 17.3, height: 13.0 },
+                'aps-c': { width: 23.6, height: 15.7 }
+            };
+            
+            if (sensorFormat !== 'custom' && sensorSizes[sensorFormat]) {
+                document.getElementById('sensor-width').value = sensorSizes[sensorFormat].width;
+                document.getElementById('sensor-height').value = sensorSizes[sensorFormat].height;
+            }
+        }
+        
+        function calculateVisionSystem() {
+            const focalLength = parseFloat(document.getElementById('lens-focal-length').value);
+            const workingDistance = parseFloat(document.getElementById('working-distance').value);
+            const objectWidth = parseFloat(document.getElementById('object-width').value);
+            const objectHeight = parseFloat(document.getElementById('object-height').value);
+            const fNumber = parseFloat(document.getElementById('f-number').value);
+            const sensorWidth = parseFloat(document.getElementById('sensor-width').value);
+            const sensorHeight = parseFloat(document.getElementById('sensor-height').value);
+            const pixelCountH = parseFloat(document.getElementById('pixel-count-h').value);
+            const pixelCountV = parseFloat(document.getElementById('pixel-count-v').value);
+            
+            if (isNaN(focalLength) || isNaN(workingDistance) || isNaN(objectWidth) || 
+                isNaN(objectHeight) || isNaN(fNumber) || isNaN(sensorWidth) || 
+                isNaN(sensorHeight) || isNaN(pixelCountH) || isNaN(pixelCountV)) {
+                alert('Please enter valid numbers for all fields');
+                return;
+            }
+            
+            // Calculate magnification: M = f / (WD - f)
+            const magnification = focalLength / (workingDistance - focalLength);
+            
+            // Calculate field of view: FOV = sensor size / magnification
+            const fovWidth = sensorWidth / Math.abs(magnification);
+            const fovHeight = sensorHeight / Math.abs(magnification);
+            
+            // Calculate depth of field: DOF = 2 × f# × CoC × (1 + |M|)²
+            // Using circle of confusion = 5 µm (typical for machine vision)
+            const circleOfConfusion = 0.005; // 5 µm in mm
+            const depthOfField = 2 * fNumber * circleOfConfusion * Math.pow(1 + Math.abs(magnification), 2);
+            
+            // Check object coverage
+            const objectCoverageH = Math.min((fovWidth / objectWidth) * 100, 100);
+            const objectCoverageV = Math.min((fovHeight / objectHeight) * 100, 100);
+            
+            // Calculate pixel size projected onto object
+            const pixelSizeH = fovWidth / pixelCountH;
+            const pixelSizeV = fovHeight / pixelCountV;
+            
+            // Total megapixels
+            const totalMegapixels = (pixelCountH * pixelCountV) / 1e6;
+            
+            // Display results
+            document.getElementById('magnification').textContent = 
+                magnification.toFixed(3) + 'x' + (magnification < 0 ? ' (inverted)' : '');
+            
+            document.getElementById('field-of-view').textContent = 
+                fovWidth.toFixed(2) + ' × ' + fovHeight.toFixed(2) + ' mm';
+            
+            document.getElementById('depth-of-field').textContent = 
+                depthOfField.toFixed(3) + ' mm';
+            
+            // Object coverage with status indicator
+            let coverageText = objectCoverageH.toFixed(1) + '% × ' + objectCoverageV.toFixed(1) + '%';
+            if (objectCoverageH < 100 || objectCoverageV < 100) {
+                coverageText += ' ⚠️ Partial';
+            } else {
+                coverageText += ' ✓ Complete';
+            }
+            document.getElementById('object-coverage').textContent = coverageText;
+            
+            document.getElementById('pixel-size-object').textContent = 
+                (pixelSizeH * 1000).toFixed(2) + ' × ' + (pixelSizeV * 1000).toFixed(2) + ' µm/pixel';
+            
+            document.getElementById('pixels-per-mm').textContent = 
+                (1/pixelSizeH).toFixed(1) + ' × ' + (1/pixelSizeV).toFixed(1) + ' px/mm';
+            
+            document.getElementById('total-megapixels').textContent = 
+                totalMegapixels.toFixed(2) + ' MP';
+            
+            document.getElementById('vision-results').style.display = 'block';
+            
+            // Auto-scroll to results
+            document.getElementById('vision-results').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest' 
+            });
+        }
+        
+        // Smooth scrolling for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
