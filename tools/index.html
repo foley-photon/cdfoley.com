@@ -3,17 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laser Tools - Casey D. Foley, PhD</title>
-    <meta name="description" content="Professional laser calculation tools including beam waist diameter, Rayleigh range, and peak power density calculators by Casey D. Foley, PhD.">
-    <meta name="keywords" content="laser calculator, beam waist, Rayleigh range, peak power density, laser tools, optics calculator">
+    <title>Laser & Optics Tools — Casey D. Foley, PhD</title>
+    <meta name="description" content="Professional laser optics calculators: beam waist, Rayleigh range, LIDT scaling, ablation depth, f-theta scan field, beam expander, pulse parameters, and machine vision tools.">
     <link rel="canonical" href="https://cdfoley.com/tools">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.7;
@@ -21,82 +16,70 @@
             background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
             min-height: 100vh;
         }
-        
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
             background: white;
             min-height: 100vh;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         }
-        
+
+        /* ── HEADER ─────────────────────────── */
         header {
             background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #4a5568 100%);
             color: white;
-            padding: 2rem 0;
+            padding: 2.5rem 0;
             text-align: center;
             position: relative;
             overflow: hidden;
         }
-        
+
         header::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 20% 30%, rgba(102, 126, 234, 0.2) 0%, transparent 25%),
-                radial-gradient(circle at 80% 70%, rgba(118, 75, 162, 0.2) 0%, transparent 25%),
-                radial-gradient(ellipse at 60% 40%, rgba(255, 255, 255, 0.1) 0%, transparent 30%);
-            opacity: 0.6;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(102,126,234,0.2) 0%, transparent 25%),
+                radial-gradient(circle at 80% 70%, rgba(118,75,162,0.2) 0%, transparent 25%),
+                radial-gradient(ellipse at 60% 40%, rgba(255,255,255,0.06) 0%, transparent 30%);
         }
-        
-        .header-content {
-            position: relative;
-            z-index: 10;
-        }
-        
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+
+        .header-content { position: relative; z-index: 10; padding: 0 2rem; }
+
+        header h1 {
+            font-size: 2.6rem;
             font-weight: 300;
             letter-spacing: -0.02em;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+            margin-bottom: 0.4rem;
         }
-        
-        .subtitle {
-            font-size: 1.2rem;
+
+        .header-sub {
+            font-size: 1.1rem;
             font-weight: 300;
+            opacity: 0.9;
             margin-bottom: 1rem;
-            opacity: 0.95;
         }
-        
-        .breadcrumb {
-            margin-top: 1rem;
-        }
-        
-        .breadcrumb a {
-            color: rgba(255,255,255,0.8);
+
+        .header-back a {
+            color: rgba(255,255,255,0.75);
             text-decoration: none;
-            transition: color 0.3s ease;
+            font-size: 0.9rem;
+            transition: color 0.2s;
         }
-        
-        .breadcrumb a:hover {
-            color: white;
-        }
-        
+        .header-back a:hover { color: white; }
+
+        /* ── NAV ─────────────────────────────── */
         nav {
-            background: rgba(45, 55, 72, 0.95);
+            background: rgba(45,55,72,0.97);
             backdrop-filter: blur(20px);
-            padding: 0;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
         }
-        
+
         .nav-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -104,936 +87,1321 @@
             justify-content: center;
             flex-wrap: wrap;
         }
-        
+
         .nav-item {
-            color: white;
+            color: rgba(255,255,255,0.85);
             text-decoration: none;
-            padding: 1rem 1.2rem;
-            transition: all 0.3s ease;
-            border-bottom: 3px solid transparent;
-            position: relative;
+            padding: 0.9rem 1.3rem;
+            font-size: 0.88rem;
             font-weight: 500;
-            font-size: 0.9rem;
+            border-bottom: 3px solid transparent;
+            transition: all 0.25s ease;
+            white-space: nowrap;
         }
-        
-        .nav-item:hover {
+
+        .nav-item:hover, .nav-item.active {
+            color: white;
             border-bottom-color: #667eea;
-            transform: translateY(-2px);
-            background: rgba(102, 126, 234, 0.2);
+            background: rgba(102,126,234,0.15);
         }
-        
-        main {
-            padding: 3rem 2rem;
+
+        .nav-sep {
+            color: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            padding: 0 0.2rem;
+            font-size: 1.1rem;
         }
-        
+
+        /* ── MAIN / INTRO ────────────────────── */
+        main { padding: 2.5rem 2rem; }
+
         .intro-section {
-            margin-bottom: 3rem;
-            padding: 2rem;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-            border-radius: 15px;
-            border: 1px solid rgba(102, 126, 234, 0.1);
-            text-align: left;
+            background: linear-gradient(135deg, rgba(102,126,234,0.05) 0%, rgba(118,75,162,0.05) 100%);
+            border: 1px solid rgba(102,126,234,0.12);
+            border-radius: 14px;
+            padding: 1.8rem 2rem;
+            margin-bottom: 2.5rem;
+            font-size: 0.97rem;
+            color: #4a5568;
         }
-        
+
+        /* ── CATEGORY SECTIONS ───────────────── */
+        .tool-category { margin-bottom: 3rem; }
+
+        .category-header {
+            display: flex;
+            align-items: baseline;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .category-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .category-count {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #667eea;
+            background: rgba(102,126,234,0.1);
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .category-desc {
+            font-size: 0.92rem;
+            color: #718096;
+            margin-bottom: 1.5rem;
+        }
+
+        /* ── TOOL GRID ───────────────────────── */
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 2rem;
-            margin-bottom: 3rem;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: 1.8rem;
         }
-        
+
+        .tools-grid.single { grid-template-columns: minmax(420px, 600px); }
+
+        /* ── TOOL CARD ───────────────────────── */
         .tool-card {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            border: 1px solid rgba(102, 126, 234, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+            border: 1px solid rgba(102,126,234,0.1);
             overflow: hidden;
-            transition: all 0.3s ease;
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
         }
-        
+
         .tool-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+            box-shadow: 0 10px 35px rgba(0,0,0,0.11);
+            transform: translateY(-3px);
         }
-        
+
         .tool-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 1.5rem;
-            text-align: center;
+            padding: 1.2rem 1.5rem;
         }
-        
+
         .tool-header h3 {
-            font-size: 1.3rem;
-            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
             font-weight: 600;
+            margin-bottom: 0.25rem;
         }
-        
+
         .tool-header p {
-            opacity: 0.9;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            opacity: 0.88;
         }
-        
-        .tool-content {
-            padding: 2rem;
-        }
-        
+
+        .tool-body { padding: 1.5rem; }
+
+        /* ── FORMULA DISPLAY ─────────────────── */
         .formula-display {
             background: #f7fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            text-align: center;
+            border-radius: 8px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 1.2rem;
             font-family: 'Courier New', monospace;
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             color: #2d3748;
-            line-height: 1.8;
+            line-height: 1.9;
+            text-align: center;
         }
-        
-        .input-group {
-            margin-bottom: 1rem;
-        }
-        
+
+        /* ── INPUTS ──────────────────────────── */
+        .input-group { margin-bottom: 0.85rem; }
+
         .input-group label {
             display: block;
-            margin-bottom: 0.5rem;
             font-weight: 500;
+            font-size: 0.88rem;
             color: #2d3748;
-            font-size: 0.95rem;
+            margin-bottom: 0.3rem;
         }
-        
-        .input-group input, .input-group select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
-        }
-        
-        .input-group input:focus, .input-group select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
+
         .input-row {
             display: grid;
             grid-template-columns: 1fr auto;
-            gap: 0.5rem;
+            gap: 0.4rem;
             align-items: end;
         }
-        
-        .unit-label {
-            padding: 0.75rem 1rem;
-            background: #f7fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-weight: 500;
-            color: #4a5568;
-            min-width: 60px;
-            text-align: center;
-        }
-        
-        .calculate-btn {
+
+        .input-row input, .input-row select {
+            padding: 0.6rem 0.8rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 7px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
             width: 100%;
-            padding: 1rem;
+        }
+
+        .input-row input:focus, .input-row select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .unit-label {
+            padding: 0.6rem 0.7rem;
+            background: #f7fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 7px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #4a5568;
+            min-width: 54px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* ── CALCULATE BUTTON ────────────────── */
+        .calc-btn {
+            width: 100%;
+            padding: 0.75rem;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            border-radius: 10px;
-            font-size: 1rem;
+            border-radius: 9px;
+            font-size: 0.93rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 1rem;
+            margin-top: 0.8rem;
+            transition: all 0.25s ease;
+            letter-spacing: 0.01em;
         }
-        
-        .calculate-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+
+        .calc-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(102,126,234,0.35);
         }
-        
+
+        /* ── RESULTS ─────────────────────────── */
         .results-section {
-            margin-top: 1.5rem;
-            padding: 1.5rem;
+            margin-top: 1.2rem;
+            padding: 1.2rem;
             background: #f7fafc;
-            border-radius: 10px;
+            border-radius: 9px;
             border: 1px solid #e2e8f0;
+            display: none;
         }
-        
+
         .results-section h4 {
+            font-size: 0.9rem;
+            font-weight: 700;
             color: #1a202c;
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.8rem;
         }
-        
+
         .result-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.75rem;
-            padding: 0.75rem;
+            padding: 0.55rem 0.75rem;
             background: white;
             border-radius: 6px;
             border: 1px solid #e2e8f0;
+            margin-bottom: 0.5rem;
+            gap: 0.5rem;
         }
-        
-        .result-item:last-child {
-            margin-bottom: 0;
-        }
-        
+
+        .result-item:last-child { margin-bottom: 0; }
+
         .result-label {
+            font-size: 0.85rem;
             font-weight: 500;
             color: #2d3748;
-            font-size: 0.95rem;
+            flex-shrink: 0;
         }
-        
+
         .result-value {
             font-family: 'Courier New', monospace;
-            font-weight: bold;
+            font-weight: 700;
             color: #667eea;
-            font-size: 1rem;
-        }
-        
-        .info-box {
-            background: #e6f3ff;
-            border: 1px solid #b3d9ff;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
             font-size: 0.9rem;
-            color: #2d3748;
+            text-align: right;
         }
-        
-        .info-box strong {
-            color: #1a202c;
-        }
-        
-        .warning-box {
-            background: #fff5e1;
-            border: 1px solid #ffd580;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-            font-size: 0.85rem;
-            color: #92400e;
-        }
-        
-        .disclaimer {
-            background: rgba(255, 193, 7, 0.1);
-            border: 1px solid rgba(255, 193, 7, 0.3);
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin-top: 3rem;
-            text-align: left;
-        }
-        
-        .disclaimer h3 {
-            color: #d69e2e;
+
+        /* ── INFO / WARNING BOXES ────────────── */
+        .info-box {
+            background: #ebf4ff;
+            border: 1px solid #bee3f8;
+            border-radius: 7px;
+            padding: 0.75rem 1rem;
             margin-bottom: 1rem;
-            font-size: 1.2rem;
+            font-size: 0.85rem;
+            color: #2c5282;
         }
-        
-        .disclaimer p {
-            color: #2d3748;
-            line-height: 1.6;
+
+        .warning-box {
+            background: #fffaf0;
+            border: 1px solid #fbd38d;
+            border-radius: 7px;
+            padding: 0.65rem 0.9rem;
+            margin-top: 0.8rem;
+            font-size: 0.82rem;
+            color: #744210;
         }
-        
+
+        /* ── ACCORDION EXPLAINER ─────────────── */
+        .explainer {
+            margin-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 0.8rem;
+        }
+
+        .explainer-btn {
+            width: 100%;
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            text-align: left;
+            padding: 0;
+            color: #4a5568;
+        }
+
+        .explainer-btn:hover .explainer-brief { color: #667eea; }
+
+        .explainer-arrow {
+            font-size: 0.75rem;
+            color: #667eea;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+            margin-top: 0.3rem;
+        }
+
+        .explainer-btn.open .explainer-arrow { transform: rotate(90deg); }
+
+        .explainer-brief {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            transition: color 0.2s;
+        }
+
+        .explainer-full {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.45s ease;
+        }
+
+        .explainer-full.open { max-height: 900px; }
+
+        .explainer-full-inner {
+            padding-top: 0.9rem;
+            font-size: 0.85rem;
+            color: #4a5568;
+            line-height: 1.65;
+        }
+
+        .explainer-full-inner p { margin-bottom: 0.7rem; }
+        .explainer-full-inner p:last-child { margin-bottom: 0; }
+
+        .explainer-full-inner .eq {
+            font-family: 'Courier New', monospace;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            padding: 0.5rem 0.9rem;
+            margin: 0.5rem 0;
+            font-size: 0.83rem;
+            display: block;
+        }
+
+        /* ── DISCLAIMER ──────────────────────── */
+        .disclaimer {
+            background: #fffaf0;
+            border: 1px solid rgba(251,191,36,0.4);
+            border-radius: 12px;
+            padding: 1.3rem 1.6rem;
+            margin-top: 2.5rem;
+        }
+
+        .disclaimer h3 { font-size: 1rem; color: #92400e; margin-bottom: 0.5rem; }
+        .disclaimer p  { font-size: 0.88rem; color: #2d3748; line-height: 1.6; }
+
+        /* ── FOOTER ──────────────────────────── */
         footer {
             background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
             color: white;
             text-align: center;
             padding: 2rem;
             margin-top: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.95;
         }
-        
-        @media (max-width: 768px) {
-            .tools-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            main {
-                padding: 2rem 1rem;
-            }
-            
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .nav-item {
-                text-align: center;
-                padding: 0.8rem;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-            }
+
+        footer a { color: rgba(255,255,255,0.7); text-decoration: none; }
+        footer a:hover { color: white; }
+
+        /* ── RESPONSIVE ──────────────────────── */
+        @media (max-width: 900px) {
+            .tools-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 600px) {
+            main { padding: 1.5rem 1rem; }
+            header h1 { font-size: 2rem; }
+            .nav-item { padding: 0.7rem 0.9rem; font-size: 0.82rem; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="header-content">
-                <h1>Optical System Tools</h1>
-                <p class="subtitle">Professional laser optics and machine vision calculators</p>
-                <div class="breadcrumb">
-                    <a href="/">← Back to Main Site</a>
-                </div>
-            </div>
-        </header>
+<div class="container">
 
-        <nav>
-            <div class="nav-container">
-                <a href="#beam-waist" class="nav-item">Beam Waist</a>
-                <a href="#rayleigh-range" class="nav-item">Rayleigh Range</a>
-                <a href="#peak-power" class="nav-item">Peak Power</a>
-                <a href="#vision-system" class="nav-item">Machine Vision</a>
-            </div>
-        </nav>
-
-        <main>
-            <section class="intro-section">
-                <p>Professional calculators for laser beam characterization and machine vision system design, developed from extensive experience in laser physics, optical system design, and industrial imaging applications. These tools implement standard Gaussian beam optics formulas and machine vision calculations used in research and manufacturing environments.</p>
-            </section>
-
-            <div class="tools-grid">
-                <!-- Focused Beam Waist Calculator -->
-                <div class="tool-card" id="beam-waist">
-                    <div class="tool-header">
-                        <h3>Focused Beam Waist Diameter Calculator</h3>
-                        <p>Calculate focused spot size for Gaussian laser beams</p>
-                    </div>
-                    <div class="tool-content">
-                        <div class="formula-display">
-                            d<sub>F</sub> = (4 × λ × f' × M² × APO) / (π × d<sub>L</sub>)<br>
-                            T = d<sub>L</sub> / d<sub>EP</sub> (Truncation Ratio)
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="wavelength">Wavelength (λ)</label>
-                            <div class="input-row">
-                                <input type="number" id="wavelength" step="0.1" value="532">
-                                <span class="unit-label">nm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="focal-length">Focal Length (f')</label>
-                            <div class="input-row">
-                                <input type="number" id="focal-length" step="0.1" value="100">
-                                <span class="unit-label">mm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="beam-diameter">Entrance Beam Diameter (d<sub>L</sub>) at 1/e²</label>
-                            <div class="input-row">
-                                <input type="number" id="beam-diameter" step="0.1" value="6.0">
-                                <span class="unit-label">mm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="entrance-pupil">Entrance Pupil Diameter (d<sub>EP</sub>)</label>
-                            <div class="input-row">
-                                <input type="number" id="entrance-pupil" step="0.1" value="10.0">
-                                <span class="unit-label">mm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="m-squared">Beam Quality Factor (M²)</label>
-                            <div class="input-row">
-                                <input type="number" id="m-squared" step="0.01" value="1.2" min="1">
-                                <span class="unit-label">-</span>
-                            </div>
-                        </div>
-                        
-                        <button class="calculate-btn" onclick="calculateBeamWaist()">Calculate Focused Spot Size</button>
-                        
-                        <div class="results-section" id="beam-waist-results" style="display: none;">
-                            <h4>Results</h4>
-                            <div class="result-item">
-                                <span class="result-label">Truncation Ratio (T):</span>
-                                <span class="result-value" id="truncation-ratio">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Apodization Factor (APO):</span>
-                                <span class="result-value" id="apo-factor">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Focused Spot Diameter (d<sub>F</sub>):</span>
-                                <span class="result-value" id="spot-diameter">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Beam Waist Radius (w₀):</span>
-                                <span class="result-value" id="waist-radius">-</span>
-                            </div>
-                        </div>
-                        
-                        <div class="warning-box" style="margin-top: 1rem;">
-                            <strong>APO Values:</strong> T ≤ 0.5 → APO = 1.27 | T = 1.0 → APO = 1.83 | Intermediate values are linearly interpolated
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Rayleigh Range Calculator -->
-                <div class="tool-card" id="rayleigh-range">
-                    <div class="tool-header">
-                        <h3>Rayleigh Range & Beam Propagation Calculator</h3>
-                        <p>Calculate beam diameter at various distances from focus</p>
-                    </div>
-                    <div class="tool-content">
-                        <div class="formula-display">
-                            z<sub>R</sub> = π × w₀² / λ<br>
-                            w(z) = w₀ × √(1 + (z/z<sub>R</sub>)²)
-                        </div>
-                        
-                        <div class="info-box">
-                            <strong>Auto-linked:</strong> This calculator automatically uses the wavelength and beam waist radius from the Focused Beam Waist Calculator above. Calculate beam waist first!
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="distance-z">Distance from Focus (z)</label>
-                            <div class="input-row">
-                                <input type="number" id="distance-z" step="0.1" value="10">
-                                <span class="unit-label">mm</span>
-                            </div>
-                        </div>
-                        
-                        <button class="calculate-btn" onclick="calculateRayleighRange()">Calculate Beam Propagation</button>
-                        
-                        <div class="results-section" id="rayleigh-results" style="display: none;">
-                            <h4>Results</h4>
-                            <div class="result-item">
-                                <span class="result-label">Rayleigh Range (z<sub>R</sub>):</span>
-                                <span class="result-value" id="rr-value">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Beam Diameter at z:</span>
-                                <span class="result-value" id="beam-at-z">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Beam Radius at z:</span>
-                                <span class="result-value" id="beam-radius-z">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Full Divergence Angle:</span>
-                                <span class="result-value" id="divergence-angle">-</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Peak Power Density Calculator -->
-                <div class="tool-card" id="peak-power">
-                    <div class="tool-header">
-                        <h3>Peak Power Density Calculator</h3>
-                        <p>Calculate peak power density for pulsed laser systems</p>
-                    </div>
-                    <div class="tool-content">
-                        <div class="formula-display">
-                            P<sub>peak</sub> = P<sub>avg</sub> / (f<sub>rep</sub> × τ)<br>
-                            I = P<sub>peak</sub> / A<sub>beam</sub><br>
-                            Fluence = I × τ
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="avg-power">Average Power (P<sub>avg</sub>)</label>
-                            <div class="input-row">
-                                <input type="number" id="avg-power" step="0.1" value="24">
-                                <span class="unit-label">W</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="rep-rate">Repetition Rate (f<sub>rep</sub>)</label>
-                            <div class="input-row">
-                                <input type="number" id="rep-rate" step="1" value="100">
-                                <span class="unit-label">kHz</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="pulse-width">Pulse Width (τ)</label>
-                            <div class="input-row">
-                                <input type="number" id="pulse-width" step="0.1" value="11.5">
-                                <span class="unit-label">ns</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="beam-diameter-power">Beam Diameter (1/e²)</label>
-                            <div class="input-row">
-                                <input type="number" id="beam-diameter-power" step="0.1" value="25">
-                                <span class="unit-label">μm</span>
-                            </div>
-                        </div>
-                        
-                        <button class="calculate-btn" onclick="calculatePeakPower()">Calculate Peak Power Density</button>
-                        
-                        <div class="results-section" id="peak-power-results" style="display: none;">
-                            <h4>Results</h4>
-                            <div class="result-item">
-                                <span class="result-label">Peak Power (P<sub>peak</sub>):</span>
-                                <span class="result-value" id="peak-power-value">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Pulse Energy:</span>
-                                <span class="result-value" id="pulse-energy">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Beam Area:</span>
-                                <span class="result-value" id="beam-area">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Peak Power Density (I):</span>
-                                <span class="result-value" id="power-density">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Fluence (per pulse):</span>
-                                <span class="result-value" id="fluence">-</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Machine Vision Calculator -->
-                <div class="tool-card" id="vision-system">
-                    <div class="tool-header">
-                        <h3>Machine Vision System Calculator</h3>
-                        <p>Calculate optical parameters for machine vision and inspection systems</p>
-                    </div>
-                    <div class="tool-content">
-                        <div class="formula-display">
-                            M = f / (WD - f)<br>
-                            FOV = Sensor / M<br>
-                            DOF = 2 × f# × CoC × (1 + |M|)²
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="lens-focal-length">Lens Focal Length</label>
-                            <div class="input-row">
-                                <input type="number" id="lens-focal-length" step="0.1" value="25">
-                                <span class="unit-label">mm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="working-distance">Working Distance (WD)</label>
-                            <div class="input-row">
-                                <input type="number" id="working-distance" step="1" value="200">
-                                <span class="unit-label">mm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="object-width">Object Width</label>
-                            <div class="input-row">
-                                <input type="number" id="object-width" step="0.1" value="50">
-                                <span class="unit-label">mm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="object-height">Object Height</label>
-                            <div class="input-row">
-                                <input type="number" id="object-height" step="0.1" value="40">
-                                <span class="unit-label">mm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="f-number">Lens f-number</label>
-                            <div class="input-row">
-                                <input type="number" id="f-number" step="0.1" value="2.8">
-                                <span class="unit-label">f/#</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="sensor-format">Sensor Format</label>
-                            <div class="input-row">
-                                <select id="sensor-format" onchange="updateSensorSize()">
-                                    <option value="custom">Custom</option>
-                                    <option value="1/4">1/4" (3.2 × 2.4 mm)</option>
-                                    <option value="1/3">1/3" (4.8 × 3.6 mm)</option>
-                                    <option value="1/2.5">1/2.5" (5.8 × 4.3 mm)</option>
-                                    <option value="1/2">1/2" (6.4 × 4.8 mm)</option>
-                                    <option value="2/3" selected>2/3" (8.8 × 6.6 mm)</option>
-                                    <option value="1">1" (12.8 × 9.6 mm)</option>
-                                    <option value="4/3">4/3" (17.3 × 13.0 mm)</option>
-                                    <option value="aps-c">APS-C (23.6 × 15.7 mm)</option>
-                                </select>
-                                <span class="unit-label">-</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="sensor-width">Sensor Width</label>
-                            <div class="input-row">
-                                <input type="number" id="sensor-width" step="0.1" value="8.8">
-                                <span class="unit-label">mm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="sensor-height">Sensor Height</label>
-                            <div class="input-row">
-                                <input type="number" id="sensor-height" step="0.1" value="6.6">
-                                <span class="unit-label">mm</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="pixel-count-h">Horizontal Pixel Count</label>
-                            <div class="input-row">
-                                <input type="number" id="pixel-count-h" step="1" value="1920">
-                                <span class="unit-label">px</span>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group">
-                            <label for="pixel-count-v">Vertical Pixel Count</label>
-                            <div class="input-row">
-                                <input type="number" id="pixel-count-v" step="1" value="1080">
-                                <span class="unit-label">px</span>
-                            </div>
-                        </div>
-                        
-                        <button class="calculate-btn" onclick="calculateVisionSystem()">Calculate Vision System</button>
-                        
-                        <div class="results-section" id="vision-results" style="display: none;">
-                            <h4>Optical Parameters</h4>
-                            <div class="result-item">
-                                <span class="result-label">Magnification (M):</span>
-                                <span class="result-value" id="magnification">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Field of View (FOV):</span>
-                                <span class="result-value" id="field-of-view">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Depth of Field (DOF):</span>
-                                <span class="result-value" id="depth-of-field">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Object Coverage:</span>
-                                <span class="result-value" id="object-coverage">-</span>
-                            </div>
-                            
-                            <h4 style="margin-top: 1.5rem; margin-bottom: 1rem;">Resolution Parameters</h4>
-                            <div class="result-item">
-                                <span class="result-label">Pixel Size on Object:</span>
-                                <span class="result-value" id="pixel-size-object">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Spatial Resolution:</span>
-                                <span class="result-value" id="pixels-per-mm">-</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Total Megapixels:</span>
-                                <span class="result-value" id="total-megapixels">-</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="disclaimer">
-                <h3>⚠️ Important Disclaimer</h3>
-                <p>These calculators are provided for educational and professional reference purposes. Always verify critical calculations independently and consult appropriate safety protocols when working with laser systems. The author assumes no responsibility for the use of these tools in actual laser system design or operation.</p>
-            </div>
-        </main>
-
-        <footer>
-            <p>&copy; 2024 Casey D. Foley, PhD. All rights reserved.</p>
-        </footer>
+<!-- HEADER -->
+<header>
+    <div class="header-content">
+        <h1>Laser &amp; Optics Tools</h1>
+        <p class="header-sub">Professional calculators for laser process design, beam characterization, and machine vision</p>
+        <div class="header-back"><a href="/">&#8592; cdfoley.com</a></div>
     </div>
+</header>
 
-    <script>
-        // Global variables to store beam waist calculation results
-        let storedWavelength = 0;
-        let storedBeamWaist = 0;
-        
-        function calculateAPO(T) {
-            // APO calculation based on truncation ratio
-            // Linear interpolation between T=0.5 (APO=1.27) and T=1.0 (APO=1.83)
-            if (T <= 0.5) {
-                return 1.27;
-            } else if (T >= 1.0) {
-                return 1.83;
-            } else {
-                // Linear interpolation
-                return 1.27 + (1.83 - 1.27) * (T - 0.5) / (1.0 - 0.5);
-            }
-        }
-        
-        function calculateBeamWaist() {
-            const wavelength = parseFloat(document.getElementById('wavelength').value);
-            const focalLength = parseFloat(document.getElementById('focal-length').value);
-            const beamDiameter = parseFloat(document.getElementById('beam-diameter').value);
-            const entrancePupil = parseFloat(document.getElementById('entrance-pupil').value);
-            const mSquared = parseFloat(document.getElementById('m-squared').value);
-            
-            if (isNaN(wavelength) || isNaN(focalLength) || isNaN(beamDiameter) || 
-                isNaN(entrancePupil) || isNaN(mSquared)) {
-                alert('Please enter valid numbers for all fields');
-                return;
-            }
-            
-            if (mSquared < 1.0) {
-                alert('M² must be ≥ 1.0 (ideal Gaussian beam)');
-                return;
-            }
-            
-            // Convert wavelength from nm to mm
-            const wavelengthMM = wavelength * 1e-6;
-            
-            // Calculate truncation ratio
-            const T = beamDiameter / entrancePupil;
-            
-            // Calculate apodization factor
-            const APO = calculateAPO(T);
-            
-            // Calculate focused spot diameter using standard formula
-            // dF = (4 × λ × f' × M² × APO) / (π × dL)
-            const spotDiameter = (4 * wavelengthMM * focalLength * mSquared * APO) / (Math.PI * beamDiameter);
-            
-            // Beam waist radius (w₀ = dF/2)
-            const beamWaist = spotDiameter / 2;
-            
-            // Store for use in Rayleigh calculator
-            storedWavelength = wavelength;
-            storedBeamWaist = beamWaist;
-            
-            // Display results
-            document.getElementById('truncation-ratio').textContent = T.toFixed(3);
-            document.getElementById('apo-factor').textContent = APO.toFixed(3);
-            document.getElementById('spot-diameter').textContent = 
-                (spotDiameter * 1000).toFixed(2) + ' µm (' + spotDiameter.toFixed(4) + ' mm)';
-            document.getElementById('waist-radius').textContent = 
-                (beamWaist * 1000).toFixed(2) + ' µm (' + beamWaist.toFixed(4) + ' mm)';
-            
-            document.getElementById('beam-waist-results').style.display = 'block';
-            
-            // Auto-scroll to results
-            document.getElementById('beam-waist-results').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest' 
-            });
-        }
-        
-        function calculateRayleighRange() {
-            if (storedBeamWaist === 0 || storedWavelength === 0) {
-                alert('Please calculate the focused beam waist first using the calculator above!');
-                return;
-            }
-            
-            const distance = parseFloat(document.getElementById('distance-z').value);
-            
-            if (isNaN(distance)) {
-                alert('Please enter a valid distance');
-                return;
-            }
-            
-            // Convert wavelength from nm to mm
-            const wavelengthMM = storedWavelength * 1e-6;
-            
-            // Calculate Rayleigh range: zR = π × w₀² / λ
-            const rayleighRange = (Math.PI * storedBeamWaist * storedBeamWaist) / wavelengthMM;
-            
-            // Calculate beam radius at distance z: w(z) = w₀ × √(1 + (z/zR)²)
-            const beamRadius = storedBeamWaist * Math.sqrt(1 + Math.pow(distance / rayleighRange, 2));
-            const beamDiameterAtZ = 2 * beamRadius;
-            
-            // Calculate divergence angle (full angle)
-            const divergenceAngle = 2 * Math.atan(wavelengthMM / (Math.PI * storedBeamWaist));
-            const divergenceAngleMrad = divergenceAngle * 1000;
-            const divergenceAngleDeg = divergenceAngle * (180 / Math.PI);
-            
-            // Display results
-            document.getElementById('rr-value').textContent = rayleighRange.toFixed(3) + ' mm';
-            document.getElementById('beam-at-z').textContent = 
-                (beamDiameterAtZ * 1000).toFixed(2) + ' µm (' + beamDiameterAtZ.toFixed(4) + ' mm)';
-            document.getElementById('beam-radius-z').textContent = 
-                (beamRadius * 1000).toFixed(2) + ' µm (' + beamRadius.toFixed(4) + ' mm)';
-            document.getElementById('divergence-angle').textContent = 
-                divergenceAngleMrad.toFixed(3) + ' mrad (' + divergenceAngleDeg.toFixed(3) + '°)';
-            
-            document.getElementById('rayleigh-results').style.display = 'block';
-            
-            // Auto-scroll to results
-            document.getElementById('rayleigh-results').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest' 
-            });
-        }
-        
-        function calculatePeakPower() {
-            const avgPower = parseFloat(document.getElementById('avg-power').value);
-            const repRateKHz = parseFloat(document.getElementById('rep-rate').value);
-            const pulseWidth = parseFloat(document.getElementById('pulse-width').value);
-            const beamDiameter = parseFloat(document.getElementById('beam-diameter-power').value);
-            
-            if (isNaN(avgPower) || isNaN(repRateKHz) || isNaN(pulseWidth) || isNaN(beamDiameter)) {
-                alert('Please enter valid numbers for all fields');
-                return;
-            }
-            
-            // Convert units
-            const repRate = repRateKHz * 1000; // kHz to Hz
-            const pulseWidthS = pulseWidth * 1e-9; // ns to s
-            const beamDiameterM = beamDiameter * 1e-6; // µm to m
-            
-            // Calculate peak power: Ppeak = Pavg / (frep × τ)
-            const peakPower = avgPower / (repRate * pulseWidthS);
-            
-            // Calculate pulse energy: E = Pavg / frep
-            const pulseEnergy = avgPower / repRate;
-            
-            // Calculate beam area (1/e² diameter)
-            const beamArea = Math.PI * Math.pow(beamDiameterM / 2, 2);
-            const beamAreaCm2 = beamArea * 1e4; // m² to cm²
-            
-            // Calculate peak power density: I = Ppeak / A
-            const powerDensity = peakPower / beamAreaCm2;
-            
-            // Calculate fluence: F = I × τ (energy density per pulse)
-            const fluence = powerDensity * pulseWidthS;
-            
-            // Display results
-            document.getElementById('peak-power-value').textContent = 
-                peakPower >= 1e6 ? (peakPower / 1e6).toFixed(2) + ' MW' : 
-                peakPower >= 1e3 ? (peakPower / 1e3).toFixed(2) + ' kW' : 
-                peakPower.toFixed(2) + ' W';
-            
-            document.getElementById('pulse-energy').textContent = 
-                pulseEnergy >= 1e-3 ? (pulseEnergy * 1e3).toFixed(2) + ' mJ' : 
-                (pulseEnergy * 1e6).toFixed(2) + ' µJ';
-            
-            document.getElementById('beam-area').textContent = beamAreaCm2.toExponential(3) + ' cm²';
-            document.getElementById('power-density').textContent = powerDensity.toExponential(2) + ' W/cm²';
-            document.getElementById('fluence').textContent = fluence.toFixed(2) + ' J/cm²';
-            
-            document.getElementById('peak-power-results').style.display = 'block';
-            
-            // Auto-scroll to results
-            document.getElementById('peak-power-results').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest' 
-            });
-        }
-        
-        function updateSensorSize() {
-            const sensorFormat = document.getElementById('sensor-format').value;
-            const sensorSizes = {
-                '1/4': { width: 3.2, height: 2.4 },
-                '1/3': { width: 4.8, height: 3.6 },
-                '1/2.5': { width: 5.8, height: 4.3 },
-                '1/2': { width: 6.4, height: 4.8 },
-                '2/3': { width: 8.8, height: 6.6 },
-                '1': { width: 12.8, height: 9.6 },
-                '4/3': { width: 17.3, height: 13.0 },
-                'aps-c': { width: 23.6, height: 15.7 }
-            };
-            
-            if (sensorFormat !== 'custom' && sensorSizes[sensorFormat]) {
-                document.getElementById('sensor-width').value = sensorSizes[sensorFormat].width;
-                document.getElementById('sensor-height').value = sensorSizes[sensorFormat].height;
-            }
-        }
-        
-        function calculateVisionSystem() {
-            const focalLength = parseFloat(document.getElementById('lens-focal-length').value);
-            const workingDistance = parseFloat(document.getElementById('working-distance').value);
-            const objectWidth = parseFloat(document.getElementById('object-width').value);
-            const objectHeight = parseFloat(document.getElementById('object-height').value);
-            const fNumber = parseFloat(document.getElementById('f-number').value);
-            const sensorWidth = parseFloat(document.getElementById('sensor-width').value);
-            const sensorHeight = parseFloat(document.getElementById('sensor-height').value);
-            const pixelCountH = parseFloat(document.getElementById('pixel-count-h').value);
-            const pixelCountV = parseFloat(document.getElementById('pixel-count-v').value);
-            
-            if (isNaN(focalLength) || isNaN(workingDistance) || isNaN(objectWidth) || 
-                isNaN(objectHeight) || isNaN(fNumber) || isNaN(sensorWidth) || 
-                isNaN(sensorHeight) || isNaN(pixelCountH) || isNaN(pixelCountV)) {
-                alert('Please enter valid numbers for all fields');
-                return;
-            }
-            
-            // Calculate magnification: M = f / (WD - f)
-            const magnification = focalLength / (workingDistance - focalLength);
-            
-            // Calculate field of view: FOV = sensor size / magnification
-            const fovWidth = sensorWidth / Math.abs(magnification);
-            const fovHeight = sensorHeight / Math.abs(magnification);
-            
-            // Calculate depth of field: DOF = 2 × f# × CoC × (1 + |M|)²
-            // Using circle of confusion = 5 µm (typical for machine vision)
-            const circleOfConfusion = 0.005; // 5 µm in mm
-            const depthOfField = 2 * fNumber * circleOfConfusion * Math.pow(1 + Math.abs(magnification), 2);
-            
-            // Check object coverage
-            const objectCoverageH = Math.min((fovWidth / objectWidth) * 100, 100);
-            const objectCoverageV = Math.min((fovHeight / objectHeight) * 100, 100);
-            
-            // Calculate pixel size projected onto object
-            const pixelSizeH = fovWidth / pixelCountH;
-            const pixelSizeV = fovHeight / pixelCountV;
-            
-            // Total megapixels
-            const totalMegapixels = (pixelCountH * pixelCountV) / 1e6;
-            
-            // Display results
-            document.getElementById('magnification').textContent = 
-                magnification.toFixed(3) + 'x' + (magnification < 0 ? ' (inverted)' : '');
-            
-            document.getElementById('field-of-view').textContent = 
-                fovWidth.toFixed(2) + ' × ' + fovHeight.toFixed(2) + ' mm';
-            
-            document.getElementById('depth-of-field').textContent = 
-                depthOfField.toFixed(3) + ' mm';
-            
-            // Object coverage with status indicator
-            let coverageText = objectCoverageH.toFixed(1) + '% × ' + objectCoverageV.toFixed(1) + '%';
-            if (objectCoverageH < 100 || objectCoverageV < 100) {
-                coverageText += ' ⚠️ Partial';
-            } else {
-                coverageText += ' ✓ Complete';
-            }
-            document.getElementById('object-coverage').textContent = coverageText;
-            
-            document.getElementById('pixel-size-object').textContent = 
-                (pixelSizeH * 1000).toFixed(2) + ' × ' + (pixelSizeV * 1000).toFixed(2) + ' µm/pixel';
-            
-            document.getElementById('pixels-per-mm').textContent = 
-                (1/pixelSizeH).toFixed(1) + ' × ' + (1/pixelSizeV).toFixed(1) + ' px/mm';
-            
-            document.getElementById('total-megapixels').textContent = 
-                totalMegapixels.toFixed(2) + ' MP';
-            
-            document.getElementById('vision-results').style.display = 'block';
-            
-            // Auto-scroll to results
-            document.getElementById('vision-results').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest' 
-            });
-        }
-        
-        // Smooth scrolling for navigation
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-    </script>
+<!-- NAV -->
+<nav>
+    <div class="nav-container">
+        <a href="#gaussian-beam"  class="nav-item">Gaussian Beam</a>
+        <span class="nav-sep">|</span>
+        <a href="#power-energy"   class="nav-item">Power &amp; Energy</a>
+        <span class="nav-sep">|</span>
+        <a href="#process-damage" class="nav-item">Process &amp; Damage</a>
+        <span class="nav-sep">|</span>
+        <a href="#machine-vision" class="nav-item">Machine Vision</a>
+        <span class="nav-sep">|</span>
+        <a href="/"               class="nav-item">&#8592; Main Site</a>
+    </div>
+</nav>
+
+<main>
+
+<div class="intro-section">
+    These calculators implement standard Gaussian beam optics, laser process physics, and machine vision formulas used daily in research and industrial laser systems. Each tool includes a brief summary and an expandable physics explainer—click the arrow to go deeper. Always verify critical calculations independently and follow applicable laser safety protocols.
+</div>
+
+<!-- ════════════════════════════════════════════
+     CATEGORY 1: GAUSSIAN BEAM OPTICS
+     ════════════════════════════════════════════ -->
+<section class="tool-category" id="gaussian-beam">
+    <div class="category-header">
+        <h2 class="category-title">Gaussian Beam Optics</h2>
+        <span class="category-count">4 tools</span>
+    </div>
+    <p class="category-desc">Fundamental beam propagation tools for characterizing and designing laser beam delivery systems.</p>
+
+    <div class="tools-grid">
+
+        <!-- 1. BEAM WAIST -->
+        <div class="tool-card" id="beam-waist">
+            <div class="tool-header">
+                <h3>Focused Beam Waist Diameter</h3>
+                <p>Minimum 1/e² spot diameter at focal plane</p>
+            </div>
+            <div class="tool-body">
+                <div class="formula-display">
+                    d<sub>F</sub> = (4&lambda; f&prime; M&sup2; APO) / (&pi; d<sub>L</sub>)<br>
+                    T = d<sub>L</sub> / d<sub>EP</sub> &nbsp;&nbsp; w&#8320; = d<sub>F</sub>/2
+                </div>
+
+                <div class="input-group">
+                    <label>Wavelength (&lambda;)</label>
+                    <div class="input-row"><input type="number" id="bw-wl" value="1064" step="1"><span class="unit-label">nm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Focal Length (f&prime;)</label>
+                    <div class="input-row"><input type="number" id="bw-fl" value="100" step="1"><span class="unit-label">mm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Input Beam Diameter (d<sub>L</sub>, 1/e&sup2;)</label>
+                    <div class="input-row"><input type="number" id="bw-bd" value="8.0" step="0.1"><span class="unit-label">mm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Entrance Pupil Diameter (d<sub>EP</sub>)</label>
+                    <div class="input-row"><input type="number" id="bw-ep" value="12.0" step="0.1"><span class="unit-label">mm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Beam Quality (M&sup2;)</label>
+                    <div class="input-row"><input type="number" id="bw-m2" value="1.1" step="0.01" min="1.0"><span class="unit-label">&mdash;</span></div>
+                </div>
+
+                <button class="calc-btn" onclick="calcBeamWaist()">Calculate Spot Size</button>
+
+                <div class="results-section" id="bw-results">
+                    <h4>Results</h4>
+                    <div class="result-item"><span class="result-label">Truncation Ratio (T)</span><span class="result-value" id="bw-T">—</span></div>
+                    <div class="result-item"><span class="result-label">Apodization Factor (APO)</span><span class="result-value" id="bw-APO">—</span></div>
+                    <div class="result-item"><span class="result-label">Focused Diameter (d<sub>F</sub>)</span><span class="result-value" id="bw-dF">—</span></div>
+                    <div class="result-item"><span class="result-label">Beam Waist Radius (w&#8320;)</span><span class="result-value" id="bw-w0">—</span></div>
+                </div>
+
+                <div class="explainer">
+                    <button class="explainer-btn" onclick="toggleExplainer(this)">
+                        <span class="explainer-arrow">&#9658;</span>
+                        <span class="explainer-brief">A focused Gaussian beam converges to a minimum spot size at the focal plane. This diameter governs fluence, ablation threshold margin, and peak irradiance—the starting point for any laser process design.</span>
+                    </button>
+                    <div class="explainer-full">
+                        <div class="explainer-full-inner">
+                            <p><strong>Gaussian beam optics</strong> describes TEM&#8320;&#8320; laser modes. The formula d<sub>F</sub>&nbsp;=&nbsp;4&lambda;f&prime;M&sup2;APO/(&pi;d<sub>L</sub>) captures four effects: wavelength (&lambda;), focal length (f&prime;), beam quality (M&sup2;), and aperture truncation (APO).</p>
+                            <p><strong>M&sup2;</strong> is the beam quality factor—M&sup2;&nbsp;=&nbsp;1 is a perfect diffraction-limited Gaussian. Single-mode fiber lasers achieve M&sup2;&nbsp;~&nbsp;1.05–1.15; multimode sources range 2–20. M&sup2; directly scales the focused spot: M&sup2;&nbsp;=&nbsp;1.5 means a 50% larger spot than the diffraction limit.</p>
+                            <p><strong>Truncation ratio</strong> T&nbsp;=&nbsp;d<sub>L</sub>/d<sub>EP</sub> measures how much of the lens aperture the beam fills. For T&nbsp;&le;&nbsp;0.5, APO&nbsp;=&nbsp;1.27 (underfilled, minimal edge diffraction). For T&nbsp;&ge;&nbsp;1.0, APO&nbsp;=&nbsp;1.83 (beam clipped, approaching Airy disk). Industrial ablation systems typically target T&nbsp;&asymp;&nbsp;0.7–0.9.</p>
+                            <p>Rule of thumb: to halve the spot diameter, either double the input beam size (use a beam expander) or halve the focal length. The two approaches trade spot size against working distance and depth of focus.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. RAYLEIGH RANGE -->
+        <div class="tool-card" id="rayleigh-range">
+            <div class="tool-header">
+                <h3>Rayleigh Range &amp; Beam Propagation</h3>
+                <p>Depth of focus and beam diameter vs. axial position</p>
+            </div>
+            <div class="tool-body">
+                <div class="formula-display">
+                    z<sub>R</sub> = &pi; w&#8320;&sup2; / (M&sup2; &lambda;)<br>
+                    w(z) = w&#8320; &radic;(1 + (z/z<sub>R</sub>)&sup2;)
+                </div>
+
+                <div class="input-group">
+                    <label>Beam Waist Radius (w&#8320;, 1/e&sup2;)</label>
+                    <div class="input-row"><input type="number" id="rr-w0" value="25" step="0.1"><span class="unit-label">&mu;m</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Wavelength (&lambda;)</label>
+                    <div class="input-row"><input type="number" id="rr-wl" value="1064" step="1"><span class="unit-label">nm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Beam Quality (M&sup2;)</label>
+                    <div class="input-row"><input type="number" id="rr-m2" value="1.1" step="0.01" min="1.0"><span class="unit-label">&mdash;</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Distance from Focus (z)</label>
+                    <div class="input-row"><input type="number" id="rr-z" value="5" step="0.1"><span class="unit-label">mm</span></div>
+                </div>
+
+                <button class="calc-btn" onclick="calcRayleigh()">Calculate Propagation</button>
+
+                <div class="results-section" id="rr-results">
+                    <h4>Results</h4>
+                    <div class="result-item"><span class="result-label">Rayleigh Range (z<sub>R</sub>)</span><span class="result-value" id="rr-zR">—</span></div>
+                    <div class="result-item"><span class="result-label">Beam Radius at z</span><span class="result-value" id="rr-wz">—</span></div>
+                    <div class="result-item"><span class="result-label">Beam Diameter at z</span><span class="result-value" id="rr-dz">—</span></div>
+                    <div class="result-item"><span class="result-label">Far-Field Divergence (full angle)</span><span class="result-value" id="rr-div">—</span></div>
+                </div>
+
+                <div class="explainer">
+                    <button class="explainer-btn" onclick="toggleExplainer(this)">
+                        <span class="explainer-arrow">&#9658;</span>
+                        <span class="explainer-brief">The Rayleigh range defines the axial depth over which the beam stays within &radic;2 of its minimum diameter (half-intensity at z<sub>R</sub>). It sets the working distance tolerance for laser processes sensitive to spot size variation.</span>
+                    </button>
+                    <div class="explainer-full">
+                        <div class="explainer-full-inner">
+                            <p>The Gaussian propagation equation w(z)&nbsp;=&nbsp;w&#8320;&radic;(1&nbsp;+&nbsp;(z/z<sub>R</sub>)&sup2;) shows the beam expands parabolically away from focus. Halving w&#8320; reduces z<sub>R</sub> by 4&times;—tight focus means very shallow depth of focus.</p>
+                            <p><strong>Practical implication:</strong> for an ablation spot of 25&nbsp;&mu;m radius at 1064&nbsp;nm with M&sup2;&nbsp;=&nbsp;1.1, z<sub>R</sub>&nbsp;&asymp;&nbsp;1.7&nbsp;mm. A &plusmn;z<sub>R</sub> height variation grows the beam to &radic;2 &times; w&#8320;, doubling the area and halving the fluence. This is why height-sensing (confocal, triangulation, or working-distance sensor) is critical for precision ablation.</p>
+                            <p><strong>Far-field divergence</strong> half-angle &theta;&nbsp;=&nbsp;M&sup2;&lambda;/(&pi;w&#8320;). Beams with larger M&sup2; diverge faster at equal spot size—relevant when delivering a beam over a long path before the focusing lens.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. BEAM EXPANDER -->
+        <div class="tool-card" id="beam-expander">
+            <div class="tool-header">
+                <h3>Beam Expander</h3>
+                <p>Output diameter, divergence, and effect on focused spot</p>
+            </div>
+            <div class="tool-body">
+                <div class="formula-display">
+                    d<sub>out</sub> = M &times; d<sub>in</sub> &nbsp;&nbsp; &theta;<sub>out</sub> = &theta;<sub>in</sub> / M<br>
+                    d<sub>F,after</sub> = d<sub>F,before</sub> / M
+                </div>
+
+                <div class="input-group">
+                    <label>Input Beam Diameter (1/e&sup2;)</label>
+                    <div class="input-row"><input type="number" id="be-din" value="3.0" step="0.1"><span class="unit-label">mm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Input Beam Divergence (full angle)</label>
+                    <div class="input-row"><input type="number" id="be-divin" value="1.2" step="0.1"><span class="unit-label">mrad</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Expander Magnification (M)</label>
+                    <div class="input-row"><input type="number" id="be-M" value="3" step="0.5" min="1"><span class="unit-label">&times;</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Focusing Lens Focal Length (optional)</label>
+                    <div class="input-row"><input type="number" id="be-fl" value="100" step="1"><span class="unit-label">mm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Wavelength (for spot size)</label>
+                    <div class="input-row"><input type="number" id="be-wl" value="1064" step="1"><span class="unit-label">nm</span></div>
+                </div>
+
+                <button class="calc-btn" onclick="calcBeamExpander()">Calculate Output</button>
+
+                <div class="results-section" id="be-results">
+                    <h4>Results</h4>
+                    <div class="result-item"><span class="result-label">Output Beam Diameter</span><span class="result-value" id="be-dout">—</span></div>
+                    <div class="result-item"><span class="result-label">Output Divergence (full angle)</span><span class="result-value" id="be-divout">—</span></div>
+                    <div class="result-item"><span class="result-label">Focused Spot (diffraction limit, M&sup2;=1)</span><span class="result-value" id="be-spot">—</span></div>
+                    <div class="result-item"><span class="result-label">Spot Size Reduction vs. Unexpanded</span><span class="result-value" id="be-ratio">—</span></div>
+                </div>
+
+                <div class="explainer">
+                    <button class="explainer-btn" onclick="toggleExplainer(this)">
+                        <span class="explainer-arrow">&#9658;</span>
+                        <span class="explainer-brief">A beam expander increases beam diameter by M&times;, simultaneously reducing divergence by M. Expanding before a focusing lens yields a spot M&times; smaller than the unexpanded case—and M&sup2;&times; higher peak irradiance.</span>
+                    </button>
+                    <div class="explainer-full">
+                        <div class="explainer-full-inner">
+                            <p>The beam parameter product (BPP&nbsp;=&nbsp;w&#8320;&nbsp;&times;&nbsp;&theta;) is conserved: expanding increases diameter and decreases divergence in exact inverse proportion. This is governed by the conservation of etendue (optical invariant).</p>
+                            <p><strong>Galilean expanders</strong> (negative input lens + positive output lens) are preferred for high-power pulsed lasers—there is no internal focus to create a plasma or damage point. <strong>Keplerian expanders</strong> (two positive lenses) have an internal focus enabling a spatial filter (pinhole) for improved beam quality, but the high-intensity internal focus limits use with high-energy pulses.</p>
+                            <p>After expanding M&times; and refocusing with the same lens: spot diameter shrinks by M&times;, beam area shrinks by M&sup2;&times;, and peak irradiance increases by M&sup2;&times;. A 3&times; expander turns 100&nbsp;&mu;m spot &rarr; 33&nbsp;&mu;m spot and 9&times; higher peak irradiance—no optics change needed.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. F-THETA -->
+        <div class="tool-card" id="f-theta">
+            <div class="tool-header">
+                <h3>F-Theta Scan Field</h3>
+                <p>Scan field size and focused spot for galvo scanner systems</p>
+            </div>
+            <div class="tool-body">
+                <div class="formula-display">
+                    y = f &theta; &nbsp;&nbsp; (vs. y = f&middot;tan&theta; standard)<br>
+                    Field = 2f&theta;<sub>max</sub> &nbsp;&nbsp; d<sub>F</sub> = 4&lambda;f / (&pi; d<sub>beam</sub>)
+                </div>
+
+                <div class="input-group">
+                    <label>F-Theta Focal Length (f)</label>
+                    <div class="input-row"><input type="number" id="ft-fl" value="163" step="1"><span class="unit-label">mm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Max Half-Scan Angle (&theta;<sub>max</sub>)</label>
+                    <div class="input-row"><input type="number" id="ft-angle" value="14" step="0.5"><span class="unit-label">deg</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Input Beam Diameter at lens (1/e&sup2;)</label>
+                    <div class="input-row"><input type="number" id="ft-bd" value="10.0" step="0.1"><span class="unit-label">mm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Wavelength (&lambda;)</label>
+                    <div class="input-row"><input type="number" id="ft-wl" value="1064" step="1"><span class="unit-label">nm</span></div>
+                </div>
+
+                <button class="calc-btn" onclick="calcFtheta()">Calculate Scan Field</button>
+
+                <div class="results-section" id="ft-results">
+                    <h4>Results</h4>
+                    <div class="result-item"><span class="result-label">Scan Field (full width)</span><span class="result-value" id="ft-field">—</span></div>
+                    <div class="result-item"><span class="result-label">Scan Field Area</span><span class="result-value" id="ft-area">—</span></div>
+                    <div class="result-item"><span class="result-label">Focused Spot Diameter (1/e&sup2;, M&sup2;=1)</span><span class="result-value" id="ft-spot">—</span></div>
+                    <div class="result-item"><span class="result-label">Working Distance (approx.)</span><span class="result-value" id="ft-wd">—</span></div>
+                </div>
+
+                <div class="explainer">
+                    <button class="explainer-btn" onclick="toggleExplainer(this)">
+                        <span class="explainer-arrow">&#9658;</span>
+                        <span class="explainer-brief">An f-theta lens linearizes scan position (y&nbsp;=&nbsp;f&theta;) and flattens the focal plane, giving constant spot size across the scan field. Essential for any galvanometer-based laser scanner where uniform fluence and accurate positioning are required.</span>
+                    </button>
+                    <div class="explainer-full">
+                        <div class="explainer-full-inner">
+                            <p>A standard spherical lens positions the focused spot as y&nbsp;=&nbsp;f&middot;tan(&theta;)—nonlinear with mirror angle, and the focal surface is curved (Petzval field). F-theta lenses introduce intentional barrel distortion to enforce y&nbsp;=&nbsp;f&theta;, linearizing position control and flattening the field simultaneously.</p>
+                            <p>This makes encoder-to-position conversion trivial and ensures uniform fluence from edge to center. The trade-off: f-theta lenses are optimized for a fixed conjugate (fixed working distance), limiting flexibility compared to a zoom or adjustable focusing system.</p>
+                            <p><strong>Telecentric f-theta</strong> lenses additionally enforce perpendicular incidence across the entire field—the beam hits the workpiece at 0° everywhere. This is critical for applications requiring consistent coupling into holes, grooves, or deep features, and for consistent depth of focus across the field.</p>
+                            <p>Note: the diffraction-limited spot formula d<sub>F</sub>&nbsp;=&nbsp;4&lambda;f/(&pi;d<sub>beam</sub>) applies at field center. Spot quality degrades toward the edge of large scan fields due to residual aberrations; specify your required edge-to-center spot size ratio when selecting a lens.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /tools-grid -->
+</section>
+
+<!-- ════════════════════════════════════════════
+     CATEGORY 2: POWER & ENERGY
+     ════════════════════════════════════════════ -->
+<section class="tool-category" id="power-energy">
+    <div class="category-header">
+        <h2 class="category-title">Power &amp; Energy</h2>
+        <span class="category-count">3 tools</span>
+    </div>
+    <p class="category-desc">Convert between average power, pulse energy, peak power, fluence, and pulse timing parameters.</p>
+
+    <div class="tools-grid">
+
+        <!-- 5. PEAK POWER DENSITY -->
+        <div class="tool-card" id="peak-power">
+            <div class="tool-header">
+                <h3>Peak Power Density &amp; Fluence</h3>
+                <p>Instantaneous irradiance and per-pulse energy density</p>
+            </div>
+            <div class="tool-body">
+                <div class="formula-display">
+                    P<sub>peak</sub> = P<sub>avg</sub> / (f<sub>rep</sub> &times; &tau;) &nbsp;&nbsp; E<sub>pulse</sub> = P<sub>avg</sub> / f<sub>rep</sub><br>
+                    I = P<sub>peak</sub> / A &nbsp;&nbsp; F = E<sub>pulse</sub> / A
+                </div>
+
+                <div class="input-group">
+                    <label>Average Power (P<sub>avg</sub>)</label>
+                    <div class="input-row"><input type="number" id="pp-pavg" value="20" step="0.1"><span class="unit-label">W</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Repetition Rate (f<sub>rep</sub>)</label>
+                    <div class="input-row"><input type="number" id="pp-frep" value="100" step="1"><span class="unit-label">kHz</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Pulse Width (&tau;)</label>
+                    <div class="input-row"><input type="number" id="pp-tau" value="10" step="0.1"><span class="unit-label">ns</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Focused Spot Diameter (1/e&sup2;)</label>
+                    <div class="input-row"><input type="number" id="pp-dspot" value="30" step="0.1"><span class="unit-label">&mu;m</span></div>
+                </div>
+
+                <button class="calc-btn" onclick="calcPeakPower()">Calculate</button>
+
+                <div class="results-section" id="pp-results">
+                    <h4>Results</h4>
+                    <div class="result-item"><span class="result-label">Pulse Energy (E<sub>pulse</sub>)</span><span class="result-value" id="pp-epulse">—</span></div>
+                    <div class="result-item"><span class="result-label">Peak Power (P<sub>peak</sub>)</span><span class="result-value" id="pp-ppeak">—</span></div>
+                    <div class="result-item"><span class="result-label">Beam Area</span><span class="result-value" id="pp-area">—</span></div>
+                    <div class="result-item"><span class="result-label">Peak Irradiance (I)</span><span class="result-value" id="pp-irrad">—</span></div>
+                    <div class="result-item"><span class="result-label">Fluence per Pulse (F)</span><span class="result-value" id="pp-fluence">—</span></div>
+                    <div class="result-item"><span class="result-label">Duty Cycle</span><span class="result-value" id="pp-duty">—</span></div>
+                </div>
+
+                <div class="explainer">
+                    <button class="explainer-btn" onclick="toggleExplainer(this)">
+                        <span class="explainer-arrow">&#9658;</span>
+                        <span class="explainer-brief">Average power is often misleading. A 1 W pulsed laser focused to 30&nbsp;&mu;m can deliver &gt;10&sup8;&nbsp;W/cm&sup2; peak—orders of magnitude higher than a CW beam of the same power. Peak irradiance and fluence are the parameters that actually drive laser-material interactions.</span>
+                    </button>
+                    <div class="explainer-full">
+                        <div class="explainer-full-inner">
+                            <p><strong>Fluence</strong> (J/cm&sup2;) = energy density per pulse per unit area. This is the primary ablation process variable: you need F&nbsp;&gt;&nbsp;F<sub>th</sub> to ablate, and the margin above threshold controls depth per pulse and recast layer thickness.</p>
+                            <p><strong>Peak irradiance</strong> (W/cm&sup2;) = instantaneous intensity. This drives nonlinear effects, plasma formation, and LIDT comparisons. For ns pulses on metals, plasma onset typically occurs at ~10&sup9;&nbsp;W/cm&sup2;—above this, the expanding plasma shields the surface and efficiency drops dramatically.</p>
+                            <p>P<sub>peak</sub>&nbsp;=&nbsp;P<sub>avg</sub>/(f<sub>rep</sub>&nbsp;&times;&nbsp;&tau;) assumes a rectangular pulse shape. Real pulses (Gaussian temporal profile) have a peak ~1.6&times; higher for the same energy—conservative to use rectangular approximation for LIDT comparisons.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. PULSE PARAMETERS -->
+        <div class="tool-card" id="pulse-params">
+            <div class="tool-header">
+                <h3>Pulse Parameter Converter</h3>
+                <p>Interconvert power, energy, rep rate, and duty cycle</p>
+            </div>
+            <div class="tool-body">
+                <div class="formula-display">
+                    E<sub>pulse</sub> = P<sub>avg</sub> / f<sub>rep</sub><br>
+                    D = &tau; &times; f<sub>rep</sub> &nbsp;&nbsp; P<sub>avg</sub> = P<sub>peak</sub> &times; D
+                </div>
+
+                <div class="input-group">
+                    <label>Average Power</label>
+                    <div class="input-row"><input type="number" id="pu-pavg" value="10" step="0.1"><span class="unit-label">W</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Repetition Rate</label>
+                    <div class="input-row"><input type="number" id="pu-frep" value="50" step="1"><span class="unit-label">kHz</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Pulse Duration (&tau;)</label>
+                    <div class="input-row"><input type="number" id="pu-tau" value="15" step="0.1"><span class="unit-label">ns</span></div>
+                </div>
+
+                <button class="calc-btn" onclick="calcPulseParams()">Calculate</button>
+
+                <div class="results-section" id="pu-results">
+                    <h4>Results</h4>
+                    <div class="result-item"><span class="result-label">Pulse Energy</span><span class="result-value" id="pu-epulse">—</span></div>
+                    <div class="result-item"><span class="result-label">Peak Power</span><span class="result-value" id="pu-ppeak">—</span></div>
+                    <div class="result-item"><span class="result-label">Duty Cycle</span><span class="result-value" id="pu-duty">—</span></div>
+                    <div class="result-item"><span class="result-label">Pulse Period</span><span class="result-value" id="pu-period">—</span></div>
+                    <div class="result-item"><span class="result-label">Peak-to-Average Ratio</span><span class="result-value" id="pu-ratio">—</span></div>
+                </div>
+
+                <div class="explainer">
+                    <button class="explainer-btn" onclick="toggleExplainer(this)">
+                        <span class="explainer-arrow">&#9658;</span>
+                        <span class="explainer-brief">Laser specifications mix average and peak power interchangeably—this converter keeps them straight. Also useful for scan strategy design: increasing rep rate at constant power reduces pulse energy, eventually dropping below ablation threshold.</span>
+                    </button>
+                    <div class="explainer-full">
+                        <div class="explainer-full-inner">
+                            <p>Duty cycle D&nbsp;=&nbsp;&tau;&nbsp;&times;&nbsp;f<sub>rep</sub> is the fraction of time the laser is "on." For a 10&nbsp;ns pulse at 100&nbsp;kHz, D&nbsp;=&nbsp;0.1%—the laser fires in extremely brief bursts. P<sub>avg</sub>&nbsp;=&nbsp;P<sub>peak</sub>&nbsp;&times;&nbsp;D, so a modest average power can imply enormous peak power.</p>
+                            <p><strong>Thermal management:</strong> heat accumulation occurs when the repetition period 1/f<sub>rep</sub> is shorter than the thermal diffusion time &tau;<sub>th</sub>&nbsp;&asymp;&nbsp;d<sub>spot</sub>&sup2;/(4&kappa;), where &kappa; is thermal diffusivity. For a 30&nbsp;&mu;m spot on stainless steel (&kappa;&nbsp;&asymp;&nbsp;4&nbsp;mm&sup2;/s), &tau;<sub>th</sub>&nbsp;&asymp;&nbsp;56&nbsp;&mu;s, corresponding to ~18&nbsp;kHz. Running above this causes pulse-to-pulse heat accumulation and eventual melt recast.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. LIDT SCALING -->
+        <div class="tool-card" id="lidt">
+            <div class="tool-header">
+                <h3>LIDT Scaling Calculator</h3>
+                <p>Scale a known damage threshold to your operating conditions</p>
+            </div>
+            <div class="tool-body">
+                <div class="formula-display">
+                    F<sub>th</sub>(&tau;) = F<sub>th,ref</sub> &times; &radic;(&tau; / &tau;<sub>ref</sub>)<br>
+                    F<sub>th</sub>(&lambda;) = F<sub>th,ref</sub> &times; &radic;(&lambda; / &lambda;<sub>ref</sub>)
+                </div>
+
+                <div class="input-group">
+                    <label>Known LIDT (F<sub>th,ref</sub>)</label>
+                    <div class="input-row"><input type="number" id="li-lidt" value="5.0" step="0.1"><span class="unit-label">J/cm&sup2;</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Reference Pulse Duration (&tau;<sub>ref</sub>)</label>
+                    <div class="input-row"><input type="number" id="li-tauref" value="10" step="0.1"><span class="unit-label">ns</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Reference Wavelength (&lambda;<sub>ref</sub>)</label>
+                    <div class="input-row"><input type="number" id="li-wlref" value="1064" step="1"><span class="unit-label">nm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Target Pulse Duration</label>
+                    <div class="input-row"><input type="number" id="li-tautgt" value="100" step="1"><span class="unit-label">ns</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Target Wavelength</label>
+                    <div class="input-row"><input type="number" id="li-wltgt" value="532" step="1"><span class="unit-label">nm</span></div>
+                </div>
+
+                <button class="calc-btn" onclick="calcLIDT()">Scale LIDT</button>
+
+                <div class="results-section" id="li-results">
+                    <h4>Results</h4>
+                    <div class="result-item"><span class="result-label">Pulse-Duration Scaled LIDT</span><span class="result-value" id="li-tau-scaled">—</span></div>
+                    <div class="result-item"><span class="result-label">Wavelength Scaled LIDT</span><span class="result-value" id="li-wl-scaled">—</span></div>
+                    <div class="result-item"><span class="result-label">Combined Scaled LIDT</span><span class="result-value" id="li-combined">—</span></div>
+                    <div class="result-item"><span class="result-label">Recommended Safety Margin (3&times;)</span><span class="result-value" id="li-safe">—</span></div>
+                </div>
+
+                <div class="warning-box">&#9888; Scaling laws are empirical approximations. Always validate with measured LIDT data for your specific optic and operating conditions.</div>
+
+                <div class="explainer">
+                    <button class="explainer-btn" onclick="toggleExplainer(this)">
+                        <span class="explainer-arrow">&#9658;</span>
+                        <span class="explainer-brief">LIDT specs are measured at specific conditions. These &radic;&tau; and &radic;&lambda; scaling laws let you estimate the threshold at your pulse duration and wavelength when direct measurement data isn&rsquo;t available.</span>
+                    </button>
+                    <div class="explainer-full">
+                        <div class="explainer-full-inner">
+                            <p><strong>Pulse duration scaling</strong> F<sub>th</sub>&nbsp;&prop;&nbsp;&radic;&tau; reflects thermally dominated damage in the ns–µs regime: longer pulses deposit more total energy but allow heat to diffuse, and damage occurs when peak temperature exceeds a threshold. This scaling breaks down below ~10&nbsp;ps where non-thermal (ionization-driven) mechanisms dominate—do not use for ultrashort pulse systems.</p>
+                            <p><strong>Wavelength scaling</strong> F<sub>th</sub>&nbsp;&prop;&nbsp;&radic;&lambda; is approximate and material-dependent. It reflects photon energy dependence of absorption and multiphoton initiation processes. For coated optics, manufacturer-specific data at your wavelength is far more reliable than scaling from another wavelength.</p>
+                            <p><strong>Practical factors not captured by these formulas:</strong></p>
+                            <p>(1) <em>S-on-1 vs. 1-on-1:</em> manufacturer specs use single-pulse testing. Under repetitive exposure, incubation reduces effective LIDT by 30–70%. (2) <em>Beam profile:</em> Gaussian beams have local peak intensity ~2&times; the average across the 1/e&sup2; area—a hotspot issue. (3) <em>Surface quality and cleanliness:</em> dust or scratches can reduce effective LIDT by 10&times;. Apply &ge;3&times; safety factor for design.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     CATEGORY 3: PROCESS & DAMAGE
+     ════════════════════════════════════════════ -->
+<section class="tool-category" id="process-damage">
+    <div class="category-header">
+        <h2 class="category-title">Process &amp; Damage</h2>
+        <span class="category-count">1 tool</span>
+    </div>
+    <p class="category-desc">Laser ablation modeling for process window design and material removal rate estimation.</p>
+
+    <div class="tools-grid single">
+
+        <!-- 8. ABLATION DEPTH -->
+        <div class="tool-card" id="ablation">
+            <div class="tool-header">
+                <h3>Ablation Depth Estimator</h3>
+                <p>Per-pulse depth from the logarithmic Beer-Lambert ablation model</p>
+            </div>
+            <div class="tool-body">
+                <div class="formula-display">
+                    L = &delta; &times; ln(F / F<sub>th</sub>)<br>
+                    &delta; = 1/&alpha; = optical penetration depth
+                </div>
+
+                <div class="input-group">
+                    <label>Material Preset</label>
+                    <div class="input-row">
+                        <select id="abl-preset" onchange="applyAblationPreset()">
+                            <option value="custom">Custom</option>
+                            <option value="si-1064">Silicon @ 1064 nm</option>
+                            <option value="si-532">Silicon @ 532 nm</option>
+                            <option value="ito-532">ITO @ 532 nm</option>
+                            <option value="steel-1064">Stainless Steel @ 1064 nm</option>
+                            <option value="al-532">Aluminum @ 532 nm</option>
+                            <option value="glass-uv">Soda-Lime Glass @ 355 nm</option>
+                        </select>
+                        <span class="unit-label">&mdash;</span>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Applied Fluence (F)</label>
+                    <div class="input-row"><input type="number" id="abl-F" value="5.0" step="0.1"><span class="unit-label">J/cm&sup2;</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Ablation Threshold Fluence (F<sub>th</sub>)</label>
+                    <div class="input-row"><input type="number" id="abl-Fth" value="0.8" step="0.01"><span class="unit-label">J/cm&sup2;</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Optical Penetration Depth (&delta;)</label>
+                    <div class="input-row"><input type="number" id="abl-delta" value="20" step="1"><span class="unit-label">nm</span></div>
+                </div>
+
+                <button class="calc-btn" onclick="calcAblation()">Estimate Ablation Depth</button>
+
+                <div class="results-section" id="abl-results">
+                    <h4>Results</h4>
+                    <div class="result-item"><span class="result-label">Ablation Depth per Pulse</span><span class="result-value" id="abl-depth">—</span></div>
+                    <div class="result-item"><span class="result-label">F / F<sub>th</sub> Ratio</span><span class="result-value" id="abl-ratio">—</span></div>
+                    <div class="result-item"><span class="result-label">Depth at 2&times; F<sub>th</sub></span><span class="result-value" id="abl-2x">—</span></div>
+                    <div class="result-item"><span class="result-label">Depth at 5&times; F<sub>th</sub></span><span class="result-value" id="abl-5x">—</span></div>
+                </div>
+
+                <div class="warning-box">&#9888; Valid for single-pulse, normal-incidence, no plasma shielding. Multi-pulse incubation and plasma confinement effects are not modeled.</div>
+
+                <div class="explainer">
+                    <button class="explainer-btn" onclick="toggleExplainer(this)">
+                        <span class="explainer-arrow">&#9658;</span>
+                        <span class="explainer-brief">Ablation depth increases logarithmically with fluence above threshold—not linearly. This means doubling fluence does not double depth; the relationship is L&nbsp;=&nbsp;&delta;&middot;ln(F/F<sub>th</sub>). Process depth and quality are controlled by operating at the right F/F<sub>th</sub> ratio.</span>
+                    </button>
+                    <div class="explainer-full">
+                        <div class="explainer-full-inner">
+                            <p><strong>Physical origin:</strong> at threshold fluence, just enough energy is deposited in the surface absorption depth &delta;&nbsp;=&nbsp;1/&alpha; to drive ablation. Above threshold, the ablated depth grows logarithmically because each additional increment of fluence penetrates deeper into material that was already fully absorbing at threshold.</p>
+                            <p><strong>Penetration depth &delta;</strong> ranges widely: ~5&nbsp;nm for silicon at 1064&nbsp;nm (indirect bandgap, weak absorption); ~10–50&nbsp;nm for metals at visible wavelengths; ~100&nbsp;nm–1&nbsp;&mu;m for wide-bandgap semiconductors near their band edge; &gt;1&nbsp;&mu;m for transparent glass at UV wavelengths (multiphoton or defect absorption).</p>
+                            <p><strong>Multi-pulse incubation:</strong> repeated below-threshold pulses accumulate defects that lower the effective F<sub>th</sub> over N pulses: F<sub>th</sub>(N)&nbsp;=&nbsp;F<sub>th</sub>(1)&nbsp;&times;&nbsp;N<sup>(S&minus;1)</sup> where S&nbsp;&lt;&nbsp;1 is the incubation coefficient. For many metals S&nbsp;&asymp;&nbsp;0.8–0.9. This means a process that appears below threshold for a single pulse will eventually ablate with accumulated exposure—important for scribing over large areas at high rep rate.</p>
+                            <p><strong>Process window design:</strong> operating at F/F<sub>th</sub>&nbsp;=&nbsp;2–5 provides predictable depth control and moderate recast. At F/F<sub>th</sub>&nbsp;&gt;&nbsp;10, plasma shielding reduces coupling efficiency and the model underestimates actual depth.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     CATEGORY 4: MACHINE VISION
+     ════════════════════════════════════════════ -->
+<section class="tool-category" id="machine-vision">
+    <div class="category-header">
+        <h2 class="category-title">Machine Vision</h2>
+        <span class="category-count">1 tool</span>
+    </div>
+    <p class="category-desc">Optical parameters for camera and lens selection in inspection, measurement, and process control systems.</p>
+
+    <div class="tools-grid single">
+
+        <!-- 9. MACHINE VISION -->
+        <div class="tool-card" id="vision-system">
+            <div class="tool-header">
+                <h3>Machine Vision System Calculator</h3>
+                <p>FOV, magnification, depth of field, and spatial resolution</p>
+            </div>
+            <div class="tool-body">
+                <div class="formula-display">
+                    M = f / (WD &minus; f) &nbsp;&nbsp; FOV = Sensor / |M|<br>
+                    DOF = 2 f<sub>#</sub> &times; CoC &times; (1 + |M|)&sup2;
+                </div>
+
+                <div class="input-group">
+                    <label>Lens Focal Length</label>
+                    <div class="input-row"><input type="number" id="mv-fl" value="25" step="0.5"><span class="unit-label">mm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Working Distance (WD)</label>
+                    <div class="input-row"><input type="number" id="mv-wd" value="200" step="1"><span class="unit-label">mm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Lens f-number</label>
+                    <div class="input-row"><input type="number" id="mv-fno" value="2.8" step="0.1"><span class="unit-label">f/#</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Sensor Format</label>
+                    <div class="input-row">
+                        <select id="mv-format" onchange="updateSensor()">
+                            <option value="custom">Custom</option>
+                            <option value="1/4">1/4&rdquo; (3.2 &times; 2.4 mm)</option>
+                            <option value="1/3">1/3&rdquo; (4.8 &times; 3.6 mm)</option>
+                            <option value="1/2.5">1/2.5&rdquo; (5.8 &times; 4.3 mm)</option>
+                            <option value="1/2">1/2&rdquo; (6.4 &times; 4.8 mm)</option>
+                            <option value="2/3" selected>2/3&rdquo; (8.8 &times; 6.6 mm)</option>
+                            <option value="1">1&rdquo; (12.8 &times; 9.6 mm)</option>
+                            <option value="4/3">4/3&rdquo; (17.3 &times; 13.0 mm)</option>
+                            <option value="aps-c">APS-C (23.6 &times; 15.7 mm)</option>
+                        </select>
+                        <span class="unit-label">&mdash;</span>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Sensor Width</label>
+                    <div class="input-row"><input type="number" id="mv-sw" value="8.8" step="0.1"><span class="unit-label">mm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Sensor Height</label>
+                    <div class="input-row"><input type="number" id="mv-sh" value="6.6" step="0.1"><span class="unit-label">mm</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Horizontal Pixel Count</label>
+                    <div class="input-row"><input type="number" id="mv-ph" value="1920" step="1"><span class="unit-label">px</span></div>
+                </div>
+                <div class="input-group">
+                    <label>Vertical Pixel Count</label>
+                    <div class="input-row"><input type="number" id="mv-pv" value="1080" step="1"><span class="unit-label">px</span></div>
+                </div>
+
+                <button class="calc-btn" onclick="calcVision()">Calculate System</button>
+
+                <div class="results-section" id="mv-results">
+                    <h4>Optical Parameters</h4>
+                    <div class="result-item"><span class="result-label">Magnification (M)</span><span class="result-value" id="mv-M">—</span></div>
+                    <div class="result-item"><span class="result-label">Field of View (FOV)</span><span class="result-value" id="mv-FOV">—</span></div>
+                    <div class="result-item"><span class="result-label">Depth of Field (DOF)</span><span class="result-value" id="mv-DOF">—</span></div>
+                    <h4 style="margin-top:1rem; margin-bottom:0.8rem;">Resolution</h4>
+                    <div class="result-item"><span class="result-label">Pixel Size on Object</span><span class="result-value" id="mv-pixobj">—</span></div>
+                    <div class="result-item"><span class="result-label">Spatial Resolution</span><span class="result-value" id="mv-res">—</span></div>
+                    <div class="result-item"><span class="result-label">Total Megapixels</span><span class="result-value" id="mv-mp">—</span></div>
+                </div>
+
+                <div class="explainer">
+                    <button class="explainer-btn" onclick="toggleExplainer(this)">
+                        <span class="explainer-arrow">&#9658;</span>
+                        <span class="explainer-brief">Magnification, FOV, and DOF are all coupled—you can&rsquo;t optimize all three simultaneously. This calculator reveals those trade-offs and gives you the spatial resolution that actually drives your ability to detect defects of a given size.</span>
+                    </button>
+                    <div class="explainer-full">
+                        <div class="explainer-full-inner">
+                            <p><strong>Magnification</strong> M&nbsp;=&nbsp;f/(WD&nbsp;&minus;&nbsp;f) from the thin lens equation. Larger WD relative to f gives smaller M, larger FOV, but less spatial resolution. Moving the camera closer increases M and resolution but shrinks FOV.</p>
+                            <p><strong>Depth of field</strong> DOF&nbsp;=&nbsp;2f<sub>#</sub>&nbsp;&times;&nbsp;CoC&nbsp;&times;&nbsp;(1&nbsp;+&nbsp;|M|)&sup2; using CoC&nbsp;=&nbsp;5&nbsp;&mu;m (typical machine vision sensor). Opening the aperture (lower f/#) increases light but reduces DOF—relevant when imaging curved or non-flat surfaces.</p>
+                            <p><strong>Resolution vs. pixel size:</strong> two limits apply. Optical resolution ≈ 1.22&lambda;/NA (Rayleigh criterion); pixel sampling resolution = FOV/pixel count. The system resolution is dominated by whichever is coarser. Adding megapixels beyond the optical resolution limit provides no benefit—verify your lens NA matches your sensor density.</p>
+                            <p>For defect detection, a common rule of thumb is minimum detectable feature = 3–5 pixels. If you need to detect 50&nbsp;&mu;m defects, your pixel size on the object should be &le;10–17&nbsp;&mu;m.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- DISCLAIMER -->
+<div class="disclaimer">
+    <h3>Disclaimer</h3>
+    <p>These calculators are provided for professional reference and educational purposes. Results are based on standard theoretical models and empirical approximations. Always verify critical parameters independently, consult manufacturer specifications, and follow applicable laser safety protocols (ANSI Z136, IEC 60825) when designing or operating laser systems. The author assumes no liability for the application of these tools in actual system design or operation.</p>
+</div>
+
+</main>
+
+<footer>
+    <p>&copy; 2025 Casey D. Foley, PhD &mdash; <a href="/">cdfoley.com</a></p>
+</footer>
+
+</div><!-- /container -->
+
+<script>
+/* ── UTILITIES ──────────────────────────────────────────── */
+function fmt(val, digits=3) {
+    if (Math.abs(val) >= 1e6)  return (val/1e6).toFixed(2) + ' M';
+    if (Math.abs(val) >= 1e3)  return (val/1e3).toFixed(2) + ' k';
+    if (Math.abs(val) >= 1)    return val.toFixed(digits);
+    if (Math.abs(val) >= 1e-3) return (val*1e3).toFixed(2) + ' m';
+    if (Math.abs(val) >= 1e-6) return (val*1e6).toFixed(2) + ' µ';
+    return val.toExponential(2);
+}
+
+function show(id) { document.getElementById(id).style.display = 'block'; }
+
+function toggleExplainer(btn) {
+    btn.classList.toggle('open');
+    const full = btn.nextElementSibling;
+    full.classList.toggle('open');
+}
+
+/* ── 1. BEAM WAIST ──────────────────────────────────────── */
+function calcAPO(T) {
+    if (T <= 0.5) return 1.27;
+    if (T >= 1.0) return 1.83;
+    return 1.27 + (1.83 - 1.27) * (T - 0.5) / 0.5;
+}
+
+// stored for Rayleigh auto-link (legacy compat)
+let g_w0_mm = 0, g_wl_nm = 0, g_m2 = 1;
+
+function calcBeamWaist() {
+    const wl = parseFloat(document.getElementById('bw-wl').value);
+    const fl = parseFloat(document.getElementById('bw-fl').value);
+    const bd = parseFloat(document.getElementById('bw-bd').value);
+    const ep = parseFloat(document.getElementById('bw-ep').value);
+    const m2 = parseFloat(document.getElementById('bw-m2').value);
+    if ([wl,fl,bd,ep,m2].some(isNaN)) { alert('Enter valid numbers for all fields.'); return; }
+    if (m2 < 1) { alert('M² ≥ 1'); return; }
+
+    const wl_mm = wl * 1e-6;
+    const T = bd / ep;
+    const APO = calcAPO(T);
+    const dF_mm = (4 * wl_mm * fl * m2 * APO) / (Math.PI * bd);
+    const w0_mm = dF_mm / 2;
+
+    g_w0_mm = w0_mm; g_wl_nm = wl; g_m2 = m2;
+
+    document.getElementById('bw-T').textContent   = T.toFixed(3);
+    document.getElementById('bw-APO').textContent = APO.toFixed(3);
+    document.getElementById('bw-dF').textContent  = (dF_mm*1e3).toFixed(2) + ' µm';
+    document.getElementById('bw-w0').textContent  = (w0_mm*1e3).toFixed(2) + ' µm';
+    show('bw-results');
+}
+
+/* ── 2. RAYLEIGH RANGE ──────────────────────────────────── */
+function calcRayleigh() {
+    const w0_um = parseFloat(document.getElementById('rr-w0').value);
+    const wl_nm = parseFloat(document.getElementById('rr-wl').value);
+    const m2    = parseFloat(document.getElementById('rr-m2').value);
+    const z_mm  = parseFloat(document.getElementById('rr-z').value);
+    if ([w0_um,wl_nm,m2,z_mm].some(isNaN)) { alert('Enter valid numbers.'); return; }
+
+    const w0 = w0_um * 1e-3;          // mm
+    const wl = wl_nm * 1e-6;          // mm
+    const zR = (Math.PI * w0 * w0) / (m2 * wl);
+    const wz = w0 * Math.sqrt(1 + Math.pow(z_mm / zR, 2));
+    const div_full_mrad = 2 * m2 * wl / (Math.PI * w0) * 1e3; // mrad
+
+    document.getElementById('rr-zR').textContent  = zR.toFixed(3) + ' mm';
+    document.getElementById('rr-wz').textContent  = (wz*1e3).toFixed(2) + ' µm';
+    document.getElementById('rr-dz').textContent  = (wz*2e3).toFixed(2) + ' µm';
+    document.getElementById('rr-div').textContent = div_full_mrad.toFixed(3) + ' mrad  (' + (div_full_mrad * 180/Math.PI / 1000 * 1000).toFixed(4) + '°)';
+    show('rr-results');
+}
+
+/* ── 3. BEAM EXPANDER ───────────────────────────────────── */
+function calcBeamExpander() {
+    const din   = parseFloat(document.getElementById('be-din').value);
+    const divin = parseFloat(document.getElementById('be-divin').value);
+    const M     = parseFloat(document.getElementById('be-M').value);
+    const fl    = parseFloat(document.getElementById('be-fl').value);
+    const wl_nm = parseFloat(document.getElementById('be-wl').value);
+    if ([din,divin,M,fl,wl_nm].some(isNaN) || M < 1) { alert('Enter valid values. M ≥ 1.'); return; }
+
+    const dout     = M * din;
+    const divout   = divin / M;
+    const wl_mm    = wl_nm * 1e-6;
+    // diffraction-limited spot after expander + focusing lens (M²=1)
+    const dF_after_um  = (4 * wl_mm * fl) / (Math.PI * dout) * 1e3;
+    const dF_before_um = (4 * wl_mm * fl) / (Math.PI * din)  * 1e3;
+
+    document.getElementById('be-dout').textContent  = dout.toFixed(2) + ' mm';
+    document.getElementById('be-divout').textContent= (divout).toFixed(3) + ' mrad';
+    document.getElementById('be-spot').textContent  = dF_after_um.toFixed(2) + ' µm';
+    document.getElementById('be-ratio').textContent = M.toFixed(1) + '× smaller  (' + dF_before_um.toFixed(1) + ' → ' + dF_after_um.toFixed(1) + ' µm)';
+    show('be-results');
+}
+
+/* ── 4. F-THETA ─────────────────────────────────────────── */
+function calcFtheta() {
+    const fl     = parseFloat(document.getElementById('ft-fl').value);
+    const ang_deg= parseFloat(document.getElementById('ft-angle').value);
+    const bd     = parseFloat(document.getElementById('ft-bd').value);
+    const wl_nm  = parseFloat(document.getElementById('ft-wl').value);
+    if ([fl,ang_deg,bd,wl_nm].some(isNaN)) { alert('Enter valid values.'); return; }
+
+    const ang_rad = ang_deg * Math.PI / 180;
+    const half_field = fl * ang_rad;           // mm, f-theta: y = f·θ
+    const full_field = 2 * half_field;
+    const area_cm2   = Math.pow(full_field / 10, 2);
+    const wl_mm      = wl_nm * 1e-6;
+    const dF_um      = (4 * wl_mm * fl) / (Math.PI * bd) * 1e3;
+
+    document.getElementById('ft-field').textContent = full_field.toFixed(1) + ' mm × ' + full_field.toFixed(1) + ' mm';
+    document.getElementById('ft-area').textContent  = area_cm2.toFixed(2) + ' cm²';
+    document.getElementById('ft-spot').textContent  = dF_um.toFixed(2) + ' µm';
+    document.getElementById('ft-wd').textContent    = fl.toFixed(0) + ' mm (≈ f)';
+    show('ft-results');
+}
+
+/* ── 5. PEAK POWER DENSITY ──────────────────────────────── */
+function calcPeakPower() {
+    const pavg   = parseFloat(document.getElementById('pp-pavg').value);
+    const frep_k = parseFloat(document.getElementById('pp-frep').value);
+    const tau_ns = parseFloat(document.getElementById('pp-tau').value);
+    const d_um   = parseFloat(document.getElementById('pp-dspot').value);
+    if ([pavg,frep_k,tau_ns,d_um].some(isNaN)) { alert('Enter valid values.'); return; }
+
+    const frep  = frep_k * 1e3;
+    const tau   = tau_ns * 1e-9;
+    const d_m   = d_um * 1e-6;
+    const A_m2  = Math.PI * Math.pow(d_m/2, 2);
+    const A_cm2 = A_m2 * 1e4;
+
+    const Epulse  = pavg / frep;
+    const Ppeak   = Epulse / tau;
+    const I       = Ppeak / A_cm2;
+    const fluence = Epulse / A_cm2;
+    const duty    = tau * frep * 100;
+
+    document.getElementById('pp-epulse').textContent = Epulse >= 1e-3 ? (Epulse*1e3).toFixed(3)+' mJ' : (Epulse*1e6).toFixed(3)+' µJ';
+    document.getElementById('pp-ppeak').textContent  = Ppeak >= 1e6 ? (Ppeak/1e6).toFixed(2)+' MW' : Ppeak >= 1e3 ? (Ppeak/1e3).toFixed(2)+' kW' : Ppeak.toFixed(2)+' W';
+    document.getElementById('pp-area').textContent   = A_cm2.toExponential(3) + ' cm²';
+    document.getElementById('pp-irrad').textContent  = I.toExponential(2) + ' W/cm²';
+    document.getElementById('pp-fluence').textContent= fluence.toFixed(4) + ' J/cm²';
+    document.getElementById('pp-duty').textContent   = duty.toExponential(2) + ' %';
+    show('pp-results');
+}
+
+/* ── 6. PULSE PARAMETERS ────────────────────────────────── */
+function calcPulseParams() {
+    const pavg   = parseFloat(document.getElementById('pu-pavg').value);
+    const frep_k = parseFloat(document.getElementById('pu-frep').value);
+    const tau_ns = parseFloat(document.getElementById('pu-tau').value);
+    if ([pavg,frep_k,tau_ns].some(isNaN)) { alert('Enter valid values.'); return; }
+
+    const frep   = frep_k * 1e3;
+    const tau    = tau_ns * 1e-9;
+    const Epulse = pavg / frep;
+    const Ppeak  = Epulse / tau;
+    const duty   = tau * frep;
+    const period = 1 / frep * 1e6; // µs
+
+    document.getElementById('pu-epulse').textContent = Epulse >= 1e-3 ? (Epulse*1e3).toFixed(3)+' mJ' : (Epulse*1e6).toFixed(3)+' µJ';
+    document.getElementById('pu-ppeak').textContent  = Ppeak >= 1e6 ? (Ppeak/1e6).toFixed(2)+' MW' : Ppeak >= 1e3 ? (Ppeak/1e3).toFixed(2)+' kW' : Ppeak.toFixed(2)+' W';
+    document.getElementById('pu-duty').textContent   = (duty*100).toExponential(2) + ' %';
+    document.getElementById('pu-period').textContent = period.toFixed(3) + ' µs';
+    document.getElementById('pu-ratio').textContent  = (1/duty).toExponential(2) + '×';
+    show('pu-results');
+}
+
+/* ── 7. LIDT SCALING ────────────────────────────────────── */
+function calcLIDT() {
+    const lidt   = parseFloat(document.getElementById('li-lidt').value);
+    const tref   = parseFloat(document.getElementById('li-tauref').value);
+    const wlref  = parseFloat(document.getElementById('li-wlref').value);
+    const ttgt   = parseFloat(document.getElementById('li-tautgt').value);
+    const wltgt  = parseFloat(document.getElementById('li-wltgt').value);
+    if ([lidt,tref,wlref,ttgt,wltgt].some(isNaN)) { alert('Enter valid values.'); return; }
+
+    const tau_scaled = lidt * Math.sqrt(ttgt / tref);
+    const wl_scaled  = lidt * Math.sqrt(wltgt / wlref);
+    const combined   = lidt * Math.sqrt(ttgt / tref) * Math.sqrt(wltgt / wlref);
+    const safe       = combined / 3;
+
+    document.getElementById('li-tau-scaled').textContent = tau_scaled.toFixed(3) + ' J/cm²';
+    document.getElementById('li-wl-scaled').textContent  = wl_scaled.toFixed(3)  + ' J/cm²';
+    document.getElementById('li-combined').textContent   = combined.toFixed(3)   + ' J/cm²';
+    document.getElementById('li-safe').textContent       = safe.toFixed(3)       + ' J/cm²';
+    show('li-results');
+}
+
+/* ── 8. ABLATION DEPTH ──────────────────────────────────── */
+const ablationPresets = {
+    'si-1064':   { Fth: 0.20, delta: 5  },
+    'si-532':    { Fth: 0.15, delta: 4  },
+    'ito-532':   { Fth: 0.10, delta: 15 },
+    'steel-1064':{ Fth: 0.50, delta: 18 },
+    'al-532':    { Fth: 0.30, delta: 12 },
+    'glass-uv':  { Fth: 1.50, delta: 80 }
+};
+
+function applyAblationPreset() {
+    const key = document.getElementById('abl-preset').value;
+    if (key === 'custom') return;
+    const p = ablationPresets[key];
+    document.getElementById('abl-Fth').value   = p.Fth;
+    document.getElementById('abl-delta').value = p.delta;
+}
+
+function calcAblation() {
+    const F     = parseFloat(document.getElementById('abl-F').value);
+    const Fth   = parseFloat(document.getElementById('abl-Fth').value);
+    const delta = parseFloat(document.getElementById('abl-delta').value); // nm
+    if ([F,Fth,delta].some(isNaN)) { alert('Enter valid values.'); return; }
+    if (F <= Fth) { alert('Applied fluence must exceed threshold fluence F > Fth.'); return; }
+
+    const L    = delta * Math.log(F / Fth);
+    const L_2x = Fth*2 > Fth ? delta * Math.log(2) : 0;
+    const L_5x = delta * Math.log(5);
+
+    document.getElementById('abl-depth').textContent = L.toFixed(1) + ' nm / pulse';
+    document.getElementById('abl-ratio').textContent = (F/Fth).toFixed(2) + '×';
+    document.getElementById('abl-2x').textContent    = L_2x.toFixed(1) + ' nm (F = 2×F_th)';
+    document.getElementById('abl-5x').textContent    = L_5x.toFixed(1) + ' nm (F = 5×F_th)';
+    show('abl-results');
+}
+
+/* ── 9. MACHINE VISION ──────────────────────────────────── */
+const sensorSizes = {
+    '1/4':  {w:3.2,  h:2.4},  '1/3':  {w:4.8,  h:3.6},
+    '1/2.5':{w:5.8,  h:4.3},  '1/2':  {w:6.4,  h:4.8},
+    '2/3':  {w:8.8,  h:6.6},  '1':    {w:12.8, h:9.6},
+    '4/3':  {w:17.3, h:13.0}, 'aps-c':{w:23.6, h:15.7}
+};
+
+function updateSensor() {
+    const key = document.getElementById('mv-format').value;
+    if (key !== 'custom' && sensorSizes[key]) {
+        document.getElementById('mv-sw').value = sensorSizes[key].w;
+        document.getElementById('mv-sh').value = sensorSizes[key].h;
+    }
+}
+
+function calcVision() {
+    const fl = parseFloat(document.getElementById('mv-fl').value);
+    const wd = parseFloat(document.getElementById('mv-wd').value);
+    const fn = parseFloat(document.getElementById('mv-fno').value);
+    const sw = parseFloat(document.getElementById('mv-sw').value);
+    const sh = parseFloat(document.getElementById('mv-sh').value);
+    const ph = parseFloat(document.getElementById('mv-ph').value);
+    const pv = parseFloat(document.getElementById('mv-pv').value);
+    if ([fl,wd,fn,sw,sh,ph,pv].some(isNaN)) { alert('Enter valid values.'); return; }
+    if (wd <= fl) { alert('Working distance must be greater than focal length.'); return; }
+
+    const M      = fl / (wd - fl);
+    const fovW   = sw / Math.abs(M);
+    const fovH   = sh / Math.abs(M);
+    const CoC    = 0.005; // 5 µm
+    const DOF    = 2 * fn * CoC * Math.pow(1 + Math.abs(M), 2);
+    const pixW   = fovW / ph * 1e3; // µm/px
+    const pixH   = fovH / pv * 1e3;
+    const MP     = ph * pv / 1e6;
+
+    document.getElementById('mv-M').textContent    = M.toFixed(4) + '×' + (M<0?' (inverted)':'');
+    document.getElementById('mv-FOV').textContent  = fovW.toFixed(2) + ' × ' + fovH.toFixed(2) + ' mm';
+    document.getElementById('mv-DOF').textContent  = DOF.toFixed(3) + ' mm';
+    document.getElementById('mv-pixobj').textContent = pixW.toFixed(2) + ' × ' + pixH.toFixed(2) + ' µm/px';
+    document.getElementById('mv-res').textContent  = (1e3/pixW).toFixed(1) + ' × ' + (1e3/pixH).toFixed(1) + ' px/mm';
+    document.getElementById('mv-mp').textContent   = MP.toFixed(2) + ' MP';
+    show('mv-results');
+}
+
+/* ── SMOOTH SCROLL ──────────────────────────────────────── */
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        e.preventDefault();
+        const t = document.querySelector(a.getAttribute('href'));
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+});
+</script>
 </body>
 </html>
