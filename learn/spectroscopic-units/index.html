@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Energy Units in Spectroscopy: nm, cm⁻¹, eV, kJ/mol, Hartree | Casey D. Foley, PhD</title>
+<meta name="description" content="Why spectroscopists use wavenumbers, which energy unit fits which field, how to convert shifts and linewidths between nm, cm⁻¹ and GHz, and what kT at room temperature means for thermal populations.">
+<link rel="canonical" href="https://cdfoley.com/learn/spectroscopic-units/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Energy Units in Spectroscopy">
+<meta property="og:description" content="Why spectroscopists use wavenumbers, and how to convert between eV, cm⁻¹, and nm.">
+<meta property="og:url" content="https://cdfoley.com/learn/spectroscopic-units/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Energy Units in Spectroscopy",
+  "description": "Why spectroscopists use wavenumbers, and how to convert between eV, cm⁻¹, and nm.",
+  "author": { "@type": "Person", "name": "Casey D. Foley", "url": "https://cdfoley.com/" },
+  "datePublished": "2026-10-06",
+  "dateModified": "2026-10-06",
+  "mainEntityOfPage": "https://cdfoley.com/learn/spectroscopic-units/"
+}
+</script>
+<style>
+    .fig svg { width: 100%; height: auto; display: block; }
+    .fig .lbl { font: 500 12.5px var(--font); fill: var(--text-2); }
+    .fig .lbl-s { font: 500 11px var(--font); fill: var(--muted); }
+    .fig .lbl-b { font: 600 12px var(--font); fill: #fff; }
+    .fig .row { font: 600 11px var(--font); fill: var(--text); }
+</style>
+</head>
+<body data-section="learn">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/learn/">Learn</a></li><li aria-current="page">Energy Units in Spectroscopy</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <span class="eyebrow">Spectroscopy</span>
+        <h1>Energy Units in Spectroscopy</h1>
+        <p class="lede">The same transition can be quoted as 1064 nm, 9398 cm⁻¹, 1.165 eV, 281.8 THz, or 112.4 kJ/mol. Each unit is natural for some community, and confusion between them causes a steady supply of errors. This note covers what each unit is good for, how to convert shifts and widths correctly, and what thermal energy at room temperature means for a spectrum.</p>
+        <div class="article-meta"><span>By Casey D. Foley, PhD</span><span>6 min read</span><span>Updated October 2026</span></div>
+    </header>
+
+    <div class="article-layout">
+        <article class="prose">
+            <h2>One quantity, many units</h2>
+            <p>Photon energy, frequency, wavenumber, and wavelength are linked by exact constants:</p>
+            <div class="formula">\[ E = h\nu = \frac{hc}{\lambda} = hc\,\tilde{\nu}, \qquad \tilde\nu\,[\mathrm{cm^{-1}}] = \frac{10^7}{\lambda\,[\mathrm{nm}]}, \qquad hc = 1239.842\ \mathrm{eV\,nm}. \]</div>
+            <p>Since the 2019 SI redefinition, \(h\), \(c\), \(e\), \(k_B\), and \(N_A\) are exact, so conversions between eV, cm⁻¹, Hz, J, K, and kJ/mol have no uncertainty. The anchors worth memorizing are 1 eV = 8065.54 cm⁻¹ = 96.485 kJ/mol = 23.061 kcal/mol = 11,604.5 K, and 1 cm⁻¹ = 29.979 GHz. The <a href="/tools/energy-converter/">energy &amp; wavelength converter</a> handles every conversion live.</p>
+
+            <h2>Which unit for which job</h2>
+            <table>
+                <thead><tr><th>Field</th><th>Usual unit</th><th>Why</th></tr></thead>
+                <tbody>
+                    <tr><td>Rotational / microwave spectroscopy</td><td>GHz, MHz, cm⁻¹</td><td>Frequencies are measured directly, to many digits</td></tr>
+                    <tr><td>Vibrational (IR, Raman)</td><td>cm⁻¹</td><td>Proportional to energy; FTIR measures it natively</td></tr>
+                    <tr><td>Electronic (UV–vis), lasers, optics</td><td>nm, µm</td><td>Matches gratings, filters, coatings, and lens design</td></tr>
+                    <tr><td>Photoelectron spectroscopy, ionization, plasmas</td><td>eV</td><td>Electron kinetic energies and temperatures (1 eV ≈ 11,600 K)</td></tr>
+                    <tr><td>Thermochemistry and kinetics</td><td>kJ/mol, kcal/mol</td><td>Per mole of reaction, comparable to bond energies</td></tr>
+                    <tr><td>Quantum chemistry</td><td>Hartree (E<sub>h</sub>), mE<sub>h</sub></td><td>The atomic unit of energy; 1 E<sub>h</sub> = 27.211 eV</td></tr>
+                    <tr><td>Ultrafast optics</td><td>THz, fs</td><td>Bandwidth and pulse duration are Fourier partners</td></tr>
+                </tbody>
+            </table>
+            <p>Quantum chemists' "chemical accuracy" target of 1 kcal/mol is 1.59 mE<sub>h</sub>, 350 cm⁻¹, or 43 meV. That is coarse by spectroscopic standards, where line positions are routinely known to 0.01 cm⁻¹ or better.</p>
+
+            <h2>The energy ladder</h2>
+            <figure class="fig">
+                <svg viewBox="0 0 640 290" role="img" aria-label="Logarithmic energy scale from 1 to one million inverse centimeters with equivalent electronvolt and wavelength axes. Rotational transitions lie around 1 to 100 inverse centimeters, vibrational around 200 to 4000, valence electronic around ten thousand to one hundred thousand, and molecular ionization around 6 to 25 electronvolts. Thermal energy at 298 kelvin, 207 inverse centimeters, is marked, along with the CO2, Nd:YAG and ArF laser photon energies.">
+                    <!-- region bars -->
+                    <rect x="70" y="40" width="180" height="26" rx="4" fill="var(--c6)"/>
+                    <text x="160" y="57" text-anchor="middle" class="lbl-b">Rotational</text>
+                    <rect x="277" y="40" width="117" height="26" rx="4" fill="var(--c3)"/>
+                    <text x="335.5" y="57" text-anchor="middle" class="lbl-b">Vibrational</text>
+                    <rect x="430" y="40" width="90" height="26" rx="4" fill="var(--c4)"/>
+                    <text x="475" y="57" text-anchor="middle" class="lbl-b">Electronic</text>
+                    <rect x="493" y="74" width="54" height="22" rx="4" fill="var(--c2)"/>
+                    <text x="520" y="89" text-anchor="middle" class="lbl-b" style="font-size:10.5px">Ionize</text>
+                    <!-- kT -->
+                    <path d="M278.5 30V200" stroke="var(--c5)" stroke-width="1.5" stroke-dasharray="5 4"/>
+                    <text x="282" y="118" class="lbl" style="fill:var(--c5)">k<tspan baseline-shift="sub" font-size="9">B</tspan>T at 298 K</text>
+                    <text x="282" y="133" class="lbl-s">207 cm⁻¹ · 25.7 meV</text>
+                    <!-- lasers -->
+                    <g fill="var(--accent)">
+                        <path d="M337.7 182l-5 -9h10z"/><path d="M427.6 182l-5 -9h10z"/><path d="M494.2 182l-5 -9h10z"/>
+                    </g>
+                    <text x="337.7" y="166" text-anchor="middle" class="lbl-s">CO₂</text>
+                    <text x="420" y="166" text-anchor="middle" class="lbl-s">Nd:YAG</text>
+                    <text x="500" y="166" text-anchor="middle" class="lbl-s">ArF</text>
+                    <!-- axis -->
+                    <path d="M70 200H610" stroke="var(--border-strong)" stroke-width="1.5"/>
+                    <g stroke="var(--border-strong)"><path d="M70 196V204M160 196V204M250 196V204M340 196V204M430 196V204M520 196V204M610 196V204"/></g>
+                    <text x="8" y="220" class="row">cm⁻¹</text>
+                    <text x="8" y="244" class="row">eV</text>
+                    <text x="8" y="268" class="row">λ</text>
+                    <g class="lbl" text-anchor="middle">
+                        <text x="70" y="220">1</text><text x="160" y="220">10</text><text x="250" y="220">100</text><text x="340" y="220">10³</text><text x="430" y="220">10⁴</text><text x="520" y="220">10⁵</text><text x="610" y="220">10⁶</text>
+                    </g>
+                    <g class="lbl-s" text-anchor="middle">
+                        <text x="74" y="244">0.12 meV</text><text x="160" y="244">1.24 meV</text><text x="250" y="244">12.4 meV</text><text x="340" y="244">0.124 eV</text><text x="430" y="244">1.24 eV</text><text x="520" y="244">12.4 eV</text><text x="604" y="244">124 eV</text>
+                        <text x="74" y="268">1 cm</text><text x="160" y="268">1 mm</text><text x="250" y="268">100 µm</text><text x="340" y="268">10 µm</text><text x="430" y="268">1 µm</text><text x="520" y="268">100 nm</text><text x="604" y="268">10 nm</text>
+                    </g>
+                </svg>
+                <figcaption>On a logarithmic scale the three common axes line up decade by decade, because 1 cm⁻¹ = 1.24 × 10⁻⁴ eV and corresponds to a wavelength of 1 cm. The colored bands show typical ranges for molecular transitions. The marked laser photon energies are CO₂ at 10.6 µm (943 cm⁻¹), Nd:YAG at 1064 nm (9398 cm⁻¹), and ArF at 193.4 nm (51,700 cm⁻¹).</figcaption>
+            </figure>
+
+            <h2>Why spectroscopists use wavenumbers</h2>
+            <p>Wavenumber is proportional to energy, so level spacings add and subtract linearly. A vibrational fundamental at 3000 cm⁻¹ has its first overtone near 6000 cm⁻¹ (slightly lower, because of anharmonicity). In wavelength the same pair sits at 3.33 µm and 1.67 µm, which is much harder to compare at a glance. Wavenumbers are also what interferometers measure directly: an FTIR's natural axis is the inverse of the optical path difference, in cm⁻¹. And the cm⁻¹ scale happens to have convenient magnitudes for molecules. Rotational constants run from below 0.01 cm⁻¹ for large molecules to about 60 cm⁻¹ for H₂, vibrational fundamentals from about 100 to 4000 cm⁻¹, and electronic transitions from 10,000 cm⁻¹ upward.</p>
+
+            <h2>Converting shifts and linewidths</h2>
+            <p>The relationship between wavelength and energy is reciprocal, not linear, so <em>differences</em> and <em>widths</em> need care. A Raman shift is a difference in wavenumber, and the scattered wavelength follows from</p>
+            <div class="formula">\[ \lambda_{s} = \left(\frac{1}{\lambda_0} - \frac{\Delta\tilde\nu}{10^7}\right)^{-1}\ [\mathrm{nm}]. \]</div>
+            <p>With 532 nm excitation, a 1000 cm⁻¹ Stokes line appears at 561.9 nm and the anti-Stokes line at 505.1 nm. These are not symmetric about 532 nm. A 3000 cm⁻¹ C–H stretch appears at 633.0 nm. With 785 nm excitation, the same 1000 cm⁻¹ shift lands at 851.9 nm.</p>
+            <p>For small intervals, differentiate \(\tilde\nu = 10^7/\lambda\):</p>
+            <div class="formula">\[ \Delta\lambda\,[\mathrm{nm}] \approx 10^{-7}\,\lambda^2[\mathrm{nm}]\;\Delta\tilde\nu\,[\mathrm{cm^{-1}}], \qquad \Delta\nu\,[\mathrm{GHz}] = 29.979\,\Delta\tilde\nu\,[\mathrm{cm^{-1}}]. \]</div>
+            <p>A 1 nm spectrometer bandpass therefore corresponds to 268 cm⁻¹ at 193 nm, 40 cm⁻¹ at 500 nm, and only 8.8 cm⁻¹ at 1064 nm. A 0.1 cm⁻¹ laser linewidth is 3.0 GHz at any wavelength, but it is 0.0025 nm at 500 nm and 0.011 nm at 1064 nm. When comparing resolutions across a spectrum, convert to cm⁻¹ or GHz first. The <a href="/tools/grating-equation/">grating &amp; spectrometer calculator</a> and the <a href="/tools/doppler-broadening/">line broadening calculator</a> report widths in several units for this reason.</p>
+
+            <h2>Thermal energy and populations</h2>
+            <p>The Boltzmann factor sets the fraction of molecules in an excited level at temperature \(T\):</p>
+            <div class="formula">\[ \frac{N_u}{N_l} = \frac{g_u}{g_l}\exp\!\left(-\frac{\Delta E}{k_B T}\right), \qquad k_BT\,(298\ \mathrm{K}) = 207.2\ \mathrm{cm^{-1}} = 25.7\ \mathrm{meV} = 2.48\ \mathrm{kJ/mol}. \]</div>
+            <ul>
+                <li>A 2000 cm⁻¹ vibration has \(e^{-2000/207} \approx 6\times10^{-5}\) of its population in \(v = 1\) at room temperature. At 1000 K this rises to 5.6 %, and "hot bands" appear in the spectrum.</li>
+                <li>A 500 cm⁻¹ low-frequency mode is 9 % excited at room temperature. Floppy molecules have congested room-temperature spectra for this reason.</li>
+                <li>Rotational levels spaced by a few cm⁻¹ are thermally populated over many levels. That is why room-temperature rotational envelopes are broad.</li>
+                <li>A 2 eV electronic excitation has a Boltzmann factor of about 10⁻³⁴ at 298 K. Electronically excited states are populated only by light, collisions in plasmas, or chemistry.</li>
+            </ul>
+            <p>Supersonic expansions and cryogenic ion traps cool molecules to a few kelvin, where \(k_BT\) is only a few cm⁻¹. Almost everything is then in the ground vibrational level and the lowest rotational levels, so spectra simplify dramatically. This is the main reason gas-phase spectroscopy goes to the trouble of cooling.</p>
+
+            <h2>Photon energies and chemical bonds</h2>
+            <p>Comparing photon energies with bond energies explains a lot about laser–material interactions. Most common single bonds in organic and inorganic materials have dissociation energies of roughly 3–5 eV (about 300–500 kJ/mol).</p>
+            <table>
+                <thead><tr><th>Laser</th><th class="num">λ</th><th class="num">eV</th><th class="num">cm⁻¹</th><th class="num">kJ/mol</th></tr></thead>
+                <tbody>
+                    <tr><td>ArF excimer</td><td class="num">193.4 nm</td><td class="num">6.41</td><td class="num">51,706</td><td class="num">618.5</td></tr>
+                    <tr><td>KrF excimer</td><td class="num">248.4 nm</td><td class="num">4.99</td><td class="num">40,258</td><td class="num">481.6</td></tr>
+                    <tr><td>Nd:YAG, 3rd harmonic</td><td class="num">355 nm</td><td class="num">3.49</td><td class="num">28,169</td><td class="num">337.0</td></tr>
+                    <tr><td>Nd:YAG, 2nd harmonic</td><td class="num">532 nm</td><td class="num">2.33</td><td class="num">18,797</td><td class="num">224.9</td></tr>
+                    <tr><td>Nd:YAG / Yb fiber</td><td class="num">1064 nm</td><td class="num">1.17</td><td class="num">9,398</td><td class="num">112.4</td></tr>
+                    <tr><td>CO₂</td><td class="num">10.6 µm</td><td class="num">0.117</td><td class="num">943</td><td class="num">11.3</td></tr>
+                </tbody>
+            </table>
+            <p>A single deep-UV photon carries enough energy to break a typical bond directly. That is the basis of "cold" photochemical ablation of polymers with excimer lasers. A 1064 nm photon carries about a quarter of a bond energy, and a CO₂ photon about a fortieth. Infrared processing is therefore thermal: energy is absorbed into vibrations and heat before anything breaks, unless intensities are high enough for multiphoton absorption.</p>
+
+            <h2>Common pitfalls</h2>
+            <ul>
+                <li><strong>Air versus vacuum wavelengths.</strong> Tabulated visible lines are often given in standard air, which differs from vacuum by about 0.03 % (0.18 nm at 633 nm). This matters for line identification and spectrometer calibration.</li>
+                <li><strong>Averaging in the wrong unit.</strong> The mean of two wavelengths is not the wavelength of the mean energy. Average or difference in energy units.</li>
+                <li><strong>Ambiguous "per molecule" and "per mole".</strong> Convert kJ/mol to eV with the factor 96.485, not 100. The 3.5 % error from the shortcut is larger than many effects people are trying to measure.</li>
+                <li><strong>Mixing calories.</strong> Thermochemistry uses the thermochemical calorie, 4.184 J. The international-table calorie, 4.1868 J, appears in older engineering data.</li>
+                <li><strong>Dropping the factor of 2π.</strong> Angular frequency \(\omega = 2\pi\nu\) and \(\hbar\omega = h\nu\). Mixing rad/s and Hz gives a 6.28× error that looks plausible at first glance.</li>
+            </ul>
+
+            <h2>References</h2>
+            <ol class="refs">
+                <li>E. Tiesinga, P. J. Mohr, D. B. Newell, and B. N. Taylor, “CODATA recommended values of the fundamental physical constants: 2018,” <em>Rev. Mod. Phys.</em> <strong>93</strong>, 025010 (2021).</li>
+                <li>E. R. Cohen et al., <em>Quantities, Units and Symbols in Physical Chemistry</em> (IUPAC Green Book), 3rd ed., RSC Publishing (2007).</li>
+            </ol>
+        </article>
+        <aside class="toc" data-toc></aside>
+    </div>
+
+    <section class="related">
+        <h2>Related tools &amp; articles</h2>
+        <div data-related="energy-converter,photon-flux,doppler-broadening,grating-equation,article:laser-sustained-plasma,article:gaussian-beam-optics"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+</body>
+</html>

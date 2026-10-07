@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thermal Diffusion Length & Heat Accumulation Calculator for Pulsed Lasers | Casey D. Foley, PhD</title>
+<meta name="description" content="Calculate the thermal diffusion length for a laser pulse, check thermal confinement against the optical penetration depth, and estimate the repetition rate above which heat accumulates. Includes diffusivities for common metals, glasses, and polymers.">
+<link rel="canonical" href="https://cdfoley.com/tools/thermal-diffusion/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Thermal Diffusion & Heat Accumulation Calculator">
+<meta property="og:description" content="Diffusion length vs. pulse duration, thermal confinement, and heat-accumulation repetition rate.">
+<meta property="og:url" content="https://cdfoley.com/tools/thermal-diffusion/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#process">Laser Processing</a></li><li aria-current="page">Thermal Diffusion &amp; Heat Accumulation</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Thermal Diffusion &amp; Heat Accumulation</h1>
+        <p class="lede">How far heat spreads during a laser pulse, whether it stays within the optical absorption depth, and how fast you can pulse before heat builds up from one pulse to the next. Includes room-temperature diffusivities for common metals, glasses, and polymers.</p>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="mat">Material</label>
+                    <select id="mat" name="mat" class="input">
+                        <option value="custom">Custom</option>
+                        <option value="cu">Copper (117 mm²/s)</option>
+                        <option value="al">Aluminum, pure (97.1 mm²/s)</option>
+                        <option value="si">Silicon (89.2 mm²/s)</option>
+                        <option value="ss304" selected>Stainless steel 304 (3.95 mm²/s)</option>
+                        <option value="ti64">Ti-6Al-4V (2.88 mm²/s)</option>
+                        <option value="fs">Fused silica (0.85 mm²/s)</option>
+                        <option value="boro">Borosilicate, Borofloat 33 (0.65 mm²/s)</option>
+                        <option value="sl">Soda-lime glass (0.53 mm²/s)</option>
+                        <option value="water">Water, 25 °C (0.146 mm²/s)</option>
+                        <option value="pmma">PMMA (0.11 mm²/s)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="D">Thermal diffusivity <span class="sym">D = k/(ρc<sub>p</sub>)</span></label>
+                    <div class="input-unit"><input id="D" name="D" value="3.95" inputmode="decimal" data-positive data-label="thermal diffusivity"><select id="D-u" data-dim="diffusivity" data-units="mm²/s,cm²/s,m²/s" data-default="mm²/s"></select></div>
+                </div>
+                <div class="field">
+                    <label for="tau">Pulse duration <span class="sym">τ</span></label>
+                    <div class="input-unit"><input id="tau" name="tau" value="10" inputmode="decimal" data-positive data-label="pulse duration"><select data-dim="time" data-units="fs,ps,ns,µs,ms,s" data-default="ns"></select></div>
+                </div>
+                <div class="field">
+                    <label for="d">Spot diameter (1/e²) <span class="sym">2w₀</span></label>
+                    <div class="input-unit"><input id="d" name="d" value="30" inputmode="decimal" data-positive data-label="spot diameter"><select data-dim="length" data-units="µm,mm" data-default="µm"></select></div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="f">Repetition rate (optional)</label>
+                        <div class="input-unit"><input id="f" name="f" value="100" inputmode="decimal" data-optional data-label="repetition rate"><select data-dim="frequency" data-units="Hz,kHz,MHz" data-default="kHz"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="delta">Optical penetration depth (optional) <span class="sym">δ</span></label>
+                        <div class="input-unit"><input id="delta" name="delta" value="" inputmode="decimal" data-optional placeholder="e.g. 20" data-label="optical penetration depth"><select data-dim="length" data-units="nm,µm,mm" data-default="nm"></select></div>
+                    </div>
+                </div>
+                <p class="hint" style="font-size:.8rem;color:var(--muted);margin:0">δ = 1/α = λ/(4πκ). Metals in the near-IR are roughly 10–30 nm. Transparent materials range from micrometres to metres.</p>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="acc-badge" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Thermal diffusion length<span class="sym">L<sub>th</sub> = 2√(Dτ)</span></span><output class="result-value" data-out="L">—</output></div>
+                    <div class="result"><span class="result-label">Alternative convention<span class="sym">√(Dτ)</span></span><output class="result-value" data-out="L1">—</output></div>
+                    <div class="result"><span class="result-label">Lateral spread relative to beam radius<span class="sym">L<sub>th</sub>/w₀</span></span><output class="result-value" data-out="lw">—</output></div>
+                    <div class="result"><span class="result-label">Thermal confinement<span class="sym">L<sub>th</sub> vs. δ</span></span><output class="result-value" data-out="conf">—</output></div>
+                    <div class="result"><span class="result-label">Heat-spreading time across spot<span class="sym">t<sub>w</sub> = w₀²/4D</span></span><output class="result-value" data-out="tw">—</output></div>
+                    <div class="result"><span class="result-label">Heat-accumulation onset<span class="sym">f ≈ 4D/w₀²</span></span><output class="result-value" data-out="facc">—</output></div>
+                    <div class="result"><span class="result-label">Conservative onset (full diameter)<span class="sym">4D/d²</span></span><output class="result-value" data-out="facc2">—</output></div>
+                    <div class="result"><span class="result-label">Pulse period vs. t<sub>w</sub></span><output class="result-value" data-out="per">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
+        <div class="panel-head"><h2 id="plot-h">Diffusion length vs. pulse duration</h2></div>
+        <div class="panel-body"><div id="L-plot"></div></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>Heat released at a surface spreads with the diffusion equation. After a time \(t\), the temperature profile from an instantaneous planar source falls as \(\exp(-x^2/4Dt)\), so it drops to 1/e at</p>
+        <div class="formula">\[ L_\text{th} = 2\sqrt{D\tau}, \qquad D = \frac{k}{\rho\, c_p}, \]</div>
+        <p>where \(k\) is the thermal conductivity, \(\rho\) the density, and \(c_p\) the specific heat. Authors differ on the prefactor: \(\sqrt{D\tau}\), \(\sqrt{2D\tau}\), and \(2\sqrt{D\tau}\) all appear. Both common conventions are shown, so check which one a source uses before comparing numbers. Diffusion length scales only with \(\sqrt{\tau}\). Going from 10 ns to 10 ps shrinks it by a factor of about 32, not 1000.</p>
+
+        <h2>Thermal confinement</h2>
+        <p>If \(L_\text{th} \lesssim \delta\), the optical penetration depth, heat stays in the volume where it was absorbed during the pulse. The pulse is <em>thermally confined</em>. Energy density then builds up efficiently and ablation is relatively clean, with a small heat-affected zone. If \(L_\text{th} \gg \delta\), heat leaks into the bulk during the pulse. More energy is needed to reach ablation, and melt and recast appear. For metals, with \(\delta \approx\) 10–30 nm, confinement requires picosecond or shorter pulses.</p>
+
+        <h2>Heat accumulation between pulses</h2>
+        <p>After each pulse, heat must spread out of the irradiated spot before the next pulse arrives. Spreading over the beam radius takes about</p>
+        <div class="formula">\[ t_w \approx \frac{w_0^2}{4D} \quad\Longrightarrow\quad f_\text{acc} \approx \frac{4D}{w_0^2}. \]</div>
+        <p>Above roughly \(f_\text{acc}\), residual heat from earlier pulses raises the baseline temperature. The process then behaves more like a quasi-CW heat source: the heat-affected zone grows, melt and burr formation increase, and the effective threshold drops. Using the full diameter instead of the radius gives a 4× lower, more conservative onset. The transition is gradual because residual heat decays slowly, so treat \(f_\text{acc}\) as an order-of-magnitude guide. Pulse overlap raises the number of pulses per point and makes accumulation worse (see the <a href="/tools/pulse-overlap/">overlap</a> tool).</p>
+
+        <h2>Material properties</h2>
+        <table>
+            <thead><tr><th>Material</th><th class="num">k (W/m·K)</th><th class="num">ρ (kg/m³)</th><th class="num">c<sub>p</sub> (J/kg·K)</th><th class="num">D (mm²/s)</th></tr></thead>
+            <tbody>
+                <tr><td>Copper</td><td class="num">401</td><td class="num">8933</td><td class="num">385</td><td class="num">117</td></tr>
+                <tr><td>Aluminum (pure)</td><td class="num">237</td><td class="num">2702</td><td class="num">903</td><td class="num">97.1</td></tr>
+                <tr><td>Silicon</td><td class="num">148</td><td class="num">2330</td><td class="num">712</td><td class="num">89.2</td></tr>
+                <tr><td>Stainless steel 304</td><td class="num">14.9</td><td class="num">7900</td><td class="num">477</td><td class="num">3.95</td></tr>
+                <tr><td>Ti-6Al-4V</td><td class="num">6.7</td><td class="num">4430</td><td class="num">526</td><td class="num">2.88</td></tr>
+                <tr><td>Fused silica</td><td class="num">1.38</td><td class="num">2203</td><td class="num">740</td><td class="num">0.85</td></tr>
+                <tr><td>Borosilicate (Borofloat 33)</td><td class="num">1.2</td><td class="num">2230</td><td class="num">830</td><td class="num">0.65</td></tr>
+                <tr><td>Soda-lime glass</td><td class="num">1.0</td><td class="num">2500</td><td class="num">750</td><td class="num">0.53</td></tr>
+                <tr><td>Water (25 °C)</td><td class="num">0.607</td><td class="num">997</td><td class="num">4181</td><td class="num">0.146</td></tr>
+                <tr><td>PMMA</td><td class="num">0.19</td><td class="num">1190</td><td class="num">1420</td><td class="num">0.11</td></tr>
+            </tbody>
+        </table>
+        <p>These are typical room-temperature values. Alloys, glasses, and polymers vary with composition and supplier, and every material's diffusivity changes with temperature. Most metals' diffusivity falls as they heat toward melting. Use measured data for your material when accuracy matters.</p>
+
+        <h2>Worked example</h2>
+        <p>Stainless steel 304 (D = 3.95 mm²/s) with 10 ns pulses: \(L_\text{th} = 2\sqrt{3.95\ \text{mm}^2/\text{s}\times 10\ \text{ns}} \approx 0.40\ \mu\text{m}\). That is about 20× the optical penetration depth, so the process is not thermally confined. The same steel with 10 ps pulses gives 12.6 nm, which is comparable to δ. For a 30 µm spot, \(t_w = (15\ \mu\text{m})^2/(4D) = 14\ \mu\text{s}\), so heat accumulation sets in around 70 kHz. At 100 kHz with significant overlap, expect accumulation. In fused silica the same spot accumulates heat from about 15 kHz. In copper the onset is about 2 MHz.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Classical (Fourier) diffusion with constant properties. Phase changes, latent heat, and temperature-dependent properties are not included.</li>
+            <li>For metals at pulse durations below a few picoseconds, electrons and the lattice are not in equilibrium. Heat initially spreads by hot-electron transport, which the two-temperature model describes. The classical \(L_\text{th}\) then underestimates the early heat penetration.</li>
+            <li>The accumulation onset compares single-spot timescales. Scanned processes also depend on overlap, line spacing, and part geometry. Thin sheets and small features accumulate heat faster than a semi-infinite solid.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>T. L. Bergman, A. S. Lavine, F. P. Incropera, and D. P. DeWitt, <em>Fundamentals of Heat and Mass Transfer</em>, 7th ed., Wiley (2011), Appendix A (property data).</li>
+            <li>H. S. Carslaw and J. C. Jaeger, <em>Conduction of Heat in Solids</em>, 2nd ed., Oxford University Press (1959).</li>
+            <li>D. Bäuerle, <em>Laser Processing and Chemistry</em>, 4th ed., Springer (2011).</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="pulse-overlap,ablation-depth,fluence,pulse-energy,article:laser-ablation-process-windows"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const MATS = { cu: 117, al: 97.1, si: 89.2, ss304: 3.95, ti64: 2.88, fs: 0.85, boro: 0.65, sl: 0.53, water: 0.146, pmma: 0.11 };
+    const matSel = document.getElementById('mat');
+    const dIn = document.getElementById('D');
+    const dUnit = document.getElementById('D-u');
+    const badge = document.getElementById('acc-badge');
+
+    // preset → diffusivity (runs before calc.js's form-level change handler)
+    matSel.addEventListener('change', () => {
+        if (matSel.value === 'custom') return;
+        dUnit.value = 'mm²/s'; dUnit.dataset.prev = 'mm²/s';
+        dIn.value = MATS[matSel.value];
+    });
+    dIn.addEventListener('input', () => { matSel.value = 'custom'; });
+
+    const freq = f => fmt.si(f, 'Hz', 3);
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            const L = 2 * Math.sqrt(v.D * v.tau), L1 = Math.sqrt(v.D * v.tau);
+            const w = v.d / 2;
+            const tw = w * w / (4 * v.D);
+            let conf = null, per = null;
+            if (isFinite(v.delta)) {
+                if (!(v.delta > 0)) throw Calc.fail('Optical penetration depth must be greater than zero.', 'delta');
+                const r = L / v.delta;
+                conf = r <= 1 ? 'Confined (L/δ = ' + fmt.num(r, 3) + ')' : 'Not confined (L/δ = ' + fmt.num(r, 3) + ')';
+            }
+            if (isFinite(v.f)) {
+                if (!(v.f > 0)) throw Calc.fail('Repetition rate must be greater than zero.', 'f');
+                const T = 1 / v.f, r = T / tw;
+                per = fmt.si(T, 's', 3) + ' = ' + fmt.num(r, 3) + ' × t_w';
+                if (r < 1) { badge.textContent = 'Heat accumulation likely'; badge.className = 'badge badge-bad'; }
+                else if (r < 4) { badge.textContent = 'Borderline accumulation'; badge.className = 'badge badge-warn'; }
+                else { badge.textContent = 'Heat dissipates between pulses'; badge.className = 'badge badge-ok'; }
+            } else { badge.textContent = ''; badge.className = 'badge'; }
+            return {
+                L: fmt.si(L, 'm', 4),
+                L1: fmt.si(L1, 'm', 4),
+                lw: fmt.num(L / w, 3),
+                conf,
+                tw: fmt.si(tw, 's', 3),
+                facc: freq(1 / tw),
+                facc2: freq(4 * v.D / (v.d * v.d)),
+                per
+            };
+        },
+        after(v) {
+            const taus = Calc.math.logspace(1e-14, 1e-3, 120);
+            const Lum = D => taus.map(t => 2 * Math.sqrt(D * t) * 1e6);
+            const series = [{ type: 'line', x: taus, y: Lum(v.D), label: 'Selected D = ' + fmt.num(v.D * 1e6, 3) + ' mm²/s', color: 'var(--c1)' }];
+            if (Math.abs(v.D - 117e-6) / 117e-6 > 0.01) series.push({ type: 'line', x: taus, y: Lum(117e-6), label: 'Copper', color: 'var(--c2)', dash: true });
+            if (Math.abs(v.D - 0.85e-6) / 0.85e-6 > 0.01) series.push({ type: 'line', x: taus, y: Lum(0.85e-6), label: 'Fused silica', color: 'var(--c3)', dash: true });
+            series.push({ type: 'points', x: [v.tau], y: [2 * Math.sqrt(v.D * v.tau) * 1e6], color: 'var(--c1)', r: 5 });
+            const hl = [{ y: v.d / 2 * 1e6, label: 'beam radius w₀', color: 'var(--muted)' }];
+            if (isFinite(v.delta) && v.delta > 0) hl.push({ y: v.delta * 1e6, label: 'optical depth δ', color: 'var(--c5)' });
+            Plot.draw('#L-plot', {
+                height: 300,
+                x: { label: 'Pulse duration τ (s)', log: true, min: 1e-14, max: 1e-3 },
+                y: { label: 'L = 2√(Dτ) (µm)', log: true },
+                series, hlines: hl, includeLines: false,
+                hover: { format: (x, hits) => 'τ = ' + fmt.si(x, 's', 3) + hits.filter(h => h.series.label).map(h => ' · ' + h.series.label.replace(/ = .*/, '') + ': ' + fmt.si(h.y * 1e-6, 'm', 3)).join('') }
+            });
+        }
+    });
+});
+</script>
+</body>
+</html>

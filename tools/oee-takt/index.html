@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OEE & Takt Time Calculator with Line Balancing | Casey D. Foley, PhD</title>
+<meta name="description" content="Calculate overall equipment effectiveness (OEE) from availability, performance, and quality, with a loss breakdown. Compute takt time, minimum stations, and line-balance efficiency from station cycle times.">
+<link rel="canonical" href="https://cdfoley.com/tools/oee-takt/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="OEE & Takt Time Calculator">
+<meta property="og:description" content="OEE with availability, performance, and quality losses, plus takt time and line-balance efficiency from station times.">
+<meta property="og:url" content="https://cdfoley.com/tools/oee-takt/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>
+    .oee-bar svg { width: 100%; height: auto; display: block; }
+    .oee-bar text { font-family: var(--font); font-size: 12px; font-weight: 600; fill: #fff; }
+    .oee-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.5rem 1.2rem; margin-top: 0.9rem; font-size: 0.86rem; color: var(--text-2); }
+    .oee-legend div { display: flex; gap: 0.5rem; align-items: baseline; }
+    .oee-legend i { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; transform: translateY(1px); }
+    .oee-legend b { font-family: var(--mono); font-weight: 600; color: var(--text); margin-left: auto; white-space: nowrap; }
+    .panel-body > .hint { font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
+    .oee-scale { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; }
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#quality">Quality &amp; Manufacturing</a></li><li aria-current="page">OEE &amp; Takt Time</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>OEE &amp; Takt Time</h1>
+        <p class="lede">Overall equipment effectiveness splits lost production into availability, performance, and quality losses. Takt time sets the pace a line has to hold to meet demand. Enter one shift's numbers to get both, along with a station-by-station line-balance check.</p>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="oee-calc" autocomplete="off">
+            <div class="panel-head"><h2>OEE inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="oee">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="planned">Planned production time</label>
+                    <div class="input-unit"><input id="planned" name="planned" value="450" inputmode="decimal" data-positive><select data-dim="time" data-units="min,h,s" data-default="min"></select></div>
+                    <p class="hint">Shift length minus planned stops such as breaks, meetings, and scheduled maintenance.</p>
+                </div>
+                <div class="field">
+                    <label for="down">Unplanned downtime</label>
+                    <div class="input-unit"><input id="down" name="down" value="45" inputmode="decimal" data-nonneg><select data-dim="time" data-units="min,h,s" data-default="min"></select></div>
+                    <p class="hint">Breakdowns, changeovers, material shortages, and any stop long enough to log.</p>
+                </div>
+                <div class="field">
+                    <label for="ict">Ideal cycle time per part</label>
+                    <div class="input-unit"><input id="ict" name="ict" value="30" inputmode="decimal" data-positive><select data-dim="time" data-units="s,min" data-default="s"></select></div>
+                    <p class="hint">The fastest sustainable design rate, such as nameplate or validated rate, not the average.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="total">Total count</label>
+                        <div class="input-unit"><input id="total" name="total" value="740" inputmode="numeric" data-positive data-label="total count"><span class="unit">parts</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="good">Good count</label>
+                        <div class="input-unit"><input id="good" name="good" value="715" inputmode="numeric" data-nonneg data-label="good count"><span class="unit">parts</span></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" id="oee-results" aria-labelledby="oee-results-h">
+            <div class="panel-head"><h2 id="oee-results-h">OEE results</h2><span id="oee-badge" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">OEE <span class="sym">A × P × Q</span></span><output class="result-value" data-out="oee">—</output></div>
+                    <div class="result"><span class="result-label">Availability <span class="sym">A</span></span><output class="result-value" data-out="a">—</output></div>
+                    <div class="result"><span class="result-label">Performance <span class="sym">P</span></span><output class="result-value" data-out="p">—</output>
+                        <span class="result-note" data-out="p-note"></span></div>
+                    <div class="result"><span class="result-label">Quality <span class="sym">Q</span></span><output class="result-value" data-out="q">—</output></div>
+                    <div class="result"><span class="result-label">Run time</span><output class="result-value" data-out="run">—</output></div>
+                    <div class="result"><span class="result-label">Good parts vs. theoretical maximum</span><output class="result-value" data-out="parts">—</output></div>
+                    <div class="result"><span class="result-label">Parts lost to all losses</span><output class="result-value" data-out="lost">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="loss-h">
+        <div class="panel-head"><h2 id="loss-h">Where the planned time went</h2></div>
+        <div class="panel-body">
+            <div class="oee-bar" id="oee-bar"></div>
+            <div class="oee-scale"><span>0</span><span id="oee-scale-max">planned time</span></div>
+            <div class="oee-legend" id="oee-legend"></div>
+        </div>
+    </section>
+
+    <h2 style="margin-top:3rem">Takt time and line balance</h2>
+    <div class="tool-layout">
+        <form class="panel" id="takt-calc" autocomplete="off">
+            <div class="panel-head"><h2>Takt inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="takt">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="avail">Available working time</label>
+                        <div class="input-unit"><input id="avail" name="avail" value="450" inputmode="decimal" data-positive data-label="available time"><select data-dim="time" data-units="min,h,s" data-default="min"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="demand">Customer demand</label>
+                        <div class="input-unit"><input id="demand" name="demand" value="840" inputmode="numeric" data-positive data-label="customer demand"><span class="unit">units</span></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.3rem 0 .9rem">Use the same period for both, such as one shift or one day.</p>
+                <div class="field">
+                    <label for="stations">Station cycle times, in seconds (optional)</label>
+                    <textarea class="input" id="stations" name="stations" rows="3" spellcheck="false" style="min-height:76px">28.5 31.0 24.0 33.5 27.0 29.5</textarea>
+                    <p class="hint">Manual work content plus machine time for each station, in line order. Leave blank to compute takt time only.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" id="takt-results" aria-labelledby="takt-results-h">
+            <div class="panel-head"><h2 id="takt-results-h">Takt results</h2><span id="takt-badge" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Takt time</span><output class="result-value" data-out="takt">—</output></div>
+                    <div class="result"><span class="result-label">Required output rate</span><output class="result-value" data-out="rate">—</output></div>
+                    <div class="result"><span class="result-label">Bottleneck station</span><output class="result-value" data-out="bneck">—</output>
+                        <span class="result-note" data-out="bneck-note"></span></div>
+                    <div class="result"><span class="result-label">Total work content</span><output class="result-value" data-out="wc">—</output></div>
+                    <div class="result"><span class="result-label">Minimum stations <span class="sym">⌈Σt / takt⌉</span></span><output class="result-value" data-out="nmin">—</output></div>
+                    <div class="result"><span class="result-label">Efficiency vs. takt <span class="sym">Σt / (N·takt)</span></span><output class="result-value" data-out="efft">—</output></div>
+                    <div class="result"><span class="result-label">Balance efficiency <span class="sym">Σt / (N·t<sub>max</sub>)</span></span><output class="result-value" data-out="effb">—</output></div>
+                    <div class="result"><span class="result-label">Capacity at bottleneck</span><output class="result-value" data-out="cap">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" id="station-panel" style="margin-top:1.5rem" aria-labelledby="st-h">
+        <div class="panel-head"><h2 id="st-h">Station load vs. takt</h2></div>
+        <div class="panel-body"><div id="station-plot"></div></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How OEE is calculated</h2>
+        <p>OEE compares the good parts actually made with the most that could have been made at the ideal rate during planned production time. It is the product of three factors, each covering a different kind of loss:</p>
+        <div class="formula">\[ A = \frac{\text{run time}}{\text{planned production time}}, \qquad P = \frac{\text{ideal cycle time} \times \text{total count}}{\text{run time}}, \qquad Q = \frac{\text{good count}}{\text{total count}} \]</div>
+        <div class="formula">\[ \text{OEE} = A \times P \times Q = \frac{\text{good count} \times \text{ideal cycle time}}{\text{planned production time}} \]</div>
+        <p>The second form is a useful check: OEE is the fraction of planned time spent making good parts at full speed. The three factors match the “six big losses” of Total Productive Maintenance:</p>
+        <ul>
+            <li><strong>Availability:</strong> equipment failures, and setups and adjustments.</li>
+            <li><strong>Performance:</strong> idling and minor stops, and reduced speed.</li>
+            <li><strong>Quality:</strong> process defects and rework, and start-up yield losses.</li>
+        </ul>
+        <p>The often-quoted world-class benchmark of 85 % (90 % availability × 95 % performance × 99.9 % quality) is usually attributed to Nakajima's TPM work. It is a commonly cited reference point, not a standard. OEE is most useful for tracking one machine or line over time and for showing which loss to attack first, not for comparing different plants.</p>
+
+        <h2>Takt time and line balancing</h2>
+        <div class="formula">\[ \text{takt} = \frac{\text{available working time}}{\text{customer demand}}, \qquad N_\text{min} = \left\lceil \frac{\sum t_i}{\text{takt}} \right\rceil, \qquad \eta_\text{balance} = \frac{\sum t_i}{N \cdot t_\text{max}} \]</div>
+        <p>Takt time is the pace of demand. It is set by the customer, not by the equipment. Cycle time is how long a station actually takes. Every station must run at or below takt, or the line cannot meet demand without overtime. The slowest station, \(t_\text{max}\), sets the line's real output. Balance efficiency measures how evenly the work is spread across stations, and its complement, the balance delay, is idle time built into the line.</p>
+
+        <h2>Worked examples</h2>
+        <p><strong>OEE.</strong> A 450-minute planned shift loses 45 minutes to unplanned stops, leaving 405 minutes of run time (A = 90.0 %). At an ideal 30 s per part, 740 parts should take 370 minutes, so P = 370/405 = 91.4 %. 715 of those parts are good (Q = 96.6 %). OEE = 0.900 × 0.914 × 0.966 = 79.4 %, the same as 715 good parts out of a theoretical 900. The loss bar shows that the 45 minutes of downtime is the largest loss, ahead of 35 minutes of speed loss and 12.5 minutes making parts that were later rejected.</p>
+        <p><strong>Takt.</strong> Demand of 840 units in 450 available minutes gives a takt of 32.1 s. Six stations with 173.5 s of total work need at least ⌈173.5/32.1⌉ = 6 stations, so the station count is right. But station 4, at 33.5 s, is 1.4 s over takt and limits the line to about 806 units per shift. Moving about 1.5 s of work from station 4 to station 3 (24.0 s) brings every station under takt without adding labor.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>The ideal cycle time decides the answer.</strong> If it is set to the average actual rate, performance looks perfect and speed losses disappear. A performance above 100 % means the ideal cycle time is too long.</li>
+            <li><strong>Definitions vary between plants.</strong> Some count changeovers as planned time. Some use calendar time, which gives TEEP rather than OEE. State the definitions whenever you compare figures.</li>
+            <li><strong>Count rework as a loss.</strong> Quality should use first-pass good parts. Parts that pass after rework still consumed run time.</li>
+            <li><strong>Station times vary.</strong> A station averaging just under takt will still miss it on some cycles. Plan station loads with margin for variation, walking, and handling, and confirm with time studies.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>S. Nakajima, <em>Introduction to TPM: Total Productive Maintenance</em>, Productivity Press (1988).</li>
+            <li>M. Rother and J. Shook, <em>Learning to See: Value Stream Mapping to Add Value and Eliminate Muda</em>, Lean Enterprise Institute (1999).</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="sigma-level,process-capability,control-chart,motion-blur,article:spc-for-laser-processes"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const pct = x => fmt.pct(x, 3);
+    const mins = s => fmt.num(s / 60, 4) + ' min';
+    let lastOee = null;
+
+    Calc.create({
+        form: '#oee-calc',
+        outputs: '#oee-results',
+        id: 'oee',
+        compute(v) {
+            if (v.down >= v.planned) throw Calc.fail('Unplanned downtime must be less than the planned production time.', 'down');
+            if (v.good > v.total) throw Calc.fail('Good count cannot exceed total count.', 'good');
+            const run = v.planned - v.down;                       // all times in seconds
+            const A = run / v.planned;
+            const P = v.ict * v.total / run;
+            const Q = v.good / v.total;
+            const oee = A * P * Q;
+            const theo = v.planned / v.ict;
+            const badge = document.getElementById('oee-badge');
+            if (oee >= 0.85) { badge.textContent = '≥ 85 % benchmark'; badge.className = 'badge badge-ok'; }
+            else { badge.textContent = 'Below 85 % benchmark'; badge.className = 'badge'; }
+            lastOee = {
+                planned: v.planned, avail: v.down, speed: Math.max(0, run - v.total * v.ict),
+                quality: (v.total - v.good) * v.ict, productive: v.good * v.ict, over: P > 1
+            };
+            return {
+                oee: pct(oee),
+                a: pct(A),
+                p: pct(P),
+                'p-note': P > 1 ? 'Above 100 %: the ideal cycle time is probably longer than the true design rate, or the count is wrong.' : '',
+                q: pct(Q),
+                run: mins(run),
+                parts: fmt.num(v.good, 6) + ' of ' + fmt.num(theo, 4),
+                lost: fmt.num(Math.max(0, theo - v.good), 4) + ' parts'
+            };
+        },
+        after() {
+            const s = lastOee;
+            const segs = [
+                { key: 'productive', label: 'Fully productive time', color: 'var(--c3)' },
+                { key: 'quality', label: 'Quality loss (rejects)', color: 'var(--c2)' },
+                { key: 'speed', label: 'Performance loss (slow cycles, minor stops)', color: 'var(--c4)' },
+                { key: 'avail', label: 'Availability loss (downtime)', color: 'var(--c5)' }
+            ];
+            const total = segs.reduce((a, g) => a + s[g.key], 0) || 1;
+            const W = 640, H = 44;
+            let x = 0, rects = '';
+            segs.forEach(g => {
+                const w = s[g.key] / total * W;
+                if (w <= 0) return;
+                rects += '<rect x="' + x.toFixed(2) + '" y="0" width="' + w.toFixed(2) + '" height="' + H + '" style="fill:' + g.color + '"/>';
+                if (w > 52) rects += '<text x="' + (x + w / 2).toFixed(2) + '" y="' + (H / 2 + 4) + '" text-anchor="middle">' + fmt.num(s[g.key] / s.planned * 100, 3) + ' %</text>';
+                x += w;
+            });
+            document.getElementById('oee-bar').innerHTML =
+                '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Breakdown of planned production time into productive time and losses" preserveAspectRatio="none" style="border-radius:6px">' + rects + '</svg>';
+            document.getElementById('oee-scale-max').textContent = fmt.num(s.planned / 60, 4) + ' min planned';
+            document.getElementById('oee-legend').innerHTML = segs.map(g =>
+                '<div><i style="background:' + g.color + '"></i><span>' + g.label + '</span><b>' + fmt.num(s[g.key] / 60, 4) + ' min</b></div>').join('') +
+                (s.over ? '<div style="grid-column:1/-1;color:var(--warn)">Performance is above 100 %, so speed loss is shown as zero and the bar is scaled to the time accounted for.</div>' : '');
+        }
+    });
+
+    let lastTakt = null;
+    const stPanel = document.getElementById('station-panel');
+    Calc.create({
+        form: '#takt-calc',
+        outputs: '#takt-results',
+        id: 'takt',
+        compute(v) {
+            const takt = v.avail / v.demand;                       // seconds per unit
+            const st = Calc.parseList(v.stations);
+            if (st.some(t => !(t > 0))) throw Calc.fail('Station cycle times must be greater than zero.', 'stations');
+            const badge = document.getElementById('takt-badge');
+            lastTakt = { takt, st };
+            const out = {
+                takt: fmt.num(takt, 4) + ' s' + (takt >= 120 ? ' (' + fmt.num(takt / 60, 4) + ' min)' : ''),
+                rate: fmt.num(3600 / takt, 4) + ' units/h'
+            };
+            if (!st.length) {
+                badge.textContent = ''; badge.className = 'badge';
+                return Object.assign(out, { bneck: null, wc: null, nmin: null, efft: null, effb: null, cap: null, 'bneck-note': '' });
+            }
+            const wc = st.reduce((a, t) => a + t, 0), N = st.length;
+            const tmax = Math.max(...st), iMax = st.indexOf(tmax);
+            const over = st.map((t, i) => t > takt ? i + 1 : null).filter(Boolean);
+            if (over.length) { badge.textContent = over.length + ' station' + (over.length > 1 ? 's' : '') + ' over takt'; badge.className = 'badge badge-bad'; }
+            else { badge.textContent = 'All stations within takt'; badge.className = 'badge badge-ok'; }
+            return Object.assign(out, {
+                bneck: 'Station ' + (iMax + 1) + ' · ' + fmt.num(tmax, 4) + ' s',
+                'bneck-note': tmax > takt ? fmt.num(tmax - takt, 3) + ' s over takt' + (over.length > 1 ? '; stations over takt: ' + over.join(', ') : '') + '.'
+                    : fmt.num(takt - tmax, 3) + ' s of margin to takt.',
+                wc: fmt.num(wc, 5) + ' s',
+                nmin: Math.ceil(wc / takt - 1e-9) + ' (have ' + N + ')',
+                efft: pct(wc / (N * takt)),
+                effb: pct(wc / (N * tmax)) + ' · delay ' + pct(1 - wc / (N * tmax)),
+                cap: fmt.num(v.avail / tmax, 4) + ' units vs. ' + fmt.num(v.demand, 6) + ' demanded'
+            });
+        },
+        after() {
+            const { takt, st } = lastTakt;
+            stPanel.hidden = !st.length;
+            if (!st.length) return;
+            const bins = (pred) => st.map((t, i) => ({ x0: i + 0.6, x1: i + 1.4, y: pred(t) ? t : 0 }));
+            Plot.draw('#station-plot', {
+                height: 260,
+                x: { label: 'Station', min: 0.4, max: st.length + 0.6, ticks: Math.min(st.length, 12), format: v => Number.isInteger(v) && v >= 1 && v <= st.length ? 'S' + v : '' },
+                y: { label: 'Cycle time (s)', min: 0 },
+                series: [
+                    { type: 'bars', bins: bins(t => t <= takt), color: 'var(--c1)', label: 'Within takt', opacity: 0.75 },
+                    { type: 'bars', bins: bins(t => t > takt), color: 'var(--c5)', label: 'Over takt', opacity: 0.75 }
+                ],
+                hlines: [{ y: takt, label: 'Takt ' + fmt.num(takt, 4) + ' s', color: 'var(--c2)' }],
+                legend: true
+            });
+        }
+    });
+});
+</script>
+</body>
+</html>

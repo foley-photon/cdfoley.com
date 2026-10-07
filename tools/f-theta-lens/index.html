@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F-Theta Scan Lens Calculator: Scan Field, Spot Size, Galvo Resolution | Casey D. Foley, PhD</title>
+<meta name="description" content="F-theta scan lens calculator for galvanometer laser scanners: scan field from focal length and scan angle (optical vs. mechanical), focused spot size, depth of focus, galvo positional resolution, and telecentricity error.">
+<link rel="canonical" href="https://cdfoley.com/tools/f-theta-lens/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="F-Theta Scan Lens Calculator">
+<meta property="og:description" content="Scan field, spot size, depth of focus, galvo resolution, and height-error sensitivity for f-theta galvo scanning systems.">
+<meta property="og:url" content="https://cdfoley.com/tools/f-theta-lens/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#beam">Gaussian Beams &amp; Optics</a></li><li aria-current="page">F-Theta Scan Lens</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>F-Theta Scan Lens</h1>
+        <p class="lede">The scan field, spot size, and positioning resolution of a galvanometer scanner with an f-theta lens. It also reports two numbers that often limit real processes: the usable depth of focus and the lateral position error caused by a height change at the edge of the field.</p>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="f">Lens focal length <span class="sym">f</span></label>
+                    <div class="input-unit"><input id="f" name="f" value="163" inputmode="decimal" data-positive><select data-dim="length" data-units="mm,cm,in" data-default="mm"></select></div>
+                </div>
+                <div class="field">
+                    <div class="field-label"><span>Maximum scan half-angle, per axis</span>
+                        <span class="seg" role="radiogroup" aria-label="Angle type">
+                            <input type="radio" id="at-o" name="atype" value="optical" checked><label for="at-o">optical</label>
+                            <input type="radio" id="at-m" name="atype" value="mechanical"><label for="at-m">mechanical</label>
+                        </span>
+                    </div>
+                    <div class="input-unit"><input id="ang" name="ang" value="20" inputmode="decimal" data-positive data-label="scan half-angle" aria-label="Scan half-angle"><select data-dim="angle" data-units="deg,mrad,rad" data-default="deg"></select></div>
+                    <p class="hint">A mirror that rotates by α deflects the beam by 2α. Galvo datasheets usually quote the mechanical angle, and lens datasheets the optical angle.</p>
+                </div>
+                <div class="field">
+                    <label for="d">Beam diameter at the lens (1/e²) <span class="sym">D</span></label>
+                    <div class="input-unit"><input id="d" name="d" value="10" inputmode="decimal" data-positive><select data-dim="length" data-units="mm,µm,cm" data-default="mm"></select></div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="wl">Wavelength <span class="sym">λ</span></label>
+                        <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="m2">Beam quality <span class="sym">M²</span></label>
+                        <div class="input-unit"><input id="m2" name="m2" value="1.1" inputmode="decimal" data-min="1" data-label="M²"><span class="unit">—</span></div>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="tol">DOF tolerance</label>
+                        <div class="input-unit"><input id="tol" name="tol" value="5" inputmode="decimal" data-positive data-label="DOF tolerance"><span class="unit">% growth</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="bits">Galvo command resolution</label>
+                        <div class="input-unit"><input id="bits" name="bits" value="16" inputmode="decimal" data-optional data-positive data-max="32" data-label="galvo resolution"><span class="unit">bits</span></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Scan field (square, XY)<span class="sym">2fθ</span></span><output class="result-value" data-out="field">—</output></div>
+                    <div class="result"><span class="result-label">Field diagonal</span><output class="result-value" data-out="diag">—</output></div>
+                    <div class="result"><span class="result-label">Field area</span><output class="result-value" data-out="area">—</output></div>
+                    <div class="result"><span class="result-label">Optical scan half-angle<span class="sym">θ</span></span><output class="result-value" data-out="theta">—</output></div>
+                    <div class="result"><span class="result-label">Focused spot diameter (1/e², untruncated)<span class="sym">d<sub>F</sub></span></span><output class="result-value" data-out="spot">—</output></div>
+                    <div class="result"><span class="result-label">Rayleigh range<span class="sym">z<sub>R</sub></span></span><output class="result-value" data-out="zr">—</output></div>
+                    <div class="result"><span class="result-label" id="dof-label">Depth of focus</span><output class="result-value" data-out="dof">—</output></div>
+                    <div class="result"><span class="result-label">Resolvable spots across the field</span><output class="result-value" data-out="spots">—</output></div>
+                    <div class="result"><span class="result-label">Edge error of an f·tanθ lens</span><output class="result-value" data-out="tanerr">—</output><span class="result-note">How far a standard lens would misplace the spot at the field edge. The f-theta design removes this.</span></div>
+                    <div class="result"><span class="result-label">Lateral shift per 1 mm height error at the edge (non-telecentric)</span><output class="result-value" data-out="shift">—</output></div>
+                    <div class="result"><span class="result-label">Positional resolution (1 LSB)</span><output class="result-value" data-out="lsb">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>A standard focusing lens places the spot at \(y = f\tan\theta\), which is non-linear in scan angle, and it focuses onto a curved surface. An f-theta lens is designed with controlled barrel distortion so that</p>
+        <div class="formula">\[ y = f\,\theta \qquad (\theta \text{ in radians, optical angle}), \]</div>
+        <p>so spot position is linear in mirror angle and the focal surface is flat. With two galvo mirrors each deflecting the beam by up to ±θ, the field is a square of side \(2f\theta\). The corners need a combined field angle near \(\sqrt{2}\,\theta\), so check that the lens is specified for the full diagonal.</p>
+        <p>The spot size and depth of focus follow Gaussian-beam optics with the lens focal length:</p>
+        <div class="formula">\[ d_F = \frac{4M^2\lambda f}{\pi D}, \qquad z_R = \frac{\pi d_F^2}{4M^2\lambda}, \qquad \mathrm{DOF} = 2z_R\sqrt{(1+\varepsilon)^2-1}. \]</div>
+        <p>This assumes the beam is not clipped by the galvo mirrors. Scanner apertures are small, so truncation is common. Use the <a href="/tools/focused-spot/">focused spot tool</a> with the scanner aperture as \(D_t\) to include it.</p>
+        <p>Galvo positioning resolution is the full optical scan range divided by the number of command steps: \(\Delta y = f \cdot 2\theta / 2^{N}\).</p>
+
+        <h2>Telecentricity and height errors</h2>
+        <p>In a non-telecentric f-theta lens the beam reaches the work surface at roughly the scan angle. A part that sits \(\Delta z\) above or below the focal plane is therefore marked at a position shifted by \(\Delta z\tan\theta\). It is also out of focus. At a 20° field edge, a 1 mm height error moves the mark by about 0.36 mm.</p>
+        <p><strong>Telecentric</strong> f-theta lenses keep the chief ray nearly perpendicular to the work surface across the field. This removes most of the height-dependent position error and makes hole walls and scribe edges consistent from center to edge. The cost: the last lens element must be larger than the scan field, so these lenses are larger and more expensive, and they are usually limited to smaller fields.</p>
+
+        <h2>Worked example</h2>
+        <p>A 163 mm f-theta lens with galvos rotating ±10° mechanically (±20° optical), a 10 mm beam at 1064 nm, and M² = 1.1:</p>
+        <ul>
+            <li>Field: \(2 \times 163 \times 0.349 = 113.8\) mm square (160.9 mm diagonal). A plain \(f\tan\theta\) lens would put the edge spot 2.43 mm too far out.</li>
+            <li>Spot: \(4 \times 1.1 \times 1.064\,\mu\text{m} \times 163 / (\pi \times 10) = 24.3\) µm. \(z_R = 0.40\) mm, so the ±5 % depth of focus is only 0.25 mm in total.</li>
+            <li>A 16-bit galvo addresses 1.74 µm steps on the work surface (10.7 µrad optical).</li>
+        </ul>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Ideal f-theta mapping.</strong> Real lenses deviate slightly from \(y = f\theta\). Scanner software corrects the residual (and the pincushion from the two-mirror geometry) with a field-correction table.</li>
+            <li><strong>Spot size at field center.</strong> Aberrations and field curvature usually enlarge the spot toward the edge. Vendors specify the spot size and telecentricity across the field.</li>
+            <li><strong>Working distance is not \(f\).</strong> The back focal distance from the last lens surface depends on the lens design. Use the lens datasheet.</li>
+            <li><strong>Digital resolution is not accuracy.</strong> Galvo drift, servo noise, thermal effects, and calibration limit absolute accuracy, which is usually much coarser than the command resolution, especially for 18–20-bit controllers.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>G. F. Marshall and G. E. Stutz (eds.), <em>Handbook of Optical and Laser Scanning</em>, 2nd ed., CRC Press (2011).</li>
+            <li>W. J. Smith, <em>Modern Optical Engineering</em>, 4th ed., McGraw-Hill (2008).</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="focused-spot,beam-expander,pulse-overlap,gaussian-beam,fluence,article:laser-ablation-process-windows"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, fail } = Calc;
+    const dofLabel = document.getElementById('dof-label');
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            const th = v.atype === 'mechanical' ? 2 * v.ang : v.ang;     // optical half-angle (rad)
+            if (th >= Math.PI / 2) throw fail('The optical half-angle must be below 90°.', 'ang');
+            const side = 2 * v.f * th;
+            const spot = 4 * v.m2 * v.wl * v.f / (Math.PI * v.d);
+            const zr = Math.PI * spot * spot / (4 * v.m2 * v.wl);
+            const dof = 2 * zr * Math.sqrt((1 + v.tol / 100) ** 2 - 1);
+            const hasBits = isFinite(v.bits);
+            const lsbAng = hasBits ? 2 * th / Math.pow(2, Math.round(v.bits)) : NaN;
+            dofLabel.textContent = 'Depth of focus (±' + fmt.num(v.tol, 3) + ' % growth)';
+
+            return {
+                field: fmt.si(side, 'm', 4) + ' × ' + fmt.si(side, 'm', 4),
+                diag: fmt.si(side * Math.SQRT2, 'm', 4),
+                area: fmt.unit(side * side, 'area', 'cm²', 4),
+                theta: fmt.num(th * 180 / Math.PI, 4) + '°  (' + fmt.si(th, 'rad', 4) + ')',
+                spot: fmt.si(spot, 'm', 4),
+                zr: fmt.si(zr, 'm', 4),
+                dof: fmt.si(dof, 'm', 3),
+                spots: fmt.num(side / spot, 4),
+                tanerr: fmt.si(v.f * (Math.tan(th) - th), 'm', 3) + '  (' + fmt.num((Math.tan(th) / th - 1) * 100, 3) + ' %)',
+                shift: fmt.si(Math.tan(th) * 1e-3, 'm', 3),
+                lsb: hasBits ? fmt.si(v.f * lsbAng, 'm', 3) + '  (' + fmt.si(lsbAng, 'rad', 3) + ')' : null
+            };
+        }
+    });
+});
+</script>
+</body>
+</html>

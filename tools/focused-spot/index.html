@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Focused Spot Size Calculator (Gaussian Beam, M², Truncation) | Casey D. Foley, PhD</title>
+<meta name="description" content="Calculate the focused 1/e² spot diameter of a laser beam from wavelength, focal length, beam diameter, M², and aperture truncation. Includes the exact truncation (APO) factor, Rayleigh range, and depth of focus.">
+<link rel="canonical" href="https://cdfoley.com/tools/focused-spot/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Focused Spot Size Calculator">
+<meta property="og:description" content="Focused 1/e² spot diameter with M², exact aperture-truncation factor, Rayleigh range, and depth of focus.">
+<meta property="og:url" content="https://cdfoley.com/tools/focused-spot/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#beam">Gaussian Beams &amp; Optics</a></li><li aria-current="page">Focused Spot Size</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Focused Spot Size</h1>
+        <p class="lede">The 1/e² diameter of a laser beam at the focus of a lens. The calculator applies the beam quality factor M² and computes the aperture-truncation (APO) factor exactly from the diffraction integral, so it stays accurate when the beam nearly fills the lens or scanner aperture.</p>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="wl">Wavelength <span class="sym">λ</span></label>
+                    <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                </div>
+                <div class="field">
+                    <label for="f">Focal length <span class="sym">f′</span></label>
+                    <div class="input-unit"><input id="f" name="f" value="100" inputmode="decimal" data-positive><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                </div>
+                <div class="field">
+                    <label for="db">Input beam diameter at the lens (1/e²) <span class="sym">D<sub>b</sub></span></label>
+                    <div class="input-unit"><input id="db" name="db" value="8" inputmode="decimal" data-positive><select data-dim="length" data-units="mm,µm,cm,in" data-default="mm"></select></div>
+                </div>
+                <div class="field">
+                    <label for="dt">Clear aperture / entrance pupil <span class="sym">D<sub>t</sub></span></label>
+                    <div class="input-unit"><input id="dt" name="dt" value="12" inputmode="decimal" data-optional data-positive placeholder="blank = no truncation"><select data-dim="length" data-units="mm,µm,cm,in" data-default="mm"></select></div>
+                    <p class="hint">The smallest aperture in the path: lens clear aperture, scanner mirror, or iris. Leave blank for an untruncated beam.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="m2">Beam quality <span class="sym">M²</span></label>
+                        <div class="input-unit"><input id="m2" name="m2" value="1.1" inputmode="decimal" data-min="1" data-label="M²"><span class="unit">—</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="tol">Depth-of-focus tolerance</label>
+                        <div class="input-unit"><input id="tol" name="tol" value="5" inputmode="decimal" data-positive data-label="DOF tolerance"><span class="unit">% growth</span></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="regime" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Focused spot diameter (1/e²)<span class="sym">d<sub>F</sub></span></span><output class="result-value" data-out="dF">—</output></div>
+                    <div class="result"><span class="result-label">Waist radius<span class="sym">w₀</span></span><output class="result-value" data-out="w0">—</output></div>
+                    <div class="result"><span class="result-label">Truncation ratio<span class="sym">T = D<sub>b</sub>/D<sub>t</sub></span></span><output class="result-value" data-out="T">—</output></div>
+                    <div class="result"><span class="result-label">Apodization factor<span class="sym">APO</span></span><output class="result-value" data-out="apo">—</output></div>
+                    <div class="result"><span class="result-label">Power through aperture</span><output class="result-value" data-out="trans">—</output></div>
+                    <div class="result"><span class="result-label">Untruncated spot (APO = 4/π)</span><output class="result-value" data-out="dF0">—</output></div>
+                    <div class="result"><span class="result-label">Rayleigh range<span class="sym">z<sub>R</sub></span></span><output class="result-value" data-out="zR">—</output></div>
+                    <div class="result"><span class="result-label" id="dof-label">Depth of focus</span><output class="result-value" data-out="dof">—</output></div>
+                    <div class="result"><span class="result-label">Convergence half-angle<span class="sym">θ</span></span><output class="result-value" data-out="theta">—</output></div>
+                    <div class="result"><span class="result-label">Beam f-number<span class="sym">f′/D<sub>b</sub></span></span><output class="result-value" data-out="fno">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="apo-h">
+        <div class="panel-head"><h2 id="apo-h">APO factor vs. truncation ratio</h2></div>
+        <div class="panel-body"><div id="apo-plot"></div></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How the focused spot size is calculated</h2>
+        <p>For a beam with 1/e² diameter \(D_b\) at a lens of focal length \(f'\), the focused 1/e² spot diameter is</p>
+        <div class="formula">\[ d_F = \mathrm{APO}\cdot\frac{\lambda\, f'\, M^2}{D_b} \]</div>
+        <p>The apodization factor <strong>APO</strong> depends only on the truncation ratio \(T = D_b/D_t\), where \(D_t\) is the smallest clear aperture the beam passes through. For an untruncated Gaussian (\(T \lesssim 0.5\)), \(\mathrm{APO} = 4/\pi \approx 1.273\) and the formula reduces to the textbook result \(d_F = 4\lambda f' M^2/(\pi D_b)\), or \(w_0 = M^2\lambda f'/(\pi w_L)\) in radius form.</p>
+
+        <h2>Truncation and the APO factor</h2>
+        <p>A larger input beam gives a smaller spot, but only until the aperture starts to clip it. Clipping diffracts light out of the central lobe. The focal profile then moves away from a Gaussian toward an Airy pattern, and the spot stops shrinking in proportion to \(1/D_b\). This calculator does not use a lookup table. It evaluates the Fraunhofer diffraction integral of a truncated Gaussian,</p>
+        <div class="formula">\[ U(r) \propto \int_0^{D_t/2} e^{-\rho^2/w_L^2}\, J_0\!\left(\frac{2\pi \rho r}{\lambda f'}\right)\rho\, d\rho , \]</div>
+        <p>and finds the radius at which \(|U|^2\) falls to \(e^{-2}\) of its peak.</p>
+        <table>
+            <thead><tr><th class="num">T = D<sub>b</sub>/D<sub>t</sub></th><th class="num">APO</th><th class="num">Power transmitted</th><th>Comment</th></tr></thead>
+            <tbody>
+                <tr><td class="num">≤ 0.5</td><td class="num">1.27–1.29</td><td class="num">&gt; 99.9 %</td><td>Effectively untruncated Gaussian</td></tr>
+                <tr><td class="num">0.7</td><td class="num">1.45</td><td class="num">98.3 %</td><td>Common compromise for scanners</td></tr>
+                <tr><td class="num">0.9</td><td class="num">1.69</td><td class="num">91.5 %</td><td>Noticeable side lobes</td></tr>
+                <tr><td class="num">1.0</td><td class="num">1.83</td><td class="num">86.5 %</td><td>Aperture at the 1/e² diameter</td></tr>
+                <tr><td class="num">→ ∞</td><td class="num">1.645·T</td><td class="num">→ 0</td><td>Uniform illumination (Airy disk); \(d_F \to 1.645\,\lambda f'/D_t\)</td></tr>
+            </tbody>
+        </table>
+        <p>In practice, T ≈ 0.6–0.8 is a reasonable design point for galvo scanners and focusing heads. Past that, enlarging the beam gives little reduction in spot size and costs throughput and pointing sensitivity.</p>
+
+        <h2>Depth of focus</h2>
+        <p>The Rayleigh range \(z_R = \pi w_0^2/(M^2\lambda)\) is the distance over which the beam radius grows by \(\sqrt{2}\) (the area doubles and the peak fluence halves). Most processes tolerate much less than that. For a maximum allowed spot growth \(\varepsilon\) (e.g. 5 %), the usable depth of focus is</p>
+        <div class="formula">\[ \mathrm{DOF} = 2\,z_R\sqrt{(1+\varepsilon)^2 - 1}. \]</div>
+        <p>Because \(z_R \propto w_0^2\), halving the spot size cuts the depth of focus by four. Tight-focus ablation and scribing processes therefore need height sensing or tracking optics.</p>
+
+        <h2>Worked example</h2>
+        <p>A fiber laser at 1064 nm with M² = 1.1 and an 8 mm beam, focused by a 100 mm lens with a 12 mm clear aperture: T = 0.667, so APO = 1.412 and</p>
+        <div class="formula">\[ d_F = 1.412 \times \frac{1.064\,\mu\text{m}\times 100\,\text{mm}\times 1.1}{8\,\text{mm}} \approx 20.7\,\mu\text{m}. \]</div>
+        <p>That gives \(z_R \approx 0.29\) mm, and the ±5 % depth of focus is only about 0.18 mm in total. Without the aperture the spot would be 18.6 µm. The 12 mm aperture costs about 11 % in spot size and 1.1 % in power.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Paraxial, aberration-free lens.</strong> Real lenses add spherical aberration, which matters at low f-numbers (roughly f/# &lt; 5 for singlets). Use a ray-trace or the lens vendor's spot data when θ is large.</li>
+            <li><strong>Collimated input with the waist near the lens.</strong> The focus then lies close to \(f'\). A diverging or converging input shifts the focus. See the <a href="/tools/gaussian-beam/">Gaussian beam propagation</a> tool.</li>
+            <li><strong>M² is applied as a multiplier.</strong> This is the embedded-Gaussian model. It is exact for untruncated beams and a good approximation with truncation.</li>
+            <li><strong>Truncated beams are no longer Gaussian.</strong> When T &gt; ~0.8, \(z_R\) and DOF from the 1/e² radius are approximate, and side lobes carry a few percent of the energy.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), ch. 17–18 (Gaussian beams, aperture diffraction).</li>
+            <li>B. E. A. Saleh and M. C. Teich, <em>Fundamentals of Photonics</em>, 3rd ed., Wiley (2019), ch. 3.</li>
+            <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios.</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="gaussian-beam,beam-expander,f-theta-lens,aperture-transmission,fluence,article:gaussian-beam-optics"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+
+    // Bessel J0 (Abramowitz & Stegun 9.4.1 / 9.4.3, |error| < 5e-8)
+    function J0(x) {
+        x = Math.abs(x);
+        if (x <= 3) {
+            const y = (x / 3) ** 2;
+            return 1 + y * (-2.2499997 + y * (1.2656208 + y * (-0.3163866 + y * (0.0444479 + y * (-0.0039444 + y * 0.00021)))));
+        }
+        const y = 3 / x;
+        const f0 = 0.79788456 + y * (-0.00000077 + y * (-0.0055274 + y * (-0.00009512 + y * (0.00137237 + y * (-0.00072805 + y * 0.00014476)))));
+        const t0 = x - 0.78539816 + y * (-0.04166397 + y * (-0.00003954 + y * (0.00262573 + y * (-0.00054125 + y * (-0.00029333 + y * 0.00013558)))));
+        return f0 * Math.cos(t0) / Math.sqrt(x);
+    }
+    // focal-plane field of a Gaussian (1/e² radius T) clipped by a unit-radius aperture (Simpson's rule)
+    function field(v, T) {
+        const N = 400, h = 1 / N;
+        let s = 0;
+        for (let i = 0; i <= N; i++) {
+            const r = i * h, w = (i === 0 || i === N) ? 1 : (i % 2 ? 4 : 2);
+            s += w * Math.exp(-((r / T) ** 2)) * J0(v * r) * r;
+        }
+        return s * h / 3;
+    }
+    // APO = d_F·D_b/(λ f') for truncation ratio T
+    const apoCache = new Map();
+    function apo(T) {
+        if (T < 0.35) return 4 / Math.PI;
+        const key = T.toPrecision(6);
+        if (apoCache.has(key)) return apoCache.get(key);
+        const I0 = field(0, T) ** 2, target = Math.exp(-2);
+        let lo = 0, hi = 1;
+        while (field(hi, T) ** 2 / I0 > target) hi *= 1.5;
+        for (let k = 0; k < 50; k++) {
+            const m = (lo + hi) / 2;
+            if (field(m, T) ** 2 / I0 > target) lo = m; else hi = m;
+        }
+        const val = (lo + hi) / Math.PI * T;     // 2·v_e/π · T
+        apoCache.set(key, val);
+        return val;
+    }
+
+    const curveT = Calc.math.linspace(0.2, 2, 46);
+    const curveA = curveT.map(apo);
+    const regime = document.getElementById('regime');
+    const dofLabel = document.getElementById('dof-label');
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            const truncated = isFinite(v.dt);
+            const T = truncated ? v.db / v.dt : 0;
+            const A = truncated ? apo(T) : 4 / Math.PI;
+            const dF = A * v.wl * v.f * v.m2 / v.db;
+            const dF0 = 4 / Math.PI * v.wl * v.f * v.m2 / v.db;
+            const w0 = dF / 2;
+            const zR = Math.PI * w0 * w0 / (v.m2 * v.wl);
+            const eps = v.tol / 100;
+            const dof = 2 * zR * Math.sqrt((1 + eps) ** 2 - 1);
+            // geometric convergence half-angle of the 1/e² beam (or of the aperture, if it clips harder)
+            const theta = Math.min(v.db, truncated ? v.dt : Infinity) / (2 * v.f);
+
+            dofLabel.innerHTML = 'Depth of focus (±' + fmt.num(v.tol, 3) + ' % spot growth)';
+            if (!truncated) { regime.textContent = 'Untruncated'; regime.className = 'badge'; }
+            else if (T <= 0.5) { regime.textContent = 'Negligible clipping'; regime.className = 'badge badge-ok'; }
+            else if (T <= 0.85) { regime.textContent = 'Moderate truncation'; regime.className = 'badge badge-ok'; }
+            else if (T <= 1.1) { regime.textContent = 'Heavy truncation'; regime.className = 'badge badge-warn'; }
+            else { regime.textContent = 'Aperture-limited'; regime.className = 'badge badge-bad'; }
+
+            return {
+                dF: fmt.si(dF, 'm', 4),
+                w0: fmt.si(w0, 'm', 4),
+                T: truncated ? fmt.num(T, 4) : 'none',
+                apo: fmt.num(A, 4),
+                trans: truncated ? fmt.pct(1 - Math.exp(-2 / (T * T)), 4) : '100 %',
+                dF0: truncated ? fmt.si(dF0, 'm', 4) : null,
+                zR: fmt.si(zR, 'm', 4),
+                dof: fmt.si(dof, 'm', 3),
+                theta: fmt.si(theta, 'rad', 4) + (theta > 0.15 ? '  (non-paraxial)' : ''),
+                fno: 'f/' + fmt.num(v.f / v.db, 3)
+            };
+        },
+        after(v) {
+            const T = isFinite(v.dt) ? v.db / v.dt : null;
+            Plot.draw('#apo-plot', {
+                height: 260,
+                x: { label: 'Truncation ratio T = Db / Dt', min: 0.2, max: 2 },
+                y: { label: 'APO factor', min: 1.2 },
+                series: [{ type: 'line', x: curveT, y: curveA, label: 'APO(T)', color: 'var(--c1)' }]
+                    .concat(T && T >= 0.2 && T <= 2 ? [{ type: 'points', x: [T], y: [apo(T)], color: 'var(--c2)', r: 5 }] : []),
+                hlines: [{ y: 4 / Math.PI, label: '4/π (untruncated)', color: 'var(--muted)' }],
+                hover: { format: (x, hits) => hits.length ? `T = ${fmt.num(hits[0].x, 3)} · APO = ${fmt.num(hits[0].y, 4)} · transmitted ${fmt.pct(1 - Math.exp(-2 / hits[0].x ** 2), 3)}` : '' }
+            });
+        }
+    });
+});
+</script>
+</body>
+</html>

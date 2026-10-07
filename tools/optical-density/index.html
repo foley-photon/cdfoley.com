@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Optical Density Calculator: OD, Transmission, dB & ND Filter Stacks | Casey D. Foley, PhD</title>
+<meta name="description" content="Convert between optical density (OD), transmittance, percent transmission, attenuation in dB, and percent blocked. Stack up to four neutral-density filters, compute transmitted laser power, and find the OD needed to reach a target power.">
+<link rel="canonical" href="https://cdfoley.com/tools/optical-density/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Optical Density & Attenuation Calculator">
+<meta property="og:description" content="OD ↔ transmission ↔ dB, plus ND filter stacking and the OD needed to bring a laser down to a target power.">
+<meta property="og:url" content="https://cdfoley.com/tools/optical-density/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>
+    .od-note { font-size: 0.85rem; color: var(--warn); min-height: 1.2em; margin: 0.8rem 0 0; }
+    .od-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0 0.9rem; }
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#beam">Gaussian Beams &amp; Optics</a></li><li aria-current="page">Optical Density &amp; Attenuation</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Optical Density &amp; Attenuation</h1>
+        <p class="lede">Convert between the ways attenuation is specified: optical density, transmittance, decibels, and percent blocked. Then stack neutral-density filters to bring a laser down to a safe or measurable power for a camera, power meter, or spectrometer.</p>
+    </header>
+
+    <section class="panel" id="conv" aria-labelledby="conv-h">
+        <div class="panel-head"><h2 id="conv-h">Convert</h2>
+            <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+        </div>
+        <div class="panel-body">
+            <div class="calc-error" role="alert"></div>
+            <div class="conv-grid">
+                <div class="field"><label for="c-od">Optical density <span class="sym">OD</span></label><div class="input-unit"><input id="c-od" name="od" inputmode="decimal"><span class="unit">OD</span></div></div>
+                <div class="field"><label for="c-t">Transmittance <span class="sym">T</span></label><div class="input-unit"><input id="c-t" name="t" inputmode="decimal"><span class="unit">fraction</span></div></div>
+                <div class="field"><label for="c-tp">Transmission</label><div class="input-unit"><input id="c-tp" name="tpct" inputmode="decimal"><span class="unit">%</span></div></div>
+                <div class="field"><label for="c-db">Attenuation</label><div class="input-unit"><input id="c-db" name="db" inputmode="decimal"><span class="unit">dB</span></div></div>
+                <div class="field"><label for="c-bl">Blocked</label><div class="input-unit"><input id="c-bl" name="blocked" inputmode="decimal"><span class="unit">%</span></div></div>
+            </div>
+            <p class="od-note" id="od-note" aria-live="polite"></p>
+        </div>
+    </section>
+
+    <div class="tool-layout" style="margin-top:1.5rem">
+        <form class="panel" id="stack" autocomplete="off">
+            <div class="panel-head"><h2>Filter stack</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="stack">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field-label">Filter optical densities (leave unused blank)</div>
+                <div class="od-filters">
+                    <div class="field"><div class="input-unit"><input name="od1" value="1" inputmode="decimal" data-optional data-nonneg data-label="filter 1 OD" aria-label="Filter 1 OD"><span class="unit">OD</span></div></div>
+                    <div class="field"><div class="input-unit"><input name="od2" value="2" inputmode="decimal" data-optional data-nonneg data-label="filter 2 OD" aria-label="Filter 2 OD"><span class="unit">OD</span></div></div>
+                    <div class="field"><div class="input-unit"><input name="od3" value="0.5" inputmode="decimal" data-optional data-nonneg data-label="filter 3 OD" aria-label="Filter 3 OD"><span class="unit">OD</span></div></div>
+                    <div class="field"><div class="input-unit"><input name="od4" value="" inputmode="decimal" data-optional data-nonneg data-label="filter 4 OD" aria-label="Filter 4 OD"><span class="unit">OD</span></div></div>
+                </div>
+                <div class="field" style="margin-top:.95rem">
+                    <label for="pin">Input power</label>
+                    <div class="input-unit"><input id="pin" name="pin" value="2" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="input power"><select data-dim="power" data-units="µW,mW,W,kW" data-default="W"></select></div>
+                </div>
+                <div class="field">
+                    <label for="ptg">Target power after filters</label>
+                    <div class="input-unit"><input id="ptg" name="ptg" value="1" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="target power"><select data-dim="power" data-units="nW,µW,mW,W" data-default="mW"></select></div>
+                    <p class="hint">For example, a camera's saturation power or a power-meter range.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" id="stack-results" aria-labelledby="sr-h">
+            <div class="panel-head"><h2 id="sr-h">Stack results</h2><span id="enough" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Total optical density</span><output class="result-value" data-out="odt">—</output></div>
+                    <div class="result"><span class="result-label">Total transmission</span><output class="result-value" data-out="tt">—</output></div>
+                    <div class="result"><span class="result-label">Total attenuation</span><output class="result-value" data-out="dbt">—</output></div>
+                    <div class="result"><span class="result-label">Transmitted power</span><output class="result-value" data-out="pout">—</output></div>
+                    <div class="result"><span class="result-label">Power absorbed / reflected by the stack</span><output class="result-value" data-out="pblk">—</output></div>
+                    <div class="result"><span class="result-label">OD required for target</span><output class="result-value" data-out="odreq">—</output></div>
+                    <div class="result"><span class="result-label">Additional OD needed</span><output class="result-value" data-out="odadd">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>Optical density is the base-10 logarithm of the attenuation. Decibels use ten times the same logarithm:</p>
+        <div class="formula">\[ \mathrm{OD} = -\log_{10} T = \log_{10}\frac{P_\text{in}}{P_\text{out}}, \qquad \mathrm{dB} = 10\,\mathrm{OD}, \qquad T = 10^{-\mathrm{OD}}. \]</div>
+        <p>Because these are logarithms, filters in series add: \(\mathrm{OD}_\text{total} = \sum \mathrm{OD}_i\), equivalent to multiplying their transmittances. The OD needed to bring a beam from \(P_\text{in}\) down to \(P_\text{target}\) is \(\log_{10}(P_\text{in}/P_\text{target})\). Laser-safety eyewear uses the same formula with the exposure and the maximum permissible exposure (MPE) from ANSI Z136.1 or IEC 60825-1 in place of the powers.</p>
+        <table>
+            <thead><tr><th class="num">OD</th><th class="num">Transmission</th><th class="num">Attenuation</th></tr></thead>
+            <tbody>
+                <tr><td class="num">0.1</td><td class="num">79.4 %</td><td class="num">1 dB</td></tr>
+                <tr><td class="num">0.3</td><td class="num">50.1 %</td><td class="num">3 dB</td></tr>
+                <tr><td class="num">0.5</td><td class="num">31.6 %</td><td class="num">5 dB</td></tr>
+                <tr><td class="num">1</td><td class="num">10 %</td><td class="num">10 dB</td></tr>
+                <tr><td class="num">2</td><td class="num">1 %</td><td class="num">20 dB</td></tr>
+                <tr><td class="num">3</td><td class="num">0.1 %</td><td class="num">30 dB</td></tr>
+                <tr><td class="num">4</td><td class="num">0.01 %</td><td class="num">40 dB</td></tr>
+                <tr><td class="num">6</td><td class="num">0.0001 %</td><td class="num">60 dB</td></tr>
+            </tbody>
+        </table>
+
+        <h2>OD is not always absorbance</h2>
+        <p>For an <strong>absorptive</strong> ND filter (colored glass), OD is close to the absorbance of the glass plus small surface-reflection losses. A <strong>reflective</strong> ND filter (a thin metal or dielectric coating) attenuates mainly by reflecting light. Its OD describes transmission only. The "missing" power goes back toward the source, which can disturb the laser or create ghost beams. In spectroscopy, absorbance \(A = -\log_{10}(I/I_0)\) means the same thing when \(I_0\) is measured through a reference that cancels reflection losses.</p>
+
+        <h2>Practical cautions</h2>
+        <ul>
+            <li><strong>OD depends on wavelength.</strong> Absorptive ND glass is often far less dense in the near-IR than in the visible. Check the vendor's OD curve at your wavelength rather than the nominal value.</li>
+            <li><strong>Stacking reflective filters</strong> creates multiple reflections between them. Tilt them by a few degrees so back-reflections leave the beam path, and don't let them return into the laser.</li>
+            <li><strong>High power.</strong> An absorptive filter at the front of a stack absorbs almost all the power and can crack or thermally lens. Put a reflective filter, beam sampler, or beam dump first, and keep within each filter's damage threshold.</li>
+            <li><strong>High OD is hard to verify.</strong> Above OD 4–5, scattered and leaked light around the filter often dominates the measured transmission.</li>
+        </ul>
+
+        <h2>Worked example</h2>
+        <p>A 2 W beam needs to be at or below 1 mW for a camera. The required OD is \(\log_{10}(2\,\text{W}/1\,\text{mW}) = 3.30\). Stacking OD 1 + OD 2 + OD 0.5 = OD 3.5 transmits \(2\,\text{W}\times10^{-3.5} = 0.63\) mW, which meets the target. Nearly the full 2 W is absorbed or reflected by the first filter, so make it a reflective filter or one with a suitable damage threshold.</p>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>ANSI Z136.1-2022, <em>American National Standard for Safe Use of Lasers</em>, Laser Institute of America.</li>
+            <li>IEC 60825-1:2014, Safety of laser products — Part 1: Equipment classification and requirements.</li>
+            <li>E. Hecht, <em>Optics</em>, 5th ed., Pearson (2017).</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="fresnel-equations,aperture-transmission,photon-flux,pulse-energy,lidt"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, fail } = Calc;
+    const note = document.getElementById('od-note');
+
+    // converter: base value is the transmittance as a fraction
+    Calc.converter({
+        root: '#conv',
+        sig: 6,
+        initial: { field: 'od', value: 3 },
+        positive: false,                       // OD 0, 0 dB, and 0 % blocked are valid (T = 1)
+        validate: T => !(T > 0) ? 'Transmittance must be above 0 (blocked below 100 %); 100 % blocking would be infinite OD.'
+                     : T > 1 + 1e-12 ? 'Transmittance cannot exceed 100 % for a passive filter (OD and dB must be ≥ 0).' : null,
+        fields: {
+            od:      { to: x => Math.pow(10, -x),      from: T => -Math.log10(T) },
+            t:       { to: x => x,                     from: T => T },
+            tpct:    { to: x => x / 100,               from: T => T * 100 },
+            db:      { to: x => Math.pow(10, -x / 10), from: T => -10 * Math.log10(T) },
+            blocked: { to: x => 1 - x / 100,           from: T => (1 - T) * 100 }
+        },
+        after(T) {
+            note.textContent = T === 1 ? 'OD 0: the filter transmits everything.' : '';
+        }
+    });
+
+    const enough = document.getElementById('enough');
+    Calc.create({
+        form: '#stack',
+        id: 'stack',
+        outputs: '#stack-results',
+        compute(v) {
+            const ods = [v.od1, v.od2, v.od3, v.od4].filter(x => isFinite(x));
+            if (!ods.length) throw fail('Enter the OD of at least one filter.', 'od1');
+            const od = ods.reduce((s, x) => s + x, 0);
+            const T = Math.pow(10, -od);
+            const hasP = isFinite(v.pin), hasT = isFinite(v.ptg);
+            const req = hasP && hasT ? Math.log10(v.pin / v.ptg) : NaN;
+
+            if (isFinite(req)) {
+                const ok = od >= req - 1e-12;
+                enough.textContent = ok ? 'Meets target' : 'Not enough OD';
+                enough.className = 'badge ' + (ok ? 'badge-ok' : 'badge-bad');
+            } else { enough.textContent = ''; enough.className = 'badge'; }
+
+            return {
+                odt: fmt.num(od, 4) + '  (' + ods.length + (ods.length === 1 ? ' filter)' : ' filters)'),
+                tt: T >= 1e-4 ? fmt.pct(T, 4) : fmt.sci(T * 100, 3) + ' %',
+                dbt: fmt.num(10 * od, 4) + ' dB',
+                pout: hasP ? fmt.si(v.pin * T, 'W', 4) : null,
+                pblk: hasP ? fmt.si(v.pin * (1 - T), 'W', 4) : null,
+                odreq: isFinite(req) ? (req > 0 ? fmt.num(req, 4) : '0 (input already below target)') : null,
+                odadd: isFinite(req) ? (req - od > 1e-12 ? fmt.num(req - od, 4) : 'none') : null
+            };
+        }
+    });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mean Free Path & Knudsen Number Calculator (Vacuum Gas Kinetics) | Casey D. Foley, PhD</title>
+<meta name="description" content="Calculate the mean free path, Knudsen number and flow regime, number density, mean molecular speed, wall impingement rate, and monolayer formation time for common gases at any pressure and temperature.">
+<link rel="canonical" href="https://cdfoley.com/tools/mean-free-path/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Mean Free Path & Gas Kinetics Calculator">
+<meta property="og:description" content="Mean free path, Knudsen number, flow regime, impingement rate, and monolayer time for N₂, air, Ar, He, H₂, H₂O, and more.">
+<meta property="og:url" content="https://cdfoley.com/tools/mean-free-path/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#vacuum">Vacuum Technology</a></li><li aria-current="page">Mean Free Path &amp; Gas Kinetics</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Mean Free Path &amp; Gas Kinetics</h1>
+        <p class="lede">How far a molecule travels between collisions, and what that means for flow in your chamber. The calculator also gives the number density, mean speed, how often molecules hit a surface, and how long a clean surface stays clean.</p>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="gas">Gas</label>
+                    <select id="gas" name="gas" class="input">
+                        <option value="n2" selected>Nitrogen (N₂)</option>
+                        <option value="air">Dry air</option>
+                        <option value="o2">Oxygen (O₂)</option>
+                        <option value="ar">Argon (Ar)</option>
+                        <option value="he">Helium (He)</option>
+                        <option value="h2">Hydrogen (H₂)</option>
+                        <option value="h2o">Water vapor (H₂O)</option>
+                        <option value="co2">Carbon dioxide (CO₂)</option>
+                        <option value="xe">Xenon (Xe)</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="d">Molecular diameter <span class="sym">d</span></label>
+                        <div class="input-unit"><input id="d" name="d" value="3.75" inputmode="decimal" data-positive><select data-dim="length" data-units="Å,nm,pm" data-default="Å"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="M">Molar mass <span class="sym">M</span></label>
+                        <div class="input-unit"><input id="M" name="M" value="28.0134" inputmode="decimal" data-positive data-label="molar mass"><span class="unit">g/mol</span></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="p">Pressure <span class="sym">p</span></label>
+                    <div class="input-unit"><input id="p" name="p" value="1e-3" inputmode="decimal" data-positive><select data-dim="pressure" data-units="Pa,mbar,Torr,mTorr,atm,psi" data-default="mbar"></select></div>
+                </div>
+                <div class="field">
+                    <label for="T">Temperature <span class="sym">T</span></label>
+                    <div class="input-unit"><input id="T" name="T" value="20" inputmode="decimal" data-positive data-label="temperature (absolute)"><select data-dim="temperature" data-units="°C,K,°F" data-default="°C"></select></div>
+                </div>
+                <div class="field">
+                    <label for="D">Characteristic dimension <span class="sym">D</span></label>
+                    <div class="input-unit"><input id="D" name="D" value="100" inputmode="decimal" data-positive><select data-dim="length" data-units="µm,mm,cm,m,in" data-default="mm"></select></div>
+                    <p class="hint">Pipe diameter, chamber size, or gap width that sets the flow regime.</p>
+                </div>
+                <div class="field">
+                    <label for="s">Sticking coefficient <span class="sym">s</span></label>
+                    <div class="input-unit"><input id="s" name="s" value="1" inputmode="decimal" data-positive data-max="1" data-label="sticking coefficient"><span class="unit">0–1</span></div>
+                    <p class="hint">Fraction of impinging molecules that stay on the surface. Used only for the monolayer time.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="regime" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Mean free path<span class="sym">λ</span></span><output class="result-value" data-out="lam">—</output></div>
+                    <div class="result"><span class="result-label">Knudsen number<span class="sym">Kn = λ/D</span></span><output class="result-value" data-out="kn">—</output></div>
+                    <div class="result"><span class="result-label">Product λ·p (this gas and T)</span><output class="result-value" data-out="lamp">—</output></div>
+                    <div class="result"><span class="result-label">Number density<span class="sym">n</span></span><output class="result-value" data-out="n">—</output></div>
+                    <div class="result"><span class="result-label">Mean molecular speed<span class="sym">v̄</span></span><output class="result-value" data-out="vbar">—</output></div>
+                    <div class="result"><span class="result-label">Collision rate per molecule<span class="sym">v̄/λ</span></span><output class="result-value" data-out="z">—</output></div>
+                    <div class="result"><span class="result-label">Wall impingement rate<span class="sym">Φ</span></span><output class="result-value" data-out="flux">—</output></div>
+                    <div class="result"><span class="result-label">Monolayer formation time<span class="sym">τ</span></span><output class="result-value" data-out="tmono">—</output>
+                        <span class="result-note">Assumes 10¹⁵ adsorption sites per cm² and the sticking coefficient above.</span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
+        <div class="panel-head"><h2 id="plot-h">Mean free path vs. pressure</h2></div>
+        <div class="panel-body"><div id="mfp-plot"></div></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How the mean free path is calculated</h2>
+        <p>Treating molecules as hard spheres of diameter \(d\) in an ideal gas at temperature \(T\), the mean free path is</p>
+        <div class="formula">\[ \lambda = \frac{k_B T}{\sqrt{2}\,\pi d^2\, p} = \frac{1}{\sqrt{2}\, n\, \pi d^2}, \qquad n = \frac{p}{k_B T}. \]</div>
+        <p>The \(\sqrt2\) accounts for the motion of the collision partners (Maxwell–Boltzmann velocities). At a fixed temperature the product \(\lambda p\) is constant. For N₂ at 20 °C it is 6.48 mm·Pa, or about 6.5 × 10⁻³ cm·mbar. So \(\lambda \approx 6.5\) mm at 1 Pa, and it scales as \(1/p\): about 6.5 cm at 10⁻³ mbar and 65 m at 10⁻⁶ mbar.</p>
+        <p>The other kinetic quantities follow from the Maxwell–Boltzmann distribution, with molecular mass \(m = M/N_A\):</p>
+        <div class="formula">\[ \bar v = \sqrt{\frac{8 k_B T}{\pi m}}, \qquad \Phi = \frac{n \bar v}{4} = \frac{p}{\sqrt{2\pi m k_B T}}, \qquad \tau_\text{mono} = \frac{n_s}{s\,\Phi}. \]</div>
+        <p>Here \(\Phi\) is the number of molecules striking a unit area of wall per second, \(n_s \approx 10^{15}\) cm⁻² is the number of adsorption sites in a monolayer, and \(s\) is the sticking coefficient.</p>
+
+        <h2>Knudsen number and flow regime</h2>
+        <p>The Knudsen number \(\mathrm{Kn} = \lambda/D\) compares the mean free path with the size of the system. It decides whether gas behaves as a fluid or as independent molecules bouncing between walls:</p>
+        <table>
+            <thead><tr><th>Kn</th><th>Regime</th><th>What it means</th></tr></thead>
+            <tbody>
+                <tr><td class="num">&lt; 0.01</td><td>Viscous (continuum)</td><td>Collisions between molecules dominate. Conductance depends on pressure and viscosity.</td></tr>
+                <tr><td class="num">0.01 – 0.5</td><td>Transitional (Knudsen)</td><td>Gas–gas and gas–wall collisions both matter.</td></tr>
+                <tr><td class="num">&gt; 0.5</td><td>Molecular</td><td>Molecules mostly hit walls. Conductance is independent of pressure.</td></tr>
+            </tbody>
+        </table>
+        <p>These boundaries are common in vacuum-industry literature. Some texts put the start of molecular flow at Kn = 1. The change between regimes is gradual, not sharp.</p>
+
+        <h2>Gas data used</h2>
+        <table>
+            <thead><tr><th>Gas</th><th class="num">d (Å)</th><th class="num">M (g/mol)</th><th class="num">λ·p at 20 °C (mm·Pa)</th></tr></thead>
+            <tbody id="gas-table"></tbody>
+        </table>
+        <p>The diameters are hard-sphere collision diameters derived from gas viscosity near room temperature. They are consistent with the Chapman–Enskog hard-sphere relation between viscosity and diameter to within a few percent, and published tables differ from each other by a similar amount. The value for water vapor is the least certain, because H₂O is strongly polar.</p>
+
+        <h2>Worked example</h2>
+        <p>N₂ at 10⁻³ mbar (0.1 Pa) and 20 °C, in a 100 mm diameter tube:</p>
+        <ul>
+            <li>\(\lambda = 6.48\ \text{mm·Pa} / 0.1\ \text{Pa} = 64.8\ \text{mm}\), so Kn = 0.65 and the flow is molecular.</li>
+            <li>\(n = 0.1/(1.381\times10^{-23}\times293.15) = 2.47\times10^{13}\ \text{cm}^{-3}\). Even at "high vacuum" there are tens of trillions of molecules in every cubic centimetre.</li>
+            <li>\(\bar v = 471\) m/s, and the wall is hit at \(\Phi = 2.9\times10^{17}\) cm⁻² s⁻¹. With \(s = 1\), a clean surface is covered in about 3.4 ms. At 10⁻⁶ mbar the same estimate gives 3.4 s, which is why surface-science work needs ultra-high vacuum.</li>
+        </ul>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Ideal gas with hard-sphere collisions and a single species. Mixtures need a collision diameter and reduced mass for each pair of species.</li>
+            <li>The hard-sphere diameter depends weakly on temperature. Real molecules attract and repel, so the effective cross-section falls as T rises (a Sutherland-type correction).</li>
+            <li>The monolayer time is an upper bound on how fast contamination builds up. Real sticking coefficients for N₂ and Ar on room-temperature surfaces are far below 1. For water and hydrocarbons they can approach 1.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>J. F. O'Hanlon, <em>A User's Guide to Vacuum Technology</em>, 3rd ed., Wiley (2003), ch. 2 (gas properties).</li>
+            <li>K. Jousten (ed.), <em>Handbook of Vacuum Technology</em>, 2nd ed., Wiley-VCH (2016).</li>
+            <li>S. Chapman and T. G. Cowling, <em>The Mathematical Theory of Non-Uniform Gases</em>, 3rd ed., Cambridge University Press (1970).</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="pressure-converter,pumpdown,energy-converter,article:vacuum-fundamentals"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, K } = Calc;
+    // hard-sphere diameters from viscosity (Å), molar masses (g/mol)
+    const GASES = {
+        n2:  { d: 3.75, M: 28.0134, label: 'N₂' },
+        air: { d: 3.72, M: 28.966,  label: 'Dry air' },
+        o2:  { d: 3.61, M: 31.998,  label: 'O₂' },
+        ar:  { d: 3.64, M: 39.948,  label: 'Ar' },
+        he:  { d: 2.18, M: 4.0026,  label: 'He' },
+        h2:  { d: 2.74, M: 2.016,   label: 'H₂' },
+        h2o: { d: 4.60, M: 18.015,  label: 'H₂O' },
+        co2: { d: 4.59, M: 44.009,  label: 'CO₂' },
+        xe:  { d: 4.85, M: 131.293, label: 'Xe' }
+    };
+    const NS = 1e19;   // adsorption sites per m² (1e15 cm⁻²)
+
+    // gas data table in the prose
+    const kT20 = K.kB * 293.15;
+    document.getElementById('gas-table').innerHTML = Object.values(GASES).map(g =>
+        `<tr><td>${g.label}</td><td class="num">${g.d.toFixed(2)}</td><td class="num">${g.M}</td><td class="num">${(kT20 / (Math.SQRT2 * Math.PI * (g.d * 1e-10) ** 2) * 1e3).toFixed(2)}</td></tr>`).join('');
+
+    const gasSel = document.getElementById('gas');
+    const dIn = document.getElementById('d'), MIn = document.getElementById('M');
+    const dUnit = dIn.parentElement.querySelector('select');
+    gasSel.addEventListener('change', () => {
+        const g = GASES[gasSel.value];
+        if (!g) return;
+        dIn.value = fmt.plain(Calc.fromSI('length', dUnit.value, g.d * 1e-10), 5);
+        MIn.value = g.M;
+    });
+    [dIn, MIn].forEach(inp => inp.addEventListener('input', () => {
+        const g = GASES[gasSel.value];
+        if (!g) return;
+        const d = Calc.parseNum(dIn.value), M = Calc.parseNum(MIn.value);
+        const dA = Calc.toSI('length', dUnit.value, d) * 1e10;
+        if (Math.abs(dA - g.d) > 1e-6 || Math.abs(M - g.M) > 1e-9) gasSel.value = 'custom';
+    }));
+
+    const regime = document.getElementById('regime');
+    function regimeOf(kn) {
+        if (kn < 0.01) return ['Viscous flow', 'badge'];
+        if (kn <= 0.5) return ['Transitional flow', 'badge badge-warn'];
+        return ['Molecular flow', 'badge badge-ok'];
+    }
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            const m = v.M * 1e-3 / K.NA;
+            const kT = K.kB * v.T;
+            const lam = kT / (Math.SQRT2 * Math.PI * v.d * v.d * v.p);
+            const n = v.p / kT;
+            const vbar = Math.sqrt(8 * kT / (Math.PI * m));
+            const flux = v.p / Math.sqrt(2 * Math.PI * m * kT);
+            const tmono = NS / (v.s * flux);
+            const kn = lam / v.D;
+            const [label, cls] = regimeOf(kn);
+            regime.textContent = label; regime.className = cls;
+            const lp = lam * v.p;
+            return {
+                lam: fmt.si(lam, 'm', 4, { max: 3 }),
+                kn: { html: fmt.num(kn, 3) + ' <span class="' + cls + '" style="font-family:var(--font);font-size:.72rem;margin-left:.35rem">' + label.replace(' flow', '') + '</span>' },
+                // λ·p in m·Pa is numerically equal to λ·p in cm·mbar
+                lamp: fmt.num(lp * 1e3, 4) + ' mm·Pa  (' + fmt.sci(lp, 3) + ' cm·mbar)',
+                n: fmt.sci(n * 1e-6, 4) + ' cm⁻³',
+                vbar: fmt.num(vbar, 4) + ' m/s',
+                z: fmt.sci(vbar / lam, 3) + ' s⁻¹',
+                flux: fmt.sci(flux * 1e-4, 3) + ' cm⁻² s⁻¹',
+                tmono: tmono >= 3600 * 24 ? fmt.num(tmono / 86400, 3) + ' days'
+                     : tmono >= 3600 ? fmt.num(tmono / 3600, 3) + ' h'
+                     : tmono >= 60 ? fmt.num(tmono / 60, 3) + ' min'
+                     : fmt.si(tmono, 's', 3)
+            };
+        },
+        after(v) {
+            const unit = v.$unit.p || 'Pa';
+            const toU = pa => Calc.fromSI('pressure', unit, pa);
+            const kT = K.kB * v.T;
+            const lp = kT / (Math.SQRT2 * Math.PI * v.d * v.d);
+            const pPa = Calc.math.logspace(1e-8, 1e5, 140);
+            Plot.draw('#mfp-plot', {
+                height: 300,
+                x: { label: 'Pressure (' + unit + ')', log: true },
+                y: { label: 'Mean free path (m)', log: true },
+                series: [
+                    { type: 'line', x: pPa.map(toU), y: pPa.map(p => lp / p), label: 'λ', color: 'var(--c1)' },
+                    { type: 'points', x: [toU(v.p)], y: [lp / v.p], color: 'var(--c2)', r: 5 }
+                ],
+                hlines: [{ y: v.D, label: 'D = ' + fmt.si(v.D, 'm', 3), color: 'var(--c3)' }],
+                includeLines: false,
+                hover: { format: (x, hits) => hits.length ? `p = ${fmt.num(hits[0].x, 3)} ${unit} · λ = ${fmt.si(hits[0].y, 'm', 3)} · Kn = ${fmt.num(hits[0].y / v.D, 3)}` : '' }
+            });
+        }
+    });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photon Energy & Flux Calculator: Photons per Second and per Pulse | Casey D. Foley, PhD</title>
+<meta name="description" content="Convert optical power and pulse energy to photons per second and photons per pulse at any wavelength. Includes photon flux density for a Gaussian beam and detector responsivity, photocurrent, and quantum efficiency.">
+<link rel="canonical" href="https://cdfoley.com/tools/photon-flux/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Photon Energy & Flux Calculator">
+<meta property="og:description" content="Photons per second, photons per pulse, flux density, and detector responsivity from power, pulse energy, and wavelength.">
+<meta property="og:url" content="https://cdfoley.com/tools/photon-flux/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#photon">Photon Energy &amp; Spectroscopy</a></li><li aria-current="page">Photon Energy &amp; Flux</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Photon Energy &amp; Flux</h1>
+        <p class="lede">Count the photons in a beam. Enter a wavelength and an average power, or a pulse energy and repetition rate, to get photons per second and per pulse, the photon flux density for a Gaussian beam, and the responsivity and photocurrent of a detector with a given quantum efficiency.</p>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="wl">Wavelength (vacuum) <span class="sym">λ</span></label>
+                    <div class="input-unit"><input id="wl" name="wl" value="532" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                </div>
+                <div class="field">
+                    <label for="p">Average optical power <span class="sym">P</span></label>
+                    <div class="input-unit"><input id="p" name="p" value="1" inputmode="decimal" data-optional data-nonneg><select data-dim="power" data-units="nW,µW,mW,W,kW" data-default="mW"></select></div>
+                    <p class="hint">Leave blank if you enter a pulse energy and repetition rate instead.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="f">Repetition rate <span class="sym">f</span></label>
+                        <div class="input-unit"><input id="f" name="f" value="10" inputmode="decimal" data-optional data-positive><select data-dim="frequency" data-units="Hz,kHz,MHz" data-default="kHz"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="ep">Pulse energy <span class="sym">E<sub>p</sub></span></label>
+                        <div class="input-unit"><input id="ep" name="ep" value="" inputmode="decimal" data-optional data-positive placeholder="optional"><select data-dim="energy" data-units="pJ,nJ,µJ,mJ,J" data-default="µJ"></select></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-0.4rem 0 0.95rem">If you enter a pulse energy, it sets the photons per pulse. Leave the repetition rate blank for a CW source.</p>
+                <div class="field">
+                    <label for="d">Beam diameter (1/e²) <span class="sym">2w</span></label>
+                    <div class="input-unit"><input id="d" name="d" value="1" inputmode="decimal" data-optional data-positive placeholder="optional"><select data-dim="length" data-units="µm,mm,cm" data-default="mm"></select></div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="qe">Detector quantum efficiency <span class="sym">η</span></label>
+                        <div class="input-unit"><input id="qe" name="qe" value="80" inputmode="decimal" data-optional data-nonneg data-max="100" data-label="quantum efficiency"><span class="unit">%</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="r">Measured responsivity <span class="sym">ℛ</span></label>
+                        <div class="input-unit"><input id="r" name="r" value="" inputmode="decimal" data-optional data-positive placeholder="optional"><span class="unit">A/W</span></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="region" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Photon rate<span class="sym">Φ = P/E<sub>ph</sub></span></span><output class="result-value" data-out="rate">—</output></div>
+                    <div class="result"><span class="result-label">Photon energy<span class="sym">E<sub>ph</sub></span></span><output class="result-value" data-out="ephEv">—</output></div>
+                    <div class="result"><span class="result-label">Photon energy (SI)</span><output class="result-value" data-out="ephJ">—</output></div>
+                    <div class="result"><span class="result-label">Photons per joule</span><output class="result-value" data-out="perJ">—</output></div>
+                    <div class="result"><span class="result-label">Photons per pulse<span class="sym">N<sub>p</sub></span></span><output class="result-value" data-out="perPulse">—</output></div>
+                    <div class="result"><span class="result-label">Average photon flux density (over πw²)</span><output class="result-value" data-out="fluxAvg">—</output></div>
+                    <div class="result"><span class="result-label">Peak (on-axis) photon flux density</span><output class="result-value" data-out="fluxPeak">—</output></div>
+                    <div class="result"><span class="result-label">Peak photons per pulse per area</span><output class="result-value" data-out="fluencePeak">—</output></div>
+                    <div class="result"><span class="result-label">Responsivity at η<span class="sym">ℛ</span></span><output class="result-value" data-out="resp">—</output></div>
+                    <div class="result"><span class="result-label">Photocurrent<span class="sym">I = ℛP</span></span><output class="result-value" data-out="current">—</output></div>
+                    <div class="result"><span class="result-label">Photoelectrons per pulse<span class="sym">ηN<sub>p</sub></span></span><output class="result-value" data-out="electrons">—</output></div>
+                    <div class="result"><span class="result-label">Quantum efficiency from ℛ</span><output class="result-value" data-out="qeFromR">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>A photon of vacuum wavelength \(\lambda\) carries energy \(E_\text{ph} = hc/\lambda\). In convenient units that is \(E_\text{ph}\,[\text{eV}] = 1239.842/\lambda\,[\text{nm}]\). The photon rate in a beam of average power \(P\), and the number of photons in a pulse of energy \(E_p\), are</p>
+        <div class="formula">\[ \Phi = \frac{P}{E_\text{ph}} = \frac{P\lambda}{hc}, \qquad N_p = \frac{E_p}{E_\text{ph}} = \frac{P}{f\,E_\text{ph}} . \]</div>
+        <p>For a Gaussian beam of 1/e² radius \(w\), the on-axis photon flux density is twice the average over the area \(\pi w^2\): \(\phi_0 = 2\Phi/(\pi w^2)\). The same factor of two applies to the peak photon fluence per pulse.</p>
+
+        <h2>Detector responsivity and quantum efficiency</h2>
+        <p>A detector with external quantum efficiency \(\eta\) produces \(\eta\) electrons per incident photon. Its current responsivity is</p>
+        <div class="formula">\[ \mathcal{R} = \frac{\eta\, e\, \lambda}{hc} \;\approx\; \eta\,\frac{\lambda\,[\text{nm}]}{1239.842}\ \text{A/W}, \qquad I = \mathcal{R} P . \]</div>
+        <p>The relation also runs backwards: a measured responsivity gives \(\eta = \mathcal{R}\,hc/(e\lambda)\). Even an ideal detector (\(\eta = 1\)) has a responsivity that rises linearly with wavelength, because a watt of red light contains more photons than a watt of blue. Silicon photodiodes have a responsivity peak in the near-IR for this reason, even though their quantum efficiency is broadly flat across the visible.</p>
+
+        <h2>Worked example</h2>
+        <p>A 1 mW, 532 nm beam: \(E_\text{ph} = 2.3305\) eV \(= 3.7339\times10^{-19}\) J, so \(\Phi = 2.678\times10^{15}\) photons/s. At 10 kHz that is \(2.678\times10^{11}\) photons per pulse. Over a 1 mm (1/e²) beam the average flux density is \(3.41\times10^{17}\) photons s⁻¹ cm⁻² and the on-axis value is \(6.82\times10^{17}\). A photodiode with \(\eta = 80\,\%\) has \(\mathcal{R} = 0.343\) A/W and delivers 343 µA.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Vacuum wavelength.</strong> The photon energy depends on frequency, so use the vacuum wavelength. Air wavelengths differ by about 0.03 %, which is negligible here.</li>
+            <li><strong>Monochromatic light.</strong> For broadband sources, integrate \(P_\lambda \lambda/hc\) over the spectrum. Using the center wavelength is a good approximation when the bandwidth is small.</li>
+            <li><strong>Gaussian spatial profile.</strong> The peak-to-average factor of 2 holds for a TEM₀₀ beam. Flat-top beams have a factor near 1.</li>
+            <li><strong>Linear detector.</strong> Responsivity assumes no saturation, gain, or multiphoton response. Avalanche and photomultiplier detectors multiply the current by their internal gain.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>E. Tiesinga, P. J. Mohr, D. B. Newell, B. N. Taylor, “CODATA recommended values of the fundamental physical constants: 2018,” <em>Rev. Mod. Phys.</em> <strong>93</strong>, 025010 (2021).</li>
+            <li>B. E. A. Saleh and M. C. Teich, <em>Fundamentals of Photonics</em>, 3rd ed., Wiley (2019) — photodetector chapter.</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="energy-converter,pulse-energy,fluence,blackbody,article:spectroscopic-units"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, K } = Calc;
+    const hc = K.h * K.c;
+    const regionEl = document.getElementById('region');
+    const REGIONS = [[10, 'X-ray'], [121, 'EUV'], [200, 'VUV'], [400, 'UV'], [700, 'Visible'], [1400, 'NIR'], [3000, 'SWIR'], [15000, 'Mid-IR'], [Infinity, 'Far-IR']];
+    const count = (x, unit) => fmt.sci(x, 4) + (unit ? ' ' + unit : '');
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            const Eph = hc / v.wl;
+            const hasP = isFinite(v.p), hasF = isFinite(v.f), hasE = isFinite(v.ep);
+            let P = v.p;
+            if (!hasP) {
+                if (hasE && hasF) P = v.ep * v.f;
+                else throw Calc.fail('Enter an average power, or a pulse energy and a repetition rate.', 'p');
+            }
+            const Ep = hasE ? v.ep : (hasF ? P / v.f : NaN);
+            const rate = P / Eph;
+            const Np = Ep / Eph;
+            const area = isFinite(v.d) ? Math.PI * (v.d / 2) ** 2 : NaN;   // πw², m²
+            const areaCm2 = area * 1e4;
+            const eta = isFinite(v.qe) ? v.qe / 100 : NaN;
+            const R = eta * K.e * v.wl / hc;
+
+            const nm = v.wl * 1e9;
+            regionEl.textContent = REGIONS.find(r => nm < r[0])[1];
+
+            return {
+                rate: count(rate, 'photons/s'),
+                ephEv: fmt.num(Eph / K.e, 5) + ' eV',
+                ephJ: fmt.sci(Eph, 5) + ' J',
+                perJ: count(1 / Eph, 'photons/J'),
+                perPulse: isFinite(Np) ? count(Np, 'photons') : null,
+                fluxAvg: isFinite(area) ? count(rate / areaCm2, 's⁻¹ cm⁻²') : null,
+                fluxPeak: isFinite(area) ? count(2 * rate / areaCm2, 's⁻¹ cm⁻²') : null,
+                fluencePeak: isFinite(area) && isFinite(Np) ? count(2 * Np / areaCm2, 'cm⁻²') : null,
+                resp: isFinite(R) ? fmt.num(R, 4) + ' A/W' : null,
+                current: isFinite(R) ? fmt.si(R * P, 'A', 4) : null,
+                electrons: isFinite(R) && isFinite(Np) ? count(eta * Np, 'e⁻') : null,
+                qeFromR: isFinite(v.r) ? fmt.pct(v.r * hc / (K.e * v.wl), 4) + (v.r * hc / (K.e * v.wl) > 1 ? ' (> 100 %: gain?)' : '') : null
+            };
+        }
+    });
+});
+</script>
+</body>
+</html>

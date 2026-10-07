@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diffraction Grating & Spectrometer Calculator: Grating Equation, Dispersion, Resolution | Casey D. Foley, PhD</title>
+<meta name="description" content="Solve the grating equation for fixed incidence, Littrow, or Czerny–Turner constant-deviation geometry. Get diffraction angle, angular and reciprocal linear dispersion, resolving power, slit-limited bandpass, and free spectral range.">
+<link rel="canonical" href="https://cdfoley.com/tools/grating-equation/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Diffraction Grating & Spectrometer Calculator">
+<meta property="og:description" content="Grating equation, dispersion, resolving power, and bandpass for fixed-incidence, Littrow, and Czerny–Turner geometries.">
+<meta property="og:url" content="https://cdfoley.com/tools/grating-equation/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#photon">Photon Energy &amp; Spectroscopy</a></li><li aria-current="page">Diffraction Grating &amp; Spectrometer</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Diffraction Grating &amp; Spectrometer</h1>
+        <p class="lede">Solve the grating equation for a fixed incidence angle, Littrow mounting, or a Czerny–Turner constant-deviation spectrometer. The calculator gives dispersion, resolving power, and slit-limited bandpass, the numbers that size a spectrometer.</p>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="mode">Geometry</label>
+                    <select id="mode" name="mode" class="input">
+                        <option value="fixed" selected>Fixed incidence angle α</option>
+                        <option value="littrow">Littrow (α = β)</option>
+                        <option value="ct">Constant deviation (Czerny–Turner)</option>
+                    </select>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="G">Groove density <span class="sym">1/d</span></label>
+                        <div class="input-unit"><input id="G" name="G" value="1200" inputmode="decimal" data-positive data-label="groove density"><span class="unit">l/mm</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="m">Diffraction order <span class="sym">m</span></label>
+                        <div class="input-unit"><input id="m" name="m" value="1" inputmode="numeric" data-label="diffraction order"><span class="unit">—</span></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="wl">Wavelength <span class="sym">λ</span></label>
+                    <div class="input-unit"><input id="wl" name="wl" value="500" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                </div>
+                <div class="field" id="f-alpha">
+                    <label for="alpha">Angle of incidence <span class="sym">α</span></label>
+                    <div class="input-unit"><input id="alpha" name="alpha" value="30" inputmode="decimal" data-label="angle of incidence"><select data-dim="angle" data-units="deg,mrad,rad" data-default="deg"></select></div>
+                </div>
+                <div class="field" id="f-dev" hidden>
+                    <label for="dev">Deviation (included) angle <span class="sym">D<sub>V</sub> = α − β</span></label>
+                    <div class="input-unit"><input id="dev" name="dev" value="30" inputmode="decimal" data-nonneg data-label="deviation angle"><select data-dim="angle" data-units="deg,mrad,rad" data-default="deg"></select></div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="LB">Focusing focal length <span class="sym">L<sub>B</sub></span></label>
+                        <div class="input-unit"><input id="LB" name="LB" value="300" inputmode="decimal" data-positive data-label="focal length"><select data-dim="length" data-units="mm,cm,m" data-default="mm"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="W">Illuminated grating width <span class="sym">W</span></label>
+                        <div class="input-unit"><input id="W" name="W" value="50" inputmode="decimal" data-positive data-label="illuminated width"><select data-dim="length" data-units="mm,cm" data-default="mm"></select></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="slit">Slit (or pixel) width <span class="sym">w</span></label>
+                    <div class="input-unit"><input id="slit" name="slit" value="50" inputmode="decimal" data-positive data-label="slit width"><select data-dim="length" data-units="µm,mm" data-default="µm"></select></div>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Diffraction angle<span class="sym">β</span></span><output class="result-value" data-out="beta">—</output></div>
+                    <div class="result"><span class="result-label">Angle of incidence<span class="sym">α</span></span><output class="result-value" data-out="alpha">—</output></div>
+                    <div class="result"><span class="result-label">Deviation angle<span class="sym">α − β</span></span><output class="result-value" data-out="dev">—</output></div>
+                    <div class="result"><span class="result-label">Littrow angle for this λ and m</span><output class="result-value" data-out="littrow">—</output></div>
+                    <div class="result"><span class="result-label">Angular dispersion<span class="sym">dβ/dλ</span></span><output class="result-value" data-out="angDisp">—</output></div>
+                    <div class="result"><span class="result-label">Reciprocal linear dispersion<span class="sym">dλ/dx</span></span><output class="result-value" data-out="rld">—</output></div>
+                    <div class="result"><span class="result-label">Slit-limited bandpass<span class="sym">≈ w·dλ/dx</span></span><output class="result-value" data-out="bp">—</output></div>
+                    <div class="result"><span class="result-label">Resolving power<span class="sym">R = |m|N</span></span><output class="result-value" data-out="R">—</output></div>
+                    <div class="result"><span class="result-label">Diffraction-limited resolution<span class="sym">λ/R</span></span><output class="result-value" data-out="dl">—</output></div>
+                    <div class="result"><span class="result-label">Grooves illuminated<span class="sym">N</span></span><output class="result-value" data-out="N">—</output></div>
+                    <div class="result"><span class="result-label">Free spectral range<span class="sym">λ/|m|</span></span><output class="result-value" data-out="fsr">—</output></div>
+                    <div class="result"><span class="result-label">Longest wavelength in this order</span><output class="result-value" data-out="lmax">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="ang-h">
+        <div class="panel-head"><h2 id="ang-h">Diffraction angle vs. wavelength</h2><span class="badge" id="plot-mode"></span></div>
+        <div class="panel-body"><div id="g-plot"></div></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>For a plane reflection grating with groove spacing \(d\), light incident at angle \(\alpha\) is diffracted into angles \(\beta\) that satisfy the grating equation</p>
+        <div class="formula">\[ m\lambda = d\,(\sin\alpha + \sin\beta) . \]</div>
+        <p><strong>Sign convention:</strong> both angles are measured from the grating normal and are positive on the same side of it. The zero order is the specular reflection, \(\beta = -\alpha\), and orders \(\pm m\) fall on opposite sides of it. An order exists only if \(|\sin\beta| \le 1\). Otherwise it is evanescent and carries no power.</p>
+
+        <h3>Mountings</h3>
+        <ul>
+            <li><strong>Littrow:</strong> the light returns along its incoming path, \(\alpha = \beta\), so \(\sin\alpha = m\lambda/2d\).</li>
+            <li><strong>Constant deviation (Czerny–Turner):</strong> the angle between the incident and diffracted beams, \(D_V = \alpha - \beta\), is fixed by the instrument, and the grating rotates to scan. With scan angle \(\phi = (\alpha+\beta)/2\), the equation becomes \(m\lambda = 2d\cos(D_V/2)\sin\phi\), so \(\alpha = \phi + D_V/2\) and \(\beta = \phi - D_V/2\).</li>
+        </ul>
+
+        <h3>Dispersion, resolution, and bandpass</h3>
+        <div class="formula">\[ \frac{d\beta}{d\lambda} = \frac{m}{d\cos\beta}, \qquad \frac{d\lambda}{dx} = \frac{d\cos\beta}{m\,L_B}, \qquad R = \frac{\lambda}{\Delta\lambda} = |m|N = \frac{W\,|\sin\alpha + \sin\beta|}{\lambda} . \]</div>
+        <p>The reciprocal linear dispersion \(d\lambda/dx\) (nm per mm at the focal plane) sets the bandpass: \(\text{BP} \approx w\cdot d\lambda/dx\) for a slit or pixel of width \(w\). This assumes the imaged entrance-slit width matches the exit slit or pixel. The resolving power \(R = |m|N\) is the theoretical limit set by the number of illuminated grooves. Practical spectrometers are usually slit- or pixel-limited well before reaching it. The free spectral range \(\lambda/|m|\) is the band before the next order overlaps, so order-sorting filters are needed when \(\lambda_\text{max} > 2\lambda_\text{min}\) in first order.</p>
+
+        <h2>Worked example</h2>
+        <p>Take a 1200 l/mm grating (\(d = 833.3\) nm) at \(\alpha = 30^\circ\), first order, 500 nm. Then \(\sin\beta = 0.6 - 0.5 = 0.1\), so \(\beta = 5.74^\circ\). The angular dispersion is 1.206 mrad/nm. With a 300 mm focusing mirror the reciprocal linear dispersion is 2.76 nm/mm, so a 50 µm slit passes about 0.14 nm. Fifty millimetres of illuminated grating gives \(R = 60\,000\), or 8.3 pm at 500 nm. In a Czerny–Turner with \(D_V = 30^\circ\), the same wavelength needs \(\alpha = 33.09^\circ\) and \(\beta = 3.09^\circ\).</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Plane grating in the principal plane.</strong> No conical (off-plane) diffraction. Concave and holographic aberration-corrected gratings follow the same equation at their center, but their focal-plane properties differ.</li>
+            <li><strong>Geometric bandpass.</strong> BP ≈ w·dλ/dx ignores aberrations, diffraction from the optics, and the anamorphic magnification \(\cos\alpha/\cos\beta\). That magnification makes the entrance-slit image differ in width from the slit itself when \(\alpha \ne \beta\).</li>
+            <li><strong>Efficiency is not modeled.</strong> Which orders are bright depends on blaze angle, groove profile, polarization, and coating. Use the manufacturer's efficiency curves.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>C. Palmer, <em>Diffraction Grating Handbook</em>, 8th ed., MKS Instruments / Newport (2020).</li>
+            <li>E. G. Loewen and E. Popov, <em>Diffraction Gratings and Applications</em>, Marcel Dekker (1997).</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="doppler-broadening,energy-converter,machine-vision-lens,photon-flux,article:spectroscopic-units"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const DEG = 180 / Math.PI;
+    const fAlpha = document.getElementById('f-alpha');
+    const fDev = document.getElementById('f-dev');
+    const plotMode = document.getElementById('plot-mode');
+    const deg = r => fmt.num(r * DEG, 5) + '°';
+
+    // α and β (radians) for order m at wavelength λ; NaN when evanescent
+    function solve(mode, m, lam, d, alpha, dev) {
+        if (mode === 'littrow') { const s = m * lam / (2 * d); return Math.abs(s) <= 1 ? { a: Math.asin(s), b: Math.asin(s) } : null; }
+        if (mode === 'ct') {
+            const s = m * lam / (2 * d * Math.cos(dev / 2));
+            if (Math.abs(s) > 1) return null;
+            const phi = Math.asin(s);
+            const a = phi + dev / 2, b = phi - dev / 2;
+            return (Math.abs(a) < Math.PI / 2 && Math.abs(b) < Math.PI / 2) ? { a, b } : null;
+        }
+        const s = m * lam / d - Math.sin(alpha);
+        return Math.abs(s) <= 1 ? { a: alpha, b: Math.asin(s) } : null;
+    }
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            fAlpha.hidden = v.mode !== 'fixed';
+            fDev.hidden = v.mode !== 'ct';
+            if (!Number.isInteger(v.m)) throw Calc.fail('The diffraction order must be an integer.', 'm');
+            if (v.m === 0) throw Calc.fail('Zero order is specular reflection (β = −α) and has no dispersion. Choose m ≠ 0.', 'm');
+            if (v.mode === 'fixed' && Math.abs(v.alpha) >= Math.PI / 2) throw Calc.fail('The angle of incidence must be between −90° and 90°.', 'alpha');
+            if (v.mode === 'ct' && v.dev >= Math.PI) throw Calc.fail('The deviation angle must be less than 180°.', 'dev');
+
+            const d = 1e-3 / v.G;                       // groove spacing, m
+            const sol = solve(v.mode, v.m, v.wl, d, v.alpha, v.dev);
+            if (!sol) {
+                const field = v.mode === 'fixed' ? 'alpha' : 'wl';
+                throw Calc.fail('Order m = ' + v.m + ' is evanescent here (|sin β| > 1): λ is too long for this groove density and geometry. Try a lower order, coarser grating, or different angle.', field);
+            }
+            const { a, b } = sol;
+            const cb = Math.cos(b);
+            const angDisp = v.m / (d * cb);              // rad/m
+            const rld = d * cb / (Math.abs(v.m) * v.LB); // m of λ per m of focal plane
+            const N = v.W / d;
+            const R = Math.abs(v.m) * N;
+            const sL = v.m * v.wl / (2 * d);
+            const lmax = v.mode === 'fixed' ? d * (1 + Math.sin(v.alpha * Math.sign(v.m))) / Math.abs(v.m)
+                       : v.mode === 'ct' ? 2 * d * Math.cos(v.dev / 2) ** 2 / Math.abs(v.m)   // |α| < 90° caps sin ψ at cos(D/2)
+                       : 2 * d / Math.abs(v.m);
+
+            return {
+                beta: deg(b),
+                alpha: deg(a),
+                dev: deg(a - b),
+                littrow: Math.abs(sL) <= 1 ? deg(Math.asin(sL)) : 'not possible',
+                angDisp: fmt.num(Math.abs(angDisp) * 1e-9 * 1e3, 4) + ' mrad/nm  (' + fmt.num(Math.abs(angDisp) * 1e-9 * DEG, 4) + '°/nm)',
+                rld: fmt.num(rld * 1e9 / 1e3, 4) + ' nm/mm',
+                bp: fmt.si(v.slit * rld, 'm', 4),
+                R: fmt.num(R, 5),
+                dl: fmt.si(v.wl / R, 'm', 4),
+                N: fmt.num(N, 5),
+                fsr: fmt.si(v.wl / Math.abs(v.m), 'm', 4),
+                lmax: fmt.si(lmax, 'm', 4)
+            };
+        },
+        after(v) {
+            const d = 1e-3 / v.G;
+            const xs = Calc.math.linspace(v.wl * 0.05, v.wl * 2.5, 400);
+            const orders = [-2, -1, 1, 2];
+            const colors = { '-2': 'var(--c4)', '-1': 'var(--c2)', '1': 'var(--c1)', '2': 'var(--c3)' };
+            const series = orders.map(m => ({
+                type: 'line', x: xs.map(l => l * 1e9),
+                y: xs.map(l => { const s = solve(v.mode, m, l, d, v.alpha, v.dev); return s ? s.b * DEG : NaN; }),
+                label: 'm = ' + (m > 0 ? '+' : '') + m, color: colors[m]
+            }));
+            const cur = solve(v.mode, v.m, v.wl, d, v.alpha, v.dev);
+            if (cur) series.push({ type: 'points', x: [v.wl * 1e9], y: [cur.b * DEG], color: 'var(--text)', r: 5 });
+            plotMode.textContent = { fixed: 'α = ' + fmt.num(v.alpha * DEG, 4) + '°', littrow: 'Littrow', ct: 'D_V = ' + fmt.num(v.dev * DEG, 4) + '°' }[v.mode];
+            Plot.draw('#g-plot', {
+                height: 300,
+                x: { label: 'Wavelength (nm)', min: 0 },
+                y: { label: 'Diffraction angle β (deg)' },
+                series,
+                hover: true
+            });
+        }
+    });
+});
+</script>
+</body>
+</html>

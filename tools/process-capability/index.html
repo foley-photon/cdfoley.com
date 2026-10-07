@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Process Capability Calculator (Cp, Cpk, Pp, Ppk, PPM) | Casey D. Foley, PhD</title>
+<meta name="description" content="Calculate Cp, Cpk, Pp, Ppk, Cpm, expected and observed PPM, and Z.bench from raw data or summary statistics. Within-subgroup sigma from R̄/d₂ or MR̄/d₂, histogram with fitted normal curves, and a confidence interval for Ppk.">
+<link rel="canonical" href="https://cdfoley.com/tools/process-capability/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Process Capability Calculator (Cp, Cpk, Pp, Ppk)">
+<meta property="og:description" content="Cp, Cpk, Pp, Ppk, Cpm, expected PPM, and Z.bench from raw data or summary statistics, with a histogram and fitted normal curves.">
+<meta property="og:url" content="https://cdfoley.com/tools/process-capability/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>
+    .pc-mode { margin-bottom: 1rem; }
+    #sum-fields > .hint { font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
+    .pc-sub { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 1.1rem 0 0.7rem; font-weight: 650; }
+    .pc-sub:first-child { margin-top: 0; }
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#quality">Quality &amp; Manufacturing</a></li><li aria-current="page">Process Capability (Cp, Cpk)</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Process Capability (Cp, Cpk)</h1>
+        <p class="lede">Measures how well a process fits its specification. Paste raw measurements or enter summary statistics to get Cp, Cpk, Pp, Ppk, Cpm, expected and observed PPM, and Z.bench, with a histogram and fitted normal curves. Within-subgroup sigma uses the AIAG convention: R̄/d₂ for subgroups and MR̄/d₂ for individuals.</p>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+
+                <div class="field pc-mode">
+                    <span class="field-label">Input mode</span>
+                    <div class="seg" role="radiogroup" aria-label="Input mode">
+                        <input type="radio" id="mode-raw" name="mode" value="raw" checked><label for="mode-raw">Raw data</label>
+                        <input type="radio" id="mode-sum" name="mode" value="summary"><label for="mode-sum">Summary statistics</label>
+                    </div>
+                </div>
+
+                <div id="raw-fields">
+                    <div class="field">
+                        <label for="data">Measurements, in time order</label>
+                        <textarea class="input" id="data" name="data" rows="8" spellcheck="false">54.25 50.71 49.62 50.90 50.63
+51.95 49.89 49.28 48.89 52.73
+52.30 52.21 50.19 50.90 53.23
+49.82 51.87 51.87 51.54 49.35
+52.42 51.11 49.22 52.25 50.40
+49.65 52.46 50.57 49.26 52.58
+51.76 51.43 51.81 48.26 51.70
+50.99 52.04 50.49 51.59 50.12
+49.84 51.73 51.40 49.78 49.88
+50.96 54.58 51.01 52.00 49.79
+51.82 52.79 51.19 51.39 53.28
+49.47 48.90 51.66 50.74 51.94
+50.69 50.42 48.95 51.31 48.66
+49.30 50.79 49.21 53.15 53.11
+52.68 51.02 48.87 50.64 49.67
+50.59 49.98 50.09 50.45 51.03
+50.76 51.16 49.99 52.37 49.46
+51.54 52.46 49.54 49.01 52.26
+52.12 50.06 50.28 50.35 51.40
+49.97 51.57 50.31 49.69 51.76</textarea>
+                        <p class="hint">Separate values with spaces, commas, tabs, or new lines. Subgroups are consecutive blocks of the subgroup size. The example is a laser-scribe line width in µm: 20 subgroups of 5, spec 50 ± 6 µm.</p>
+                    </div>
+                    <div class="field">
+                        <label for="k">Subgroup size <span class="sym">n</span></label>
+                        <div class="input-unit"><input id="k" name="k" value="5" inputmode="numeric" data-optional data-label="subgroup size"><span class="unit">per subgroup</span></div>
+                        <p class="hint">Enter 1 for individual measurements; σ within then comes from the average moving range.</p>
+                    </div>
+                </div>
+
+                <div id="sum-fields" hidden>
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="mu">Process mean <span class="sym">x̄</span></label>
+                            <div class="input-unit"><input id="mu" name="mu" value="50.93" inputmode="decimal" data-optional data-label="process mean"><span class="unit">units</span></div>
+                        </div>
+                        <div class="field">
+                            <label for="n">Sample size <span class="sym">N</span></label>
+                            <div class="input-unit"><input id="n" name="n" value="100" inputmode="numeric" data-optional data-label="sample size"><span class="unit">values</span></div>
+                        </div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="sw">σ within <span class="sym">σ<sub>w</sub></span></label>
+                            <div class="input-unit"><input id="sw" name="sw" value="1.286" inputmode="decimal" data-optional data-label="σ within"><span class="unit">units</span></div>
+                        </div>
+                        <div class="field">
+                            <label for="so">σ overall <span class="sym">σ<sub>o</sub></span></label>
+                            <div class="input-unit"><input id="so" name="so" value="1.293" inputmode="decimal" data-optional data-label="σ overall"><span class="unit">units</span></div>
+                        </div>
+                    </div>
+                    <p class="hint" style="margin-top:-.4rem">If you only have one standard deviation, enter it in both fields. Cp/Cpk and Pp/Ppk will then be equal.</p>
+                </div>
+
+                <div class="pc-sub">Specification</div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="lsl">Lower spec limit <span class="sym">LSL</span></label>
+                        <div class="input-unit"><input id="lsl" name="lsl" value="44" inputmode="decimal" data-optional placeholder="blank = one-sided"></div>
+                    </div>
+                    <div class="field">
+                        <label for="usl">Upper spec limit <span class="sym">USL</span></label>
+                        <div class="input-unit"><input id="usl" name="usl" value="56" inputmode="decimal" data-optional placeholder="blank = one-sided"></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="target">Target (optional) <span class="sym">T</span></label>
+                    <div class="input-unit"><input id="target" name="target" value="50" inputmode="decimal" data-optional placeholder="for Cpm"></div>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" id="results" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="cap-badge" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Cpk <span class="sym">within</span></span><output class="result-value" data-out="cpk">—</output></div>
+                    <div class="result"><span class="result-label">Cp</span><output class="result-value" data-out="cp">—</output></div>
+                    <div class="result"><span class="result-label">CPL · CPU</span><output class="result-value" data-out="cplu">—</output></div>
+                    <div class="result"><span class="result-label">Ppk <span class="sym">overall</span></span><output class="result-value" data-out="ppk">—</output></div>
+                    <div class="result"><span class="result-label">Pp</span><output class="result-value" data-out="pp">—</output></div>
+                    <div class="result"><span class="result-label">Ppk 95 % confidence interval</span><output class="result-value" data-out="ppkci">—</output>
+                        <span class="result-note">Bissell's approximation, based on the sample size.</span></div>
+                    <div class="result"><span class="result-label">Cpm <span class="sym">Taguchi</span></span><output class="result-value" data-out="cpm">—</output></div>
+                    <div class="result"><span class="result-label">Expected PPM, within</span><output class="result-value" data-out="ppmw">—</output>
+                        <span class="result-note" data-out="ppmw-split">—</span></div>
+                    <div class="result"><span class="result-label">Expected PPM, overall</span><output class="result-value" data-out="ppmo">—</output>
+                        <span class="result-note" data-out="ppmo-split">—</span></div>
+                    <div class="result"><span class="result-label">Observed PPM out of spec</span><output class="result-value" data-out="ppmobs">—</output>
+                        <span class="result-note" data-out="obs-note">—</span></div>
+                    <div class="result"><span class="result-label">Z.bench <span class="sym">within · overall</span></span><output class="result-value" data-out="zb">—</output></div>
+                    <div class="result"><span class="result-label">Mean · N</span><output class="result-value" data-out="mean">—</output></div>
+                    <div class="result"><span class="result-label">σ within</span><output class="result-value" data-out="sw">—</output>
+                        <span class="result-note" data-out="sw-note">—</span></div>
+                    <div class="result"><span class="result-label">σ overall</span><output class="result-value" data-out="so">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="hist-h">
+        <div class="panel-head"><h2 id="hist-h">Distribution vs. specification</h2></div>
+        <div class="panel-body"><div id="hist-plot"></div></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How the capability indices are calculated</h2>
+        <p>Capability indices compare the specification width with the spread of the process. The <em>potential</em> indices Cp and Pp ignore where the process is centered. The <em>performance</em> indices Cpk and Ppk use the distance from the mean to the nearer limit:</p>
+        <div class="formula">\[ C_p = \frac{USL - LSL}{6\,\sigma_w}, \qquad C_{pk} = \min\!\left(\frac{USL - \bar{x}}{3\,\sigma_w},\ \frac{\bar{x} - LSL}{3\,\sigma_w}\right) \]</div>
+        <p>Pp and Ppk use the same expressions with the overall standard deviation \(\sigma_o\) in place of \(\sigma_w\). With a one-sided specification, only CPU (or CPL) exists, and Cpk equals it. Cp and Pp are undefined.</p>
+        <p>The two standard deviations come from different estimators:</p>
+        <div class="formula">\[ \sigma_w = \frac{\bar{R}}{d_2(n)} \ \text{(subgroups)}, \qquad \sigma_w = \frac{\overline{MR}}{1.128} \ \text{(individuals)}, \qquad \sigma_o = \sqrt{\frac{\sum (x_i - \bar{x})^2}{N-1}} \]</div>
+        <p>Here \(\bar R\) is the average subgroup range and \(\overline{MR}\) the average moving range of consecutive points. \(d_2\) is the bias-correction constant for the expected range of \(n\) normal values (2.326 for \(n = 5\)). The Taguchi index \(C_{pm} = (USL - LSL)/\bigl(6\sqrt{\sigma_o^2 + (\bar x - T)^2}\bigr)\) also penalizes distance from the target.</p>
+        <p>Expected nonconforming parts per million come from the normal model, \(\text{PPM}_{<LSL} = 10^6\,\Phi\!\left(\frac{LSL - \bar x}{\sigma}\right)\) and \(\text{PPM}_{>USL} = 10^6\,\Phi\!\left(\frac{\bar x - USL}{\sigma}\right)\). Z.bench, \(Z_\text{bench} = -\Phi^{-1}(p_\text{total})\), is the one-sided z-value that would give the same total fraction out of specification.</p>
+
+        <h2>Cpk versus Ppk</h2>
+        <p>The AIAG SPC manual separates <strong>inherent</strong> variation (within subgroups, collected over a short time) from <strong>total</strong> variation (every measurement, including drift and shifts between subgroups). Cpk uses within-subgroup variation and describes what the process <em>could</em> do if special causes were eliminated. Ppk uses total variation and describes what the customer actually received during the study.</p>
+        <p>For a stable process the two are nearly equal. When Ppk is clearly below Cpk, there are shifts between subgroups: tool wear, lot changes, warm-up, or set-up differences. That is a stability problem to fix before quoting capability.</p>
+
+        <h2>What counts as capable</h2>
+        <table>
+            <thead><tr><th class="num">Cpk</th><th class="num">Distance to nearest limit</th><th class="num">Expected PPM (centered, two-sided)</th><th>Typical interpretation</th></tr></thead>
+            <tbody>
+                <tr><td class="num">1.00</td><td class="num">3σ</td><td class="num">2700</td><td>Barely capable; any drift produces scrap</td></tr>
+                <tr><td class="num">1.33</td><td class="num">4σ</td><td class="num">63</td><td>Common minimum for ongoing production</td></tr>
+                <tr><td class="num">1.67</td><td class="num">5σ</td><td class="num">0.57</td><td>Common requirement for new or safety/critical characteristics</td></tr>
+                <tr><td class="num">2.00</td><td class="num">6σ</td><td class="num">0.002</td><td>Six Sigma capability (short-term)</td></tr>
+            </tbody>
+        </table>
+        <p>For initial process studies, the AIAG PPAP manual's acceptance criteria are commonly applied as follows. An index above 1.67 meets the criteria. Values from 1.33 to 1.67 may be acceptable with customer approval. Values below 1.33 do not meet them. Customer-specific requirements always take precedence.</p>
+
+        <h2>Worked example</h2>
+        <p>The default data are 100 measurements of a laser-scribe line width, in 20 subgroups of 5, with specification 50 ± 6 µm. The mean is 50.93 µm. The average range is \(\bar R = 2.992\) µm, so \(\sigma_w = 2.992/2.326 = 1.286\) µm. The overall standard deviation is 1.293 µm.</p>
+        <div class="formula">\[ C_p = \frac{56 - 44}{6 \times 1.286} = 1.56, \qquad C_{pk} = \frac{56 - 50.93}{3 \times 1.286} = 1.31 \]</div>
+        <p>The spread alone would support Cpk ≈ 1.56, but the mean sits 0.93 µm above target, so Cpk = 1.31 is just short of 1.33. About 40 PPM is expected above the USL. Re-centering the process at 50.0 µm, for example with a laser-power or focus offset, would raise Cpk to 1.56 and cut the expected nonconforming rate to about 3 PPM, without any reduction in variation. Ppk (1.31) is close to Cpk, which suggests the process was stable during the study. The 95 % interval for Ppk, roughly 1.11–1.50, is a reminder that 100 values pin the index down only to about ±0.2.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Stability comes first.</strong> A capability index predicts future performance only if the process is in statistical control. Plot a <a href="/tools/control-chart/">control chart</a> before trusting the numbers.</li>
+            <li><strong>Normality.</strong> PPM and Z.bench assume a normal distribution, so tail estimates in the low-PPM range are only as good as that assumption. Check the histogram and a normal probability plot. For skewed characteristics such as flatness, runout, or burr height, use a transformation or a percentile-based method (ISO 22514-2) instead.</li>
+            <li><strong>Sample size.</strong> Capability estimates are noisy. Use at least 100 values (for example 25 subgroups of 4–5) and report the confidence interval, not just the point estimate.</li>
+            <li><strong>Measurement system.</strong> Observed variance is the sum of process and gauge variance, \(\sigma^2_\text{obs} = \sigma^2_\text{process} + \sigma^2_\text{gauge}\). A gauge with a high %GRR deflates Cpk, and poor resolution makes \(\bar R\) unreliable. AIAG MSA guidance treats %GRR under 10 % as acceptable, 10–30 % as conditionally acceptable, and over 30 % as unacceptable, with at least five distinct categories (ndc ≥ 5).</li>
+            <li><strong>Rational subgroups.</strong> σ within is only meaningful if each subgroup was collected close together in time under the same conditions. Subgroups that span a shift change inflate \(\bar R\), which lowers Cpk toward Ppk and hides the between-subgroup instability that the comparison is meant to reveal.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>AIAG, <em>Statistical Process Control (SPC) Reference Manual</em>, 2nd ed. (2005).</li>
+            <li>AIAG, <em>Measurement Systems Analysis (MSA) Reference Manual</em>, 4th ed. (2010).</li>
+            <li>AIAG, <em>Production Part Approval Process (PPAP)</em>, 4th ed. (2006).</li>
+            <li>D. C. Montgomery, <em>Introduction to Statistical Quality Control</em>, 8th ed., Wiley.</li>
+            <li>A. F. Bissell, “How reliable is your capability index?” <em>Journal of the Royal Statistical Society, Series C (Applied Statistics)</em> <strong>39</strong>(3), 331–340 (1990).</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="control-chart,sigma-level,oee-takt,machine-vision-lens,article:spc-for-laser-processes"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const { normCdf, normInv, mean, stdev } = Calc.math;
+    // d2 bias-correction constants for subgroup ranges (n = 2…25)
+    const D2 = { 2: 1.128, 3: 1.693, 4: 2.059, 5: 2.326, 6: 2.534, 7: 2.704, 8: 2.847, 9: 2.970, 10: 3.078, 11: 3.173, 12: 3.258, 13: 3.336,
+        14: 3.407, 15: 3.472, 16: 3.532, 17: 3.588, 18: 3.640, 19: 3.689, 20: 3.735, 21: 3.778, 22: 3.819, 23: 3.858, 24: 3.895, 25: 3.931 };
+
+    const rawBox = document.getElementById('raw-fields');
+    const sumBox = document.getElementById('sum-fields');
+    const badge = document.getElementById('cap-badge');
+    let last = null;
+
+    const idx = x => (x === null || !isFinite(x)) ? null : (x < 0 ? '−' : '') + Math.abs(x).toFixed(2);
+    const ppm = x => x < 1e-3 ? (x === 0 ? '0' : '< 0.001') : fmt.num(x, 3);
+
+    // expected PPM below LSL / above USL for a normal model
+    function tails(mu, s, lsl, usl) {
+        const below = isFinite(lsl) ? normCdf((lsl - mu) / s) * 1e6 : 0;
+        const above = isFinite(usl) ? normCdf((mu - usl) / s) * 1e6 : 0;
+        return { below, above, total: below + above };
+    }
+    function zbench(total) {
+        const p = total / 1e6;
+        if (p <= 0) return '> 8';
+        if (p >= 1) return '−∞';
+        return fmt.num(-normInv(p), 3);
+    }
+    function indices(mu, s, lsl, usl) {
+        const hasL = isFinite(lsl), hasU = isFinite(usl);
+        const lower = hasL ? (mu - lsl) / (3 * s) : null;
+        const upper = hasU ? (usl - mu) / (3 * s) : null;
+        const potential = hasL && hasU ? (usl - lsl) / (6 * s) : null;
+        const k = Math.min(hasL ? lower : Infinity, hasU ? upper : Infinity);
+        return { potential, lower, upper, k };
+    }
+
+    Calc.create({
+        form: '#calc',
+        outputs: '#results',
+        compute(v) {
+            const raw = v.mode !== 'summary';
+            rawBox.hidden = !raw; sumBox.hidden = raw;
+            const lsl = v.lsl, usl = v.usl, T = v.target;
+            if (!isFinite(lsl) && !isFinite(usl)) throw Calc.fail('Enter at least one specification limit (LSL or USL).', 'usl');
+            if (isFinite(lsl) && isFinite(usl) && usl <= lsl) throw Calc.fail('The upper spec limit must be greater than the lower spec limit.', 'usl');
+
+            let mu, sw, so, N, data = null, swNote, obs = null, obsNote = null;
+            if (raw) {
+                data = Calc.parseList(v.data);
+                const k = v.k;
+                if (!isFinite(k)) throw Calc.fail('Enter a subgroup size (1 for individual measurements).', 'k');
+                if (!Number.isInteger(k) || k < 1 || k > 25) throw Calc.fail('Subgroup size must be a whole number from 1 to 25.', 'k');
+                N = data.length;
+                if (N < Math.max(3, 2 * k)) throw Calc.fail(k === 1 ? 'Paste at least 3 measurements.' : 'Paste at least two complete subgroups of ' + k + ' values.', 'data');
+                mu = mean(data);
+                so = stdev(data);
+                if (k === 1) {
+                    let s = 0;
+                    for (let i = 1; i < N; i++) s += Math.abs(data[i] - data[i - 1]);
+                    const mrBar = s / (N - 1);
+                    sw = mrBar / 1.128;
+                    swNote = 'MR̄ = ' + fmt.num(mrBar, 4) + ', d₂ = 1.128 (individuals)';
+                } else {
+                    const groups = Math.floor(N / k);
+                    let rs = 0;
+                    for (let g = 0; g < groups; g++) {
+                        const sub = data.slice(g * k, g * k + k);
+                        rs += Math.max(...sub) - Math.min(...sub);
+                    }
+                    const rBar = rs / groups;
+                    sw = rBar / D2[k];
+                    const left = N - groups * k;
+                    swNote = 'R̄ = ' + fmt.num(rBar, 4) + ', d₂ = ' + D2[k] + ', ' + groups + ' subgroups' +
+                        (left ? ' (last ' + left + ' value' + (left > 1 ? 's' : '') + ' not in a complete subgroup)' : '');
+                }
+                const out = data.filter(x => (isFinite(lsl) && x < lsl) || (isFinite(usl) && x > usl)).length;
+                obs = out / N * 1e6;
+                obsNote = out + ' of ' + N + ' values outside the specification';
+            } else {
+                mu = v.mu; sw = v.sw; so = isFinite(v.so) ? v.so : v.sw; N = v.n;
+                if (!isFinite(mu)) throw Calc.fail('Enter the process mean.', 'mu');
+                if (!(sw > 0)) throw Calc.fail('σ within must be greater than zero.', 'sw');
+                if (!(so > 0)) throw Calc.fail('σ overall must be greater than zero.', 'so');
+                if (isFinite(N) && !(N >= 2)) throw Calc.fail('Sample size must be at least 2.', 'n');
+                swNote = 'Entered directly';
+            }
+            if (!(sw > 0) || !(so > 0)) throw Calc.fail('The data show no variation, so capability indices are undefined.', 'data');
+
+            const W = indices(mu, sw, lsl, usl), O = indices(mu, so, lsl, usl);
+            const tw = tails(mu, sw, lsl, usl), to = tails(mu, so, lsl, usl);
+            const cpm = (isFinite(T) && isFinite(lsl) && isFinite(usl)) ? (usl - lsl) / (6 * Math.sqrt(so * so + (mu - T) ** 2)) : null;
+            let ci = null;
+            if (isFinite(N) && N >= 2) {
+                const se = Math.sqrt(1 / (9 * N) + O.k * O.k / (2 * (N - 1)));
+                ci = idx(O.k - 1.96 * se) + ' – ' + idx(O.k + 1.96 * se);
+            }
+
+            const c = W.k;
+            if (c >= 1.67) { badge.textContent = 'Cpk ≥ 1.67'; badge.className = 'badge badge-ok'; }
+            else if (c >= 1.33) { badge.textContent = 'Cpk ≥ 1.33'; badge.className = 'badge badge-ok'; }
+            else if (c >= 1.0) { badge.textContent = 'Marginal (1.00–1.33)'; badge.className = 'badge badge-warn'; }
+            else { badge.textContent = 'Not capable (< 1.00)'; badge.className = 'badge badge-bad'; }
+
+            last = { raw, data, mu, sw, so, N, lsl, usl, T };
+            const split = t => (isFinite(lsl) ? ppm(t.below) + ' below LSL' : '') + (isFinite(lsl) && isFinite(usl) ? ' · ' : '') + (isFinite(usl) ? ppm(t.above) + ' above USL' : '');
+            return {
+                cpk: idx(W.k),
+                cp: W.potential === null ? null : idx(W.potential),
+                cplu: (W.lower === null ? '—' : idx(W.lower)) + ' · ' + (W.upper === null ? '—' : idx(W.upper)),
+                ppk: idx(O.k),
+                pp: O.potential === null ? null : idx(O.potential),
+                ppkci: ci,
+                cpm: cpm === null ? null : idx(cpm),
+                ppmw: ppm(tw.total), 'ppmw-split': split(tw),
+                ppmo: ppm(to.total), 'ppmo-split': split(to),
+                ppmobs: obs === null ? null : ppm(obs), 'obs-note': obsNote || '',
+                zb: zbench(tw.total) + ' · ' + zbench(to.total),
+                mean: fmt.num(mu, 5) + (isFinite(N) ? ' · ' + N : ''),
+                sw: fmt.num(sw, 4), 'sw-note': swNote,
+                so: fmt.num(so, 4)
+            };
+        },
+        after() {
+            const s = last;
+            const specs = [s.lsl, s.usl].filter(isFinite);
+            let lo = Math.min(s.mu - 4 * s.so, s.mu - 4 * s.sw, ...specs);
+            let hi = Math.max(s.mu + 4 * s.so, s.mu + 4 * s.sw, ...specs);
+            const series = [];
+            let scale = 1, yLabel = 'Probability density';
+            if (s.raw) {
+                lo = Math.min(lo, ...s.data); hi = Math.max(hi, ...s.data);
+                const dmin = Math.min(...s.data), dmax = Math.max(...s.data);
+                const raw = (dmax - dmin) / Math.max(6, Math.min(25, Math.round(Math.sqrt(s.data.length)))) || s.so;
+                const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+                const w = [1, 2, 2.5, 5, 10].map(m => m * mag).find(x => x >= raw * 0.999);
+                const start = Math.floor(dmin / w) * w;
+                const bins = [];
+                for (let x0 = start; x0 <= dmax + 1e-12; x0 += w) bins.push({ x0, x1: x0 + w, y: 0 });
+                s.data.forEach(x => { const b = bins[Math.min(bins.length - 1, Math.floor((x - start) / w + 1e-9))]; b.y++; });
+                series.push({ type: 'bars', bins, color: 'var(--c1)', label: 'Measurements', opacity: 0.45 });
+                scale = s.data.length * w; yLabel = 'Count';
+            }
+            const xs = Calc.math.linspace(lo, hi, 240);
+            const pdf = (x, m, sd) => Math.exp(-0.5 * ((x - m) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI));
+            series.push({ type: 'line', x: xs, y: xs.map(x => scale * pdf(x, s.mu, s.sw)), label: 'Normal fit (σ within)', color: 'var(--c4)' });
+            series.push({ type: 'line', x: xs, y: xs.map(x => scale * pdf(x, s.mu, s.so)), label: 'Normal fit (σ overall)', color: 'var(--c2)', dash: true });
+            const vlines = [];
+            if (isFinite(s.lsl)) vlines.push({ x: s.lsl, label: 'LSL', color: 'var(--c5)' });
+            if (isFinite(s.usl)) vlines.push({ x: s.usl, label: 'USL', color: 'var(--c5)' });
+            if (isFinite(s.T)) vlines.push({ x: s.T, label: 'Target', color: 'var(--muted)' });
+            Plot.draw('#hist-plot', {
+                height: 300,
+                x: { label: 'Measured value', min: lo, max: hi },
+                y: { label: yLabel, min: 0 },
+                series, vlines, legend: true,
+                hover: { format: (x, hits) => 'x = ' + fmt.num(x, 5) + hits.map(h => ' · ' + h.series.label + ': ' + fmt.num(h.y, 3)).join('') }
+            });
+        }
+    });
+});
+</script>
+</body>
+</html>

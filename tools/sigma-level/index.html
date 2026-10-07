@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DPMO, Yield & Sigma Level Calculator (with 1.5σ Shift) | Casey D. Foley, PhD</title>
+<meta name="description" content="Convert between DPMO, defect rate, yield, and sigma level with or without the 1.5σ shift. Calculate DPU, DPO, DPMO, Poisson first-pass yield, and rolled throughput yield from defect counts and step yields.">
+<link rel="canonical" href="https://cdfoley.com/tools/sigma-level/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DPMO, Yield & Sigma Level Calculator">
+<meta property="og:description" content="DPMO ↔ yield ↔ sigma level, DPU/DPO, first-pass yield, and rolled throughput yield, with an honest explanation of the 1.5σ shift.">
+<meta property="og:url" content="https://cdfoley.com/tools/sigma-level/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>
+    .sl-shift { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: center; margin-bottom: 1.2rem; }
+    .sl-shift .field-label { margin: 0; }
+    .sl-equiv { margin-top: 1.1rem; font-size: 0.9rem; color: var(--text-2); }
+    .sl-equiv strong { font-family: var(--mono); color: var(--text); font-weight: 600; }
+    .sl-sub { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 1.2rem 0 0.7rem; font-weight: 650; }
+    .sl-sub:first-child { margin-top: 0; }
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#quality">Quality &amp; Manufacturing</a></li><li aria-current="page">DPMO, Yield &amp; Sigma Level</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>DPMO, Yield &amp; Sigma Level</h1>
+        <p class="lede">Converts between defects per million opportunities, defect rate, yield, and sigma level, with or without the conventional 1.5σ shift. Below that, it computes DPU, DPO, first-pass yield, and rolled throughput yield from production counts.</p>
+    </header>
+
+    <section class="panel" id="conv" aria-labelledby="conv-h">
+        <div class="panel-head"><h2 id="conv-h">Convert</h2>
+            <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+        </div>
+        <div class="panel-body">
+            <div class="calc-error" role="alert"></div>
+            <div class="sl-shift">
+                <span class="field-label">Sigma-level convention</span>
+                <div class="seg" role="radiogroup" aria-label="Sigma-level convention">
+                    <input type="radio" id="sh-on" name="shift" value="1.5" checked><label for="sh-on">Short-term (with 1.5σ shift)</label>
+                    <input type="radio" id="sh-off" name="shift" value="0"><label for="sh-off">Long-term (no shift)</label>
+                </div>
+            </div>
+            <div class="conv-grid">
+                <div class="field"><label for="c-dpmo">Defects per million opportunities</label><div class="input-unit"><input id="c-dpmo" name="dpmo" inputmode="decimal"><span class="unit">DPMO</span></div></div>
+                <div class="field"><label for="c-pct">Defect rate</label><div class="input-unit"><input id="c-pct" name="pct" inputmode="decimal"><span class="unit">%</span></div></div>
+                <div class="field"><label for="c-yld">Yield</label><div class="input-unit"><input id="c-yld" name="yld" inputmode="decimal"><span class="unit">%</span></div></div>
+                <div class="field"><label for="c-sig">Sigma level</label><div class="input-unit"><input id="c-sig" name="sig" inputmode="decimal"><span class="unit">σ</span></div></div>
+            </div>
+            <p class="sl-equiv" id="equiv" aria-live="polite"></p>
+        </div>
+    </section>
+
+    <div class="tool-layout" style="margin-top:1.5rem">
+        <form class="panel" id="dpo-calc" autocomplete="off">
+            <div class="panel-head"><h2>Defects &amp; yield from counts</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="d">Reset</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="sl-sub">Defect counts</div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="defects">Defects found <span class="sym">D</span></label>
+                        <div class="input-unit"><input id="defects" name="defects" value="38" inputmode="numeric" data-nonneg data-label="defects"><span class="unit">defects</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="units">Units inspected <span class="sym">U</span></label>
+                        <div class="input-unit"><input id="units" name="units" value="1200" inputmode="numeric" data-positive data-label="units inspected"><span class="unit">units</span></div>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="opp">Opportunities per unit <span class="sym">O</span></label>
+                        <div class="input-unit"><input id="opp" name="opp" value="12" inputmode="numeric" data-positive data-label="opportunities per unit"><span class="unit">per unit</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="pass">Units passing first time</label>
+                        <div class="input-unit"><input id="pass" name="pass" value="1163" inputmode="numeric" data-optional data-nonneg data-label="units passing first time"><span class="unit">units</span></div>
+                        <p class="hint">Optional: gives the observed first-pass yield.</p>
+                    </div>
+                </div>
+                <div class="sl-sub">Rolled throughput yield</div>
+                <div class="field">
+                    <label for="steps">First-pass yield of each process step (%)</label>
+                    <textarea class="input" id="steps" name="steps" rows="3" spellcheck="false" style="min-height:76px">98.5 99.2 97.8 99.6 98.9</textarea>
+                    <p class="hint">One value per step, separated by spaces, commas, or new lines. Leave blank to skip.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" id="dpo-results" aria-labelledby="dpo-results-h">
+            <div class="panel-head"><h2 id="dpo-results-h">Results</h2></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">DPMO</span><output class="result-value" data-out="dpmo">—</output></div>
+                    <div class="result"><span class="result-label">Sigma level</span><output class="result-value" data-out="sigma">—</output>
+                        <span class="result-note" data-out="sigma-note">—</span></div>
+                    <div class="result"><span class="result-label">Defects per unit <span class="sym">DPU</span></span><output class="result-value" data-out="dpu">—</output></div>
+                    <div class="result"><span class="result-label">Defects per opportunity <span class="sym">DPO</span></span><output class="result-value" data-out="dpo">—</output></div>
+                    <div class="result"><span class="result-label">First-pass yield, Poisson <span class="sym">e<sup>−DPU</sup></span></span><output class="result-value" data-out="fpy">—</output></div>
+                    <div class="result"><span class="result-label">First-pass yield, observed</span><output class="result-value" data-out="fpyobs">—</output>
+                        <span class="result-note" data-out="fpy-note">—</span></div>
+                    <div class="result"><span class="result-label">Rolled throughput yield <span class="sym">RTY</span></span><output class="result-value" data-out="rty">—</output></div>
+                    <div class="result"><span class="result-label">Normalized yield per step</span><output class="result-value" data-out="ny">—</output></div>
+                    <div class="result"><span class="result-label">Total defects per unit <span class="sym">−ln RTY</span></span><output class="result-value" data-out="tdpu">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How sigma level is calculated</h2>
+        <p>A sigma level is a way of writing a defect rate as a z-value. If a fraction \(p\) of opportunities is defective, the long-term z-value is the point on the standard normal distribution with that much area beyond it:</p>
+        <div class="formula">\[ Z_\text{LT} = -\Phi^{-1}(p), \qquad \sigma_\text{level} = Z_\text{LT} + 1.5 \ \ \text{(Six Sigma convention)} \]</div>
+        <p>DPMO is \(10^6 p\), yield is \(1 - p\), and \(\Phi^{-1}\) is the inverse standard normal CDF. The conversion is one-sided: it treats all defects as lying beyond a single limit. That matches the published Six Sigma tables, where 6σ corresponds to 3.4 DPMO.</p>
+
+        <h2>The 1.5σ shift, honestly</h2>
+        <p>Motorola's Six Sigma program assumed that a process studied over a short period would drift by about 1.5 standard deviations over the long term. Sigma levels are therefore quoted as short-term capability: a “6σ” process is expected to deliver the long-term defect rate of a 4.5σ one-sided tail, 3.4 DPMO. Without the shift, 6σ would mean about 0.001 DPMO one-sided, or 0.002 two-sided.</p>
+        <p>The 1.5σ figure is a convention, not a law of nature. Some processes drift much less, such as a well-controlled laser process with closed-loop power monitoring. Others drift more, such as tool wear without compensation. Critics note that the shift makes the scale hard to interpret and can hide poor long-term performance. For engineering decisions, it is clearer to quote measured long-term performance directly, as Ppk or observed PPM, and to state which convention any sigma level uses.</p>
+        <table>
+            <thead><tr><th class="num">Sigma level</th><th class="num">DPMO (1.5σ shift)</th><th class="num">Yield (1.5σ shift)</th><th class="num">DPMO, one-sided, no shift</th><th class="num">PPM, ±Zσ two-sided, centered</th></tr></thead>
+            <tbody>
+                <tr><td class="num">1</td><td class="num">691,462</td><td class="num">30.85 %</td><td class="num">158,655</td><td class="num">317,311</td></tr>
+                <tr><td class="num">2</td><td class="num">308,538</td><td class="num">69.15 %</td><td class="num">22,750</td><td class="num">45,500</td></tr>
+                <tr><td class="num">3</td><td class="num">66,807</td><td class="num">93.32 %</td><td class="num">1,350</td><td class="num">2,700</td></tr>
+                <tr><td class="num">4</td><td class="num">6,210</td><td class="num">99.379 %</td><td class="num">31.7</td><td class="num">63.3</td></tr>
+                <tr><td class="num">5</td><td class="num">233</td><td class="num">99.9767 %</td><td class="num">0.287</td><td class="num">0.573</td></tr>
+                <tr><td class="num">6</td><td class="num">3.4</td><td class="num">99.99966 %</td><td class="num">0.00099</td><td class="num">0.0020</td></tr>
+            </tbody>
+        </table>
+
+        <h2>DPU, DPO, and first-pass yield</h2>
+        <div class="formula">\[ DPU = \frac{D}{U}, \qquad DPO = \frac{D}{U \cdot O}, \qquad DPMO = 10^6\,DPO, \qquad FPY \approx e^{-DPU} \]</div>
+        <p>If defects land on units at random, the number of defects per unit follows a Poisson distribution. The chance a unit has none is then \(e^{-DPU}\). If the observed first-pass yield is clearly higher than the Poisson estimate, defects are clustering on a few bad units, which points to a specific cause. The rolled throughput yield of a multi-step process is the product of each step's first-pass yield, \(RTY = \prod_i FPY_i\). It is the probability that a unit passes every step without rework, which is the yield the factory floor actually experiences.</p>
+
+        <h2>Worked example</h2>
+        <p>An inspection finds 38 defects on 1200 units, with 12 defect opportunities per unit. That gives DPU = 0.0317, DPO = 0.00264, and DPMO = 2639. This corresponds to Z = 2.79 long-term, or a 4.29σ short-term sigma level. The Poisson first-pass yield, \(e^{-0.0317} = 96.88\,\%\), matches the observed 1163/1200 = 96.92 %, so defects are spread randomly rather than clustered. Five steps with first-pass yields of 98.5, 99.2, 97.8, 99.6, and 98.9 % give RTY = 94.13 %. About one unit in seventeen needs rework somewhere, even though no single step looks worse than 97.8 %.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Opportunity counts are a judgment call.</strong> Counting more opportunities per unit lowers DPMO and raises the sigma level without any change to the product. Define opportunities once, document the definition, and keep it fixed when comparing over time.</li>
+            <li><strong>Normal tails.</strong> Converting a defect rate to a z-value assumes normally distributed variation. For attribute defects (missing features, contamination) the sigma level is only a common scale, not a physical distance to a limit.</li>
+            <li><strong>One-sided convention.</strong> Every defect is assigned to one tail. For a centered process with two-sided limits, use the two-sided column in the table or the <a href="/tools/process-capability/">capability calculator</a>.</li>
+            <li><strong>Independent steps.</strong> RTY assumes step yields are independent. Upstream defects that make downstream failures more likely make the true RTY lower.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>D. C. Montgomery, <em>Introduction to Statistical Quality Control</em>, 8th ed., Wiley (chapter on Six Sigma and process capability).</li>
+            <li>AIAG, <em>Statistical Process Control (SPC) Reference Manual</em>, 2nd ed. (2005).</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="process-capability,control-chart,oee-takt,article:spc-for-laser-processes"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const { normCdf, normInv } = Calc.math;
+    const shiftInputs = document.querySelectorAll('input[name="shift"]');
+    const shift = () => parseFloat(document.querySelector('input[name="shift"]:checked').value);
+    const conv = document.getElementById('conv');
+    const errBox = conv.querySelector('.calc-error');
+    const equiv = document.getElementById('equiv');
+
+    // base quantity: defect fraction p (per opportunity)
+    const fields = {
+        dpmo: { to: x => x / 1e6, from: p => p * 1e6 },
+        pct:  { to: x => x / 100, from: p => p * 100 },
+        yld:  { to: x => 1 - x / 100, from: p => (1 - p) * 100 },
+        sig:  { to: s => normCdf(shift() - s), from: p => shift() - normInv(p) }
+    };
+
+    let lastField = 'dpmo';
+    conv.addEventListener('input', e => { if (e.target.name in fields) lastField = e.target.name; });
+
+    Calc.converter({
+        root: '#conv',
+        fields,
+        sig: 7,
+        initial: { field: 'sig', value: 6 },
+        after(p) {
+            if (!(p > 0 && p < 1)) {
+                errBox.textContent = 'The defect rate must be between 0 and 100 % (yield between 0 and 100 %).';
+                errBox.classList.add('show');
+                equiv.textContent = '';
+                return;
+            }
+            const zlt = -normInv(p);
+            const s = zlt + shift();
+            const zst = zlt + 1.5;
+            equiv.innerHTML = 'Long-term z = <strong>' + fmt.num(zlt, 4) + '</strong> (Ppk ≈ ' + fmt.num(zlt / 3, 3) + ')' +
+                ' · short-term sigma level with the 1.5σ shift = <strong>' + fmt.num(zst, 4) + '</strong>' +
+                ' · two-sided centered process at ±' + fmt.num(s, 3) + 'σ: <strong>' + fmt.num(2 * normCdf(-s) * 1e6, 3) + '</strong> PPM';
+        }
+    });
+
+    // re-run both calculators when the convention changes
+    shiftInputs.forEach(r => r.addEventListener('change', () => {
+        dpo.run();
+        const inp = conv.querySelector('input[name="' + lastField + '"]');
+        if (inp) inp.dispatchEvent(new Event('input', { bubbles: true }));
+    }));
+
+    const dpo = Calc.create({
+        form: '#dpo-calc',
+        outputs: '#dpo-results',
+        id: 'd',
+        compute(v) {
+            if (!Number.isInteger(v.defects)) throw Calc.fail('Defects must be a whole number.', 'defects');
+            if (!Number.isInteger(v.units)) throw Calc.fail('Units inspected must be a whole number.', 'units');
+            const D = v.defects, U = v.units, O = v.opp;
+            const dpuV = D / U, dpoV = D / (U * O);
+            if (dpoV >= 1) throw Calc.fail('Defects exceed the number of opportunities (D ≥ U × O).', 'defects');
+            const sh = shift();
+            let fpyObs = null, fpyNote = '';
+            if (isFinite(v.pass)) {
+                if (v.pass > U) throw Calc.fail('Units passing cannot exceed units inspected.', 'pass');
+                fpyObs = fmt.pct(v.pass / U, 4);
+                const pois = Math.exp(-dpuV), obs = v.pass / U;
+                fpyNote = Math.abs(obs - pois) < 0.005 ? 'Close to the Poisson estimate: defects look randomly distributed.'
+                    : obs > pois ? 'Above the Poisson estimate: defects are clustering on fewer units.'
+                    : 'Below the Poisson estimate: check how passing units were counted.';
+            }
+            const steps = Calc.parseList(v.steps);
+            let rty = null, ny = null, td = null;
+            if (steps.length) {
+                if (steps.some(y => !(y > 0 && y <= 100))) throw Calc.fail('Each step yield must be greater than 0 and at most 100 %.', 'steps');
+                const r = steps.reduce((a, y) => a * y / 100, 1);
+                rty = fmt.pct(r, 4) + ' (' + steps.length + ' steps)';
+                ny = fmt.pct(Math.pow(r, 1 / steps.length), 4);
+                td = fmt.num(-Math.log(r), 4);
+            }
+            return {
+                dpmo: fmt.num(dpoV * 1e6, 4),
+                // zero defects: report a 95 % lower bound from the rule of three (p ≤ 3/n), not an open-ended claim
+                sigma: D === 0
+                    ? (3 / (U * O) < 1 ? '≥ ' + fmt.num(sh - normInv(3 / (U * O)), 3) + 'σ (95 % bound, zero defects)' : 'not estimable (too few opportunities)')
+                    : fmt.num(sh - normInv(dpoV), 3) + 'σ',
+                'sigma-note': sh ? 'Short-term, including the 1.5σ shift' : 'Long-term, no shift',
+                dpu: fmt.num(dpuV, 4),
+                dpo: fmt.num(dpoV, 4),
+                fpy: fmt.pct(Math.exp(-dpuV), 4),
+                fpyobs: fpyObs, 'fpy-note': fpyNote,
+                rty, ny, tdpu: td
+            };
+        }
+    });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pressure Unit Converter: Pa, mbar, Torr, mTorr, atm, psi | Casey D. Foley, PhD</title>
+<meta name="description" content="Convert pressure between Pa, kPa, mbar, bar, Torr, mTorr, mmHg, atm, psi, and inHg as you type. Shows the vacuum range, suitable gauge types, gas number density, and the N₂ mean free path for each value.">
+<link rel="canonical" href="https://cdfoley.com/tools/pressure-converter/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Pressure Unit Converter">
+<meta property="og:description" content="Pa ↔ mbar ↔ Torr ↔ mTorr ↔ atm ↔ psi, with vacuum range, gauge types, and mean free path.">
+<meta property="og:url" content="https://cdfoley.com/tools/pressure-converter/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<style>
+    .pc-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 1rem 1.5rem; margin-top: 1.6rem; padding-top: 1.3rem; border-top: 1px solid var(--border); }
+    .pc-summary .pc-k { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin-bottom: 0.25rem; }
+    .pc-summary .pc-v { font-size: 0.95rem; color: var(--text); }
+    .pc-summary .pc-v.mono { font-family: var(--mono); font-weight: 600; }
+    .pc-summary .pc-n { font-size: 0.82rem; color: var(--muted); margin-top: 0.15rem; }
+</style>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#vacuum">Vacuum Technology</a></li><li aria-current="page">Pressure Unit Converter</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Pressure Unit Converter</h1>
+        <p class="lede">Type a pressure in any unit and the rest update. The panel also shows the vacuum range for that value, which gauge types can measure it, and how far a nitrogen molecule travels between collisions at that pressure.</p>
+    </header>
+
+    <section class="panel" id="conv" aria-labelledby="conv-h">
+        <div class="panel-head"><h2 id="conv-h">Convert</h2>
+            <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+        </div>
+        <div class="panel-body">
+            <div class="calc-error" role="alert"></div>
+
+            <h3 class="field-label" style="margin:0 0 .7rem;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em">SI and metric</h3>
+            <div class="conv-grid">
+                <div class="field"><label for="c-pa">Pascal</label><div class="input-unit"><input id="c-pa" name="pa" inputmode="decimal"><span class="unit">Pa</span></div></div>
+                <div class="field"><label for="c-kpa">Kilopascal</label><div class="input-unit"><input id="c-kpa" name="kpa" inputmode="decimal"><span class="unit">kPa</span></div></div>
+                <div class="field"><label for="c-mbar">Millibar <span class="sym">= hPa</span></label><div class="input-unit"><input id="c-mbar" name="mbar" inputmode="decimal"><span class="unit">mbar</span></div></div>
+                <div class="field"><label for="c-bar">Bar</label><div class="input-unit"><input id="c-bar" name="bar" inputmode="decimal"><span class="unit">bar</span></div></div>
+            </div>
+
+            <h3 class="field-label" style="margin:1.5rem 0 .7rem;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em">Mercury and atmosphere</h3>
+            <div class="conv-grid">
+                <div class="field"><label for="c-torr">Torr <span class="sym">= atm/760</span></label><div class="input-unit"><input id="c-torr" name="torr" inputmode="decimal"><span class="unit">Torr</span></div></div>
+                <div class="field"><label for="c-mtorr">Millitorr <span class="sym">≈ micron Hg</span></label><div class="input-unit"><input id="c-mtorr" name="mtorr" inputmode="decimal"><span class="unit">mTorr</span></div></div>
+                <div class="field"><label for="c-mmhg">Millimetre of mercury</label><div class="input-unit"><input id="c-mmhg" name="mmhg" inputmode="decimal"><span class="unit">mmHg</span></div></div>
+                <div class="field"><label for="c-atm">Standard atmosphere</label><div class="input-unit"><input id="c-atm" name="atm" inputmode="decimal"><span class="unit">atm</span></div></div>
+            </div>
+
+            <h3 class="field-label" style="margin:1.5rem 0 .7rem;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em">US customary</h3>
+            <div class="conv-grid">
+                <div class="field"><label for="c-psi">Pounds per square inch</label><div class="input-unit"><input id="c-psi" name="psi" inputmode="decimal"><span class="unit">psi</span></div></div>
+                <div class="field"><label for="c-inhg">Inches of mercury <span class="sym">0 °C</span></label><div class="input-unit"><input id="c-inhg" name="inhg" inputmode="decimal"><span class="unit">inHg</span></div></div>
+            </div>
+
+            <div class="pc-summary" aria-live="polite">
+                <div>
+                    <div class="pc-k">Vacuum range</div>
+                    <div class="pc-v"><span id="pc-regime" class="badge">—</span></div>
+                    <div class="pc-n" id="pc-regime-note"></div>
+                </div>
+                <div>
+                    <div class="pc-k">Typical gauges</div>
+                    <div class="pc-v" id="pc-gauge">—</div>
+                </div>
+                <div>
+                    <div class="pc-k">N₂ mean free path (20 °C)</div>
+                    <div class="pc-v mono" id="pc-mfp">—</div>
+                    <div class="pc-n"><a href="/tools/mean-free-path/">Other gases, Knudsen number →</a></div>
+                </div>
+                <div>
+                    <div class="pc-k">Number density (20 °C)</div>
+                    <div class="pc-v mono" id="pc-n">—</div>
+                    <div class="pc-n" id="pc-n2"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How the conversions work</h2>
+        <p>Everything converts through the pascal, \(1\ \text{Pa} = 1\ \text{N/m}^2\). The defining relations are</p>
+        <div class="formula">\[ 1\ \text{atm} = 101\,325\ \text{Pa}, \qquad 1\ \text{Torr} = \frac{101\,325}{760}\ \text{Pa} \approx 133.322\,368\ \text{Pa}, \qquad 1\ \text{mbar} = 100\ \text{Pa}. \]</div>
+        <table>
+            <thead><tr><th>Unit</th><th class="num">Pascals</th><th>Definition</th></tr></thead>
+            <tbody>
+                <tr><td>bar</td><td class="num">100 000</td><td>Exact</td></tr>
+                <tr><td>mbar (= hPa)</td><td class="num">100</td><td>Exact</td></tr>
+                <tr><td>atm</td><td class="num">101 325</td><td>Exact (standard atmosphere)</td></tr>
+                <tr><td>Torr</td><td class="num">133.322 368 4…</td><td>Exact: 101 325 / 760</td></tr>
+                <tr><td>mmHg (conventional)</td><td class="num">133.322 387 415</td><td>Exact: 13.5951 g/cm³ × 9.806 65 m/s² × 1 mm</td></tr>
+                <tr><td>psi</td><td class="num">6 894.757 293</td><td>1 lbf/in²</td></tr>
+                <tr><td>inHg (0 °C)</td><td class="num">3 386.389</td><td>Conventional, 25.4 mmHg</td></tr>
+            </tbody>
+        </table>
+        <p>Handy anchors for vacuum work: 1 Torr ≈ 1.333 mbar, 1 mbar ≈ 0.750 Torr, and 1 mTorr ≈ 0.1333 Pa. A Torr and a millimetre of mercury differ by about one part in seven million, which is below the accuracy of any vacuum gauge. The two are interchangeable in practice, though only the Torr is defined exactly from the atmosphere.</p>
+
+        <h2>Vacuum ranges</h2>
+        <p>The ranges below are the ones most often used in vacuum-industry literature. ISO 3529-1, DIN 28400-1, and the AVS draw some boundaries differently. Treat them as conventions for talking about a system, not as physical thresholds.</p>
+        <table>
+            <thead><tr><th>Range</th><th class="num">Pressure (mbar)</th><th>Gas behavior</th><th>Common gauges</th></tr></thead>
+            <tbody>
+                <tr><td>Rough (low) vacuum</td><td class="num">1013 – 1</td><td>Viscous flow; gas behaves as a fluid</td><td>Capacitance diaphragm, piezoresistive, mechanical dial</td></tr>
+                <tr><td>Medium (fine) vacuum</td><td class="num">1 – 10⁻³</td><td>Transition from viscous to molecular flow</td><td>Pirani (thermal conductivity), capacitance diaphragm</td></tr>
+                <tr><td>High vacuum</td><td class="num">10⁻³ – 10⁻⁷</td><td>Molecular flow; wall outgassing dominates the gas load</td><td>Cold-cathode (inverted magnetron), hot-cathode ionization</td></tr>
+                <tr><td>Ultra-high vacuum</td><td class="num">10⁻⁷ – 10⁻¹²</td><td>Surfaces stay clean for hours; mostly H₂ remains after bakeout</td><td>Bayard–Alpert or extractor ionization gauge, RGA</td></tr>
+                <tr><td>Extreme-high vacuum</td><td class="num">&lt; 10⁻¹²</td><td>Gauge x-ray limits and outgassing of the gauge itself matter</td><td>Extractor and specialized ionization gauges</td></tr>
+            </tbody>
+        </table>
+        <p>Two points matter when reading a gauge. Thermal-conductivity (Pirani) and ionization gauges are <strong>gas-dependent</strong> and are normally calibrated for N₂, so in helium or argon they can be off by a large factor. Capacitance diaphragm gauges measure force per area directly and read the same for any gas.</p>
+
+        <h2>Worked example</h2>
+        <p>A turbo-pumped chamber reads 5 × 10⁻⁶ Torr. That is 5 × 10⁻⁶ × 133.322 = 6.67 × 10⁻⁴ Pa, or 6.67 × 10⁻⁶ mbar, which falls in the high-vacuum range. At 20 °C the N₂ mean free path is about 6.48 mm·Pa ÷ 6.67 × 10⁻⁴ Pa ≈ 9.7 m, much longer than the chamber. Molecules cross the chamber without hitting each other, so the flow is molecular.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>All units are absolute pressures. Gauge pressure (psig, barg) is measured relative to local atmosphere. Add the ambient pressure, about 14.7 psi or 1013 mbar at sea level, before converting.</li>
+            <li>Mercury-column units use the conventional density and standard gravity. Real manometer readings need temperature and local-gravity corrections.</li>
+            <li>Mean free path and number density assume an ideal gas at 20 °C. The N₂ mean free path uses a hard-sphere diameter of 3.75 Å.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>A. Thompson and B. N. Taylor, <em>Guide for the Use of the International System of Units (SI)</em>, NIST Special Publication 811 (2008), Appendix B (conversion factors).</li>
+            <li>J. F. O'Hanlon, <em>A User's Guide to Vacuum Technology</em>, 3rd ed., Wiley (2003).</li>
+            <li>K. Jousten (ed.), <em>Handbook of Vacuum Technology</em>, 2nd ed., Wiley-VCH (2016).</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="mean-free-path,pumpdown,energy-converter,article:vacuum-fundamentals"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const TORR = 101325 / 760, MMHG = 133.322387415;
+    const fields = {
+        pa:    { to: x => x,                  from: p => p },
+        kpa:   { to: x => x * 1e3,            from: p => p / 1e3 },
+        mbar:  { to: x => x * 100,            from: p => p / 100 },
+        bar:   { to: x => x * 1e5,            from: p => p / 1e5 },
+        torr:  { to: x => x * TORR,           from: p => p / TORR },
+        mtorr: { to: x => x * TORR / 1000,    from: p => p / TORR * 1000 },
+        mmhg:  { to: x => x * MMHG,           from: p => p / MMHG },
+        atm:   { to: x => x * 101325,         from: p => p / 101325 },
+        psi:   { to: x => x * 6894.757293168, from: p => p / 6894.757293168 },
+        inhg:  { to: x => x * 3386.389,       from: p => p / 3386.389 }
+    };
+
+    // [upper bound in mbar (exclusive), label, badge class, gauges, note]
+    const RANGES = [
+        [1e-12, 'Extreme-high vacuum (XHV)', 'badge-warn', 'Extractor or specialized ionization gauges; residual gas analyzer', 'Gauge x-ray limit and gauge outgassing dominate'],
+        [1e-7,  'Ultra-high vacuum (UHV)',   'badge-ok',   'Bayard–Alpert or extractor ionization gauge; residual gas analyzer', 'Requires bakeout and metal seals'],
+        [1e-3,  'High vacuum (HV)',          'badge-ok',   'Cold-cathode (inverted magnetron) or hot-cathode ionization gauge', 'Molecular flow; outgassing sets the gas load'],
+        [1,     'Medium (fine) vacuum',      'badge-ok',   'Pirani (thermal conductivity) or capacitance diaphragm gauge', 'Transition between viscous and molecular flow'],
+        [1013.25, 'Rough (low) vacuum',      'badge-ok',   'Capacitance diaphragm, piezoresistive, or mechanical dial gauge', 'Viscous (continuum) flow'],
+        [1100,  'Atmospheric',               '',           'Barometer, piezoresistive, or capacitance diaphragm gauge', 'Around one standard atmosphere'],
+        [Infinity, 'Above atmospheric',      '',           'Bourdon tube or piezoresistive pressure transducer', 'Positive pressure relative to the atmosphere']
+    ];
+
+    const kT20 = Calc.K.kB * 293.15;
+    const lambdaP = kT20 / (Math.SQRT2 * Math.PI * (3.75e-10) ** 2);   // m·Pa for N₂ at 20 °C
+
+    const el = id => document.getElementById(id);
+    Calc.converter({
+        root: '#conv',
+        fields,
+        sig: 7,
+        initial: { field: 'mbar', value: 1e-6 },
+        after(p) {
+            const mbar = p / 100;
+            const r = RANGES.find(x => mbar < x[0]);
+            el('pc-regime').textContent = r[1];
+            el('pc-regime').className = 'badge ' + r[2];
+            el('pc-regime-note').textContent = r[4];
+            el('pc-gauge').textContent = r[3];
+            el('pc-mfp').textContent = fmt.si(lambdaP / p, 'm', 3, { max: 3 });
+            const n = p / kT20;
+            el('pc-n').textContent = fmt.sci(n * 1e-6, 3) + ' cm⁻³';
+            el('pc-n2').textContent = fmt.sci(n, 3) + ' m⁻³';
+        }
+    });
+});
+</script>
+</body>
+</html>

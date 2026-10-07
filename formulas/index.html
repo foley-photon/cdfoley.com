@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laser, Optics, Vacuum &amp; SPC Formula Reference | Casey D. Foley, PhD</title>
+<meta name="description" content="A searchable formulary for laser and optical engineering: photon energy, Planck and Doppler broadening, Gaussian beam focusing with M² and truncation, Fresnel equations, fluence and ablation, vacuum conductance and pump-down, machine vision optics, and Cp/Cpk and control charts.">
+<link rel="canonical" href="https://cdfoley.com/formulas/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Formula Reference — Lasers, Optics, Vacuum, Vision & SPC">
+<meta property="og:description" content="75 engineering formulas with symbols, units, conventions, and links to live calculators.">
+<meta property="og:url" content="https://cdfoley.com/formulas/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<style>
+    .ref-toolbar { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: center; margin-bottom: 1.2rem; }
+    .ref-toolbar .tool-search { margin: 0; flex: 1 1 320px; }
+    .ref-count { font-size: 0.88rem; color: var(--muted); }
+    .ref-index { margin-bottom: 2.5rem; }
+    a.chip:hover { text-decoration: none; }
+    a.chip .n { color: var(--muted); font-weight: 500; margin-left: 0.25rem; }
+    .ref-section > h2 { display: flex; align-items: baseline; gap: 0.6rem; padding-bottom: 0.6rem; border-bottom: 2px solid var(--border); margin-bottom: 0.4rem; }
+    .ref-section > h2 .n { font-size: 0.8rem; font-weight: 500; color: var(--muted); }
+    .ref-section > .section-note { font-size: 0.92rem; color: var(--text-2); margin: 0.6rem 0 0.4rem; max-width: 760px; }
+    .ref-item h3 a.anchor { color: var(--border-strong); font-weight: 500; margin-left: 0.35rem; opacity: 0; }
+    .ref-item:hover h3 a.anchor, .ref-item h3 a.anchor:focus { opacity: 1; }
+    .ref-item .ref-desc a.calc-link { white-space: nowrap; }
+    .ref-item .formula { font-size: 0.98em; }
+    .ref-item .vars .katex { font-size: 1em; }
+    .ref-item:target { background: var(--accent-soft); border-radius: var(--radius); box-shadow: 0 0 0 8px var(--accent-soft); }
+    .const-table td.num { white-space: nowrap; }
+    .ref-empty { display: none; color: var(--muted); padding: 1rem 0 2rem; }
+    .ref-item[hidden], .ref-section[hidden] { display: none; }
+</style>
+</head>
+<body data-section="formulas">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/">Home</a></li><li aria-current="page">Formula reference</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <span class="eyebrow">Reference</span>
+        <h1>Formula reference</h1>
+        <p class="lede">This is the set of equations I use for laser process development, optical instrument design, vacuum systems, and production quality. It is organized like a laser-optics handbook, with every symbol and unit defined. Where a formula has a live calculator on this site, the entry links to it.</p>
+    </header>
+
+    <div class="callout">
+        <p><strong>Conventions.</strong> Beam sizes are <strong>1/e² intensity</strong> values. \(w\) is a radius and \(d\) or \(D\) is a diameter, so \(d = 2w\). A full-width at half-maximum is labeled FWHM and is about 0.589 × the 1/e² width for a Gaussian. Wavelengths are <strong>vacuum</strong> wavelengths. Angles are in radians unless stated, and divergence \(\theta\) is a <strong>half-angle</strong>. Equations are written in SI units. “Practical forms” with mixed units say so explicitly. Logarithms are natural (\(\ln\)) unless written \(\log_{10}\).</p>
+    </div>
+
+    <div class="ref-toolbar">
+        <div class="tool-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="search" id="ref-filter" placeholder="Filter formulas — e.g. “Rayleigh”, “Cpk”, “conductance”" aria-label="Filter formulas" autocomplete="off">
+        </div>
+        <span class="ref-count" id="ref-count" aria-live="polite"></span>
+    </div>
+
+    <nav class="ref-index chip-row" aria-label="Formula sections" id="ref-index">
+        <a class="chip" href="#photon"><b>Photon energy &amp; spectroscopy</b><span class="n"></span></a>
+        <a class="chip" href="#beam"><b>Gaussian beams &amp; focusing</b><span class="n"></span></a>
+        <a class="chip" href="#interface"><b>Interface optics &amp; filters</b><span class="n"></span></a>
+        <a class="chip" href="#process"><b>Laser processing &amp; damage</b><span class="n"></span></a>
+        <a class="chip" href="#vacuum"><b>Vacuum</b><span class="n"></span></a>
+        <a class="chip" href="#vision"><b>Machine vision</b><span class="n"></span></a>
+        <a class="chip" href="#quality"><b>Quality &amp; SPC</b><span class="n"></span></a>
+        <a class="chip" href="#constants"><b>Constants</b></a>
+    </nav>
+
+    <!-- ═══════════════════════ 1. PHOTON ENERGY & SPECTROSCOPY ═══════════════════════ -->
+    <section class="ref-section" id="photon" aria-labelledby="photon-h">
+        <h2 id="photon-h">Photon energy &amp; spectroscopy <span class="n"></span></h2>
+
+        <div class="ref-item" id="photon-energy">
+            <div><h3>Photon energy<a class="anchor" href="#photon-energy" aria-label="Link to Photon energy">#</a></h3>
+                <p class="ref-desc">Energy carried by a single photon of a given wavelength or frequency. <a class="calc-link" href="/tools/energy-converter/">Calculator →</a></p></div>
+            <div class="formula">\[ E = h\nu = \frac{hc}{\lambda}, \qquad E\,[\text{eV}] \approx \frac{1239.842}{\lambda\,[\text{nm}]} \]</div>
+            <div class="vars">\(E\) photon energy (J or eV) · \(h\) Planck constant · \(\nu\) frequency (Hz) · \(c\) speed of light · \(\lambda\) vacuum wavelength</div>
+        </div>
+
+        <div class="ref-item" id="wavenumber">
+            <div><h3>Wavenumber and frequency<a class="anchor" href="#wavenumber" aria-label="Link to Wavenumber">#</a></h3>
+                <p class="ref-desc">The spectroscopic wavenumber is proportional to energy, so level spacings add linearly. <a class="calc-link" href="/tools/energy-converter/">Calculator →</a></p></div>
+            <div class="formula">\[ \tilde\nu = \frac{1}{\lambda} = \frac{\nu}{c}, \qquad \tilde\nu\,[\text{cm}^{-1}] = \frac{10^{7}}{\lambda\,[\text{nm}]}, \qquad 1\ \text{cm}^{-1} \leftrightarrow 29.979\ \text{GHz} \]</div>
+            <div class="vars">\(\tilde\nu\) wavenumber (conventionally cm⁻¹) · \(\nu\) frequency (Hz) · \(\lambda\) vacuum wavelength</div>
+        </div>
+
+        <div class="ref-item" id="molar-thermal">
+            <div><h3>Molar and thermal energy equivalents<a class="anchor" href="#molar-thermal" aria-label="Link to Molar and thermal equivalents">#</a></h3>
+                <p class="ref-desc">Converts a per-particle energy to a per-mole energy and to the temperature at which \(k_BT\) equals it. <a class="calc-link" href="/tools/energy-converter/">Calculator →</a></p></div>
+            <div class="formula">\[ \begin{gathered} E_m = N_A E, \qquad T_\text{eq} = \frac{E}{k_B} \\[4pt] 1\ \text{eV} = 96.485\ \tfrac{\text{kJ}}{\text{mol}} = 8065.54\ \text{cm}^{-1} = 11\,604.5\ \text{K} \end{gathered} \]</div>
+            <div class="vars">\(E_m\) molar energy (J/mol) · \(N_A\) Avogadro constant · \(k_B\) Boltzmann constant · \(T_\text{eq}\) temperature equivalent (K) · 1 kcal = 4.184 kJ (thermochemical)</div>
+        </div>
+
+        <div class="ref-item" id="photon-flux">
+            <div><h3>Photon flux and photons per pulse<a class="anchor" href="#photon-flux" aria-label="Link to Photon flux">#</a></h3>
+                <p class="ref-desc">Number of photons per second in a beam of power \(P\), or per pulse of energy \(E_p\). <a class="calc-link" href="/tools/photon-flux/">Calculator →</a></p></div>
+            <div class="formula">\[ \Phi = \frac{P}{h\nu} = \frac{P\lambda}{hc} \approx 5.034\times10^{15}\,P\,[\text{W}]\;\lambda\,[\text{nm}]\ \text{s}^{-1}, \qquad N_\text{pulse} = \frac{E_p\lambda}{hc} \]</div>
+            <div class="vars">\(\Phi\) photon flux (photons/s) · \(P\) optical power (W) · \(E_p\) pulse energy (J) · \(\lambda\) vacuum wavelength</div>
+        </div>
+
+        <div class="ref-item" id="responsivity">
+            <div><h3>Photodetector responsivity<a class="anchor" href="#responsivity" aria-label="Link to Responsivity">#</a></h3>
+                <p class="ref-desc">Photocurrent per watt of incident light for a detector with quantum efficiency \(\eta\). <a class="calc-link" href="/tools/photon-flux/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathcal{R} = \frac{I_\text{ph}}{P} = \eta\,\frac{e\lambda}{hc} \approx \eta\,\frac{\lambda\,[\text{nm}]}{1239.84}\ \ \text{A/W} \]</div>
+            <div class="vars">\(\mathcal{R}\) responsivity (A/W) · \(I_\text{ph}\) photocurrent (A) · \(\eta\) external quantum efficiency (electrons per incident photon, 0–1 without gain) · \(e\) elementary charge</div>
+        </div>
+
+        <div class="ref-item" id="planck">
+            <div><h3>Planck's law (spectral radiance)<a class="anchor" href="#planck" aria-label="Link to Planck's law">#</a></h3>
+                <p class="ref-desc">Spectral radiance of an ideal blackbody at temperature \(T\). <a class="calc-link" href="/tools/blackbody/">Calculator →</a></p></div>
+            <div class="formula">\[ B_\lambda(\lambda,T) = \frac{2hc^2}{\lambda^5}\,\frac{1}{\exp\!\left(\dfrac{hc}{\lambda k_B T}\right) - 1} \]</div>
+            <div class="vars">\(B_\lambda\) spectral radiance (W·m⁻²·sr⁻¹ per m of wavelength) · \(T\) temperature (K). Spectral exitance of a Lambertian surface is \(M_\lambda = \pi B_\lambda\). Real (grey) emitters: multiply by emissivity \(\varepsilon(\lambda)\).</div>
+        </div>
+
+        <div class="ref-item" id="wien">
+            <div><h3>Wien's displacement law<a class="anchor" href="#wien" aria-label="Link to Wien's law">#</a></h3>
+                <p class="ref-desc">Wavelength of peak spectral radiance (per unit wavelength) of a blackbody. <a class="calc-link" href="/tools/blackbody/">Calculator →</a></p></div>
+            <div class="formula">\[ \lambda_\text{max}\,T = b = 2.897\,771\,955\times10^{-3}\ \text{m}\cdot\text{K} \]</div>
+            <div class="vars">\(\lambda_\text{max}\) peak of \(B_\lambda\) · \(b\) Wien constant. The peak of the per-frequency spectrum \(B_\nu\) lies elsewhere: \(\nu_\text{max} \approx 5.879\times10^{10}\ \text{Hz/K}\times T\).</div>
+        </div>
+
+        <div class="ref-item" id="stefan-boltzmann">
+            <div><h3>Stefan–Boltzmann law<a class="anchor" href="#stefan-boltzmann" aria-label="Link to Stefan–Boltzmann law">#</a></h3>
+                <p class="ref-desc">Total power radiated per unit area, integrated over all wavelengths and the hemisphere. <a class="calc-link" href="/tools/blackbody/">Calculator →</a></p></div>
+            <div class="formula">\[ M = \varepsilon\,\sigma\,T^4, \qquad \sigma = 5.670\,374\,419\times10^{-8}\ \text{W}\,\text{m}^{-2}\,\text{K}^{-4} \]</div>
+            <div class="vars">\(M\) radiant exitance (W/m²) · \(\varepsilon\) total hemispherical emissivity (1 for a blackbody) · \(\sigma\) Stefan–Boltzmann constant · \(T\) temperature (K)</div>
+        </div>
+
+        <div class="ref-item" id="doppler">
+            <div><h3>Doppler (thermal) linewidth<a class="anchor" href="#doppler" aria-label="Link to Doppler linewidth">#</a></h3>
+                <p class="ref-desc">Gaussian FWHM of a spectral line broadened by the Maxwell–Boltzmann velocity distribution. <a class="calc-link" href="/tools/doppler-broadening/">Calculator →</a></p></div>
+            <div class="formula">\[ \frac{\Delta\nu_D}{\nu_0} = \frac{\Delta\lambda_D}{\lambda_0} = \sqrt{\frac{8\,k_B T\ln 2}{m c^2}} \approx 7.162\times10^{-7}\sqrt{\frac{T\,[\text{K}]}{M\,[\text{u}]}} \]</div>
+            <div class="vars">\(\Delta\nu_D,\ \Delta\lambda_D\) Doppler FWHM · \(\nu_0,\ \lambda_0\) line center · \(m\) emitter mass (kg) · \(M\) mass in atomic mass units · \(T\) kinetic temperature (K)</div>
+        </div>
+
+        <div class="ref-item" id="natural-linewidth">
+            <div><h3>Natural (lifetime) linewidth<a class="anchor" href="#natural-linewidth" aria-label="Link to Natural linewidth">#</a></h3>
+                <p class="ref-desc">Lorentzian FWHM set by the finite lifetime of the excited state. <a class="calc-link" href="/tools/doppler-broadening/">Calculator →</a></p></div>
+            <div class="formula">\[ \Delta\nu_N = \frac{1}{2\pi\tau}, \qquad \Delta\tilde\nu_N\,[\text{cm}^{-1}] \approx \frac{5.309}{\tau\,[\text{ps}]} \]</div>
+            <div class="vars">\(\Delta\nu_N\) Lorentzian FWHM (Hz) · \(\tau\) upper-state lifetime (s). If both levels decay, \(1/\tau = 1/\tau_\text{upper} + 1/\tau_\text{lower}\).</div>
+        </div>
+
+        <div class="ref-item" id="voigt">
+            <div><h3>Voigt linewidth (Olivero–Longbothum)<a class="anchor" href="#voigt" aria-label="Link to Voigt linewidth">#</a></h3>
+                <p class="ref-desc">FWHM of a Gaussian convolved with a Lorentzian, such as Doppler plus natural or pressure broadening. <a class="calc-link" href="/tools/doppler-broadening/">Calculator →</a></p></div>
+            <div class="formula">\[ f_V \approx 0.5346\,f_L + \sqrt{0.2166\,f_L^2 + f_G^2} \]</div>
+            <div class="vars">\(f_V\) Voigt FWHM · \(f_L\) Lorentzian FWHM · \(f_G\) Gaussian FWHM (same units). Empirical fit, accurate to about 0.02 %.</div>
+        </div>
+
+        <div class="ref-item" id="grating-equation">
+            <div><h3>Grating equation<a class="anchor" href="#grating-equation" aria-label="Link to Grating equation">#</a></h3>
+                <p class="ref-desc">Angle at which a ruled or holographic grating diffracts wavelength \(\lambda\) into order \(m\). <a class="calc-link" href="/tools/grating-equation/">Calculator →</a></p></div>
+            <div class="formula">\[ m\lambda = d\,(\sin\alpha + \sin\beta), \qquad \text{Littrow } (\alpha = \beta = \theta_L):\ \ m\lambda = 2d\sin\theta_L \]</div>
+            <div class="vars">\(m\) diffraction order (integer) · \(d\) groove spacing (1/groove density) · \(\alpha,\ \beta\) angles of incidence and diffraction measured from the grating normal; they have the same sign when on the same side of the normal</div>
+        </div>
+
+        <div class="ref-item" id="dispersion">
+            <div><h3>Angular and linear dispersion<a class="anchor" href="#dispersion" aria-label="Link to Dispersion">#</a></h3>
+                <p class="ref-desc">How fast the diffraction angle, and the position at a spectrometer's focal plane, change with wavelength. <a class="calc-link" href="/tools/grating-equation/">Calculator →</a></p></div>
+            <div class="formula">\[ \frac{d\beta}{d\lambda} = \frac{m}{d\cos\beta}, \qquad \frac{d\lambda}{dx} = \frac{d\cos\beta}{m\,f} \]</div>
+            <div class="vars">\(d\beta/d\lambda\) angular dispersion (rad/m) · \(d\lambda/dx\) reciprocal linear dispersion (e.g. nm/mm) at the focal plane of a camera optic of focal length \(f\), detector normal to the diffracted beam</div>
+        </div>
+
+        <div class="ref-item" id="resolving-power">
+            <div><h3>Resolving power and spectral bandpass<a class="anchor" href="#resolving-power" aria-label="Link to Resolving power">#</a></h3>
+                <p class="ref-desc">The theoretical resolution of a grating, and the practical bandpass set by the slit. <a class="calc-link" href="/tools/grating-equation/">Calculator →</a></p></div>
+            <div class="formula">\[ R = \frac{\lambda}{\Delta\lambda} = mN, \qquad \Delta\lambda_\text{bp} \approx w_s\,\frac{d\lambda}{dx} \]</div>
+            <div class="vars">\(R\) resolving power · \(N\) number of illuminated grooves · \(\Delta\lambda_\text{bp}\) bandpass (FWHM) · \(w_s\) slit width, assuming unit magnification and a slit image wider than one pixel</div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════ 2. GAUSSIAN BEAMS & FOCUSING ═══════════════════════ -->
+    <section class="ref-section" id="beam" aria-labelledby="beam-h">
+        <h2 id="beam-h">Gaussian beams &amp; focusing <span class="n"></span></h2>
+
+        <div class="ref-item" id="gaussian-profile">
+            <div><h3>Gaussian intensity profile<a class="anchor" href="#gaussian-profile" aria-label="Link to Gaussian intensity profile">#</a></h3>
+                <p class="ref-desc">Transverse profile of a TEM₀₀ beam, its peak irradiance, and the FWHM ↔ 1/e² conversion. <a class="calc-link" href="/tools/fluence/">Calculator →</a></p></div>
+            <div class="formula">\[ I(r) = I_0\,e^{-2r^2/w^2}, \qquad I_0 = \frac{2P}{\pi w^2}, \qquad d_\text{FWHM} = \sqrt{2\ln 2}\;w = 0.5887\,(2w) \]</div>
+            <div class="vars">\(w\) 1/e² intensity radius · \(I_0\) on-axis irradiance (W/m²) · \(P\) total power · 86.5 % of the power lies within \(r \le w\)</div>
+        </div>
+
+        <div class="ref-item" id="focused-spot">
+            <div><h3>Focused spot diameter (with truncation)<a class="anchor" href="#focused-spot" aria-label="Link to Focused spot diameter">#</a></h3>
+                <p class="ref-desc">1/e² diameter at the focus of a lens, including beam quality and clipping by the clear aperture. <a class="calc-link" href="/tools/focused-spot/">Calculator →</a></p></div>
+            <div class="formula">\[ d_F = \mathrm{APO}(T)\,\frac{\lambda f' M^2}{D_b}, \qquad T = \frac{D_b}{D_t} \]</div>
+            <div class="vars">\(d_F\) focused 1/e² diameter · \(D_b\) input 1/e² beam diameter at the lens · \(D_t\) clear aperture (lens, scanner mirror, or iris) · \(f'\) focal length · \(M^2\) beam quality · APO apodization factor: \(4/\pi \approx 1.273\) for \(T \lesssim 0.5\), 1.45 at \(T = 0.7\), 1.83 at \(T = 1\)</div>
+        </div>
+
+        <div class="ref-item" id="waist-radius">
+            <div><h3>Focused waist radius (untruncated)<a class="anchor" href="#waist-radius" aria-label="Link to Focused waist radius">#</a></h3>
+                <p class="ref-desc">Radius form of the focusing formula for a collimated beam with its waist near the lens. <a class="calc-link" href="/tools/focused-spot/">Calculator →</a></p></div>
+            <div class="formula">\[ w_0 = \frac{M^2\lambda f'}{\pi w_L} \]</div>
+            <div class="vars">\(w_0\) focused waist radius (1/e²) · \(w_L\) input 1/e² radius at the lens · valid when the input Rayleigh range is much longer than \(f'\), the lens is aberration-free, and there is no clipping</div>
+        </div>
+
+        <div class="ref-item" id="divergence">
+            <div><h3>Far-field divergence<a class="anchor" href="#divergence" aria-label="Link to Far-field divergence">#</a></h3>
+                <p class="ref-desc">Asymptotic half-angle of the expanding beam far from the waist. <a class="calc-link" href="/tools/gaussian-beam/">Calculator →</a></p></div>
+            <div class="formula">\[ \theta = \frac{M^2\lambda}{\pi w_0} \]</div>
+            <div class="vars">\(\theta\) far-field half-angle divergence (rad, 1/e²); full angle is \(2\theta\) · \(w_0\) waist radius</div>
+        </div>
+
+        <div class="ref-item" id="rayleigh-range">
+            <div><h3>Rayleigh range<a class="anchor" href="#rayleigh-range" aria-label="Link to Rayleigh range">#</a></h3>
+                <p class="ref-desc">Distance from the waist at which the beam area has doubled (radius × √2). <a class="calc-link" href="/tools/gaussian-beam/">Calculator →</a></p></div>
+            <div class="formula">\[ z_R = \frac{\pi w_0^2}{M^2\lambda} = \frac{w_0}{\theta} \]</div>
+            <div class="vars">\(z_R\) Rayleigh range (m) · confocal parameter \(b = 2z_R\) · \(w_0\) waist radius · \(\theta\) half-angle divergence</div>
+        </div>
+
+        <div class="ref-item" id="beam-radius">
+            <div><h3>Beam radius vs. distance<a class="anchor" href="#beam-radius" aria-label="Link to Beam radius vs distance">#</a></h3>
+                <p class="ref-desc">Hyperbolic envelope of a propagating Gaussian (or embedded-Gaussian) beam. <a class="calc-link" href="/tools/gaussian-beam/">Calculator →</a></p></div>
+            <div class="formula">\[ w(z) = w_0\sqrt{1+\left(\frac{z}{z_R}\right)^2} \]</div>
+            <div class="vars">\(w(z)\) 1/e² radius at axial distance \(z\) from the waist · for \(z \gg z_R\), \(w \approx \theta z\)</div>
+        </div>
+
+        <div class="ref-item" id="curvature-gouy">
+            <div><h3>Wavefront curvature and Gouy phase<a class="anchor" href="#curvature-gouy" aria-label="Link to Wavefront curvature and Gouy phase">#</a></h3>
+                <p class="ref-desc">Radius of curvature of the phase fronts and the extra on-axis phase picked up through focus. <a class="calc-link" href="/tools/gaussian-beam/">Calculator →</a></p></div>
+            <div class="formula">\[ R(z) = z\left[1+\left(\frac{z_R}{z}\right)^2\right], \qquad \psi(z) = \arctan\frac{z}{z_R} \]</div>
+            <div class="vars">\(R\) wavefront radius (flat at the waist, minimum \(2z_R\) at \(z = z_R\)) · \(\psi\) Gouy phase of the fundamental mode (total shift \(\pi\) through focus; Hermite–Gaussian mode \(nm\) acquires \((n+m+1)\psi\))</div>
+        </div>
+
+        <div class="ref-item" id="bpp">
+            <div><h3>Beam parameter product<a class="anchor" href="#bpp" aria-label="Link to Beam parameter product">#</a></h3>
+                <p class="ref-desc">Waist radius × divergence half-angle: an invariant of the beam through ideal optics. <a class="calc-link" href="/tools/gaussian-beam/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathrm{BPP} = w_0\,\theta = \frac{M^2\lambda}{\pi} \]</div>
+            <div class="vars">BPP usually quoted in mm·mrad · a diffraction-limited beam at 1064 nm has BPP = 0.339 mm·mrad · for multimode fiber delivery, \(\mathrm{BPP} \approx (d_\text{core}/2)\cdot\mathrm{NA}\)</div>
+        </div>
+
+        <div class="ref-item" id="dof-tolerance">
+            <div><h3>Depth of focus for a spot-size tolerance<a class="anchor" href="#dof-tolerance" aria-label="Link to Depth of focus">#</a></h3>
+                <p class="ref-desc">Total axial range over which the beam radius stays within a fraction \(\varepsilon\) of the waist. <a class="calc-link" href="/tools/focused-spot/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathrm{DOF} = 2\,z_R\sqrt{(1+\varepsilon)^2 - 1} \]</div>
+            <div class="vars">DOF total length (±half on either side of focus) · \(\varepsilon\) allowed fractional growth of the radius (0.05 for 5 %) · \(\varepsilon = \sqrt2 - 1\) recovers the full \(\pm z_R\)</div>
+        </div>
+
+        <div class="ref-item" id="beam-expander">
+            <div><h3>Beam expander<a class="anchor" href="#beam-expander" aria-label="Link to Beam expander">#</a></h3>
+                <p class="ref-desc">Two-lens telescope: diameter scales up by \(M\), divergence scales down by \(M\). <a class="calc-link" href="/tools/beam-expander/">Calculator →</a></p></div>
+            <div class="formula">\[ M = \left|\frac{f_2}{f_1}\right| = \frac{D_\text{out}}{D_\text{in}}, \qquad \theta_\text{out} = \frac{\theta_\text{in}}{M}, \qquad L = f_1 + f_2 \]</div>
+            <div class="vars">\(M\) magnification · \(f_1,\ f_2\) input and output focal lengths; Keplerian: both positive (internal focus); Galilean: \(f_1 &lt; 0\) (no internal focus, shorter) · \(L\) thin-lens spacing for collimated output</div>
+        </div>
+
+        <div class="ref-item" id="f-theta">
+            <div><h3>F-theta scan lens<a class="anchor" href="#f-theta" aria-label="Link to F-theta scan lens">#</a></h3>
+                <p class="ref-desc">Image height is linear in scan angle, so galvo commands map linearly to position. <a class="calc-link" href="/tools/f-theta-lens/">Calculator →</a></p></div>
+            <div class="formula">\[ y = f\,\theta, \qquad \text{field} = 2f\theta_\text{max}, \qquad \theta = 2\,\theta_\text{mech} \]</div>
+            <div class="vars">\(y\) spot position from the optical axis · \(f\) f-theta focal length · \(\theta\) optical scan angle (rad), twice the mechanical mirror rotation \(\theta_\text{mech}\) · spot size from the focused-spot formula with \(D_b\) at the scan mirrors</div>
+        </div>
+
+        <div class="ref-item" id="aperture-transmission">
+            <div><h3>Gaussian transmission through a circular aperture<a class="anchor" href="#aperture-transmission" aria-label="Link to Aperture transmission">#</a></h3>
+                <p class="ref-desc">Fraction of power passing a centered circular aperture or iris. <a class="calc-link" href="/tools/aperture-transmission/">Calculator →</a></p></div>
+            <div class="formula">\[ \frac{P_t}{P} = 1 - \exp\!\left(-\frac{2a^2}{w^2}\right) \]</div>
+            <div class="vars">\(a\) aperture radius · \(w\) 1/e² beam radius at the aperture · \(a = w\): 86.5 %; \(a = 1.5w\): 98.9 %; \(a = 2w\): 99.97 %</div>
+        </div>
+
+        <div class="ref-item" id="fiber-imaging">
+            <div><h3>Fiber imaging: spot size and NA<a class="anchor" href="#fiber-imaging" aria-label="Link to Fiber imaging">#</a></h3>
+                <p class="ref-desc">A multimode fiber end face imaged onto the work by a collimator \(f_1\) and focusing lens \(f_2\).</p></div>
+            <div class="formula">\[ d_\text{spot} = d_\text{core}\,\frac{f_2}{f_1}, \qquad \mathrm{NA} = \sin\alpha = \sqrt{n_\text{core}^2 - n_\text{clad}^2}, \qquad \sin\alpha' = \frac{f_1}{f_2}\sin\alpha \]</div>
+            <div class="vars">\(d_\text{core}\) fiber core diameter · \(\alpha\) output cone half-angle in air · \(\alpha'\) focusing cone half-angle · \(n_\text{core},\ n_\text{clad}\) refractive indices · the imaged spot is roughly top-hat, not Gaussian</div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════ 3. INTERFACE OPTICS & FILTERS ═══════════════════════ -->
+    <section class="ref-section" id="interface" aria-labelledby="interface-h">
+        <h2 id="interface-h">Interface optics &amp; filters <span class="n"></span></h2>
+
+        <div class="ref-item" id="snell">
+            <div><h3>Snell's law<a class="anchor" href="#snell" aria-label="Link to Snell's law">#</a></h3>
+                <p class="ref-desc">Refraction at a planar interface between two media. <a class="calc-link" href="/tools/fresnel-equations/">Calculator →</a></p></div>
+            <div class="formula">\[ n_1\sin\theta_1 = n_2\sin\theta_2 \]</div>
+            <div class="vars">\(n_1,\ n_2\) refractive indices · \(\theta_1,\ \theta_2\) angles of incidence and refraction from the surface normal</div>
+        </div>
+
+        <div class="ref-item" id="fresnel">
+            <div><h3>Fresnel reflectance (s and p)<a class="anchor" href="#fresnel" aria-label="Link to Fresnel reflectance">#</a></h3>
+                <p class="ref-desc">Power reflectance of an uncoated interface for each polarization. <a class="calc-link" href="/tools/fresnel-equations/">Calculator →</a></p></div>
+            <div class="formula">\[ \begin{gathered} R_s = \left|\frac{n_1\cos\theta_i - n_2\cos\theta_t}{n_1\cos\theta_i + n_2\cos\theta_t}\right|^2 \\[4pt] R_p = \left|\frac{n_1\cos\theta_t - n_2\cos\theta_i}{n_1\cos\theta_t + n_2\cos\theta_i}\right|^2 \end{gathered} \]</div>
+            <div class="vars">\(s\) (TE) polarization ⟂ plane of incidence, \(p\) (TM) ∥ · \(\theta_t\) from Snell's law · lossless dielectrics: \(T = 1 - R\) · unpolarized: \(R = (R_s + R_p)/2\)</div>
+        </div>
+
+        <div class="ref-item" id="normal-incidence">
+            <div><h3>Normal-incidence reflectance<a class="anchor" href="#normal-incidence" aria-label="Link to Normal-incidence reflectance">#</a></h3>
+                <p class="ref-desc">Reflection loss per uncoated surface at 0°. <a class="calc-link" href="/tools/fresnel-equations/">Calculator →</a></p></div>
+            <div class="formula">\[ R_0 = \left(\frac{n_1 - n_2}{n_1 + n_2}\right)^2 \]</div>
+            <div class="vars">\(R_0\) reflectance (0–1) · glass with \(n = 1.5\) in air: 4.0 % per surface</div>
+        </div>
+
+        <div class="ref-item" id="brewster">
+            <div><h3>Brewster angle<a class="anchor" href="#brewster" aria-label="Link to Brewster angle">#</a></h3>
+                <p class="ref-desc">Angle of incidence at which p-polarized reflectance goes to zero. <a class="calc-link" href="/tools/fresnel-equations/">Calculator →</a></p></div>
+            <div class="formula">\[ \tan\theta_B = \frac{n_2}{n_1} \]</div>
+            <div class="vars">\(\theta_B\) Brewster angle · fused silica (\(n \approx 1.45\) at 1064 nm) from air: \(\theta_B \approx 55.4^\circ\)</div>
+        </div>
+
+        <div class="ref-item" id="critical-angle">
+            <div><h3>Critical angle (total internal reflection)<a class="anchor" href="#critical-angle" aria-label="Link to Critical angle">#</a></h3>
+                <p class="ref-desc">Beyond this internal angle, light going into a lower-index medium is totally reflected. <a class="calc-link" href="/tools/fresnel-equations/">Calculator →</a></p></div>
+            <div class="formula">\[ \sin\theta_c = \frac{n_2}{n_1}, \qquad n_1 &gt; n_2 \]</div>
+            <div class="vars">\(\theta_c\) critical angle · glass (\(n = 1.5\)) to air: 41.8°</div>
+        </div>
+
+        <div class="ref-item" id="slab-transmission">
+            <div><h3>Transmission of an uncoated window<a class="anchor" href="#slab-transmission" aria-label="Link to Window transmission">#</a></h3>
+                <p class="ref-desc">Non-absorbing plate in air, summing incoherent multiple reflections between its two faces. <a class="calc-link" href="/tools/fresnel-equations/">Calculator →</a></p></div>
+            <div class="formula">\[ T_\text{plate} = \frac{(1-R)^2}{1-R^2} = \frac{1-R}{1+R} \;\overset{\theta = 0}{=}\; \frac{2n}{n^2+1} \]</div>
+            <div class="vars">\(R\) single-surface reflectance · \(n\) plate index · valid for thick plates or broadband light (no etalon fringes) · \(n = 1.5\): \(T = 92.3\,\%\)</div>
+        </div>
+
+        <div class="ref-item" id="optical-density">
+            <div><h3>Optical density, transmission, and decibels<a class="anchor" href="#optical-density" aria-label="Link to Optical density">#</a></h3>
+                <p class="ref-desc">Logarithmic attenuation of filters, eyewear, and attenuators. <a class="calc-link" href="/tools/optical-density/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathrm{OD} = -\log_{10} T, \qquad T = 10^{-\mathrm{OD}}, \qquad \text{loss}\,[\text{dB}] = 10\,\mathrm{OD}, \qquad \mathrm{OD}_\text{stack} = \sum_i \mathrm{OD}_i \]</div>
+            <div class="vars">\(T\) transmittance (0–1) · stacking rule ignores interreflections between filters (tilt reflective ND filters to avoid them)</div>
+        </div>
+
+        <div class="ref-item" id="beer-lambert">
+            <div><h3>Beer–Lambert absorption<a class="anchor" href="#beer-lambert" aria-label="Link to Beer–Lambert absorption">#</a></h3>
+                <p class="ref-desc">Exponential attenuation of light inside an absorbing medium. <a class="calc-link" href="/tools/optical-density/">Calculator →</a></p></div>
+            <div class="formula">\[ T_\text{int} = e^{-\alpha\ell} = 10^{-A}, \qquad A = \varepsilon c\ell = \frac{\alpha\ell}{\ln 10}, \qquad \delta = \frac{1}{\alpha} \]</div>
+            <div class="vars">\(T_\text{int}\) internal transmittance (excludes surface reflections) · \(\alpha\) absorption coefficient (m⁻¹) · \(\ell\) path length · \(A\) absorbance (decadic) · \(\varepsilon\) molar absorptivity (L·mol⁻¹·cm⁻¹) · \(c\) concentration (mol/L) · \(\delta\) optical penetration depth</div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════ 4. LASER PROCESSING & DAMAGE ═══════════════════════ -->
+    <section class="ref-section" id="process" aria-labelledby="process-h">
+        <h2 id="process-h">Laser processing &amp; damage <span class="n"></span></h2>
+
+        <div class="ref-item" id="pulse-energy">
+            <div><h3>Pulse energy and duty cycle<a class="anchor" href="#pulse-energy" aria-label="Link to Pulse energy">#</a></h3>
+                <p class="ref-desc">Relations between average power, repetition rate, and pulse duration. <a class="calc-link" href="/tools/pulse-energy/">Calculator →</a></p></div>
+            <div class="formula">\[ E_p = \frac{P_\text{avg}}{f_\text{rep}}, \qquad D = \tau f_\text{rep}, \qquad T_\text{rep} = \frac{1}{f_\text{rep}} \]</div>
+            <div class="vars">\(E_p\) pulse energy (J) · \(P_\text{avg}\) average power (W) · \(f_\text{rep}\) repetition rate (Hz) · \(D\) duty cycle · \(\tau\) pulse duration (FWHM) · \(T_\text{rep}\) pulse period</div>
+        </div>
+
+        <div class="ref-item" id="peak-power">
+            <div><h3>Peak power and pulse-shape factor<a class="anchor" href="#peak-power" aria-label="Link to Peak power">#</a></h3>
+                <p class="ref-desc">Peak power of a pulse from its energy and FWHM duration. <a class="calc-link" href="/tools/pulse-energy/">Calculator →</a></p></div>
+            <div class="formula">\[ P_\text{peak} = k\,\frac{E_p}{\tau}, \qquad k = \begin{cases} 1 &amp; \text{rectangular} \\ 2\sqrt{\ln 2/\pi} \approx 0.939 &amp; \text{Gaussian} \\ \ln\!\left(1+\sqrt2\right) \approx 0.881 &amp; \text{sech}^2 \end{cases} \]</div>
+            <div class="vars">\(P_\text{peak}\) peak power (W) · \(\tau\) FWHM pulse duration · \(k\) temporal shape factor (ratio of peak power to \(E_p/\tau\))</div>
+        </div>
+
+        <div class="ref-item" id="peak-fluence">
+            <div><h3>Peak and average fluence<a class="anchor" href="#peak-fluence" aria-label="Link to Peak fluence">#</a></h3>
+                <p class="ref-desc">Energy per unit area for a Gaussian spot. Ablation thresholds are usually quoted as peak fluence. <a class="calc-link" href="/tools/fluence/">Calculator →</a></p></div>
+            <div class="formula">\[ F_0 = \frac{2E_p}{\pi w_0^2}, \qquad \bar F = \frac{E_p}{\pi w_0^2} = \frac{F_0}{2} \]</div>
+            <div class="vars">\(F_0\) on-axis (peak) fluence (J/m², usually quoted in J/cm²) · \(\bar F\) average over the 1/e² area · \(w_0\) 1/e² radius at the work surface</div>
+        </div>
+
+        <div class="ref-item" id="peak-irradiance">
+            <div><h3>Peak irradiance<a class="anchor" href="#peak-irradiance" aria-label="Link to Peak irradiance">#</a></h3>
+                <p class="ref-desc">Instantaneous on-axis intensity. It governs nonlinear absorption and plasma formation. <a class="calc-link" href="/tools/fluence/">Calculator →</a></p></div>
+            <div class="formula">\[ I_0 = \frac{2P_\text{peak}}{\pi w_0^2} = \frac{F_0\,k}{\tau} \]</div>
+            <div class="vars">\(I_0\) peak irradiance (W/m², usually quoted in W/cm²) · \(P_\text{peak}\) peak power · \(k\) pulse-shape factor · \(\tau\) FWHM duration</div>
+        </div>
+
+        <div class="ref-item" id="liu-method">
+            <div><h3>Ablated diameter and threshold (Liu method)<a class="anchor" href="#liu-method" aria-label="Link to Liu method">#</a></h3>
+                <p class="ref-desc">Crater diameters at several pulse energies give both the beam radius and the threshold fluence. <a class="calc-link" href="/tools/ablation-depth/">Calculator →</a></p></div>
+            <div class="formula">\[ D^2 = 2w_0^2\,\ln\!\left(\frac{F_0}{F_\text{th}}\right) = 2w_0^2\,\ln\!\left(\frac{E_p}{E_\text{th}}\right) \]</div>
+            <div class="vars">\(D\) ablated (crater) diameter · plot \(D^2\) against \(\ln E_p\): slope \(= 2w_0^2\), x-intercept \(= \ln E_\text{th}\), then \(F_\text{th} = 2E_\text{th}/(\pi w_0^2)\) · requires a Gaussian spatial profile</div>
+        </div>
+
+        <div class="ref-item" id="ablation-depth">
+            <div><h3>Ablation depth per pulse<a class="anchor" href="#ablation-depth" aria-label="Link to Ablation depth">#</a></h3>
+                <p class="ref-desc">Logarithmic depth law for absorption-limited removal above threshold. <a class="calc-link" href="/tools/ablation-depth/">Calculator →</a></p></div>
+            <div class="formula">\[ L = \delta\,\ln\!\left(\frac{F_0}{F_\text{th}}\right), \qquad F_0 &gt; F_\text{th} \]</div>
+            <div class="vars">\(L\) depth per pulse (on axis) · \(\delta\) effective penetration depth: optical (\(1/\alpha\)) for ultrashort pulses at low fluence, the electron heat-diffusion length at high fluence, and an empirical fit parameter for ns pulses, where heat diffusion dominates · breaks down when plasma shielding sets in at high \(F_0/F_\text{th}\)</div>
+        </div>
+
+        <div class="ref-item" id="incubation">
+            <div><h3>Multi-pulse incubation<a class="anchor" href="#incubation" aria-label="Link to Incubation">#</a></h3>
+                <p class="ref-desc">Threshold fluence falls as defects accumulate from repeated pulses on the same site. <a class="calc-link" href="/tools/ablation-depth/">Calculator →</a></p></div>
+            <div class="formula">\[ F_\text{th}(N) = F_\text{th}(1)\,N^{\,S-1} \]</div>
+            <div class="vars">\(N\) pulses per site · \(S\) incubation coefficient (\(S = 1\): no incubation; many metals \(S \approx 0.8\text{–}0.9\)) · empirical power law, usually saturating at large \(N\)</div>
+        </div>
+
+        <div class="ref-item" id="pulse-overlap">
+            <div><h3>Pulse spacing and overlap<a class="anchor" href="#pulse-overlap" aria-label="Link to Pulse overlap">#</a></h3>
+                <p class="ref-desc">Center-to-center spacing of pulses along a scan line and the fractional overlap of adjacent spots. <a class="calc-link" href="/tools/pulse-overlap/">Calculator →</a></p></div>
+            <div class="formula">\[ \Delta x = \frac{v}{f_\text{rep}}, \qquad \mathrm{OL} = 1 - \frac{\Delta x}{D}, \qquad N_\text{geo} = \frac{D\,f_\text{rep}}{v} \]</div>
+            <div class="vars">\(v\) scan speed · \(D\) spot diameter: state whether this is the 1/e² diameter or the ablated diameter · \(\mathrm{OL} &lt; 0\) means gaps between spots · \(N_\text{geo}\) pulses landing within one spot diameter</div>
+        </div>
+
+        <div class="ref-item" id="hatch-overlap">
+            <div><h3>Hatch (line) overlap and area rate<a class="anchor" href="#hatch-overlap" aria-label="Link to Hatch overlap">#</a></h3>
+                <p class="ref-desc">Line-to-line overlap for raster or hatch filling, and area processed per unit time. <a class="calc-link" href="/tools/pulse-overlap/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathrm{OL}_h = 1 - \frac{h}{D}, \qquad \dot A = v\,h \]</div>
+            <div class="vars">\(h\) hatch distance (line pitch) · \(\dot A\) area coverage rate per pass (m²/s), excluding jump and acceleration time</div>
+        </div>
+
+        <div class="ref-item" id="effective-pulses">
+            <div><h3>Effective number of pulses (Gaussian)<a class="anchor" href="#effective-pulses" aria-label="Link to Effective number of pulses">#</a></h3>
+                <p class="ref-desc">Accumulated fluence at a point divided by the single-pulse peak fluence, for a line (1D) or a hatched area (2D). <a class="calc-link" href="/tools/pulse-overlap/">Calculator →</a></p></div>
+            <div class="formula">\[ N_\text{eff,1D} = \sqrt{\frac{\pi}{2}}\,\frac{w_0\,f_\text{rep}}{v}, \qquad N_\text{eff,2D} = \frac{\pi}{2}\,\frac{w_0^2\,f_\text{rep}}{v\,h} \]</div>
+            <div class="vars">\(w_0\) 1/e² radius · derived by summing Gaussian fluence over pulses; accurate when \(\Delta x,\ h \lesssim w_0\) · accumulated peak fluence \(\approx N_\text{eff}\,F_0\) (ignores incubation and heat accumulation)</div>
+        </div>
+
+        <div class="ref-item" id="lidt-scaling">
+            <div><h3>LIDT pulse-duration scaling<a class="anchor" href="#lidt-scaling" aria-label="Link to LIDT scaling">#</a></h3>
+                <p class="ref-desc">Empirical rule for converting a specified fluence damage threshold to a different pulse duration. <a class="calc-link" href="/tools/lidt/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathrm{LIDT}(\tau) \approx \mathrm{LIDT}_\text{spec}\,\sqrt{\frac{\tau}{\tau_\text{spec}}} \]</div>
+            <div class="vars">LIDT as fluence (J/cm²) · \(\tau\) pulse duration · holds for thermally dominated damage, roughly 10 ps to 100 ns, at the same wavelength, beam size, and test protocol (1-on-1 vs S-on-1) · not valid for femtosecond pulses · wavelength scaling depends on the coating, so prefer data measured at your wavelength</div>
+        </div>
+
+        <div class="ref-item" id="thermal-diffusion">
+            <div><h3>Thermal diffusion length<a class="anchor" href="#thermal-diffusion" aria-label="Link to Thermal diffusion length">#</a></h3>
+                <p class="ref-desc">How far heat spreads during a pulse or dwell time. It sets the scale of the heat-affected zone. <a class="calc-link" href="/tools/thermal-diffusion/">Calculator →</a></p></div>
+            <div class="formula">\[ L_\text{th} = 2\sqrt{\kappa\,\tau}, \qquad \kappa = \frac{k}{\rho\,c_p} \]</div>
+            <div class="vars">\(\kappa\) thermal diffusivity (m²/s) · \(k\) thermal conductivity · \(\rho\) density · \(c_p\) specific heat · \(\tau\) pulse duration or interaction time · conventions vary by a factor of 2 (\(\sqrt{\kappa\tau}\) vs \(2\sqrt{\kappa\tau}\)) · stainless steel (\(\kappa \approx 4\) mm²/s) at 10 ns: \(L_\text{th} \approx 0.4\) µm</div>
+        </div>
+
+        <div class="ref-item" id="heat-accumulation">
+            <div><h3>Thermal relaxation and heat accumulation<a class="anchor" href="#heat-accumulation" aria-label="Link to Heat accumulation">#</a></h3>
+                <p class="ref-desc">An order-of-magnitude criterion for when heat from successive pulses starts to build up. <a class="calc-link" href="/tools/thermal-diffusion/">Calculator →</a></p></div>
+            <div class="formula">\[ \tau_\text{th} \approx \frac{d^2}{4\kappa}, \qquad \text{accumulation when } f_\text{rep} \gtrsim \frac{1}{\tau_\text{th}} \]</div>
+            <div class="vars">\(d\) heated spot diameter · \(\kappa\) thermal diffusivity · 30 µm spot on stainless steel: \(\tau_\text{th} \approx 56\) µs (≈ 18 kHz) · overlap shortens the effective time between pulses at a site</div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════ 5. VACUUM ═══════════════════════ -->
+    <section class="ref-section" id="vacuum" aria-labelledby="vacuum-h">
+        <h2 id="vacuum-h">Vacuum <span class="n"></span></h2>
+        <p class="section-note">Kinetic-theory results assume an ideal gas in equilibrium. Practical forms are for air at 20 °C, where \(\bar v \approx 463\) m/s. Scale them by \(\sqrt{T/M}\) for other gases (multiply by about 2.7 for He and 3.8 for H₂). For unit changes, use the <a href="/tools/pressure-converter/">pressure converter</a>; 1 Torr = 1.333 mbar = 133.3 Pa.</p>
+
+        <div class="ref-item" id="number-density">
+            <div><h3>Gas number density<a class="anchor" href="#number-density" aria-label="Link to Number density">#</a></h3>
+                <p class="ref-desc">Molecules per unit volume from the ideal-gas law. <a class="calc-link" href="/tools/mean-free-path/">Calculator →</a></p></div>
+            <div class="formula">\[ n = \frac{p}{k_B T} \]</div>
+            <div class="vars">\(n\) number density (m⁻³) · \(p\) pressure (Pa) · \(T\) temperature (K) · at 20 °C: \(2.47\times10^{20}\) m⁻³ per Pa, or \(3.3\times10^{16}\) cm⁻³ at 1 Torr</div>
+        </div>
+
+        <div class="ref-item" id="mean-speed">
+            <div><h3>Mean molecular speed<a class="anchor" href="#mean-speed" aria-label="Link to Mean molecular speed">#</a></h3>
+                <p class="ref-desc">Average speed of the Maxwell–Boltzmann distribution. It appears in every molecular-flow conductance. <a class="calc-link" href="/tools/mean-free-path/">Calculator →</a></p></div>
+            <div class="formula">\[ \bar v = \sqrt{\frac{8k_B T}{\pi m}}, \qquad v_\text{rms} = \sqrt{\frac{3k_BT}{m}}, \qquad v_p = \sqrt{\frac{2k_BT}{m}} \]</div>
+            <div class="vars">\(\bar v\) mean speed · \(v_\text{rms}\) root-mean-square speed · \(v_p\) most probable speed · \(m\) molecular mass (kg) · air at 20 °C: \(\bar v = 463\) m/s</div>
+        </div>
+
+        <div class="ref-item" id="mean-free-path">
+            <div><h3>Mean free path<a class="anchor" href="#mean-free-path" aria-label="Link to Mean free path">#</a></h3>
+                <p class="ref-desc">Average distance a molecule travels between collisions with other gas molecules. <a class="calc-link" href="/tools/mean-free-path/">Calculator →</a></p></div>
+            <div class="formula">\[ \lambda_\text{mfp} = \frac{k_B T}{\sqrt2\,\pi d_m^2\,p}, \qquad \lambda_\text{mfp}\,[\text{cm}] \approx \frac{5.0\times10^{-3}}{p\,[\text{Torr}]}\ \ (\text{air}) \]</div>
+            <div class="vars">\(d_m\) molecular (kinetic) diameter, about 0.37 nm for air · \(p\) pressure · rule of thumb for air at room temperature: 5 cm at 1 mTorr, 50 m at 10⁻⁶ Torr</div>
+        </div>
+
+        <div class="ref-item" id="knudsen">
+            <div><h3>Knudsen number and flow regime<a class="anchor" href="#knudsen" aria-label="Link to Knudsen number">#</a></h3>
+                <p class="ref-desc">Ratio of the mean free path to the characteristic size of the duct. It decides which conductance formula applies. <a class="calc-link" href="/tools/mean-free-path/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathrm{Kn} = \frac{\lambda_\text{mfp}}{D} \]</div>
+            <div class="vars">\(D\) tube diameter or characteristic dimension · \(\mathrm{Kn} &lt; 0.01\): viscous (continuum) flow · 0.01–0.5: transitional · \(\mathrm{Kn} &gt; 0.5\): molecular flow (some texts use \(\mathrm{Kn} &gt; 1\))</div>
+        </div>
+
+        <div class="ref-item" id="impingement">
+            <div><h3>Impingement rate and monolayer time<a class="anchor" href="#impingement" aria-label="Link to Impingement rate">#</a></h3>
+                <p class="ref-desc">Molecular flux striking a surface, and how long it takes to deposit one monolayer. <a class="calc-link" href="/tools/mean-free-path/">Calculator →</a></p></div>
+            <div class="formula">\[ \Phi = \frac{p}{\sqrt{2\pi m k_B T}} = \frac{n\bar v}{4}, \qquad t_\text{ML} \approx \frac{N_s}{s\,\Phi} \]</div>
+            <div class="vars">\(\Phi\) impingement rate (m⁻²·s⁻¹) · \(N_s\) surface site density, about 10¹⁹ m⁻² · \(s\) sticking coefficient · N₂ at 10⁻⁶ Torr and 20 °C: \(t_\text{ML} \approx 2.6\) s (with \(s = 1\))</div>
+        </div>
+
+        <div class="ref-item" id="throughput">
+            <div><h3>Throughput, pumping speed, and conductance<a class="anchor" href="#throughput" aria-label="Link to Throughput">#</a></h3>
+                <p class="ref-desc">Gas throughput is conserved along a pumping line in steady state. <a class="calc-link" href="/tools/pumpdown/">Calculator →</a></p></div>
+            <div class="formula">\[ Q = p\,S = C\,(p_1 - p_2) \]</div>
+            <div class="vars">\(Q\) throughput (Pa·m³/s or mbar·L/s) · \(S\) pumping speed at the point where \(p\) is measured (m³/s or L/s) · \(C\) conductance of the element between pressures \(p_1\) and \(p_2\)</div>
+        </div>
+
+        <div class="ref-item" id="orifice-conductance">
+            <div><h3>Orifice conductance (molecular flow)<a class="anchor" href="#orifice-conductance" aria-label="Link to Orifice conductance">#</a></h3>
+                <p class="ref-desc">The maximum conductance an opening of area \(A\) can have. Its practical form is the upper limit for any port. <a class="calc-link" href="/tools/pumpdown/">Calculator →</a></p></div>
+            <div class="formula">\[ C_\text{orifice} = \frac{\bar v}{4}\,A \approx 11.6\ \frac{\text{L}}{\text{s}} \times A\,[\text{cm}^2] \ \ (\text{air}) \]</div>
+            <div class="vars">\(A\) open area · thin aperture, molecular regime · air at 20 °C</div>
+        </div>
+
+        <div class="ref-item" id="tube-molecular">
+            <div><h3>Long-tube conductance (molecular flow)<a class="anchor" href="#tube-molecular" aria-label="Link to Long-tube molecular conductance">#</a></h3>
+                <p class="ref-desc">Knudsen's result for a long round tube. Note the steep dependence on diameter. <a class="calc-link" href="/tools/pumpdown/">Calculator →</a></p></div>
+            <div class="formula">\[ C_\text{tube} = \frac{\pi}{12}\,\bar v\,\frac{d^3}{L} \approx 12.1\,\frac{d^3\,[\text{cm}^3]}{L\,[\text{cm}]}\ \ \text{L/s} \ \ (\text{air}) \]</div>
+            <div class="vars">\(d\) inner diameter · \(L\) length, with \(L \gg d\) (for short tubes use the orifice conductance × Clausing transmission probability) · independent of pressure</div>
+        </div>
+
+        <div class="ref-item" id="tube-viscous">
+            <div><h3>Long-tube conductance (viscous flow)<a class="anchor" href="#tube-viscous" aria-label="Link to Viscous conductance">#</a></h3>
+                <p class="ref-desc">Poiseuille conductance for laminar flow. It grows with mean pressure, so roughing lines are rarely limiting at high pressure. <a class="calc-link" href="/tools/pumpdown/">Calculator →</a></p></div>
+            <div class="formula">\[ C_\text{visc} = \frac{\pi d^4\,\bar p}{128\,\eta L} \approx 180\,\frac{d^4\,[\text{cm}^4]\;\bar p\,[\text{Torr}]}{L\,[\text{cm}]}\ \ \text{L/s} \ \ (\text{air}) \]</div>
+            <div class="vars">\(\bar p\) mean pressure in the tube · \(\eta\) dynamic viscosity (air at 20 °C: \(1.81\times10^{-5}\) Pa·s) · laminar, fully developed flow, \(L \gg d\)</div>
+        </div>
+
+        <div class="ref-item" id="series-conductance">
+            <div><h3>Series conductance and effective pumping speed<a class="anchor" href="#series-conductance" aria-label="Link to Series conductance">#</a></h3>
+                <p class="ref-desc">Conductances in series add like resistors in parallel. The pump's speed at the chamber is always less than its rated speed. <a class="calc-link" href="/tools/pumpdown/">Calculator →</a></p></div>
+            <div class="formula">\[ \frac{1}{C_\text{tot}} = \sum_i \frac{1}{C_i}, \qquad S_\text{eff} = \frac{S\,C}{S + C} \]</div>
+            <div class="vars">\(S\) pump speed at its inlet · \(C\) total conductance between pump and chamber · \(S_\text{eff}\) speed delivered to the chamber · if \(C = S\), half the pump is wasted</div>
+        </div>
+
+        <div class="ref-item" id="pumpdown">
+            <div><h3>Pump-down time and ultimate pressure<a class="anchor" href="#pumpdown" aria-label="Link to Pump-down time">#</a></h3>
+                <p class="ref-desc">Exponential evacuation of a volume at constant speed, and the base pressure set by the gas load. <a class="calc-link" href="/tools/pumpdown/">Calculator →</a></p></div>
+            <div class="formula">\[ t = \frac{V}{S_\text{eff}}\,\ln\frac{p_0}{p}, \qquad p_\text{ult} = \frac{Q_\text{gas}}{S_\text{eff}} \]</div>
+            <div class="vars">\(V\) chamber volume · \(p_0\) starting pressure · \(Q_\text{gas}\) total gas load (outgassing + permeation + leaks) · valid in the roughing range, where \(S_\text{eff}\) is constant and the volume gas dominates; below roughly 10⁻²–10⁻³ mbar (system-dependent), desorption from surfaces controls the pump-down</div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════ 6. MACHINE VISION ═══════════════════════ -->
+    <section class="ref-section" id="vision" aria-labelledby="vision-h">
+        <h2 id="vision-h">Machine vision <span class="n"></span></h2>
+
+        <div class="ref-item" id="thin-lens">
+            <div><h3>Thin-lens imaging and magnification<a class="anchor" href="#thin-lens" aria-label="Link to Thin-lens imaging">#</a></h3>
+                <p class="ref-desc">Object and image conjugates for a lens of focal length \(f\). <a class="calc-link" href="/tools/machine-vision-lens/">Calculator →</a></p></div>
+            <div class="formula">\[ \frac{1}{f} = \frac{1}{s_o} + \frac{1}{s_i}, \qquad m = \frac{s_i}{s_o} = \frac{f}{s_o - f} \]</div>
+            <div class="vars">\(s_o\) object distance (approximately working distance plus the offset to the front principal plane) · \(s_i\) image distance · \(m\) magnitude of the (inverting) magnification</div>
+        </div>
+
+        <div class="ref-item" id="fov">
+            <div><h3>Field of view and pixel footprint<a class="anchor" href="#fov" aria-label="Link to Field of view">#</a></h3>
+                <p class="ref-desc">Object-side field and the size of one pixel projected onto the part. <a class="calc-link" href="/tools/machine-vision-lens/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathrm{FOV} = \frac{\text{sensor size}}{m}, \qquad p_\text{obj} = \frac{p_\text{px}}{m} \]</div>
+            <div class="vars">sensor width or height · \(p_\text{px}\) pixel pitch · \(p_\text{obj}\) pixel footprint on the object · rule of thumb: at least 2 px per line pair (Nyquist) and 3–5 px across a defect for robust detection</div>
+        </div>
+
+        <div class="ref-item" id="working-fnumber">
+            <div><h3>Working f-number and object-side NA<a class="anchor" href="#working-fnumber" aria-label="Link to Working f-number">#</a></h3>
+                <p class="ref-desc">The effective f-number at finite conjugates is larger than the number on the lens barrel. <a class="calc-link" href="/tools/machine-vision-lens/">Calculator →</a></p></div>
+            <div class="formula">\[ N_w = N\,(1+m), \qquad \mathrm{NA}_\text{obj} \approx \frac{m}{2N_w} \]</div>
+            <div class="vars">\(N\) lens f-number (infinity-focus) · \(N_w\) working (image-side) f-number · assumes a pupil magnification near 1 · paraxial</div>
+        </div>
+
+        <div class="ref-item" id="depth-of-field">
+            <div><h3>Depth of field (object side)<a class="anchor" href="#depth-of-field" aria-label="Link to Depth of field">#</a></h3>
+                <p class="ref-desc">Axial range of the part that stays within an acceptable blur on the sensor. <a class="calc-link" href="/tools/machine-vision-lens/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathrm{DOF} \approx \frac{2N c\,(1+m)}{m^2} = \frac{2 N_w c}{m^2} \]</div>
+            <div class="vars">\(c\) acceptable blur-circle diameter at the sensor (often 1–2 pixels) · \(N\) f-number · \(m\) magnification · valid when DOF is much smaller than the working distance; diffraction blur adds when \(c\) approaches \(2.44\lambda N_w\)</div>
+        </div>
+
+        <div class="ref-item" id="diffraction-limit">
+            <div><h3>Diffraction limit: Airy disk and Rayleigh resolution<a class="anchor" href="#diffraction-limit" aria-label="Link to Diffraction limit">#</a></h3>
+                <p class="ref-desc">Smallest blur a perfect lens can form. Compare it with the pixel pitch before buying more megapixels. <a class="calc-link" href="/tools/machine-vision-lens/">Calculator →</a></p></div>
+            <div class="formula">\[ d_\text{Airy} = 2.44\,\lambda N_w, \qquad r_\text{obj} = \frac{0.61\,\lambda}{\mathrm{NA}_\text{obj}} \]</div>
+            <div class="vars">\(d_\text{Airy}\) diameter to the first dark ring at the sensor · \(r_\text{obj}\) Rayleigh two-point resolution on the object · \(\lambda\) illumination wavelength</div>
+        </div>
+
+        <div class="ref-item" id="motion-blur">
+            <div><h3>Motion blur, exposure, and line rate<a class="anchor" href="#motion-blur" aria-label="Link to Motion blur">#</a></h3>
+                <p class="ref-desc">Blur from part motion during the exposure, and the line rate a line-scan camera needs for square pixels. <a class="calc-link" href="/tools/motion-blur/">Calculator →</a></p></div>
+            <div class="formula">\[ B = \frac{v\,t_\text{exp}}{p_\text{obj}}, \qquad t_\text{exp,max} = \frac{B_\text{max}\,p_\text{obj}}{v}, \qquad f_\text{line} = \frac{v}{p_\text{obj}} \]</div>
+            <div class="vars">\(B\) blur in pixels · \(v\) part speed · \(t_\text{exp}\) exposure or strobe duration · typical \(B_\text{max}\) = 0.5–1 px · \(f_\text{line}\) line rate (lines/s) for a square object pixel</div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════ 7. QUALITY & SPC ═══════════════════════ -->
+    <section class="ref-section" id="quality" aria-labelledby="quality-h">
+        <h2 id="quality-h">Quality &amp; SPC <span class="n"></span></h2>
+
+        <div class="ref-item" id="cp-cpk">
+            <div><h3>Process capability: C<sub>p</sub> and C<sub>pk</sub><a class="anchor" href="#cp-cpk" aria-label="Link to Cp and Cpk">#</a></h3>
+                <p class="ref-desc">Short-term (within-subgroup) capability. C<sub>pk</sub> penalizes an off-center mean. <a class="calc-link" href="/tools/process-capability/">Calculator →</a></p></div>
+            <div class="formula">\[ C_p = \frac{\mathrm{USL}-\mathrm{LSL}}{6\hat\sigma_w}, \qquad C_{pk} = \min\!\left(\frac{\mathrm{USL}-\bar x}{3\hat\sigma_w},\ \frac{\bar x-\mathrm{LSL}}{3\hat\sigma_w}\right) \]</div>
+            <div class="vars">USL, LSL specification limits · \(\bar x\) process mean · \(\hat\sigma_w\) within-subgroup standard deviation, \(\bar R/d_2\) or \(\overline{MR}/1.128\) · requires a stable (in-control), approximately normal process</div>
+        </div>
+
+        <div class="ref-item" id="pp-ppk">
+            <div><h3>Process performance: P<sub>p</sub> and P<sub>pk</sub><a class="anchor" href="#pp-ppk" aria-label="Link to Pp and Ppk">#</a></h3>
+                <p class="ref-desc">Long-term (overall) performance using the total sample standard deviation. <a class="calc-link" href="/tools/process-capability/">Calculator →</a></p></div>
+            <div class="formula">\[ P_p = \frac{\mathrm{USL}-\mathrm{LSL}}{6s}, \qquad P_{pk} = \min\!\left(\frac{\mathrm{USL}-\bar x}{3s},\ \frac{\bar x-\mathrm{LSL}}{3s}\right) \]</div>
+            <div class="vars">\(s = \sqrt{\sum (x_i-\bar x)^2/(n-1)}\) overall sample standard deviation · \(P_{pk}\) noticeably below \(C_{pk}\) points to between-subgroup variation (drift, shifts)</div>
+        </div>
+
+        <div class="ref-item" id="cpm">
+            <div><h3>Taguchi capability C<sub>pm</sub><a class="anchor" href="#cpm" aria-label="Link to Cpm">#</a></h3>
+                <p class="ref-desc">Capability index that penalizes deviation from the target, not just from the center of the specification. <a class="calc-link" href="/tools/process-capability/">Calculator →</a></p></div>
+            <div class="formula">\[ C_{pm} = \frac{\mathrm{USL}-\mathrm{LSL}}{6\sqrt{s^2 + (\bar x - T)^2}} \]</div>
+            <div class="vars">\(T\) target value · \(s\) standard deviation · \(\bar x\) mean</div>
+        </div>
+
+        <div class="ref-item" id="ppm-out">
+            <div><h3>Expected fraction out of specification<a class="anchor" href="#ppm-out" aria-label="Link to Fraction out of specification">#</a></h3>
+                <p class="ref-desc">Nonconforming fraction predicted by a normal model. <a class="calc-link" href="/tools/process-capability/">Calculator →</a></p></div>
+            <div class="formula">\[ p_\text{out} = \Phi\!\left(\frac{\mathrm{LSL}-\mu}{\sigma}\right) + 1 - \Phi\!\left(\frac{\mathrm{USL}-\mu}{\sigma}\right), \qquad \text{ppm} = 10^6\,p_\text{out} \]</div>
+            <div class="vars">\(\Phi\) standard normal CDF · \(\mu,\ \sigma\) process mean and standard deviation · a one-sided \(C_{pk} = 1.33\) gives about 32 ppm · tail estimates depend strongly on the normality assumption</div>
+        </div>
+
+        <div class="ref-item" id="xbar-r">
+            <div><h3>X̄–R control limits<a class="anchor" href="#xbar-r" aria-label="Link to Xbar-R control limits">#</a></h3>
+                <p class="ref-desc">Shewhart three-sigma limits for subgroup means and ranges. <a class="calc-link" href="/tools/control-chart/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathrm{UCL}_{\bar x},\ \mathrm{LCL}_{\bar x} = \bar{\bar x} \pm A_2\bar R, \qquad \mathrm{UCL}_R = D_4\bar R, \qquad \mathrm{LCL}_R = D_3\bar R \]</div>
+            <div class="vars">\(\bar{\bar x}\) grand mean · \(\bar R\) average subgroup range · constants depend on the subgroup size \(n\); for \(n = 5\): \(A_2 = 0.577\), \(D_3 = 0\), \(D_4 = 2.114\), \(d_2 = 2.326\)</div>
+        </div>
+
+        <div class="ref-item" id="i-mr">
+            <div><h3>Individuals and moving range (I–MR) limits<a class="anchor" href="#i-mr" aria-label="Link to I-MR control limits">#</a></h3>
+                <p class="ref-desc">Control limits when each measurement is its own subgroup, which is common for slow or expensive measurements. <a class="calc-link" href="/tools/control-chart/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathrm{UCL},\ \mathrm{LCL} = \bar x \pm 2.66\,\overline{MR}, \qquad \mathrm{UCL}_{MR} = 3.267\,\overline{MR} \]</div>
+            <div class="vars">\(\overline{MR}\) average moving range of consecutive points · \(2.66 = 3/d_2\) with \(d_2 = 1.128\) for \(n = 2\) · \(3.267 = D_4\) for \(n = 2\)</div>
+        </div>
+
+        <div class="ref-item" id="dpmo-sigma">
+            <div><h3>DPMO and sigma level<a class="anchor" href="#dpmo-sigma" aria-label="Link to DPMO and sigma level">#</a></h3>
+                <p class="ref-desc">Defect rate normalized by opportunities, and the conventional Six Sigma level. <a class="calc-link" href="/tools/sigma-level/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathrm{DPMO} = \frac{10^6\times\text{defects}}{\text{units}\times\text{opportunities}}, \qquad \sigma_\text{level} = \Phi^{-1}\!\left(1 - \frac{\mathrm{DPMO}}{10^6}\right) + 1.5 \]</div>
+            <div class="vars">\(\Phi^{-1}\) inverse standard normal CDF · the +1.5 term is the conventional long-term mean-shift allowance; 3.4 DPMO ↔ 6σ, 6210 DPMO ↔ 4σ</div>
+        </div>
+
+        <div class="ref-item" id="rty">
+            <div><h3>Rolled throughput yield<a class="anchor" href="#rty" aria-label="Link to Rolled throughput yield">#</a></h3>
+                <p class="ref-desc">Probability that a unit passes every process step right the first time. <a class="calc-link" href="/tools/sigma-level/">Calculator →</a></p></div>
+            <div class="formula">\[ \mathrm{RTY} = \prod_i Y_i, \qquad Y_i \approx e^{-\mathrm{DPU}_i} \]</div>
+            <div class="vars">\(Y_i\) first-pass yield of step \(i\) · \(\mathrm{DPU}_i\) defects per unit at step \(i\) (the exponential form assumes Poisson-distributed defects)</div>
+        </div>
+
+        <div class="ref-item" id="oee">
+            <div><h3>Overall equipment effectiveness (OEE)<a class="anchor" href="#oee" aria-label="Link to OEE">#</a></h3>
+                <p class="ref-desc">Fraction of planned production time that yields good parts at the ideal rate. <a class="calc-link" href="/tools/oee-takt/">Calculator →</a></p></div>
+            <div class="formula">\[ \begin{gathered} \mathrm{OEE} = A \times P \times Q \\[4pt] A = \frac{\text{run time}}{\text{planned time}}, \quad P = \frac{t_\text{ideal}\times\text{total count}}{\text{run time}}, \quad Q = \frac{\text{good count}}{\text{total count}} \end{gathered} \]</div>
+            <div class="vars">\(A\) availability · \(P\) performance (speed) · \(Q\) quality rate · \(t_\text{ideal}\) ideal cycle time per part · equivalently \(\mathrm{OEE} = t_\text{ideal}\times\text{good count}/\text{planned time}\)</div>
+        </div>
+
+        <div class="ref-item" id="takt">
+            <div><h3>Takt time<a class="anchor" href="#takt" aria-label="Link to Takt time">#</a></h3>
+                <p class="ref-desc">The production pace required to meet customer demand. <a class="calc-link" href="/tools/oee-takt/">Calculator →</a></p></div>
+            <div class="formula">\[ T_\text{takt} = \frac{\text{net available time}}{\text{customer demand}} \]</div>
+            <div class="vars">net available time = shift time minus planned breaks and meetings · every station's cycle time must be ≤ \(T_\text{takt}\) (in practice ≤ 85–95 % of takt to absorb losses)</div>
+        </div>
+    </section>
+
+    <p class="ref-empty" id="ref-empty">No formulas match that filter.</p>
+
+    <!-- ═══════════════════════ CONSTANTS ═══════════════════════ -->
+    <section class="ref-section prose" id="constants" style="max-width:none" aria-labelledby="constants-h">
+        <h2 id="constants-h" style="margin-top:0">Physical constants</h2>
+        <p>CODATA 2018 recommended values. Since the 2019 SI redefinition, \(c\), \(h\), \(e\), \(k_B\), and \(N_A\) are exact.</p>
+        <table class="const-table">
+            <thead><tr><th>Quantity</th><th>Symbol</th><th class="num">Value</th></tr></thead>
+            <tbody>
+                <tr><td>Speed of light in vacuum</td><td>\(c\)</td><td class="num">299 792 458 m/s (exact)</td></tr>
+                <tr><td>Planck constant</td><td>\(h\)</td><td class="num">6.626 070 15 × 10⁻³⁴ J·s (exact)</td></tr>
+                <tr><td>Reduced Planck constant</td><td>\(\hbar = h/2\pi\)</td><td class="num">1.054 571 817… × 10⁻³⁴ J·s</td></tr>
+                <tr><td>Elementary charge</td><td>\(e\)</td><td class="num">1.602 176 634 × 10⁻¹⁹ C (exact)</td></tr>
+                <tr><td>Boltzmann constant</td><td>\(k_B\)</td><td class="num">1.380 649 × 10⁻²³ J/K (exact)</td></tr>
+                <tr><td>Avogadro constant</td><td>\(N_A\)</td><td class="num">6.022 140 76 × 10²³ mol⁻¹ (exact)</td></tr>
+                <tr><td>Molar gas constant</td><td>\(R = N_A k_B\)</td><td class="num">8.314 462 618… J·mol⁻¹·K⁻¹</td></tr>
+                <tr><td>Stefan–Boltzmann constant</td><td>\(\sigma\)</td><td class="num">5.670 374 419… × 10⁻⁸ W·m⁻²·K⁻⁴</td></tr>
+                <tr><td>Wien displacement constant</td><td>\(b\)</td><td class="num">2.897 771 955… × 10⁻³ m·K</td></tr>
+                <tr><td>Hartree energy</td><td>\(E_h\)</td><td class="num">4.359 744 722 2071 × 10⁻¹⁸ J</td></tr>
+                <tr><td>Rydberg constant</td><td>\(R_\infty\)</td><td class="num">10 973 731.568 160 m⁻¹</td></tr>
+                <tr><td>Atomic mass constant</td><td>\(m_u\) (u)</td><td class="num">1.660 539 066 60 × 10⁻²⁷ kg</td></tr>
+                <tr><td>Electron mass</td><td>\(m_e\)</td><td class="num">9.109 383 7015 × 10⁻³¹ kg</td></tr>
+                <tr><td>Vacuum permittivity</td><td>\(\varepsilon_0\)</td><td class="num">8.854 187 8128 × 10⁻¹² F/m</td></tr>
+                <tr><td>Bohr radius</td><td>\(a_0\)</td><td class="num">5.291 772 109 03 × 10⁻¹¹ m</td></tr>
+                <tr><td>Standard atmosphere</td><td>atm</td><td class="num">101 325 Pa (exact)</td></tr>
+                <tr><td>Torr</td><td>Torr</td><td class="num">101 325 / 760 Pa ≈ 133.322 Pa</td></tr>
+                <tr><td>Thermochemical calorie</td><td>cal</td><td class="num">4.184 J (exact)</td></tr>
+            </tbody>
+        </table>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986).</li>
+            <li>B. E. A. Saleh and M. C. Teich, <em>Fundamentals of Photonics</em>, 3rd ed., Wiley (2019).</li>
+            <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios.</li>
+            <li>J. M. Liu, “Simple technique for measurements of pulsed Gaussian-beam spot sizes,” <em>Opt. Lett.</em> <strong>7</strong>, 196–198 (1982).</li>
+            <li>J. J. Olivero and R. L. Longbothum, “Empirical fits to the Voigt line width: a brief review,” <em>J. Quant. Spectrosc. Radiat. Transfer</em> <strong>17</strong>, 233–236 (1977).</li>
+            <li>C. Palmer, <em>Diffraction Grating Handbook</em>, MKS Instruments / Newport (Richardson Gratings).</li>
+            <li>J. F. O'Hanlon, <em>A User's Guide to Vacuum Technology</em>, 3rd ed., Wiley (2003).</li>
+            <li>D. C. Montgomery, <em>Introduction to Statistical Quality Control</em>, Wiley.</li>
+            <li>E. Tiesinga, P. J. Mohr, D. B. Newell, B. N. Taylor, “CODATA recommended values of the fundamental physical constants: 2018,” <em>Rev. Mod. Phys.</em> <strong>93</strong>, 025010 (2021).</li>
+        </ol>
+    </section>
+
+    <div class="callout callout-warn">
+        <p><strong>Use with engineering judgment.</strong> These are standard models with stated approximations, meant for education and first-pass design. Check critical values against measurements and manufacturer data, and follow ANSI Z136 / IEC 60825 laser-safety practice.</p>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const sections = Array.from(document.querySelectorAll('.ref-section[id]')).filter(s => s.querySelector('.ref-item'));
+    const items = Array.from(document.querySelectorAll('.ref-item'));
+    const input = document.getElementById('ref-filter');
+    const count = document.getElementById('ref-count');
+    const empty = document.getElementById('ref-empty');
+    const total = items.length;
+
+    // searchable text: title, description, and variable notes. site.js has already rendered KaTeX
+    // (its DOMContentLoaded handler runs first), so the LaTeX source is included via KaTeX's annotation.
+    const text = new Map(items.map(it => [it, it.textContent.toLowerCase().replace(/\s+/g, ' ')]));
+
+    function updateCounts() {
+        sections.forEach(sec => {
+            const n = sec.querySelectorAll('.ref-item:not([hidden])').length;
+            const all = sec.querySelectorAll('.ref-item').length;
+            const label = n === all ? String(all) : n + ' / ' + all;
+            const head = sec.querySelector('h2 .n');
+            if (head) head.textContent = label;
+            const chip = document.querySelector('#ref-index a[href="#' + sec.id + '"] .n');
+            if (chip) chip.textContent = label;
+            sec.hidden = n === 0;
+        });
+    }
+
+    function apply() {
+        const words = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        let shown = 0;
+        items.forEach(it => {
+            const ok = words.every(w => text.get(it).includes(w));
+            it.hidden = !ok;
+            if (ok) shown++;
+        });
+        count.textContent = words.length ? shown + ' of ' + total + ' formulas' : total + ' formulas';
+        empty.style.display = shown ? 'none' : 'block';
+        updateCounts();
+    }
+
+    input.addEventListener('input', apply);
+    apply();
+});
+</script>
+</body>
+</html>

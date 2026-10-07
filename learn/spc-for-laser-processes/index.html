@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPC and Process Capability for Laser Processes in Production | Casey D. Foley, PhD</title>
+<meta name="description" content="How to run statistical process control on a production laser process: choosing measurable characteristics, measurement system analysis, I-MR and X-bar R charts, rational subgrouping, Western Electric and Nelson rules, Cp/Cpk vs Pp/Ppk, control plans, PFMEA, and 8D problem solving.">
+<link rel="canonical" href="https://cdfoley.com/learn/spc-for-laser-processes/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SPC and Process Capability in Production">
+<meta property="og:description" content="Control charts, Cpk, and measurement systems for a high-yield laser process.">
+<meta property="og:url" content="https://cdfoley.com/learn/spc-for-laser-processes/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Article","headline":"SPC and Process Capability in Production","description":"Control charts, Cpk, measurement systems, control plans, and problem solving for a high-yield production laser process.","author":{"@type":"Person","name":"Casey D. Foley","url":"https://cdfoley.com/"},"datePublished":"2026-10-06","dateModified":"2026-10-06","mainEntityOfPage":"https://cdfoley.com/learn/spc-for-laser-processes/"}
+</script>
+<style>
+    .fig { width: 100%; height: auto; display: block; font-family: var(--font); }
+    .fig .axis { stroke: var(--border-strong); fill: none; }
+    .fig .tick { fill: var(--muted); font-size: 11px; }
+    .fig .axlabel { fill: var(--text-2); font-size: 12px; font-weight: 500; }
+    .fig .zone2 { fill: var(--accent-soft); opacity: 0.55; }
+    .fig .zone1 { fill: var(--accent-soft); }
+    .fig .lim { stroke: var(--c5); stroke-width: 1.5; stroke-dasharray: 6 4; }
+    .fig .cl { stroke: var(--text-2); stroke-width: 1.2; }
+    .fig .limlab { fill: var(--text-2); font-size: 11px; font-weight: 600; }
+    .fig .zl { fill: var(--muted); font-size: 10.5px; }
+    .fig .series { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+    .fig .pt { fill: var(--accent); stroke: var(--surface); stroke-width: 1.5; }
+    .fig .pt.bad { fill: var(--c5); }
+    .fig .runbox { fill: none; stroke: var(--c2); stroke-width: 1.5; stroke-dasharray: 4 3; }
+    .fig .ann { fill: var(--c5); font-size: 11.5px; font-weight: 600; }
+</style>
+</head>
+<body data-section="learn">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/learn/">Learn</a></li><li aria-current="page">SPC and Process Capability in Production</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <span class="eyebrow">Quality</span>
+        <h1>SPC and Process Capability in Production</h1>
+        <p class="lede">Statistical process control is how a laser process goes from "works on a good day" to a steady 99 % yield or better. This article covers what to measure, how to trust the measurement, how to chart it, how to read the charts, and how to turn a signal into a fix that stays fixed.</p>
+        <div class="article-meta"><span>By Casey D. Foley, PhD</span><span>9 min read</span><span>Updated October 2026</span></div>
+    </header>
+
+    <div class="article-layout">
+        <article class="prose">
+            <h2>Start with the characteristic, not the chart</h2>
+            <p>SPC only works on a quantity that can be measured, that matters to the customer or to the next process step, and that responds to the process inputs you control. For a laser process there are two kinds of characteristic.</p>
+            <ul>
+                <li><strong>Output characteristics</strong> are what the customer sees: ablation line width and depth, kerf or scribe width, edge chipping, residue, electrical isolation, weld penetration, and defect counts per part.</li>
+                <li><strong>Process (input) characteristics</strong> cause the outputs: pulse energy or average power at the work plane, focal height, spot size, scan speed and pulse spacing, assist-gas flow, and part temperature.</li>
+            </ul>
+            <p>Chart both kinds. Output charts tell you the customer is at risk; input charts tell you why, and usually earlier.</p>
+            <p>Prefer <strong>variables (measured) data over attribute (pass/fail) data</strong> wherever possible. A measured width carries information on every part, while a pass/fail result carries information only when something fails. With zero failures observed, the 95 % upper confidence bound on the defect rate is about 3/n (the "rule of three"). Demonstrating a defect rate below 0.1 % from pass/fail data alone takes roughly 3,000 consecutive good parts. A capability study on a measured characteristic reaches a better-founded conclusion from far fewer samples.</p>
+            <p><strong>Design the process to be insensitive before you control it.</strong> For a Gaussian beam, the ablated diameter follows \(D^2 = 2w_0^2\ln(F_0/F_{th})\). Differentiating gives</p>
+            <div class="formula">\[ \frac{\Delta D}{D} = \frac{1}{2\ln(F_0/F_{th})}\,\frac{\Delta F}{F} . \]</div>
+            <p>At a peak fluence 1.5× threshold, a 3 % drop in pulse energy changes line width by 3.7 %. At 5× threshold the same drift moves width by only 0.9 %. Operating well inside the process window is the cheapest control there is. The <a href="/tools/fluence/">fluence</a> and <a href="/tools/ablation-depth/">ablation</a> calculators and the <a href="/learn/laser-ablation-process-windows/">process-window article</a> cover this in depth.</p>
+
+            <h2>Measurement systems first</h2>
+            <p>Every observed value includes the measurement system's own variation, and the two add in quadrature:</p>
+            <div class="formula">\[ \sigma_\text{observed}^2 = \sigma_\text{process}^2 + \sigma_\text{measurement}^2 \]</div>
+            <p>If the gauge's standard deviation is half the process's, the observed spread is 12 % wider than the real one and every Cpk you report is 11 % too low. A gauge with \(\sigma_\text{measurement}\) comparable to \(\sigma_\text{process}\) makes the chart mostly a chart of the gauge. Before charting, run a <strong>gauge repeatability and reproducibility (Gage R&amp;R)</strong> study. The common guideline from the AIAG <em>MSA</em> manual:</p>
+            <table>
+                <thead><tr><th>%GRR (of tolerance or total variation)</th><th>Interpretation</th></tr></thead>
+                <tbody>
+                    <tr><td class="num">&lt; 10 %</td><td>Acceptable</td></tr>
+                    <tr><td class="num">10 – 30 %</td><td>May be acceptable, depending on the application and cost</td></tr>
+                    <tr><td class="num">&gt; 30 %</td><td>Not acceptable; fix the measurement before the process</td></tr>
+                </tbody>
+            </table>
+            <p>Also check that the number of distinct categories (ndc) is at least 5. For in-line optical sensors such as laser displacement and confocal height sensors, vision measurement, and power monitors, include the variables that change in production in the study: part reflectivity and color, temperature, fixture position, and focus. Check bias against a reference standard and stability over days, not just repeatability over minutes.</p>
+
+            <h2>Control charts: I-MR and X̄–R</h2>
+            <p>A Shewhart control chart compares each new point with limits computed from the process's own short-term variation. The limits have nothing to do with the specification limits, and they should never be replaced by them. The two workhorse charts:</p>
+            <p><strong>Individuals and moving range (I-MR)</strong> is for one measurement at a time: a daily power check at the work plane, a per-lot measurement, or slow processes. With \(\overline{MR}\) the average absolute difference between consecutive points:</p>
+            <div class="formula">\[ \text{UCL, LCL} = \bar{x} \pm 2.66\,\overline{MR}, \qquad \text{UCL}_{MR} = 3.267\,\overline{MR}, \qquad \hat\sigma = \overline{MR}/1.128 \]</div>
+            <p><strong>X̄ and range (X̄–R)</strong> is for small subgroups (n = 2–9, most often 4–5), such as five consecutive parts every hour. For n = 5, the limits are \(\bar{\bar{x}} \pm 0.577\,\bar R\) on the X̄ chart and \(2.114\,\bar R\) on the R chart (lower limit 0). For subgroups larger than about ten, use X̄–S instead.</p>
+            <figure>
+                <svg viewBox="0 0 640 300" class="fig" role="img" aria-label="Individuals control chart with centerline, upper and lower control limits, shaded one- and two-sigma zones, one point above the upper control limit, and a run of eight consecutive points above the centerline."><rect class="zone2" x="70" y="78.5" width="484" height="121.0"/><rect class="zone1" x="70" y="108.8" width="484" height="60.5"/><line class="lim" x1="70" x2="554" y1="48.3" y2="48.3"/><text class="limlab" x="560" y="52.3">UCL (+3σ)</text><line class="cl" x1="70" x2="554" y1="139.0" y2="139.0"/><text class="limlab" x="560" y="143.0">CL (x̄)</text><line class="lim" x1="70" x2="554" y1="229.8" y2="229.8"/><text class="limlab" x="560" y="233.8">LCL (−3σ)</text><text class="zl" x="560" y="82.5">+2σ</text><text class="zl" x="560" y="112.8">+1σ</text><text class="zl" x="560" y="173.3">−1σ</text><text class="zl" x="560" y="203.5">−2σ</text><path class="axis" d="M70,18V260H554"/><text class="tick" x="78.1" y="276" text-anchor="middle">1</text><text class="tick" x="158.7" y="276" text-anchor="middle">6</text><text class="tick" x="239.4" y="276" text-anchor="middle">11</text><text class="tick" x="320.1" y="276" text-anchor="middle">16</text><text class="tick" x="400.7" y="276" text-anchor="middle">21</text><text class="tick" x="481.4" y="276" text-anchor="middle">26</text><text class="axlabel" x="312" y="296" text-anchor="middle">Sample number</text><text class="axlabel" x="16" y="139" text-anchor="middle" transform="rotate(-90 16 139)">Measured value</text><rect class="runbox" x="408.9" y="72.4" width="128.9" height="62.0" rx="6"/><path class="series" d="M78.1,75.5L94.2,129.1L110.3,159.0L126.5,138.5L142.6,157.6L158.7,153.7L174.9,138.2L191.0,148.4L207.1,118.4L223.3,161.0L239.4,135.4L255.5,191.5L271.7,142.9L287.8,37.7L303.9,129.7L320.1,157.5L336.2,146.6L352.3,153.7L368.5,148.3L384.6,147.7L400.7,151.1L416.9,117.0L433.0,105.8L449.1,115.2L465.3,116.0L481.4,110.2L497.5,110.0L513.7,113.4L529.8,118.0L545.9,171.4"/><circle class="pt" cx="78.1" cy="75.5" r="3.5"/><circle class="pt" cx="94.2" cy="129.1" r="3.5"/><circle class="pt" cx="110.3" cy="159.0" r="3.5"/><circle class="pt" cx="126.5" cy="138.5" r="3.5"/><circle class="pt" cx="142.6" cy="157.6" r="3.5"/><circle class="pt" cx="158.7" cy="153.7" r="3.5"/><circle class="pt" cx="174.9" cy="138.2" r="3.5"/><circle class="pt" cx="191.0" cy="148.4" r="3.5"/><circle class="pt" cx="207.1" cy="118.4" r="3.5"/><circle class="pt" cx="223.3" cy="161.0" r="3.5"/><circle class="pt" cx="239.4" cy="135.4" r="3.5"/><circle class="pt" cx="255.5" cy="191.5" r="3.5"/><circle class="pt" cx="271.7" cy="142.9" r="3.5"/><circle class="pt bad" cx="287.8" cy="37.7" r="4.5"/><circle class="pt" cx="303.9" cy="129.7" r="3.5"/><circle class="pt" cx="320.1" cy="157.5" r="3.5"/><circle class="pt" cx="336.2" cy="146.6" r="3.5"/><circle class="pt" cx="352.3" cy="153.7" r="3.5"/><circle class="pt" cx="368.5" cy="148.3" r="3.5"/><circle class="pt" cx="384.6" cy="147.7" r="3.5"/><circle class="pt" cx="400.7" cy="151.1" r="3.5"/><circle class="pt bad" cx="416.9" cy="117.0" r="4.5"/><circle class="pt bad" cx="433.0" cy="105.8" r="4.5"/><circle class="pt bad" cx="449.1" cy="115.2" r="4.5"/><circle class="pt bad" cx="465.3" cy="116.0" r="4.5"/><circle class="pt bad" cx="481.4" cy="110.2" r="4.5"/><circle class="pt bad" cx="497.5" cy="110.0" r="4.5"/><circle class="pt bad" cx="513.7" cy="113.4" r="4.5"/><circle class="pt bad" cx="529.8" cy="118.0" r="4.5"/><circle class="pt" cx="545.9" cy="171.4" r="3.5"/><text class="ann" x="296.8" y="41.7">Rule 1: beyond 3σ</text><text class="ann" x="473.3" y="66.4" text-anchor="middle">Rule 4: 8 in a row above CL</text></svg>
+                <figcaption>An individuals chart with ±1σ and ±2σ zones. Point 14 violates rule 1 (beyond 3σ). Points 22–29 sit above the centerline eight in a row (rule 4), the signature of a small sustained shift such as a focus change or a dirty protective window.</figcaption>
+            </figure>
+            <p><strong>Rational subgrouping</strong> decides whether an X̄–R chart is useful or misleading. A subgroup should contain only short-term, common-cause variation: consecutive parts from the same head, fixture, and material lot. Mixing laser heads, scanner fields, or nests within a subgroup inflates R, widens the limits, and hides real shifts. Stratify instead, with one chart per head or nest, or a chart of head-to-head differences. The <a href="/tools/control-chart/">control chart calculator</a> computes I-MR, X̄–R, and X̄–S limits from pasted data and flags violations.</p>
+
+            <h2>Reading the chart: Western Electric and Nelson rules</h2>
+            <p>The Western Electric rules divide the chart into zones at 1σ, 2σ, and 3σ and flag patterns that are unlikely under common-cause variation alone:</p>
+            <ol>
+                <li>One point beyond 3σ.</li>
+                <li>Two of three consecutive points beyond 2σ on the same side.</li>
+                <li>Four of five consecutive points beyond 1σ on the same side.</li>
+                <li>Eight consecutive points on the same side of the centerline.</li>
+            </ol>
+            <p>Nelson's 1984 set adds tests for six points in a row steadily rising or falling (a trend), fourteen points alternating up and down, fifteen consecutive points within 1σ (stratification: the limits are too wide, often because of mixed subgroups), and eight in a row beyond 1σ on either side (a mixture of two populations). Nelson uses nine, not eight, for the run rule.</p>
+            <p>Every rule you add trades false alarms for sensitivity. With rule 1 alone, a stable process produces a false signal on 0.27 % of points, an average of one every 370 points. Running all four Western Electric rules catches small shifts much sooner but lowers that in-control run length to roughly 90 points. Pick the rules that match the failure modes you expect, and make sure every signal leads to a defined action. A rule that operators learn to ignore is worse than no rule.</p>
+            <p>Laser processes produce recognizable patterns:</p>
+            <ul>
+                <li><strong>Downward trends</strong> in output power or ablation width: contamination building up on protective windows or scan-lens covers, diode or pump aging, fiber connector degradation.</li>
+                <li><strong>Step changes</strong> after maintenance: focus offset, alignment, a different lens or window, or recalibrated power.</li>
+                <li><strong>Cycles</strong> that follow shifts or ambient temperature: thermal drift of mounts and scanners, thermal lensing at high power, chiller behavior.</li>
+                <li><strong>Mixtures and stratification</strong> from multiple heads, fixtures, or material suppliers feeding one chart.</li>
+            </ul>
+
+            <h2>Capability: Cp, Cpk, Pp, and Ppk</h2>
+            <p>Once a process is stable, capability indices compare its spread with the specification limits (LSL, USL):</p>
+            <div class="formula">\[ C_p = \frac{\text{USL}-\text{LSL}}{6\,\sigma_\text{within}}, \qquad C_{pk} = \min\!\left(\frac{\text{USL}-\mu}{3\,\sigma_\text{within}},\ \frac{\mu-\text{LSL}}{3\,\sigma_\text{within}}\right) \]</div>
+            <p>Cp measures potential (spread only); Cpk also penalizes an off-center mean. <strong>Pp and Ppk</strong> use the same formulas with the overall sample standard deviation, which includes between-subgroup drift. When Ppk is much lower than Cpk, the process is drifting or shifting between subgroups, and that is the first thing to fix. The indices are meaningful only for a process that is in statistical control and roughly normal. Check a histogram or probability plot first. Characteristics bounded by physics, such as depth stopped by a substrate or roughness, are often skewed and need a transformation or a percentile-based method.</p>
+            <table>
+                <thead><tr><th class="num">Cpk</th><th class="num">Nearest-limit tail (ppm)</th><th class="num">Centered, both tails (ppm)</th></tr></thead>
+                <tbody>
+                    <tr><td class="num">1.00</td><td class="num">1,350</td><td class="num">2,700</td></tr>
+                    <tr><td class="num">1.33</td><td class="num">32</td><td class="num">63</td></tr>
+                    <tr><td class="num">1.67</td><td class="num">0.29</td><td class="num">0.57</td></tr>
+                    <tr><td class="num">2.00</td><td class="num">0.001</td><td class="num">0.002</td></tr>
+                </tbody>
+            </table>
+            <p>Automotive customers typically expect Ppk ≥ 1.67 in initial process studies (the AIAG PPAP criterion) and Cpk ≥ 1.33 in ongoing production, although customer-specific requirements govern. For perspective, a single centered characteristic that yields only 99 % has Cpk ≈ 0.86. In practice, most yield loss in a mature laser process comes not from Gaussian tails but from special causes: contamination, handling damage, incoming-material variation, and set-up errors. Finding and removing those causes is what control charts are for. The <a href="/tools/process-capability/">process capability calculator</a> and the <a href="/tools/sigma-level/">sigma-level converter</a> do the arithmetic.</p>
+
+            <h2>Control plans, reaction plans, and the PFMEA</h2>
+            <p>Charts change outcomes only when they are wired into the way the line runs. Three documents do that wiring.</p>
+            <p>The <strong>process FMEA</strong> lists how each step can fail, the effects and causes, and the current prevention and detection controls. The 2019 AIAG–VDA FMEA handbook replaced the old risk priority number with an <em>action priority</em> (high/medium/low), so that severity drives the work rather than a product of three ratings.</p>
+            <p>The <strong>control plan</strong> turns PFMEA controls into routine: for each characteristic, the specification, the measurement method, the sample size and frequency, the control method, and the reaction plan. An example for a laser ablation step:</p>
+            <table>
+                <thead><tr><th>Characteristic</th><th>Method</th><th>Frequency</th><th>Control</th><th>Reaction plan</th></tr></thead>
+                <tbody>
+                    <tr><td>Pulse energy at work plane</td><td>Thermal power meter</td><td>Start of shift + after maintenance</td><td>I-MR chart</td><td>Inspect/clean protective window, re-verify; stop if outside limits</td></tr>
+                    <tr><td>Focal height</td><td>Laser displacement sensor</td><td>Every part</td><td>Automatic interlock</td><td>Part held; check fixture and height offset</td></tr>
+                    <tr><td>Ablation width</td><td>In-line vision</td><td>Every part, charted as X̄ of 5</td><td>X̄–R chart</td><td>Contain since last good subgroup; check fluence and focus</td></tr>
+                    <tr><td>Recipe and parameters</td><td>Controller log</td><td>Every load</td><td>Recipe checksum</td><td>Block start until corrected</td></tr>
+                </tbody>
+            </table>
+            <p><strong>Reaction plans</strong> make SPC actionable. When a rule fires, the operator knows exactly what to do: contain the parts made since the last good point, work a short ordered checklist, and escalate on a defined trigger. Wherever possible, use <strong>error-proofing</strong> instead of detection. Power-window interlocks, part-presence and orientation checks, and recipe verification remove whole failure modes rather than catching them.</p>
+
+            <h2>Problem solving: 8D and 5-Why</h2>
+            <p>When a problem escapes, a structured method keeps the team from fixing the symptom. The <strong>8D</strong> discipline:</p>
+            <ol>
+                <li><strong>D0–D1:</strong> respond to the emergency and form a cross-functional team.</li>
+                <li><strong>D2:</strong> describe the problem in measurable terms. An is/is-not analysis (which heads, lots, shifts, and part positions) narrows the search quickly.</li>
+                <li><strong>D3:</strong> contain it. Protect the customer before you understand the cause.</li>
+                <li><strong>D4:</strong> find the root cause of the occurrence <em>and</em> of the escape (why the controls did not catch it). Confirm it by turning the problem on and off.</li>
+                <li><strong>D5–D6:</strong> choose, implement, and validate permanent corrective actions with data, and remove containment only after validation.</li>
+                <li><strong>D7:</strong> prevent recurrence by updating the PFMEA, control plan, work instructions, and similar processes.</li>
+                <li><strong>D8:</strong> close out and recognize the team.</li>
+            </ol>
+            <p>A 5-Why chain for a typical laser problem shows how the root cause usually sits several layers below the symptom:</p>
+            <ol>
+                <li>Ablation width went below specification. <em>Why?</em> Fluence at the part was low.</li>
+                <li><em>Why?</em> Pulse energy at the work plane had dropped 8 % while the laser's internal monitor read nominal.</li>
+                <li><em>Why?</em> The protective window was coated with ablation debris.</li>
+                <li><em>Why?</em> Fume-extraction airflow at the nozzle had fallen.</li>
+                <li><em>Why?</em> The extraction filter had no differential-pressure monitoring or replacement interval.</li>
+            </ol>
+            <p>The permanent action is a filter ΔP sensor with an alarm and a preventive-maintenance interval, plus a work-plane power check in the control plan. Note that the escape point was relying on an internal power monitor that cannot see losses downstream of the laser.</p>
+
+            <h2>From sensors to 99 %+ yield</h2>
+            <p>High yield in laser processing seldom comes from a single breakthrough. It comes from a loop that runs every day:</p>
+            <ol>
+                <li><strong>Instrument the process.</strong> In-line power monitoring, height sensing, and vision measurement turn periodic manual checks into continuous data.</li>
+                <li><strong>Automate collection.</strong> Scripts that pull controller logs, sensor data, and inspection results into one database are worth more than any single chart. Manual data entry is where SPC programs go to die.</li>
+                <li><strong>Pareto the losses.</strong> Rank defect modes by frequency and cost, and attack the top two.</li>
+                <li><strong>Use DOE to center the process window.</strong> Find settings where the outputs are insensitive to the inputs that drift.</li>
+                <li><strong>Lock in gains.</strong> Every fix flows into the PFMEA, control plan, and reaction plans, and is verified with a before-and-after capability study.</li>
+                <li><strong>Watch the leading indicators.</strong> Input charts (power, focus, cycle time, pump-down time) move before output charts do.</li>
+            </ol>
+            <p>Yield is multiplicative across steps. Five steps at 99 % each give a rolled throughput yield of 95.1 %, so every step has to be well controlled. <a href="/tools/oee-takt/">OEE and takt time</a> tie the quality picture to throughput and cost.</p>
+
+            <h2>References</h2>
+            <ol class="refs">
+                <li>D. C. Montgomery, <em>Introduction to Statistical Quality Control</em>, 8th ed., Wiley (2019).</li>
+                <li>Western Electric Co., <em>Statistical Quality Control Handbook</em> (1956).</li>
+                <li>L. S. Nelson, “The Shewhart Control Chart—Tests for Special Causes,” <em>Journal of Quality Technology</em> <strong>16</strong>(4), 237–239 (1984).</li>
+                <li>AIAG, <em>Measurement Systems Analysis (MSA)</em>, 4th ed. (2010); <em>Statistical Process Control (SPC)</em>, 2nd ed. (2005); <em>Production Part Approval Process (PPAP)</em>, 4th ed. (2006).</li>
+                <li>AIAG &amp; VDA, <em>FMEA Handbook</em>, 1st ed. (2019).</li>
+            </ol>
+        </article>
+        <aside class="toc" data-toc></aside>
+    </div>
+
+    <section class="related">
+        <h2>Related tools and articles</h2>
+        <div data-related="process-capability,control-chart,sigma-level,oee-takt,article:laser-ablation-process-windows,article:vacuum-fundamentals"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+</body>
+</html>

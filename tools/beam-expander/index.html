@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beam Expander Calculator: Galilean & Keplerian Telescopes | Casey D. Foley, PhD</title>
+<meta name="description" content="Beam expander calculator for Galilean and Keplerian laser telescopes: magnification, lens separation, output beam diameter and divergence, internal focus size, and the reduction in focused spot size.">
+<link rel="canonical" href="https://cdfoley.com/tools/beam-expander/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Beam Expander Calculator">
+<meta property="og:description" content="Galilean or Keplerian expander: magnification, lens spacing, output diameter and divergence, and how much smaller the focused spot gets.">
+<meta property="og:url" content="https://cdfoley.com/tools/beam-expander/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>
+    .bx-group[hidden] { display: none !important; }
+    .bx-modes { margin-bottom: 1.1rem; }
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#beam">Gaussian Beams &amp; Optics</a></li><li aria-current="page">Beam Expander</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Beam Expander</h1>
+        <p class="lede">An afocal two-lens telescope that enlarges a collimated beam and reduces its divergence by the same factor. Enter the lens focal lengths, or a target magnification, to get the lens spacing, the output beam, and how much smaller the spot will be after a focusing lens.</p>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+
+                <div class="bx-modes">
+                    <span class="seg" role="radiogroup" aria-label="Specify the expander by">
+                        <input type="radio" id="m-l" name="mode" value="lenses" checked><label for="m-l">From focal lengths</label>
+                        <input type="radio" id="m-d" name="mode" value="design"><label for="m-d">Design for a magnification</label>
+                    </span>
+                </div>
+
+                <div class="bx-group" id="grp-lenses">
+                    <div class="field">
+                        <label for="f1">Input lens focal length (signed) <span class="sym">f₁</span></label>
+                        <div class="input-unit"><input id="f1" name="f1" value="-50" inputmode="decimal" data-optional data-label="input lens focal length"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                        <p class="hint">Negative for a diverging lens (Galilean), positive for a converging lens (Keplerian).</p>
+                    </div>
+                </div>
+
+                <div class="bx-group" id="grp-design" hidden>
+                    <div class="field">
+                        <div class="field-label"><span>Expander type</span>
+                            <span class="seg" role="radiogroup" aria-label="Expander type">
+                                <input type="radio" id="k-g" name="kind" value="galilean" checked><label for="k-g">Galilean</label>
+                                <input type="radio" id="k-k" name="kind" value="keplerian"><label for="k-k">Keplerian</label>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="mag">Target magnification <span class="sym">|M|</span></label>
+                        <div class="input-unit"><input id="mag" name="mag" value="3" inputmode="decimal" data-optional data-label="magnification"><span class="unit">×</span></div>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="f2">Output lens focal length <span class="sym">f₂</span></label>
+                    <div class="input-unit"><input id="f2" name="f2" value="150" inputmode="decimal" data-label="output lens focal length"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                </div>
+
+                <div class="field">
+                    <label for="din">Input beam diameter (1/e²) <span class="sym">D<sub>in</sub></span></label>
+                    <div class="input-unit"><input id="din" name="din" value="3" inputmode="decimal" data-positive><select data-dim="length" data-units="µm,mm,cm,in" data-default="mm"></select></div>
+                </div>
+                <div class="field">
+                    <label for="divin">Input divergence, full angle <span class="sym">Θ<sub>in</sub></span></label>
+                    <div class="input-unit"><input id="divin" name="divin" value="1.2" inputmode="decimal" data-optional data-positive placeholder="blank = from M²" data-label="input divergence"><select data-dim="angle" data-units="µrad,mrad,deg" data-default="mrad"></select></div>
+                    <p class="hint">From the laser datasheet. Leave blank to use the diffraction-limited value for this diameter and M².</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="wl">Wavelength <span class="sym">λ</span></label>
+                        <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="m2">Beam quality <span class="sym">M²</span></label>
+                        <div class="input-unit"><input id="m2" name="m2" value="1" inputmode="decimal" data-min="1" data-label="M²"><span class="unit">—</span></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="ff">Downstream focusing lens <span class="sym">f<sub>F</sub></span></label>
+                    <div class="input-unit"><input id="ff" name="ff" value="100" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="focusing lens focal length"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="type" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Magnification<span class="sym">|M| = |f₂/f₁|</span></span><output class="result-value" data-out="mag">—</output></div>
+                    <div class="result"><span class="result-label">Input lens focal length<span class="sym">f₁</span></span><output class="result-value" data-out="f1">—</output></div>
+                    <div class="result"><span class="result-label">Lens separation (afocal)<span class="sym">L = f₁ + f₂</span></span><output class="result-value" data-out="L">—</output></div>
+                    <div class="result"><span class="result-label">Output beam diameter<span class="sym">D<sub>out</sub></span></span><output class="result-value" data-out="dout">—</output></div>
+                    <div class="result"><span class="result-label">Output divergence, full angle<span class="sym">Θ<sub>out</sub></span></span><output class="result-value" data-out="divout">—</output></div>
+                    <div class="result"><span class="result-label">Effective M² of the input beam</span><output class="result-value" data-out="m2eff">—</output><span class="result-note" id="m2note"></span></div>
+                    <div class="result"><span class="result-label">Output Rayleigh range (collimated length)</span><output class="result-value" data-out="zrout">—</output></div>
+                    <div class="result"><span class="result-label">Internal focus diameter (Keplerian)</span><output class="result-value" data-out="dint">—</output></div>
+                    <div class="result"><span class="result-label">Suggested pinhole (≈ 1.5 × focus)</span><output class="result-value" data-out="pin">—</output></div>
+                    <div class="result"><span class="result-label">Focused spot without expander</span><output class="result-value" data-out="spot0">—</output></div>
+                    <div class="result"><span class="result-label">Focused spot with expander</span><output class="result-value" data-out="spot1">—</output></div>
+                    <div class="result"><span class="result-label">Rayleigh range at focus, with expander</span><output class="result-value" data-out="zrf">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>Two lenses separated by the sum of their focal lengths form an afocal telescope: collimated light in, collimated light out. With \(f_1\) the input lens and \(f_2\) the output lens (signed, positive for converging),</p>
+        <div class="formula">\[ M = -\frac{f_2}{f_1}, \qquad L = f_1 + f_2, \qquad D_\text{out} = |M|\,D_\text{in}, \qquad \Theta_\text{out} = \frac{\Theta_\text{in}}{|M|}. \]</div>
+        <p>A <strong>Galilean</strong> expander pairs a negative input lens with a positive output lens. \(M\) is positive (upright beam) and the tube is shorter than \(f_2\). A <strong>Keplerian</strong> expander uses two positive lenses. \(M\) is negative (the beam is inverted) and there is a real focus between the lenses.</p>
+        <p>The product of diameter and divergence is conserved, so expansion does not change beam quality. It only redistributes it. If you leave the input divergence blank, the calculator uses the diffraction-limited value \(\Theta = 4M^2\lambda/(\pi D_\text{in})\). If you enter a measured divergence, it reports the implied M² so you can check the datasheet for consistency.</p>
+
+        <h2>Effect on the focused spot</h2>
+        <p>A focusing lens maps the far field to its focal plane, so the spot diameter is the focal length times the full divergence of the beam entering the lens:</p>
+        <div class="formula">\[ d_F = f_F\,\Theta = \frac{4M^2\lambda f_F}{\pi D} \quad\Longrightarrow\quad d_{F,\text{expanded}} = \frac{d_{F,\text{direct}}}{|M|}. \]</div>
+        <p>A 3× expander therefore gives a spot one-third the size, nine times the peak fluence, and one-ninth the depth of focus (\(z_R \propto d_F^2\)). Before buying a shorter focal length lens, check whether the expanded beam still fits through the scanner and focusing optics. The <a href="/tools/focused-spot/">focused spot tool</a> includes aperture truncation.</p>
+
+        <h2>Galilean or Keplerian?</h2>
+        <ul>
+            <li><strong>Galilean</strong> has no internal focus, so it is preferred for pulsed lasers with high peak power: there is no risk of air breakdown or of damaging an optic placed near the focus. It is also shorter and has fewer components.</li>
+            <li><strong>Keplerian</strong> has an accessible internal focus. A pinhole placed there acts as a spatial filter that strips high-spatial-frequency noise from the beam. The spot is about \(f_1\Theta_\text{in}\), and a pinhole of roughly 1.5 times the 1/e² focus diameter passes about 99 % of a TEM₀₀ beam. At high peak power the internal focus can ionize air, so evacuate the filter or use a Galilean design instead.</li>
+        </ul>
+
+        <h2>Worked example</h2>
+        <p>A 3 mm laser beam with a 1.2 mrad full-angle divergence (implied M² ≈ 2.66 at 1064 nm) passes through a Galilean expander with \(f_1 = -50\) mm and \(f_2 = 150\) mm:</p>
+        <ul>
+            <li>\(|M| = 3\) and \(L = 100\) mm. The output is 9 mm in diameter with 0.40 mrad divergence.</li>
+            <li>With a 100 mm focusing lens the spot shrinks from \(100\,\text{mm}\times 1.2\,\text{mrad} = 120\) µm to 40 µm. The Rayleigh range at focus becomes 0.44 mm.</li>
+            <li>A Keplerian version (\(f_1 = +50\) mm) needs \(L = 200\) mm and has a 60 µm internal focus. A 90 µm pinhole would make a suitable spatial filter.</li>
+        </ul>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Thin, aberration-free lenses.</strong> Real expanders have a lens spacing that differs slightly from \(f_1 + f_2\) because of principal-plane positions, and they are usually adjustable to set collimation. Use the vendor's mechanical data.</li>
+            <li><strong>Collimated input.</strong> If the input beam's waist is far from the expander, the output waist moves too. The divergence ratio still holds, but the location of the minimum spot does not. See <a href="/tools/gaussian-beam/">Gaussian beam propagation</a>.</li>
+            <li><strong>No clipping.</strong> Both lenses and every downstream aperture must be at least about 1.5× the local beam diameter. See <a href="/tools/aperture-transmission/">beam clipping</a>.</li>
+            <li><strong>Focused-spot estimate assumes an untruncated beam</strong> with no lens aberrations, and the focal plane close to the beam waist.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), ch. 17–20.</li>
+            <li>B. E. A. Saleh and M. C. Teich, <em>Fundamentals of Photonics</em>, 3rd ed., Wiley (2019), ch. 3.</li>
+            <li>W. J. Smith, <em>Modern Optical Engineering</em>, 4th ed., McGraw-Hill (2008) — afocal systems.</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="focused-spot,gaussian-beam,f-theta-lens,aperture-transmission,fluence,article:gaussian-beam-optics"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, fail } = Calc;
+    const typeBadge = document.getElementById('type');
+    const m2note = document.getElementById('m2note');
+    const gL = document.getElementById('grp-lenses'), gD = document.getElementById('grp-design');
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            gL.hidden = v.mode !== 'lenses';
+            gD.hidden = v.mode !== 'design';
+
+            let f1;
+            const f2 = v.f2;
+            if (v.mode === 'lenses') {
+                if (!isFinite(v.f1)) throw fail('Enter the input lens focal length.', 'f1');
+                if (v.f1 === 0) throw fail('The input lens focal length cannot be zero.', 'f1');
+                if (f2 === 0) throw fail('The output lens focal length cannot be zero.', 'f2');
+                f1 = v.f1;
+            } else {
+                if (!(v.mag > 0)) throw fail('Enter a magnification greater than zero.', 'mag');
+                if (!(f2 > 0)) throw fail('In design mode the output lens must be positive (f₂ > 0).', 'f2');
+                f1 = v.kind === 'galilean' ? -f2 / v.mag : f2 / v.mag;
+            }
+            const L = f1 + f2;
+            if (!(L > 0)) throw fail('These focal lengths give a lens separation of ' + fmt.si(L, 'm', 4) +
+                '. For an afocal telescope f₁ + f₂ must be positive. For a Galilean reducer, put the positive lens first.', v.mode === 'lenses' ? 'f1' : 'mag');
+
+            const M = -f2 / f1, aM = Math.abs(M);
+            const keplerian = f1 > 0 && f2 > 0;
+            typeBadge.textContent = (keplerian ? 'Keplerian' : 'Galilean') + (aM >= 1 ? ' expander' : ' reducer');
+            typeBadge.className = 'badge ' + (keplerian ? 'badge-warn' : 'badge-ok');
+
+            const dl = 4 * v.m2 * v.wl / (Math.PI * v.din);            // diffraction-limited full angle
+            const measured = isFinite(v.divin);
+            const thIn = measured ? v.divin : dl;
+            const m2eff = thIn * Math.PI * v.din / (4 * v.wl);
+            m2note.textContent = !measured ? 'Divergence taken from M² (diffraction-limited).'
+                : (m2eff < 1 ? 'Below 1: the divergence is smaller than the diffraction limit for this diameter. Check the inputs or the datasheet definitions (half vs. full angle, 1/e² vs. FWHM).' : 'Implied by the entered diameter and divergence.');
+
+            const dout = aM * v.din, thOut = thIn / aM;
+            const zrOut = Math.PI * (dout / 2) ** 2 / (Math.max(m2eff, 1e-9) * v.wl);
+            const hasF = isFinite(v.ff);
+            const spot0 = hasF ? v.ff * thIn : NaN, spot1 = hasF ? v.ff * thOut : NaN;
+            const zrf = hasF ? Math.PI * (spot1 / 2) ** 2 / (Math.max(m2eff, 1e-9) * v.wl) : NaN;
+
+            return {
+                mag: fmt.num(aM, 4) + '×  ' + (M > 0 ? '(upright)' : '(inverted)'),
+                f1: fmt.si(f1, 'm', 4),
+                L: fmt.si(L, 'm', 4),
+                dout: fmt.si(dout, 'm', 4),
+                divout: fmt.si(thOut, 'rad', 4),
+                m2eff: fmt.num(m2eff, 4),
+                zrout: fmt.si(zrOut, 'm', 3),
+                dint: keplerian ? fmt.si(f1 * thIn, 'm', 4) : null,
+                pin: keplerian ? fmt.si(1.5 * f1 * thIn, 'm', 3) : null,
+                spot0: hasF ? fmt.si(spot0, 'm', 4) : null,
+                spot1: hasF ? fmt.si(spot1, 'm', 4) + '  (' + fmt.num(aM, 3) + '× smaller)' : null,
+                zrf: hasF ? fmt.si(zrf, 'm', 4) : null
+            };
+        }
+    });
+
+    // keep field visibility in sync with the mode even when compute fails
+    function syncMode() {
+        const mode = document.querySelector('input[name="mode"]:checked').value;
+        gL.hidden = mode !== 'lenses'; gD.hidden = mode !== 'design';
+    }
+    document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', syncMode));
+    syncMode();
+});
+</script>
+</body>
+</html>

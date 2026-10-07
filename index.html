@@ -1,1098 +1,510 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Casey D. Foley, PhD — Laser Systems & Advanced Instrumentation</title>
-    <meta name="description" content="Casey D. Foley, PhD — Laser systems engineer and physical chemist specializing in advanced laser technologies, vacuum systems, process development, and scientific instrumentation. 20+ publications, 430+ citations.">
-    <meta name="keywords" content="laser systems engineer, physical chemistry, mass spectrometry, machine vision, vacuum systems, process development, laser ablation, scientific instrumentation">
-    <meta property="og:title" content="Casey D. Foley, PhD">
-    <meta property="og:description" content="Laser systems engineer and physical chemist bridging industrial process development with advanced scientific instrumentation.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://cdfoley.com">
-    <link rel="canonical" href="https://cdfoley.com">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.7;
-            color: #2d3748;
-            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            min-height: 100vh;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-        }
-
-        /* ── HEADER ─────────────────────────────────────────── */
-        header {
-            background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #4a5568 100%);
-            color: white;
-            padding: 3rem 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        header::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at 20% 30%, rgba(102,126,234,0.2) 0%, transparent 25%),
-                radial-gradient(circle at 80% 70%, rgba(118,75,162,0.2) 0%, transparent 25%),
-                radial-gradient(ellipse at 60% 40%, rgba(255,255,255,0.1) 0%, transparent 30%);
-            opacity: 0.6;
-        }
-
-        header::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at var(--d1x) var(--d1y), rgba(0,255,150,1) 2px, rgba(0,255,150,0.4) 3px, transparent 4px),
-                radial-gradient(circle at var(--d2x) var(--d2y), rgba(0,180,255,1) 2px, rgba(0,180,255,0.4) 3px, transparent 4px),
-                radial-gradient(circle at var(--d3x) var(--d3y), rgba(100,255,200,1) 2px, rgba(100,255,200,0.4) 3px, transparent 4px),
-                radial-gradient(circle at var(--d4x) var(--d4y), rgba(0,255,100,1) 2px, rgba(0,255,100,0.4) 3px, transparent 4px),
-                radial-gradient(circle at var(--d5x) var(--d5y), rgba(0,150,255,1) 2px, rgba(0,150,255,0.4) 3px, transparent 4px),
-                conic-gradient(from var(--r1) at var(--d1x) var(--d1y),
-                    rgba(0,255,150,0.12) 0deg, rgba(0,255,150,0.04) 30deg, rgba(0,255,150,0.16) 60deg, rgba(0,255,150,0.04) 90deg,
-                    rgba(0,255,150,0.12) 120deg, rgba(0,255,150,0.04) 150deg, rgba(0,255,150,0.16) 180deg, rgba(0,255,150,0.04) 210deg,
-                    rgba(0,255,150,0.12) 240deg, rgba(0,255,150,0.04) 270deg, rgba(0,255,150,0.16) 300deg, rgba(0,255,150,0.04) 330deg),
-                conic-gradient(from var(--r2) at var(--d2x) var(--d2y),
-                    rgba(0,180,255,0.12) 0deg, rgba(0,180,255,0.04) 30deg, rgba(0,180,255,0.16) 60deg, rgba(0,180,255,0.04) 90deg,
-                    rgba(0,180,255,0.12) 120deg, rgba(0,180,255,0.04) 150deg, rgba(0,180,255,0.16) 180deg, rgba(0,180,255,0.04) 210deg,
-                    rgba(0,180,255,0.12) 240deg, rgba(0,180,255,0.04) 270deg, rgba(0,180,255,0.16) 300deg, rgba(0,180,255,0.04) 330deg);
-            background-size: 100% 100%;
-            animation: laserRotate 25s linear infinite, laserMove 45s ease-in-out infinite, laserPulse 12s ease-in-out infinite alternate;
-            opacity: 0.55;
-        }
-
-        @property --d1x { syntax: '<percentage>'; initial-value: 15%; inherits: false; }
-        @property --d1y { syntax: '<percentage>'; initial-value: 15%; inherits: false; }
-        @property --d2x { syntax: '<percentage>'; initial-value: 85%; inherits: false; }
-        @property --d2y { syntax: '<percentage>'; initial-value: 15%; inherits: false; }
-        @property --d3x { syntax: '<percentage>'; initial-value: 85%; inherits: false; }
-        @property --d3y { syntax: '<percentage>'; initial-value: 85%; inherits: false; }
-        @property --d4x { syntax: '<percentage>'; initial-value: 15%; inherits: false; }
-        @property --d4y { syntax: '<percentage>'; initial-value: 85%; inherits: false; }
-        @property --d5x { syntax: '<percentage>'; initial-value: 50%; inherits: false; }
-        @property --d5y { syntax: '<percentage>'; initial-value: 10%; inherits: false; }
-        @property --r1  { syntax: '<angle>'; initial-value: 0deg;   inherits: false; }
-        @property --r2  { syntax: '<angle>'; initial-value: 90deg;  inherits: false; }
-
-        @keyframes laserMove {
-            0%   { --d1x:15%;--d1y:15%;--d2x:85%;--d2y:15%;--d3x:85%;--d3y:85%;--d4x:15%;--d4y:85%;--d5x:50%;--d5y:10%; }
-            25%  { --d1x:25%;--d1y:25%;--d2x:75%;--d2y:25%;--d3x:75%;--d3y:75%;--d4x:25%;--d4y:75%;--d5x:40%;--d5y:20%; }
-            50%  { --d1x:20%;--d1y:30%;--d2x:80%;--d2y:20%;--d3x:90%;--d3y:70%;--d4x:10%;--d4y:80%;--d5x:60%;--d5y:15%; }
-            75%  { --d1x:30%;--d1y:20%;--d2x:70%;--d2y:30%;--d3x:80%;--d3y:80%;--d4x:20%;--d4y:70%;--d5x:55%;--d5y:25%; }
-            100% { --d1x:15%;--d1y:15%;--d2x:85%;--d2y:15%;--d3x:85%;--d3y:85%;--d4x:15%;--d4y:85%;--d5x:50%;--d5y:10%; }
-        }
-        @keyframes laserRotate {
-            from { --r1:0deg; --r2:90deg; }
-            to   { --r1:360deg; --r2:450deg; }
-        }
-        @keyframes laserPulse {
-            from { opacity: 0.45; }
-            to   { opacity: 0.65; }
-        }
-
-        .header-content {
-            position: relative;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 2.5rem;
-            max-width: 980px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-
-        .profile-photo {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            box-shadow: 0 16px 36px rgba(0,0,0,0.3);
-            object-fit: cover;
-            flex-shrink: 0;
-            transition: transform 0.3s ease;
-        }
-        .profile-photo:hover { transform: scale(1.04); }
-
-        .header-text { flex: 1; text-align: left; }
-
-        h1 {
-            font-size: 3.2rem;
-            font-weight: 300;
-            letter-spacing: -0.02em;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
-            margin-bottom: 0.4rem;
-        }
-
-        .subtitle {
-            font-size: 1.25rem;
-            font-weight: 300;
-            opacity: 0.92;
-            letter-spacing: 0.01em;
-            margin-bottom: 1.3rem;
-        }
-
-        .contact-info {
-            display: flex;
-            gap: 0.9rem;
-            flex-wrap: wrap;
-        }
-
-        .contact-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: white;
-            text-decoration: none;
-            padding: 0.4rem 0.9rem;
-            border-radius: 25px;
-            background: rgba(255,255,255,0.14);
-            font-size: 0.9rem;
-            transition: all 0.25s ease;
-        }
-        .contact-item:hover {
-            background: rgba(255,255,255,0.22);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.18);
-        }
-
-        /* ── NAV ─────────────────────────────────────────────── */
-        nav {
-            background: rgba(45,55,72,0.97);
-            backdrop-filter: blur(20px);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-        }
-
-        .nav-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .nav-item {
-            color: rgba(255,255,255,0.82);
-            text-decoration: none;
-            padding: 0.95rem 1.1rem;
-            font-weight: 500;
-            font-size: 0.88rem;
-            border-bottom: 3px solid transparent;
-            transition: all 0.25s ease;
-            white-space: nowrap;
-            position: relative;
-        }
-
-        .nav-item::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(102,126,234,0.28) 0%, rgba(118,75,162,0.28) 100%);
-            opacity: 0;
-            transition: opacity 0.25s;
-        }
-
-        .nav-item:hover, .nav-item.active {
-            color: white;
-            border-bottom-color: #667eea;
-        }
-        .nav-item:hover::before, .nav-item.active::before { opacity: 1; }
-
-        /* ── MAIN / SECTIONS ─────────────────────────────────── */
-        main { padding: 2.5rem 2rem; }
-
-        .section {
-            padding: 2rem 0;
-            border-bottom: 1px solid #f0f0f5;
-        }
-        .section:last-child { border-bottom: none; }
-
-        .section-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 1.8rem;
-            position: relative;
-            padding-bottom: 0.7rem;
-        }
-
-        .section-title::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 50px;
-            height: 3px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 2px;
-        }
-
-        /* ── HERO ────────────────────────────────────────────── */
-        .hero-section {
-            padding: 2rem 0 2.5rem;
-            max-width: 860px;
-        }
-
-        .hero-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 1rem;
-            line-height: 1.3;
-        }
-
-        .hero-text {
-            font-size: 1.08rem;
-            color: #4a5568;
-            line-height: 1.75;
-            margin-bottom: 1.5rem;
-        }
-
-        .cta-buttons { display: flex; gap: 1rem; flex-wrap: wrap; }
-
-        .btn {
-            padding: 0.75rem 1.8rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: all 0.25s ease;
-            display: inline-block;
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102,126,234,0.35);
-        }
-
-        /* ── ACHIEVEMENTS GRID ───────────────────────────────── */
-        .achievements-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .achievement-card {
-            background: white;
-            padding: 1.8rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.07);
-            border: 1px solid rgba(102,126,234,0.1);
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.25s, box-shadow 0.25s;
-        }
-        .achievement-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.11);
-        }
-        .achievement-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .achievement-metric {
-            font-size: 2.2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.4rem;
-            line-height: 1.1;
-        }
-
-        .achievement-title {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 0.6rem;
-        }
-
-        .achievement-card p {
-            font-size: 0.88rem;
-            color: #4a5568;
-            line-height: 1.55;
-        }
-
-        /* ── EXPERIENCE TIMELINE ─────────────────────────────── */
-        .experience-timeline { max-width: 900px; }
-
-        .timeline-item {
-            padding: 1.6rem 1.8rem;
-            border-radius: 14px;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.07);
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(102,126,234,0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .timeline-date {
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.3rem;
-        }
-
-        .timeline-title {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 0.2rem;
-        }
-
-        .timeline-company {
-            font-style: italic;
-            color: #4a5568;
-            font-size: 1rem;
-            margin-bottom: 0.9rem;
-        }
-
-        .timeline-item ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .timeline-item li {
-            position: relative;
-            padding-left: 1.2rem;
-            margin-bottom: 0.4rem;
-            font-size: 0.93rem;
-            color: #4a5568;
-            line-height: 1.55;
-        }
-
-        .timeline-item li::before {
-            content: '▸';
-            position: absolute;
-            left: 0;
-            color: #667eea;
-            font-size: 0.75rem;
-            top: 0.2rem;
-        }
-
-        .timeline-item p {
-            font-size: 0.93rem;
-            color: #4a5568;
-            line-height: 1.6;
-        }
-
-        /* ── SKILLS ──────────────────────────────────────────── */
-        .skills-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .skill-category {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 14px;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.07);
-            border: 1px solid rgba(102,126,234,0.1);
-        }
-
-        .skill-category h3 {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 0.9rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid rgba(102,126,234,0.15);
-        }
-
-        .skill-tags { display: flex; flex-wrap: wrap; gap: 0.45rem; }
-
-        .skill-tag {
-            background: linear-gradient(135deg, rgba(102,126,234,0.08) 0%, rgba(118,75,162,0.08) 100%);
-            color: #4a5568;
-            padding: 0.28rem 0.7rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            border: 1px solid rgba(102,126,234,0.15);
-        }
-
-        /* ── PUBLICATIONS ────────────────────────────────────── */
-        .publications-container { max-width: 960px; }
-
-        .pub-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1.3rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-item {
-            text-align: center;
-            padding: 1.5rem 1rem;
-            background: white;
-            border-radius: 14px;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.07);
-            border: 1px solid rgba(102,126,234,0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        .stat-item::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .stat-number {
-            font-size: 2.2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.3rem;
-            line-height: 1.1;
-        }
-
-        .stat-label {
-            font-size: 0.88rem;
-            font-weight: 600;
-            color: #4a5568;
-        }
-
-        .pub-card {
-            background: white;
-            padding: 1.8rem;
-            border-radius: 14px;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.07);
-            border: 1px solid rgba(102,126,234,0.1);
-            margin-bottom: 1.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-        .pub-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .pub-card h3 {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 1.2rem;
-        }
-
-        .pub-item {
-            margin-bottom: 1.3rem;
-            padding-bottom: 1.3rem;
-            border-bottom: 1px solid rgba(102,126,234,0.08);
-        }
-        .pub-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-
-        .pub-title { font-weight: 700; color: #1a202c; font-size: 0.97rem; margin-bottom: 0.25rem; line-height: 1.4; }
-        .pub-journal { color: #667eea; font-style: italic; font-weight: 500; font-size: 0.9rem; margin-bottom: 0.4rem; }
-        .pub-desc { color: #4a5568; font-size: 0.88rem; line-height: 1.55; }
-
-        /* ── CONTACT ─────────────────────────────────────────── */
-        .contact-container {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 2rem;
-            max-width: 900px;
-        }
-
-        .contact-card, .availability-card {
-            background: white;
-            padding: 1.8rem;
-            border-radius: 14px;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.07);
-            border: 1px solid rgba(102,126,234,0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        .contact-card::before, .availability-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .contact-card h3, .availability-card h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 1.2rem;
-        }
-
-        .contact-info-section { display: flex; flex-direction: column; gap: 1.3rem; }
-
-        .contact-detail { display: flex; align-items: center; gap: 0.9rem; }
-        .contact-icon { font-size: 1.3rem; width: 36px; text-align: center; }
-        .contact-detail div { display: flex; flex-direction: column; gap: 0.15rem; }
-        .contact-detail strong { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #1a202c; }
-        .contact-detail a { color: #667eea; text-decoration: none; font-size: 0.92rem; transition: color 0.2s; }
-        .contact-detail a:hover { color: #764ba2; }
-
-        .availability-card ul { list-style: none; padding: 0; margin: 0.8rem 0; }
-        .availability-card li {
-            padding-left: 1.3rem;
-            position: relative;
-            margin-bottom: 0.5rem;
-            color: #4a5568;
-            font-size: 0.88rem;
-        }
-        .availability-card li::before {
-            content: '✓';
-            position: absolute;
-            left: 0;
-            color: #667eea;
-            font-weight: 700;
-        }
-
-        /* ── FOOTER ──────────────────────────────────────────── */
-        footer {
-            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
-            color: white;
-            text-align: center;
-            padding: 2.5rem 2rem;
-            margin-top: 1rem;
-        }
-
-        .footer-tagline {
-            font-style: italic;
-            color: #a0aec0;
-            font-size: 1rem;
-            font-weight: 300;
-        }
-
-        /* ── HEADER SKILLS GRID ─────────────────────────────── */
-        .header-skills {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.55rem 1.4rem;
-            margin-top: 1.4rem;
-            max-width: 700px;
-        }
-
-        .hskill-box {
-            border-left: 2px solid rgba(255,255,255,0.2);
-            padding: 0.35rem 0.65rem;
-        }
-
-        .hskill-title {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: rgba(255,255,255,0.9);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 0.18rem;
-        }
-
-        .hskill-content {
-            font-size: 0.73rem;
-            color: rgba(255,255,255,0.6);
-            line-height: 1.45;
-        }
-
-        /* ── RESPONSIVE ──────────────────────────────────────── */
-        @media (max-width: 768px) {
-            .header-skills { grid-template-columns: 1fr; }
-            .header-content { flex-direction: column; text-align: center; gap: 1.5rem; }
-            .header-text { text-align: center; }
-            h1 { font-size: 2.4rem; }
-            .contact-info { justify-content: center; }
-            .nav-container { flex-wrap: wrap; }
-            .nav-item { padding: 0.7rem 0.8rem; font-size: 0.84rem; }
-            main { padding: 2rem 1rem; }
-            .contact-container { grid-template-columns: 1fr; }
-            .achievements-grid { grid-template-columns: 1fr; }
-            .skills-container { grid-template-columns: 1fr; }
-        }
-
-        @media (max-width: 1000px) {
-            .nav-container { flex-wrap: wrap; justify-content: center; }
-            .nav-item { padding: 0.85rem 0.9rem; font-size: 0.84rem; }
-        }
-
-        @media (max-width: 480px) {
-            h1 { font-size: 1.9rem; }
-            .hero-title { font-size: 1.6rem; }
-            .section-title { font-size: 1.7rem; }
-            .pub-stats { grid-template-columns: 1fr 1fr; }
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Casey D. Foley, PhD — Laser Systems, Vacuum & Optical Instrumentation</title>
+<meta name="description" content="Casey D. Foley, PhD — Staff Scientist and physical chemist. Production laser and vacuum process development, laser-based metrology and machine vision, spectroscopy, and scientific instrumentation. 23 peer-reviewed papers including Science and JACS.">
+<link rel="canonical" href="https://cdfoley.com/">
+<meta property="og:type" content="profile">
+<meta property="og:title" content="Casey D. Foley, PhD — Laser Systems, Vacuum & Optical Instrumentation">
+<meta property="og:description" content="Production laser and vacuum processes, optical metrology and machine vision, spectroscopy, and the instruments that tie them together.">
+<meta property="og:url" content="https://cdfoley.com/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" as="image" type="image/webp" imagesrcset="/assets/img/headshot-240.webp 240w, /assets/img/headshot-480.webp 480w" imagesizes="(max-width: 720px) 132px, 240px">
+<script src="/assets/js/site.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Casey D. Foley",
+  "honorificSuffix": "PhD",
+  "jobTitle": "Staff Scientist",
+  "worksFor": { "@type": "Organization", "name": "LuxWall, Inc." },
+  "address": { "@type": "PostalAddress", "addressLocality": "Marshall", "addressRegion": "MI", "addressCountry": "US" },
+  "url": "https://cdfoley.com/",
+  "image": "https://cdfoley.com/assets/img/headshot-480.jpg",
+  "email": "mailto:foley.photon@gmail.com",
+  "alumniOf": [
+    { "@type": "CollegeOrUniversity", "name": "University of Missouri" },
+    { "@type": "CollegeOrUniversity", "name": "Saginaw Valley State University" }
+  ],
+  "sameAs": [
+    "https://www.linkedin.com/in/cdfoley",
+    "https://scholar.google.com/citations?user=vwZJ8iIAAAAJ",
+    "https://orcid.org/0000-0002-8828-8808"
+  ],
+  "knowsAbout": ["Laser systems", "Laser ablation", "Vacuum technology", "Ultra-high vacuum", "Spectroscopy", "Mass spectrometry", "Optical metrology", "Machine vision", "Statistical process control", "Process development", "Scientific instrumentation"]
+}
+</script>
+<style>
+    .hero { isolation: isolate; }
+    .hero-beam { position: absolute; right: -40px; top: 50%; width: min(1100px, 120%); height: 340px; transform: translateY(-50%); z-index: -1; opacity: 0.5; pointer-events: none; }
+    @media (max-width: 720px) { .hero-beam { opacity: 0.25; top: 30%; } }
+    .metrics { margin-top: 2.2rem; }
+    .open-to { margin-top: 1.2rem; font-size: 0.9rem; color: var(--ink-muted); }
+    .open-to strong { color: var(--ink-text); }
+    .pub-more { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 1.4rem; }
+    .edu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 1.2rem; }
+    .edu-grid .card h3 { margin-bottom: 0.2rem; }
+    .edu-grid .card .card-meta { margin-bottom: 0.6rem; }
+    .honors { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.45rem; font-size: 0.94rem; color: var(--text-2); }
+    .honors li { display: flex; justify-content: space-between; gap: 1rem; }
+    .honors span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    #work .grid { grid-auto-flow: dense; }
+    .case.featured { grid-column: 1 / -1; }
+    .case.featured dl > div { display: grid; gap: 0.3rem; align-content: start; }
+    @media (min-width: 860px) { .case.featured dl { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem 2rem; } }
+</style>
 </head>
-<body>
-<div class="container">
+<body data-section="home">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
 
-<!-- HEADER -->
-<header>
-    <div class="header-content">
-        <img src="./images/headshot.jpg" alt="Casey D. Foley, PhD" class="profile-photo">
-        <div class="header-text">
-            <h1><strong>Casey D. Foley, PhD</strong></h1>
-            <p class="subtitle">Laser and Vacuum Systems&ensp;|&ensp;R&amp;D&ensp;|&ensp;Production Optimization&ensp;|&ensp;Instrumentation&ensp;|&ensp;Machine Vision</p>
-            <div class="contact-info">
-                <a href="mailto:foley.photon@gmail.com" class="contact-item">
-                    <span>📧</span> foley.photon@gmail.com
+<main id="main">
+
+<!-- HERO -->
+<section class="hero">
+    <svg class="hero-beam" viewBox="0 0 1100 340" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+            <linearGradient id="beam-g" x1="0" x2="1">
+                <stop offset="0" stop-color="#6ea8fe" stop-opacity="0"/>
+                <stop offset="0.35" stop-color="#6ea8fe" stop-opacity="0.55"/>
+                <stop offset="0.7" stop-color="#22d3ee" stop-opacity="0.6"/>
+                <stop offset="1" stop-color="#34d399" stop-opacity="0.2"/>
+            </linearGradient>
+            <linearGradient id="beam-fill" x1="0" x2="1">
+                <stop offset="0" stop-color="#6ea8fe" stop-opacity="0"/>
+                <stop offset="0.6" stop-color="#22d3ee" stop-opacity="0.10"/>
+                <stop offset="1" stop-color="#34d399" stop-opacity="0.03"/>
+            </linearGradient>
+        </defs>
+        <path id="beam-area" fill="url(#beam-fill)"/>
+        <path id="beam-top" fill="none" stroke="url(#beam-g)" stroke-width="1.6"/>
+        <path id="beam-bot" fill="none" stroke="url(#beam-g)" stroke-width="1.6"/>
+        <line x1="0" y1="170" x2="1100" y2="170" stroke="url(#beam-g)" stroke-width="0.8" stroke-dasharray="3 7"/>
+    </svg>
+    <div class="wrap hero-grid">
+        <div>
+            <span class="eyebrow">Laser systems · Vacuum · Optical instrumentation</span>
+            <h1>Casey D. Foley, PhD</h1>
+            <p class="hero-role">Staff Scientist at LuxWall · Physical Chemist (PhD)</p>
+            <p class="hero-summary">I develop production laser and vacuum processes and build the optical and laser-based measurement systems that keep them in control, from algorithm to plant floor. My 12+ years span a first-factory launch, a national laboratory, and university research, and I manage a team of three manufacturing engineers. Results include 99% yield on production laser processes, 3× faster takt times, a 40% faster evacuation process, and 23 peer-reviewed papers, including <em>Science</em> and <em>JACS</em>.</p>
+            <div class="btn-row">
+                <a class="btn btn-primary" href="/resume/">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+                    View resume
                 </a>
-                <a href="https://www.linkedin.com/in/cdfoley" class="contact-item" target="_blank">
-                    <span>💼</span> LinkedIn
-                </a>
-                <a href="https://scholar.google.com/citations?hl=en&user=vwZJ8iIAAAAJ" class="contact-item" target="_blank">
-                    <span>🎓</span> Google Scholar
-                </a>
+                <a class="btn btn-secondary" href="/resume.pdf" download>Download PDF</a>
+                <a class="btn btn-ghost" href="/tools/">Engineering tools →</a>
             </div>
-
+            <div class="hero-links">
+                <a href="mailto:foley.photon@gmail.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>foley.photon@gmail.com</a>
+                <a href="https://www.linkedin.com/in/cdfoley" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>LinkedIn</a>
+                <a href="https://scholar.google.com/citations?hl=en&amp;user=vwZJ8iIAAAAJ" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 24a7 7 0 1 1 0-14 7 7 0 0 1 0 14zm0-24L0 9.5l4.84 3.94A8 8 0 0 1 12 9a8 8 0 0 1 7.16 4.44L24 9.5z"/></svg>Google Scholar</a>
+                <a href="https://orcid.org/0000-0002-8828-8808" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24zM8.1 17.5H6.6V7.4h1.5zm-.75-11.4a.98.98 0 1 1 0-1.96.98.98 0 0 1 0 1.96zM10.2 7.4h4.04c3.85 0 5.54 2.75 5.54 5.05 0 2.5-1.96 5.05-5.53 5.05H10.2zm1.5 1.37v7.36h2.38c3.4 0 4.18-2.58 4.18-3.68 0-1.79-1.14-3.68-4.25-3.68z"/></svg>ORCID</a>
+            </div>
         </div>
+        <picture>
+            <source srcset="/assets/img/headshot-240.webp 240w, /assets/img/headshot-480.webp 480w" sizes="(max-width: 720px) 132px, 240px" type="image/webp">
+            <img class="hero-photo" src="/assets/img/headshot-480.jpg" srcset="/assets/img/headshot-240.jpg 240w, /assets/img/headshot-480.jpg 480w" sizes="(max-width: 720px) 132px, 240px" width="240" height="240" alt="Portrait of Casey D. Foley">
+        </picture>
     </div>
-</header>
 
-<!-- NAV -->
-<nav>
-    <div class="nav-container">
-        <a href="#home"         class="nav-item active">Home</a>
-        <a href="#achievements" class="nav-item">Achievements</a>
-        <a href="#experience"   class="nav-item">Experience</a>
-        <a href="#skills"       class="nav-item">Skills</a>
-        <a href="#publications" class="nav-item">Publications</a>
-        <a href="#education"    class="nav-item">Education</a>
-        <a href="#contact"      class="nav-item">Contact</a>
-        <a href="/tools"        class="nav-item">Tools</a>
-    </div>
-</nav>
-
-<main>
-
-<!-- HOME -->
-<section id="home" class="hero-section">
-    <h2 class="hero-title">Bridging Industrial Process Development with Advanced Scientific Instrumentation</h2>
-    <p class="hero-text">
-        PhD physical chemist and laser systems engineer with 10+ years of experience across production, national laboratory, and university research environments. Expert in laser process development, high vacuum systems, machine vision, and sensor integration — with a track record of achieving measurable production outcomes and a foundation in advanced spectroscopy, mass spectrometry, and imaging.
-    </p>
-    <div class="cta-buttons">
-        <a href="./resume.pdf" class="btn">Download Resume</a>
-        <a href="/tools" class="btn" style="background: rgba(102,126,234,0.12); color: #667eea; border: 2px solid rgba(102,126,234,0.3);">Laser &amp; Optics Tools</a>
+    <div class="wrap metrics">
+        <div class="stats" role="list">
+            <div class="stat" role="listitem"><div class="stat-value">99%</div><div class="stat-label">Yield on two laser ablation processes, one up from 1 in 9 parts scrapped</div></div>
+            <div class="stat" role="listitem"><div class="stat-value">3×</div><div class="stat-label">Takt time reduction through laser upgrades and automation</div></div>
+            <div class="stat" role="listitem"><div class="stat-value">40%</div><div class="stat-label">Evacuation takt-time reduction with unit quality maintained</div></div>
+            <div class="stat" role="listitem"><div class="stat-value">$1M+</div><div class="stat-label">Cryogenic ion-trap instrument restored to operation</div></div>
+            <div class="stat" role="listitem"><div class="stat-value">23</div><div class="stat-label">Peer-reviewed papers · 450+ citations · h-index 10</div></div>
+        </div>
     </div>
 </section>
 
-<!-- ACHIEVEMENTS -->
-<section id="achievements" class="section">
-    <h2 class="section-title">Key Achievements</h2>
-    <div class="achievements-grid">
-
-        <div class="achievement-card">
-            <div class="achievement-metric">99%</div>
-            <div class="achievement-title">Laser Process Yield</div>
-            <p>Achieved 99% yield independently across two separate laser ablation processes through sensor integration, process design, and statistical process control.</p>
+<!-- FOCUS AREAS -->
+<section class="section section-alt" id="about">
+    <div class="wrap">
+        <div class="section-head">
+            <span class="eyebrow">What I do</span>
+            <h2>From photons to production</h2>
+            <p>My PhD is in physical chemistry, but I work as a hands-on engineer. I'm most useful where lasers, vacuum, optics, and data meet, and where a process or instrument has to work reliably rather than just once.</p>
         </div>
-
-        <div class="achievement-card">
-            <div class="achievement-metric">3×</div>
-            <div class="achievement-title">Takt Time Reduction</div>
-            <p>Reduced manufacturing takt time 3× across multiple systems via strategic laser upgrades, parameter optimization, and Python-based automation.</p>
+        <div class="grid grid-4">
+            <div class="card focus-card">
+                <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 12h7M15 12h7"/><circle cx="12" cy="12" r="3"/><path d="m4 6 5 4M4 18l5-4M20 6l-5 4M20 18l-5-4"/></svg>Laser process development</h3>
+                <p>Ablation, scribing, and laser heating with fiber, DPSS, CO₂, and excimer sources. I develop process windows with DOE, keep them in control with sensors and SPC, and document them in SOPs and control plans.</p>
+            </div>
+            <div class="card focus-card">
+                <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="3"/><path d="M8 6V3M16 6V3M9 12h6"/></svg>Vacuum &amp; instrumentation</h3>
+                <p>UHV design and builds, production evacuation processes, pulsed discharge plasma sources, cryogenic ion traps, molecular beams, and particle-imaging detectors. I've taken instruments from bare chamber to publishable data.</p>
+            </div>
+            <div class="card focus-card">
+                <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Optical metrology &amp; vision</h3>
+                <p>Laser-based R-value measurement, phase-shifting deflectometry, confocal profilometry, thermal and distortion scanning, defect detection on glass, and ML surface inspection. I take measurement systems from algorithm to plant floor and tie them to yield data.</p>
+            </div>
+            <div class="card focus-card">
+                <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18M5 20V10M10 20V4M15 20v-7M20 20V8"/></svg>Spectroscopy &amp; data</h3>
+                <p>VUV, UV, and IR laser spectroscopy, mass spectrometry, and velocity-map imaging. I write automation and analysis in Python, LabVIEW, and MATLAB, and build root-cause analytics for production.</p>
+            </div>
         </div>
+    </div>
+</section>
 
-        <div class="achievement-card">
-            <div class="achievement-metric">2×</div>
-            <div class="achievement-title">VIG Throughput Increase</div>
-            <p>Led development of a proprietary vacuum insulated glass evacuation process achieving 2× throughput, 99% yield, and improved unit R-Value.</p>
+<!-- SELECTED WORK -->
+<section class="section" id="work">
+    <div class="wrap">
+        <div class="section-head">
+            <span class="eyebrow">Selected work</span>
+            <h2>Results in production and in the lab</h2>
+            <p>Each project below states the problem, what I did, and the measured outcome.</p>
         </div>
-
-        <div class="achievement-card">
-            <div class="achievement-metric">$1M+</div>
-            <div class="achievement-title">Instrument Recovery</div>
-            <p>Fully restored a cryogenically-cooled ion trap mass spectrometer including UHV system rebuild, laser integration, and control software programming.</p>
+        <div class="grid grid-3">
+            <article class="card case featured">
+                <div class="case-head"><span class="case-org">LuxWall · Production metrology</span></div>
+                <div class="case-metric">Algorithm → plant floor</div>
+                <h3>Thermal-performance and flatness metrology</h3>
+                <dl>
+                    <div><dt>Challenge</dt><dd>Production needed reliable measurements of insulating performance (R-value), glass flatness, and optical distortion to screen product and guide process changes.</dd></div>
+                    <div><dt>Approach</dt><dd>I developed a proprietary laser-based R-value measurement system, from the algorithm through plant-floor integration, and the protocol for using it in quality screening. I also led flatness metrology at two levels, an offline confocal gantry profiler with Python control and analysis at the micron level and an in-line phase-shifting deflectometry camera system at ~10 µm, and wrote software that turns data from distortion tools and a thermal scanner into process parameters.</dd></div>
+                    <div><dt>Outcome</dt><dd>R-value measurement is integrated on the plant floor for quality screening, and flatness, distortion, and thermal data are reduced to process parameters engineers can act on.</dd></div>
+                </dl>
+                <div class="tags"><span class="tag">Laser metrology</span><span class="tag">Deflectometry</span><span class="tag">Confocal profilometry</span><span class="tag">Plant-floor integration</span><span class="tag">Python</span></div>
+            </article>
+            <article class="card case">
+                <div class="case-head"><span class="case-org">LuxWall · Production</span></div>
+                <div class="case-metric">99% yield · 3× takt</div>
+                <h3>Fiber-laser ablation in volume production</h3>
+                <dl>
+                    <dt>Challenge</dt><dd>Two production laser-ablation processes needed higher yield and shorter cycle time.</dd>
+                    <dt>Approach</dt><dd>I integrated a fiber-laser ablation system, added in-line sensing, redesigned the process window, and put both steps under statistical process control. Parameter optimization and Python automation shortened the cycle.</dd>
+                    <dt>Outcome</dt><dd>Each process independently reached 99% yield; on the first, scrap fell from 1 in 9 parts to 1%. Takt time fell 3× on the first and 2× on the second.</dd>
+                </dl>
+                <div class="tags"><span class="tag">Fiber laser</span><span class="tag">SPC</span><span class="tag">Sensor integration</span><span class="tag">Python</span></div>
+            </article>
+            <article class="card case">
+                <div class="case-head"><span class="case-org">LuxWall · First factory</span></div>
+                <div class="case-metric">40% faster · 99% yield</div>
+                <h3>Vacuum-insulated glass evacuation</h3>
+                <dl>
+                    <dt>Challenge</dt><dd>The company's first factory needed a vacuum-insulated glass (VIG) evacuation process that could run at production scale.</dd>
+                    <dt>Approach</dt><dd>I led development of a proprietary evacuation process and of the related laser-heating processes, working as the liaison between factory engineering, scaling, and R&amp;D.</dd>
+                    <dt>Outcome</dt><dd>The process reached 99% yield, and evacuation takt time fell 40% while unit quality was maintained.</dd>
+                </dl>
+                <div class="tags"><span class="tag">High vacuum</span><span class="tag">Laser heating</span><span class="tag">Scale-up</span></div>
+            </article>
+            <article class="card case">
+                <div class="case-head"><span class="case-org">LuxWall · Quality systems</span></div>
+                <div class="case-metric">50 µm resolution</div>
+                <h3>Glass defect detection and yield analytics</h3>
+                <dl>
+                    <dt>Challenge</dt><dd>Defects and process drift had to be caught at the station that caused them, not at final inspection.</dd>
+                    <dt>Approach</dt><dd>With a vision-system integrator, I brought a single-pane glass defect-detection system into production use at 50 µm resolution. I also integrated material color measurement, applied ML-based surface inspection, and built a root-cause-analysis platform.</dd>
+                    <dt>Outcome</dt><dd>The defect-detection system works in production and catches defects at the source. Yield improved, and quality data is shared company-wide.</dd>
+                </dl>
+                <div class="tags"><span class="tag">Machine vision</span><span class="tag">Defect detection</span><span class="tag">Machine learning</span><span class="tag">Root cause analysis</span></div>
+            </article>
+            <article class="card case">
+                <div class="case-head"><span class="case-org">Sandia National Laboratories</span></div>
+                <div class="case-metric">$1M+ instrument</div>
+                <h3>Cryogenic ion-trap spectrometer recovery</h3>
+                <dl>
+                    <dt>Challenge</dt><dd>A cryogenically cooled ion-trap mass spectrometer was out of service.</dd>
+                    <dt>Approach</dt><dd>I rebuilt the UHV system, installed a tunable IR OPO/OPA laser, and wrote the LabVIEW control and data-analysis software.</dd>
+                    <dt>Outcome</dt><dd>The instrument returned to service. I developed IR, UV, and double-resonance spectroscopy methods for structural characterization of metal–molecule complexes, which supported first-author papers in <em>JACS</em> (2024) and <em>J. Phys. Chem. A</em> (2023).</dd>
+                </dl>
+                <div class="tags"><span class="tag">UHV</span><span class="tag">IR OPO/OPA</span><span class="tag">LabVIEW</span><span class="tag">Mass spectrometry</span></div>
+            </article>
+            <article class="card case">
+                <div class="case-head"><span class="case-org">University of Missouri · SLAC</span></div>
+                <div class="case-metric">Custom UHV instrument</div>
+                <h3>Hypersonic collisions, plasma sources, and VUV detection</h3>
+                <dl>
+                    <dt>Challenge</dt><dd>Hypersonic collision dynamics needed a purpose-built imaging instrument.</dd>
+                    <dt>Approach</dt><dd>I designed and built a UHV imaging instrument with electron–ion coincidence detection. For two years I generated pulsed electric-discharge plasmas in a pulsed-valve gas expansion and characterized them with MCP/phosphor imaging detectors, cameras, and PMTs. I also built a 118 nm VUV source, tripling 355 nm light in xenon, for detecting atoms and molecules, and ran MeV ultrafast electron diffraction experiments at SLAC.</dd>
+                    <dt>Outcome</dt><dd>The group gained new experimental capability. As senior postdoc I mentored students and led lab operations, and I co-authored crossed-beam reaction-dynamics papers in <em>J. Phys. Chem. Lett.</em> (2023) and <em>Faraday Discussions</em> (2024).</dd>
+                </dl>
+                <div class="tags"><span class="tag">Plasma diagnostics</span><span class="tag">118 nm VUV</span><span class="tag">Coincidence imaging</span><span class="tag">Instrument design</span></div>
+            </article>
+            <article class="card case">
+                <div class="case-head"><span class="case-org">University of Missouri · PhD</span></div>
+                <div class="case-metric"><em>Science</em> 2021</div>
+                <h3>Quantum resonances in formaldehyde roaming</h3>
+                <dl>
+                    <dt>Challenge</dt><dd>The question was whether quantum resonances couple the roaming, radical, and molecular dissociation channels of formaldehyde.</dd>
+                    <dt>Approach</dt><dd>I used high-resolution velocity-map imaging with automated, tunable UV laser systems and custom optical detection on a UHV molecular-beam apparatus.</dd>
+                    <dt>Outcome</dt><dd>We observed orbiting resonances that couple the three channels. I was first author on the <em>Science</em> paper (2021), which has 40+ citations.</dd>
+                </dl>
+                <div class="tags"><span class="tag">Velocity-map imaging</span><span class="tag">Tunable UV lasers</span><span class="tag">Molecular beams</span></div>
+            </article>
         </div>
-
-        <div class="achievement-card">
-            <div class="achievement-metric">ML and Vision</div>
-            <div class="achievement-title">Intelligent QC Systems</div>
-            <p>Applied machine learning and machine vision to glass surface inspection and quality control — including deployment of a single glass plane defect detection system.</p>
-        </div>
-
-        <div class="achievement-card">
-            <div class="achievement-metric">20+</div>
-            <div class="achievement-title">Peer-Reviewed Publications</div>
-            <p>Author of 20+ publications including papers in <em>Science</em> and <em>JACS</em> with 430+ citations, demonstrating deep scientific expertise across analytical and physical chemistry.</p>
-        </div>
-
     </div>
 </section>
 
 <!-- EXPERIENCE -->
-<section id="experience" class="section">
-    <h2 class="section-title">Professional Experience</h2>
-    <div class="experience-timeline">
-
-        <div class="timeline-item">
-            <div class="timeline-date">August 2024 – Present</div>
-            <div class="timeline-title">Laser Systems Engineer</div>
-            <div class="timeline-company">LuxWall</div>
-            <ul>
-                <li>Integrated fiber laser ablation system, achieving 99% yield and 3× takt time reduction; separately achieved 99% yield and 2× takt time reduction on a second ablation process through sensor integration and SPC</li>
-                <li>Led development of vacuum insulated glass (VIG) evacuation process in first factory, achieving 2× throughput increase, 99% yield, and improved unit R-Value</li>
-                <li>Led development of laser heating processes for vacuum insulated glass production</li>
-                <li>Served as cross-functional technical liaison between factory engineering, scaling, and R&amp;D teams</li>
-                <li>Deployed single glass plane defect detection system in collaboration with vision system integrator; integrated material color measurement system; applied ML and machine vision for QC</li>
-                <li>Subject matter expert for all laser and high vacuum processes — authored SOPs, work instructions, control plans, and troubleshooting guides; overhauled preventative maintenance procedures</li>
-            </ul>
+<section class="section section-alt" id="experience">
+    <div class="wrap">
+        <div class="section-head">
+            <span class="eyebrow">Experience</span>
+            <h2>Career</h2>
         </div>
-
-        <div class="timeline-item">
-            <div class="timeline-date">2022 – July 2024</div>
-            <div class="timeline-title">Research Excellence Postdoctoral Fellow</div>
-            <div class="timeline-company">University of Missouri</div>
-            <ul>
-                <li>Designed and built custom ultra-high vacuum imaging instrument for hypersonic collision studies with electron-ion coincidence detection</li>
-                <li>Implemented laser system for novel VUV detection of atoms and molecules; performed MeV-UED experiments at SLAC National Laboratory using advanced instrumentation and custom Python analysis</li>
-                <li>Mentored research group members and led lab operations as senior postdoc</li>
-            </ul>
+        <div class="timeline">
+            <div class="role">
+                <div class="role-when"><strong>Aug 2024 – Present</strong>Staff Scientist since Apr 2026</div>
+                <div>
+                    <h3>Staff Scientist</h3>
+                    <div class="role-org">LuxWall, Inc. — vacuum-insulated glass · previously Laser Systems Engineer (Aug 2024 – Mar 2026)</div>
+                    <ul>
+                        <li>Integrated a fiber laser ablation system that cut scrap from 1 in 9 parts to 1% (99% yield) and cut takt time 3×. On a second ablation process, reached 99% yield and a 2× takt reduction through sensor integration and SPC.</li>
+                        <li>Led development of the vacuum-insulated-glass evacuation process in the company's first factory at 99% yield, and reduced evacuation takt time 40% while maintaining unit quality.</li>
+                        <li>Developed a proprietary laser-based R-value measurement system from the measurement algorithm through plant-floor integration, and the protocol for using it in production quality screening.</li>
+                        <li>Led flatness and distortion metrology: developed an offline confocal gantry profiler with Python control and analysis (micron level) and an in-line phase-shifting deflectometry camera system (~10 µm), and wrote analysis software for distortion tools and a thermal scanner.</li>
+                        <li>Manage a team of three manufacturing engineers (since April 2026).</li>
+                        <li>Commissioned equipment and supported the launch of an automated production line, working with controls engineers on integration.</li>
+                        <li>Wrote requirements and specifications, led design reviews, and selected vendors for the machine-vision, R-value, and flatness measurement systems.</li>
+                        <li>Led development of laser-heating processes for VIG production.</li>
+                        <li>Deployed machine vision and sensors for quality control, including a working single-pane glass defect-detection system (50 µm resolution) brought into production with a vision integrator, color measurement, and ML-based surface inspection. Built a root-cause-analysis platform.</li>
+                        <li>Subject-matter expert for all laser and high-vacuum processes and technical liaison between factory engineering, scaling, and R&amp;D. Implemented laser-safety solutions and authored SOPs, work instructions, control plans, and troubleshooting guides, and overhauled preventive maintenance.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="role">
+                <div class="role-when"><strong>Aug 2022 – Jul 2024</strong></div>
+                <div>
+                    <h3>Research Excellence Postdoctoral Fellow</h3>
+                    <div class="role-org">University of Missouri</div>
+                    <ul>
+                        <li>Designed and built a custom UHV imaging instrument for hypersonic collision studies with electron–ion coincidence detection.</li>
+                        <li>Generated and characterized pulsed electric-discharge plasmas from a pulsed-valve gas expansion over two years, using MCP/phosphor imaging detectors, cameras, and PMTs.</li>
+                        <li>Implemented a laser system for VUV detection of atoms and molecules, generating 118 nm light by frequency-tripling 355 nm in a xenon gas cell. Performed MeV ultrafast electron diffraction (UED) experiments at SLAC National Accelerator Laboratory, with custom Python analysis.</li>
+                        <li>As senior postdoc, mentored and trained group members and led lab operations and instrument training.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="role">
+                <div class="role-when"><strong>Mar 2021 – Jul 2022</strong></div>
+                <div>
+                    <h3>Postdoctoral Associate</h3>
+                    <div class="role-org">Sandia National Laboratories — Combustion Research Facility</div>
+                    <ul>
+                        <li>Restored a $1M+ cryogenically cooled ion-trap instrument, including the UHV rebuild, IR OPO/OPA laser installation, and LabVIEW control and data-analysis software.</li>
+                        <li>Developed IR, UV, and double-resonance spectroscopy methods for molecular detection and structural characterization of metal–molecule complexes.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="role">
+                <div class="role-when"><strong>May 2016 – Dec 2020</strong></div>
+                <div>
+                    <h3>Graduate Research Assistant (PhD)</h3>
+                    <div class="role-org">University of Missouri — Suits group</div>
+                    <ul>
+                        <li>First author on a <em>Science</em> paper reporting quantum resonances in molecular photodissociation, measured with velocity-map imaging.</li>
+                        <li>Designed laser automation systems and custom optical detection for UHV molecular-beam experiments.</li>
+                        <li>Summer 2018 Journeyman Fellow at the Army Research Laboratory: built a porous-silicon particle workflow from wafer to fractionated particle, characterized by FTIR, calorimetry, dynamic pressure, and porosimetry.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="role">
+                <div class="role-when"><strong>Aug 2013 – Apr 2016</strong></div>
+                <div>
+                    <h3>Graduate Research &amp; Teaching Assistant</h3>
+                    <div class="role-org">Wayne State University</div>
+                    <ul>
+                        <li>Developed mass spectrometry and ion-mobility (IMS-MS) methods on Waters, Thermo, and Bruker platforms for biological and polymer analysis (research assistant, Jun 2014 – Apr 2016).</li>
+                        <li>Taught analytical chemistry laboratories, including chromatography and separation science (teaching assistant, Aug 2013 – May 2014).</li>
+                    </ul>
+                </div>
+            </div>
         </div>
-
-        <div class="timeline-item">
-            <div class="timeline-date">2021 – 2022</div>
-            <div class="timeline-title">Postdoctoral Associate</div>
-            <div class="timeline-company">Sandia National Laboratories</div>
-            <ul>
-                <li>Restored $1M+ cryogenically-cooled ion trap mass spectrometer including UHV system rebuild, tunable IR OPO/OPA laser installation, and programming of LabVIEW control and data analysis software</li>
-                <li>Developed IR, UV, and double resonance spectroscopy methods for novel molecular detection and structural characterization of metal–molecule complexes</li>
-            </ul>
-        </div>
-
-        <div class="timeline-item">
-            <div class="timeline-date">May 2016 – 2020</div>
-            <div class="timeline-title">Graduate Research Assistant</div>
-            <div class="timeline-company">University of Missouri</div>
-            <ul>
-                <li>Published breakthrough research in <em>Science</em> on quantum resonances in molecular dynamics using velocity map imaging</li>
-                <li>Designed comprehensive laser automation systems and custom optical detection for UHV molecular beam experiments</li>
-            </ul>
-        </div>
-
-        <div class="timeline-item">
-            <div class="timeline-date">2014 – April 2016</div>
-            <div class="timeline-title">Graduate Research Assistant</div>
-            <div class="timeline-company">Wayne State University</div>
-            <ul>
-                <li>Developed mass spectrometry methods across Waters, Thermo, and Bruker platforms with ion mobility spectrometry for biological and polymer analysis</li>
-                <li>Taught analytical chemistry laboratory courses including chromatography and separation science</li>
-            </ul>
-        </div>
-
-        <div class="timeline-item">
-            <div class="timeline-date">Summer 2018</div>
-            <div class="timeline-title">Summer Journeyman Fellow</div>
-            <div class="timeline-company">Army Research Laboratory</div>
-            <ul>
-                <li>Developed porous silicon particle workflow from wafer to fractionated particle; characterized materials via FTIR, calorimetry, dynamic pressure measurements, and porosimetry for energetic materials applications</li>
-            </ul>
-        </div>
-
     </div>
 </section>
 
 <!-- SKILLS -->
-<section id="skills" class="section">
-    <h2 class="section-title">Technical Skills</h2>
-    <div class="skills-container">
-
-        <div class="skill-category">
-            <h3>Laser Systems</h3>
-            <div class="skill-tags">
-                <span class="skill-tag">Fiber Laser</span>
-                <span class="skill-tag">Nd:YAG / DPSS</span>
-                <span class="skill-tag">CO₂</span>
-                <span class="skill-tag">Excimer</span>
-                <span class="skill-tag">VUV / Ti:Sapphire</span>
-                <span class="skill-tag">IR OPO/OPA</span>
-                <span class="skill-tag">Laser Ablation</span>
-                <span class="skill-tag">Laser Scribe</span>
-                <span class="skill-tag">Laser Heating</span>
-                <span class="skill-tag">Optical Alignment</span>
-                <span class="skill-tag">Beam Diagnostics</span>
-            </div>
+<section class="section" id="skills">
+    <div class="wrap">
+        <div class="section-head">
+            <span class="eyebrow">Capabilities</span>
+            <h2>Technical skills</h2>
         </div>
-
-        <div class="skill-category">
-            <h3>Vacuum and Advanced Instrumentation</h3>
-            <div class="skill-tags">
-                <span class="skill-tag">Ultra-High Vacuum Systems</span>
-                <span class="skill-tag">Ion Optics</span>
-                <span class="skill-tag">Cryogenic Systems</span>
-                <span class="skill-tag">Mass Spectrometry (Waters, Thermo, Bruker)</span>
-                <span class="skill-tag">Ion Mobility (IMS-MS)</span>
-                <span class="skill-tag">Particle Imaging</span>
-                <span class="skill-tag">Velocity Map Imaging</span>
-                <span class="skill-tag">High Voltage Systems</span>
-            </div>
+        <div class="grid grid-3">
+            <div class="card skill-group"><h3>Lasers &amp; optics</h3><div class="tags">
+                <span class="tag">Fiber</span><span class="tag">Nd:YAG / DPSS</span><span class="tag">CO₂</span><span class="tag">Excimer</span><span class="tag">VUV</span><span class="tag">Ti:sapphire</span><span class="tag">Dye</span><span class="tag">IR OPO/OPA</span><span class="tag">Ablation &amp; scribing</span><span class="tag">Laser heating</span><span class="tag">Optical alignment</span><span class="tag">Beam diagnostics</span><span class="tag">118 nm VUV generation</span><span class="tag">Zemax OpticStudio</span><span class="tag">Laser safety</span>
+            </div></div>
+            <div class="card skill-group"><h3>Vacuum &amp; instrumentation</h3><div class="tags">
+                <span class="tag">UHV design &amp; build</span><span class="tag">Production evacuation</span><span class="tag">Cryogenics</span><span class="tag">Ion optics</span><span class="tag">High voltage</span><span class="tag">Plasma generation &amp; diagnostics</span><span class="tag">Molecular beams</span><span class="tag">Velocity-map imaging</span><span class="tag">Coincidence detection</span><span class="tag">SolidWorks / FreeCAD</span>
+            </div></div>
+            <div class="card skill-group"><h3>Metrology &amp; machine vision</h3><div class="tags">
+                <span class="tag">Laser-based R-value measurement</span><span class="tag">Phase-shifting deflectometry</span><span class="tag">Confocal profilometry</span><span class="tag">Thermal &amp; distortion scanning</span><span class="tag">Defect detection</span><span class="tag">Camera-based inspection</span><span class="tag">Confocal sensors</span><span class="tag">Laser displacement</span><span class="tag">Color measurement</span><span class="tag">ML surface inspection</span><span class="tag">Vision integration</span>
+            </div></div>
+            <div class="card skill-group"><h3>Spectroscopy &amp; analytical</h3><div class="tags">
+                <span class="tag">UV/Vis/IR</span><span class="tag">FTIR</span><span class="tag">REMPI</span><span class="tag">LIF</span><span class="tag">IR–UV double resonance</span><span class="tag">Photofragmentation</span><span class="tag">Mass spectrometry</span><span class="tag">IMS-MS</span><span class="tag">ESI / MALDI</span><span class="tag">UED</span>
+            </div></div>
+            <div class="card skill-group"><h3>Process &amp; quality engineering</h3><div class="tags">
+                <span class="tag">Process development</span><span class="tag">DOE</span><span class="tag">SPC</span><span class="tag">Cp/Cpk · Pp/Ppk</span><span class="tag">PFMEA</span><span class="tag">8D / root cause</span><span class="tag">PDCA</span><span class="tag">Control plans</span><span class="tag">SOPs &amp; work instructions</span><span class="tag">Preventive maintenance</span><span class="tag">KPI development</span><span class="tag">Yield improvement</span><span class="tag">Equipment commissioning</span><span class="tag">Requirements &amp; design reviews</span><span class="tag">Lean / Six Sigma training</span><span class="tag">5S · Kanban · poka-yoke</span><span class="tag">Value stream mapping</span><span class="tag">5-Why</span><span class="tag">Team leadership</span>
+            </div></div>
+            <div class="card skill-group"><h3>Software &amp; data</h3><div class="tags">
+                <span class="tag">Python</span><span class="tag">LabVIEW</span><span class="tag">MATLAB</span><span class="tag">Data acquisition</span><span class="tag">Instrument control</span><span class="tag">Machine learning</span><span class="tag">Statistical analysis</span><span class="tag">Automation</span>
+            </div></div>
         </div>
-
-        <div class="skill-category">
-            <h3>Sensor Integration and Machine Vision</h3>
-            <div class="skill-tags">
-                <span class="skill-tag">Confocal Sensors</span>
-                <span class="skill-tag">Laser Displacement</span>
-                <span class="skill-tag">Camera-Based Inspection</span>
-                <span class="skill-tag">Defect Detection Systems</span>
-                <span class="skill-tag">Color Measurement</span>
-                <span class="skill-tag">Machine Vision Integration</span>
-            </div>
-        </div>
-
-        <div class="skill-category">
-            <h3>Programming and Data Science</h3>
-            <div class="skill-tags">
-                <span class="skill-tag">Python</span>
-                <span class="skill-tag">MATLAB</span>
-                <span class="skill-tag">LabVIEW</span>
-                <span class="skill-tag">Machine Learning</span>
-                <span class="skill-tag">Data Analytics</span>
-                <span class="skill-tag">Automation Scripting</span>
-                <span class="skill-tag">Data Acquisition</span>
-            </div>
-        </div>
-
-        <div class="skill-category">
-            <h3>Spectroscopy and Analytical Chemistry</h3>
-            <div class="skill-tags">
-                <span class="skill-tag">UV/Vis/IR Spectroscopy</span>
-                <span class="skill-tag">FTIR (ATR, Transmission)</span>
-                <span class="skill-tag">REMPI</span>
-                <span class="skill-tag">Double Resonance</span>
-                <span class="skill-tag">Laser-Induced Fluorescence</span>
-                <span class="skill-tag">Photofragmentation</span>
-                <span class="skill-tag">ESI / MALDI / nanoESI</span>
-                <span class="skill-tag">MS/MS</span>
-            </div>
-        </div>
-
-        <div class="skill-category">
-            <h3>Process Engineering and Production Improvement</h3>
-            <div class="skill-tags">
-                <span class="skill-tag">Process Development</span>
-                <span class="skill-tag">Yield Optimization</span>
-                <span class="skill-tag">Statistical Process Control</span>
-                <span class="skill-tag">Cpk/Ppk Analysis</span>
-                <span class="skill-tag">Root Cause Analysis (8D)</span>
-                <span class="skill-tag">PFMEA</span>
-                <span class="skill-tag">PDCA</span>
-                <span class="skill-tag">DOE</span>
-                <span class="skill-tag">SOP Authoring</span>
-                <span class="skill-tag">Control Plans</span>
-                <span class="skill-tag">Preventative Maintenance</span>
-                <span class="skill-tag">KPI Development</span>
-                <span class="skill-tag">CAD (SolidWorks, FreeCAD)</span>
-            </div>
-        </div>
-
     </div>
 </section>
 
 <!-- PUBLICATIONS -->
-<section id="publications" class="section">
-    <h2 class="section-title">Publications and Research</h2>
-    <div class="publications-container">
-
-        <div class="pub-stats">
-            <div class="stat-item">
-                <div class="stat-number">20+</div>
-                <div class="stat-label">Peer-Reviewed Publications</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">430+</div>
-                <div class="stat-label">Citations</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number"><em>Science</em><br>&amp; JACS</div>
-                <div class="stat-label">Top-Tier Journals</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-number">15+</div>
-                <div class="stat-label">Conference Presentations</div>
-            </div>
+<section class="section section-alt" id="publications">
+    <div class="wrap">
+        <div class="section-head">
+            <span class="eyebrow">Research</span>
+            <h2>Publications</h2>
+            <p>I have 23 peer-reviewed papers (8 as first author) on molecular dynamics, laser spectroscopy, ion spectroscopy, and mass spectrometry, cited more than 450 times, plus a 2026 preprint from ultrafast electron diffraction experiments at SLAC. Selected papers are listed below.</p>
         </div>
-
-        <div class="pub-card">
-            <h3>Selected Publications</h3>
-
-            <div class="pub-item">
-                <div class="pub-title">Site-specific Photochemistry along a Protonated Peptide Scaffold</div>
-                <div class="pub-journal">Journal of the American Chemical Society, 146: 13282–13295, 2024</div>
-                <div class="pub-desc">Advanced mass spectrometry and spectroscopic methods for understanding peptide photochemistry mechanisms.</div>
-            </div>
-
-            <div class="pub-item">
-                <div class="pub-title">Orbiting Resonances in Formaldehyde Reveal Coupling of Roaming, Radical, and Molecular Channels</div>
-                <div class="pub-journal">Science, 374: 1122–1127, 2021</div>
-                <div class="pub-desc">Breakthrough discovery using velocity map imaging and advanced laser systems to observe quantum resonances in molecular unimolecular dissociation.</div>
-            </div>
-
-            <div class="pub-item">
-                <div class="pub-title">Molecular Cage Reports on Its Contents: Spectroscopic Signatures of Cryo-Cooled K⁺- and Ba²⁺-Benzocryptand Complexes</div>
-                <div class="pub-journal">Journal of Physical Chemistry A, 127: 6227–6240, 2023</div>
-                <div class="pub-desc">Advanced spectroscopic analysis of host-guest molecular interactions using cryogenic ion trap methods.</div>
-            </div>
-
-            <div class="pub-item">
-                <div class="pub-title">Ion Mobility Spectrometry-Mass Spectrometry to Elucidate Arm-Dispersity within Star Polymers</div>
-                <div class="pub-journal">ACS MacroLetters, 4: 778–782, 2015</div>
-                <div class="pub-desc">Innovative analytical method for characterizing complex polymer architectures using ion mobility separation.</div>
-            </div>
+        <ol class="pub-list">
+            <li class="pub">
+                <div class="pub-year">2026</div>
+                <div>
+                    <div class="pub-title"><a href="https://arxiv.org/abs/2609.31875" target="_blank" rel="noopener">Heteroatom Position Controls Ultrafast Photodynamics of Oxazole and Isoxazole</a></div>
+                    <div class="pub-authors">B. Downes-Ward, P. Javed, H. V. S. Lam, …, <b>C. Foley</b>, …, A. G. Suits, C. Aikens, D. Rolles (30 authors)</div>
+                    <div class="pub-venue">arXiv:2609.31875 · MeV ultrafast electron diffraction at SLAC <span class="pub-badge">Preprint</span></div>
+                </div>
+            </li>
+            <li class="pub">
+                <div class="pub-year">2024</div>
+                <div>
+                    <div class="pub-title"><a href="https://doi.org/10.1021/jacs.4c01576" target="_blank" rel="noopener">Site-Specific Photochemistry along a Protonated Peptide Scaffold</a></div>
+                    <div class="pub-authors"><b>C. D. Foley</b>, C. Lee, A. Abou Taka, K. Au, E. Chollet, M. A. Kubasik, L. M. McCaslin, T. S. Zwier</div>
+                    <div class="pub-venue">J. Am. Chem. Soc. 146, 13282–13295 <span class="pub-badge">First author</span></div>
+                </div>
+            </li>
+            <li class="pub">
+                <div class="pub-year">2023</div>
+                <div>
+                    <div class="pub-title"><a href="https://doi.org/10.1021/acs.jpca.3c03457" target="_blank" rel="noopener">Molecular Cage Reports on Its Contents: Spectroscopic Signatures of Cryo-Cooled K⁺- and Ba²⁺-Benzocryptand Complexes</a></div>
+                    <div class="pub-authors"><b>C. D. Foley</b>, C. D. Allen, K. Au, C. Lee, S. B. Rempe, P. Ren, E. L. Sibert III, T. S. Zwier</div>
+                    <div class="pub-venue">J. Phys. Chem. A 127, 6227–6240 <span class="pub-badge">First author</span></div>
+                </div>
+            </li>
+            <li class="pub">
+                <div class="pub-year">2023</div>
+                <div>
+                    <div class="pub-title"><a href="https://doi.org/10.1021/acs.jpclett.3c01953" target="_blank" rel="noopener">Sulfur (³P) Reaction with Conjugated Dienes Gives Cyclization to Thiophenes under Single Collision Conditions</a></div>
+                    <div class="pub-authors">H. Li, J. Lang, <b>C. D. Foley</b>, J. Zádor, A. G. Suits</div>
+                    <div class="pub-venue">J. Phys. Chem. Lett. 14, 7611–7617</div>
+                </div>
+            </li>
+            <li class="pub">
+                <div class="pub-year">2021</div>
+                <div>
+                    <div class="pub-title"><a href="https://doi.org/10.1126/science.abk0634" target="_blank" rel="noopener">Orbiting Resonances in Formaldehyde Reveal Coupling of Roaming, Radical, and Molecular Channels</a></div>
+                    <div class="pub-authors"><b>C. D. Foley</b>, C. Xie, H. Guo, A. G. Suits</div>
+                    <div class="pub-venue">Science 374, 1122–1127 <span class="pub-badge">First author</span></div>
+                </div>
+            </li>
+            <li class="pub">
+                <div class="pub-year">2015</div>
+                <div>
+                    <div class="pub-title"><a href="https://doi.org/10.1021/acsmacrolett.5b00299" target="_blank" rel="noopener">Use of Ion Mobility Spectrometry–Mass Spectrometry to Elucidate Architectural Dispersity within Star Polymers</a></div>
+                    <div class="pub-authors"><b>C. D. Foley</b>, B. Zhang, A. M. Alb, S. Trimpin, S. M. Grayson</div>
+                    <div class="pub-venue">ACS Macro Lett. 4, 778–782 <span class="pub-badge">First author</span></div>
+                </div>
+            </li>
+        </ol>
+        <div class="pub-more">
+            <a class="btn btn-secondary" href="/publications/">All 23 publications</a>
+            <a class="btn btn-ghost" href="https://scholar.google.com/citations?hl=en&amp;user=vwZJ8iIAAAAJ" target="_blank" rel="noopener">Google Scholar →</a>
         </div>
-
-        <p style="font-size: 0.9rem; color: #718096; text-align: center;">
-            Full publication list available on <a href="https://scholar.google.com/citations?hl=en&user=vwZJ8iIAAAAJ" target="_blank" style="color: #667eea; text-decoration: none;">Google Scholar</a>
-        </p>
-
     </div>
 </section>
 
 <!-- EDUCATION -->
-<section id="education" class="section">
-    <h2 class="section-title">Education</h2>
-    <div class="experience-timeline">
-
-        <div class="timeline-item">
-            <div class="timeline-date">December 2020</div>
-            <div class="timeline-title">PhD, Physical Chemistry</div>
-            <div class="timeline-company">University of Missouri</div>
-            <p><strong>Dissertation:</strong> Quantum Aspects of Roaming Dynamics<br>
-            <strong>Advisor:</strong> Professor Arthur G. Suits<br>
-            Advanced particle imaging, spectroscopy, laser system design, and UHV instrumentation. Research Excellence Fellowship recipient.</p>
+<section class="section" id="education">
+    <div class="wrap">
+        <div class="section-head">
+            <span class="eyebrow">Education</span>
+            <h2>Education &amp; honors</h2>
         </div>
-
-        <div class="timeline-item">
-            <div class="timeline-date">May 2013</div>
-            <div class="timeline-title">BS, Biochemistry</div>
-            <div class="timeline-company">Saginaw Valley State University</div>
-            <p>President's Scholarship recipient. Gained industrial laboratory experience at Dow Chemical during undergraduate study.</p>
+        <div class="edu-grid">
+            <div class="card">
+                <h3>PhD, Physical Chemistry</h3>
+                <div class="card-meta">University of Missouri · December 2020</div>
+                <p style="color:var(--text-2)">Dissertation: <em>Quantum Aspects of Roaming Dynamics</em>. Advisor: Prof. Arthur G. Suits. Particle imaging, laser spectroscopy, laser-system design, and UHV instrumentation.</p>
+            </div>
+            <div class="card">
+                <h3>BS, Biochemistry</h3>
+                <div class="card-meta">Saginaw Valley State University · May 2013</div>
+                <p style="color:var(--text-2)">President's Scholarship. Two-year toxicology co-op at The Dow Chemical Company (2010–2012).</p>
+            </div>
+            <div class="card">
+                <h3>Honors &amp; awards</h3>
+                <ul class="honors" style="margin-top:.6rem">
+                    <li><span>Army Research Laboratory Journeyman Fellowship</span><span>2018</span></li>
+                    <li><span>Thomas C. Rumble Fellowship, Wayne State</span><span>2014–15</span></li>
+                    <li><span>Citation for Excellence in Teaching, Wayne State</span><span>2014</span></li>
+                    <li><span>President's Scholarship, SVSU</span><span>2009–13</span></li>
+                </ul>
+            </div>
         </div>
+    </div>
+</section>
 
+<!-- RESOURCES -->
+<section class="section section-alt" id="resources">
+    <div class="wrap">
+        <div class="section-head">
+            <span class="eyebrow">Resources</span>
+            <h2>Engineering tools &amp; explainers</h2>
+            <p>I publish the calculators and notes I use myself. There are <span data-tool-count>27</span> live calculators for lasers, optics, vacuum, vision, and SPC, plus a formula reference and in-depth articles.</p>
+        </div>
+        <div data-related="energy-converter,focused-spot,pulse-overlap,pumpdown,machine-vision-lens,process-capability"></div>
+        <div class="btn-row" style="margin-top:1.5rem">
+            <a class="btn btn-primary" href="/tools/">Browse all tools</a>
+            <a class="btn btn-secondary" href="/formulas/">Formula reference</a>
+            <a class="btn btn-ghost" href="/learn/">Knowledge center →</a>
+        </div>
     </div>
 </section>
 
 <!-- CONTACT -->
-<section id="contact" class="section">
-    <h2 class="section-title">Get In Touch</h2>
-    <div class="contact-container">
-
-        <div class="contact-info-section">
-            <div class="contact-card">
-                <h3>Contact</h3>
-                <div style="display:flex; flex-direction:column; gap:1rem;">
-                    <div class="contact-detail">
-                        <span class="contact-icon">📧</span>
-                        <div>
-                            <strong>Email</strong>
-                            <a href="mailto:foley.photon@gmail.com">foley.photon@gmail.com</a>
-                        </div>
-                    </div>
-                    <div class="contact-detail">
-                        <span class="contact-icon">💼</span>
-                        <div>
-                            <strong>LinkedIn</strong>
-                            <a href="https://www.linkedin.com/in/cdfoley" target="_blank">linkedin.com/in/cdfoley</a>
-                        </div>
-                    </div>
-                    <div class="contact-detail">
-                        <span class="contact-icon">🎓</span>
-                        <div>
-                            <strong>Google Scholar</strong>
-                            <a href="https://scholar.google.com/citations?hl=en&user=vwZJ8iIAAAAJ" target="_blank">View Publications</a>
-                        </div>
-                    </div>
-                    <div class="contact-detail">
-                        <span class="contact-icon">🌐</span>
-                        <div>
-                            <strong>Website</strong>
-                            <a href="https://cdfoley.com">cdfoley.com</a>
-                        </div>
-                    </div>
-                </div>
+<section class="section" id="contact">
+    <div class="wrap">
+        <div class="contact-band">
+            <div>
+                <h2>Let's talk</h2>
+                <p>I'm open to senior engineering and scientist roles, and to consulting, in laser systems, vacuum processes, optical metrology and inspection, and process development and scale-up.</p>
+                <p class="open-to"><strong>Based in Marshall, Michigan.</strong> The fastest way to reach me is email.</p>
             </div>
+            <ul class="contact-list">
+                <li><a href="mailto:foley.photon@gmail.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>foley.photon@gmail.com</a></li>
+                <li><a href="https://www.linkedin.com/in/cdfoley" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>linkedin.com/in/cdfoley</a></li>
+                <li><a href="/resume/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>Resume (web &amp; PDF)</a></li>
+            </ul>
         </div>
-
-        <div class="availability-section">
-            <div class="availability-card">
-                <h3>Open To</h3>
-                <p style="font-size:0.88rem; color:#4a5568; margin-bottom:0.5rem;">Senior scientist and engineering roles, and open to consultation, in:</p>
-                <ul>
-                    <li>Laser Systems</li>
-                    <li>Vacuum Systems</li>
-                    <li>Instrumentation</li>
-                    <li>Novel Optical Detection Methods</li>
-                    <li>Machine Vision and Imaging</li>
-                    <li>Process Development and Scale-Up</li>
-                    <li>R&amp;D Technology Development</li>
-                    <li>Analytical Chemistry</li>
-                    <li>Cross-Functional Technical Leadership</li>
-                </ul>
-            </div>
-        </div>
-
     </div>
 </section>
 
 </main>
 
-<footer>
-    <p class="footer-tagline">Driving technical excellence from first principles.</p>
-</footer>
-
-</div><!-- /container -->
+<div id="site-footer"></div>
 
 <script>
-    document.querySelectorAll('a[href^="#"]').forEach(a => {
-        a.addEventListener('click', e => {
-            e.preventDefault();
-            const t = document.querySelector(a.getAttribute('href'));
-            if (t) t.scrollIntoView({ behavior: 'smooth' });
-        });
-    });
-
-    window.addEventListener('scroll', () => {
-        let current = '';
-        document.querySelectorAll('section').forEach(s => {
-            if (pageYOffset >= s.offsetTop - 200) current = s.id;
-        });
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.toggle('active', item.getAttribute('href') === `#${current}`);
-        });
-    });
+// Gaussian-beam envelope behind the hero: w(z) = w0·sqrt(1 + (z/zR)²)
+(function () {
+    var W = 1100, cy = 170, z0 = 820, w0 = 16, zR = 120, n = 120;
+    var top = '', bot = '', area = '';
+    for (var i = 0; i <= n; i++) {
+        var x = W * i / n, w = w0 * Math.sqrt(1 + Math.pow((x - z0) / zR, 2));
+        w = Math.min(w, 165);
+        top += (i ? 'L' : 'M') + x.toFixed(1) + ',' + (cy - w).toFixed(1);
+        bot += (i ? 'L' : 'M') + x.toFixed(1) + ',' + (cy + w).toFixed(1);
+    }
+    var back = bot.replace(/^M/, 'L').split('L').filter(Boolean).reverse().map(function (p) { return 'L' + p; }).join('');
+    document.getElementById('beam-top').setAttribute('d', top);
+    document.getElementById('beam-bot').setAttribute('d', bot);
+    document.getElementById('beam-area').setAttribute('d', top + back + 'Z');
+})();
 </script>
 </body>
 </html>

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LIDT Scaling Calculator: Laser Damage Threshold vs. Pulse Duration & Wavelength | Casey D. Foley, PhD</title>
+<meta name="description" content="Scale an optic's laser-induced damage threshold (LIDT) to your pulse duration and wavelength, compare it with your operating peak fluence or CW linear power density, and check the safety margin.">
+<link rel="canonical" href="https://cdfoley.com/tools/lidt/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Damage Threshold (LIDT) Scaling Calculator">
+<meta property="og:description" content="Scale LIDT with √τ and wavelength, compare with your operating fluence, and check the margin.">
+<meta property="og:url" content="https://cdfoley.com/tools/lidt/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<style>
+    .lidt-sub { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 1.3rem 0 0.7rem; font-weight: 650; }
+    .lidt-sub:first-of-type { margin-top: 0.2rem; }
+</style>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#process">Laser Processing</a></li><li aria-current="page">Damage Threshold (LIDT) Scaling</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Damage Threshold (LIDT) Scaling</h1>
+        <p class="lede">An optic's laser-induced damage threshold is measured under one specific set of conditions. This tool scales the datasheet value to your pulse duration and wavelength, compares it with the fluence (or CW linear power density) your beam actually delivers, and reports the margin.</p>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="mode">Laser type</label>
+                    <select id="mode" name="mode" class="input">
+                        <option value="pulsed" selected>Pulsed (fluence, J/cm²)</option>
+                        <option value="cw">CW or long pulse (linear power density, W/cm)</option>
+                    </select>
+                </div>
+
+                <h3 class="lidt-sub">Datasheet specification</h3>
+                <div class="field" data-show="pulsed">
+                    <label for="spec">Specified LIDT <span class="sym">F<sub>spec</sub></span></label>
+                    <div class="input-unit"><input id="spec" name="spec" value="10" inputmode="decimal" data-optional data-label="specified LIDT"><select data-dim="fluence" data-units="mJ/cm²,J/cm²" data-default="J/cm²"></select></div>
+                </div>
+                <div class="field" data-show="cw">
+                    <label for="slpd">Specified LIDT <span class="sym">LPD<sub>spec</sub></span></label>
+                    <div class="input-unit"><input id="slpd" name="slpd" value="10" inputmode="decimal" data-optional data-label="specified LIDT"><select name="lu" aria-label="Unit"><option value="1">W/cm</option><option value="1e3" selected>kW/cm</option><option value="1e6">MW/cm</option></select></div>
+                </div>
+                <div class="field-row">
+                    <div class="field" data-show="pulsed">
+                        <label for="stau">Test pulse duration</label>
+                        <div class="input-unit"><input id="stau" name="stau" value="10" inputmode="decimal" data-optional data-label="test pulse duration"><select data-dim="time" data-units="fs,ps,ns,µs,ms" data-default="ns"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="swl">Test wavelength</label>
+                        <div class="input-unit"><input id="swl" name="swl" value="1064" inputmode="decimal" data-positive data-label="test wavelength"><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    </div>
+                </div>
+                <div class="field-row" data-show="pulsed">
+                    <div class="field">
+                        <label for="sconv">Spec fluence convention</label>
+                        <select id="sconv" name="sconv" class="input">
+                            <option value="peak" selected>Peak, 2E/πw² (ISO 21254)</option>
+                            <option value="avg">Average, E/πw²</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="sd">Test beam diameter (optional)</label>
+                        <div class="input-unit"><input id="sd" name="sd" value="" inputmode="decimal" data-optional placeholder="1/e²" data-label="test beam diameter"><select data-dim="length" data-units="µm,mm" data-default="mm"></select></div>
+                    </div>
+                </div>
+
+                <h3 class="lidt-sub">Your operating conditions</h3>
+                <div class="field" data-show="pulsed">
+                    <label for="ep">Pulse energy at the optic <span class="sym">E<sub>p</sub></span></label>
+                    <div class="input-unit"><input id="ep" name="ep" value="5" inputmode="decimal" data-optional data-label="pulse energy"><select data-dim="energy" data-units="nJ,µJ,mJ,J" data-default="mJ"></select></div>
+                </div>
+                <div class="field" data-show="cw">
+                    <label for="p">Power at the optic <span class="sym">P</span></label>
+                    <div class="input-unit"><input id="p" name="p" value="200" inputmode="decimal" data-optional data-label="power"><select data-dim="power" data-units="mW,W,kW" data-default="W"></select></div>
+                </div>
+                <div class="field-row">
+                    <div class="field" data-show="pulsed">
+                        <label for="tau">Pulse duration</label>
+                        <div class="input-unit"><input id="tau" name="tau" value="20" inputmode="decimal" data-optional data-label="pulse duration"><select data-dim="time" data-units="fs,ps,ns,µs,ms" data-default="ns"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="wl">Wavelength</label>
+                        <div class="input-unit"><input id="wl" name="wl" value="532" inputmode="decimal" data-positive data-label="wavelength"><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="d">Beam diameter at the optic (1/e²) <span class="sym">2w</span></label>
+                    <div class="input-unit"><input id="d" name="d" value="1" inputmode="decimal" data-positive data-label="beam diameter"><select data-dim="length" data-units="µm,mm,cm" data-default="mm"></select></div>
+                </div>
+                <div class="field-row">
+                    <div class="field" data-show="pulsed">
+                        <label for="wlrule">Wavelength scaling</label>
+                        <select id="wlrule" name="wlrule" class="input">
+                            <option value="cons" selected>Conservative (lower of √λ, λ)</option>
+                            <option value="sqrt">√λ (Thorlabs, pulsed)</option>
+                            <option value="lin">∝ λ (Sill Optics)</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="sf">Safety factor</label>
+                        <div class="input-unit"><input id="sf" name="sf" value="2" inputmode="decimal" data-min="1" data-label="safety factor"><span class="unit">×</span></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="verdict" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Margin: scaled LIDT ÷ operating value</span><output class="result-value" data-out="margin">—</output></div>
+                    <div class="result"><span class="result-label">Scaled LIDT at your conditions</span><output class="result-value" data-out="scaled">—</output></div>
+                    <div class="result"><span class="result-label">Design limit (scaled LIDT ÷ safety factor)</span><output class="result-value" data-out="limit">—</output></div>
+                    <div class="result"><span class="result-label" id="op-label">Operating value (same convention as spec)</span><output class="result-value" data-out="op">—</output></div>
+                    <div class="result"><span class="result-label">Pulse-duration factor<span class="sym">√(τ/τ<sub>spec</sub>)</span></span><output class="result-value" data-out="ftau">—</output></div>
+                    <div class="result"><span class="result-label">Wavelength factor</span><output class="result-value" data-out="fwl">—</output></div>
+                    <div class="result"><span class="result-label">Operating peak fluence<span class="sym">2E<sub>p</sub>/πw²</span></span><output class="result-value" data-out="fpk">—</output></div>
+                    <div class="result"><span class="result-label">Operating average fluence<span class="sym">E<sub>p</sub>/πw²</span></span><output class="result-value" data-out="favg">—</output></div>
+                    <div class="result"><span class="result-label">Peak irradiance on axis<span class="sym">2P/πw²</span></span><output class="result-value" data-out="ipk">—</output></div>
+                    <div class="result"><span class="result-label">Beam area vs. test beam</span><output class="result-value" data-out="aratio">—</output></div>
+                    <div class="result" id="note-row"><span class="result-note" id="note"></span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How LIDT is specified</h2>
+        <p>Damage thresholds are measured by exposing many sites on a sample at a range of fluences and finding the fluence below which no damage occurs (ISO 21254). In a <strong>1-on-1</strong> test each site sees a single pulse. In an <strong>S-on-1</strong> test each site sees many pulses, which gives a lower threshold. ISO 21254 reports fluence through the effective beam area \(A_\text{eff} = \pi w^2/2\) for a Gaussian beam, so the value is the <em>peak</em> (on-axis) fluence. Some datasheets instead divide the energy by the 1/e² area, giving a number half as large. When the convention is unclear, treat the specification as a peak value. That is the conservative choice.</p>
+
+        <h2>Scaling with pulse duration</h2>
+        <p>From tens of picoseconds up to the microsecond range, damage in dielectric coatings and substrates is driven by absorption at defects followed by heating. The heated volume grows with the thermal diffusion length \(\propto\sqrt{\tau}\), so the fluence needed to reach a critical temperature scales as</p>
+        <div class="formula">\[ F_\text{LIDT}(\tau) \approx F_\text{spec}\sqrt{\frac{\tau}{\tau_\text{spec}}}. \]</div>
+        <p>This rule breaks down for ultrashort pulses. Below roughly 10 ps, damage changes from thermal, defect-dominated behavior to deterministic multiphoton and avalanche ionization, and the threshold falls more slowly than \(\sqrt{\tau}\) (Stuart et al., 1996). Do not scale a nanosecond specification into the femtosecond regime. Ask the vendor for ultrafast data instead. Extrapolating more than about three decades in pulse duration is also unreliable.</p>
+
+        <h2>Scaling with wavelength</h2>
+        <p>Shorter wavelengths damage optics more easily: photon energies are higher, defect absorption is stronger, and the standing-wave field in coatings changes. Vendors use different rules of thumb. Thorlabs scales pulsed thresholds with \(\sqrt{\lambda}\). Sill Optics states that halving the wavelength halves the LIDT, which is linear scaling. Moving to a shorter wavelength, the linear rule predicts the lower threshold. Moving to a longer one, the square-root rule does. The <em>conservative</em> option uses whichever is lower. Coatings are designed for specific wavelengths, so measured data at your wavelength always beats scaling.</p>
+
+        <h2>CW lasers: linear power density</h2>
+        <p>For CW and long-pulse lasers, damage is thermal and set by the steady-state temperature rise. For an absorbed Gaussian beam on a thick substrate, that rise scales as \(P_\text{abs}/(k\,w)\), with power divided by beam <em>size</em>, not area. CW thresholds are therefore quoted as a linear power density (Thorlabs convention):</p>
+        <div class="formula">\[ \text{LPD} = \frac{P}{d_{1/e^2}}\quad[\text{W/cm}], \qquad \text{LPD}_\text{LIDT}(\lambda) \approx \text{LPD}_\text{spec}\,\frac{\lambda}{\lambda_\text{spec}}. \]</div>
+        <p>So a beam twice as large tolerates twice the power, not four times as much. Peak irradiance (W/cm²) is shown for reference only. It is not the right figure of merit for CW damage.</p>
+
+        <h2>Beam size, safety factors, and S-on-1</h2>
+        <ul>
+            <li><strong>Beam size.</strong> Most damage starts at sparse defects. A small test beam may sample no defect at all, while a large beam almost certainly hits several. A threshold measured with a small beam can therefore be optimistic for a much larger one. There is no universal scaling law, so add margin when your beam area is much larger than the test beam's.</li>
+            <li><strong>S-on-1 and incubation.</strong> Under millions of pulses, thresholds can fall well below 1-on-1 values. Use S-on-1 data for production systems.</li>
+            <li><strong>Contamination.</strong> Dust, fingerprints, and outgassed films absorb strongly and can reduce the effective threshold by a large factor. Keep optics clean, and purge enclosures for UV and high-power IR.</li>
+            <li><strong>Safety factor.</strong> Operate at no more than 1/2 to 1/3 of the scaled threshold. Sill Optics, for example, recommends staying below 50 % of the LIDT.</li>
+        </ul>
+
+        <h2>Worked example</h2>
+        <p>A mirror is rated 10 J/cm² (peak) at 1064 nm, 10 ns. You want to use it at 532 nm with 20 ns, 5 mJ pulses in a 1.0 mm beam. The pulse-duration factor is \(\sqrt{2} = 1.414\). For wavelength, the conservative rule takes the linear factor of 0.5 (the √λ rule would give 0.707). The scaled LIDT is \(10 \times 1.414 \times 0.5 = 7.07\) J/cm². The operating peak fluence is \(2 \times 5\ \text{mJ}/(\pi \times 0.05^2\ \text{cm}^2) = 1.27\) J/cm², so the margin is 5.6×. That is comfortably inside a 2× safety factor.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>The scaling laws are empirical. They estimate thresholds for comparing options and for specifying optics, and they do not guarantee survival.</li>
+            <li>Normal incidence is assumed. At oblique incidence, the fluence on the surface falls by cos θ, but coating damage also depends on polarization and the field distribution.</li>
+            <li>The beam diameter is the 1/e² diameter <em>at the optic</em>, not at focus. Hot spots, diffraction rings, and M² &gt; 1 can raise local fluence above the Gaussian estimate.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>ISO 21254-1:2011, Lasers and laser-related equipment — Test methods for laser-induced damage threshold — Part 1: Definitions and general principles.</li>
+            <li>B. C. Stuart, M. D. Feit, S. Herman, A. M. Rubenchik, B. W. Shore, and M. D. Perry, “Nanosecond-to-femtosecond laser-induced breakdown in dielectrics,” <em>Phys. Rev. B</em> <strong>53</strong>, 1749–1761 (1996).</li>
+            <li>R. M. Wood, <em>Laser-Induced Damage of Optical Materials</em>, Institute of Physics Publishing (2003).</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="fluence,pulse-energy,beam-expander,focused-spot,optical-density"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, fromSI } = Calc;
+    const verdict = document.getElementById('verdict');
+    const note = document.getElementById('note');
+    const noteRow = document.getElementById('note-row');
+    const opLabel = document.getElementById('op-label');
+    const showFields = mode => document.querySelectorAll('[data-show]').forEach(f => { f.hidden = f.dataset.show !== mode; });
+    const fl = F => fmt.num(fromSI('fluence', 'J/cm²', F), 4) + ' J/cm²';
+    const lpd = L => fmt.si(L / 100, 'W/cm', 4);                     // L in W/m → W/cm
+
+    function need(x, name, label) {
+        if (!isFinite(x)) throw Calc.fail('Enter a value for ' + label + '.', name);
+        if (!(x > 0)) throw Calc.fail(label.charAt(0).toUpperCase() + label.slice(1) + ' must be greater than zero.', name);
+        return x;
+    }
+    function setVerdict(margin, sf) {
+        if (margin >= sf) { verdict.textContent = 'Within design limit'; verdict.className = 'badge badge-ok'; }
+        else if (margin >= 1) { verdict.textContent = 'Below LIDT, inside safety margin'; verdict.className = 'badge badge-warn'; }
+        else { verdict.textContent = 'Exceeds scaled LIDT'; verdict.className = 'badge badge-bad'; }
+    }
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            showFields(v.mode);
+            const w = v.d / 2;
+            const rwl = v.wl / v.swl;
+            const notes = [];
+
+            if (v.mode === 'cw') {
+                const spec = need(v.slpd, 'slpd', 'specified LIDT') * parseFloat(v.lu) * 100;   // W/cm → W/m
+                const P = need(v.p, 'p', 'power');
+                const scaled = spec * rwl;
+                const op = P / v.d;                                                         // W/m
+                const margin = scaled / op;
+                setVerdict(margin, v.sf);
+                opLabel.textContent = 'Operating linear power density P/d';
+                if (rwl < 0.5 || rwl > 2) notes.push('Scaling across more than a factor of two in wavelength is a rough estimate. Ask for data at your wavelength.');
+                note.textContent = notes.join(' '); noteRow.hidden = !notes.length;
+                return {
+                    margin: fmt.num(margin, 3) + ' ×',
+                    scaled: lpd(scaled),
+                    limit: lpd(scaled / v.sf),
+                    op: lpd(op),
+                    ftau: null,
+                    fwl: fmt.num(rwl, 4) + ' (linear, CW)',
+                    fpk: null, favg: null,
+                    ipk: fmt.sci(2 * P / (Math.PI * w * w) / 1e4, 3) + ' W/cm²',
+                    aratio: null
+                };
+            }
+
+            const spec = need(v.spec, 'spec', 'specified LIDT');
+            const stau = need(v.stau, 'stau', 'test pulse duration');
+            const E = need(v.ep, 'ep', 'pulse energy');
+            const tau = need(v.tau, 'tau', 'pulse duration');
+            const ftau = Math.sqrt(tau / stau);
+            const fs = Math.sqrt(rwl), fl1 = rwl;
+            let fwl, rule;
+            if (v.wlrule === 'sqrt') { fwl = fs; rule = '√λ'; }
+            else if (v.wlrule === 'lin') { fwl = fl1; rule = 'linear'; }
+            else if (v.wlrule === 'none') { fwl = 1; rule = 'none'; }
+            else { fwl = Math.min(fs, fl1); rule = rwl === 1 ? 'same λ' : (fl1 < fs ? 'conservative: linear' : 'conservative: √λ'); }
+            const scaled = spec * ftau * fwl;
+            const Fpk = 2 * E / (Math.PI * w * w), Favg = Fpk / 2;
+            const op = v.sconv === 'avg' ? Favg : Fpk;
+            const margin = scaled / op;
+            setVerdict(margin, v.sf);
+            opLabel.textContent = 'Operating fluence (' + (v.sconv === 'avg' ? 'average' : 'peak') + ', same convention as spec)';
+
+            if (tau < 10e-12 || stau < 10e-12) notes.push('√τ scaling is not valid below about 10 ps. Use damage data measured at your pulse duration.');
+            const decades = Math.abs(Math.log10(tau / stau));
+            if (decades > 3) notes.push('Extrapolating over ' + fmt.num(decades, 2) + ' decades in pulse duration gives low confidence.');
+            if (rwl < 0.5 || rwl > 2) notes.push('Large wavelength extrapolation: coatings are wavelength-specific, so request data at your wavelength.');
+            let aratio = null;
+            if (isFinite(v.sd)) {
+                if (!(v.sd > 0)) throw Calc.fail('Test beam diameter must be greater than zero.', 'sd');
+                const ar = (v.d / v.sd) ** 2;
+                aratio = fmt.num(ar, 3) + ' ×';
+                if (ar > 10) notes.push('Your beam area is ' + fmt.num(ar, 3) + '× the test beam. Defect-driven damage is more likely over a larger area, so add margin.');
+            }
+            note.textContent = notes.join(' '); noteRow.hidden = !notes.length;
+
+            const Ppk = E / tau;    // rectangular-pulse estimate for display
+            return {
+                margin: fmt.num(margin, 3) + ' ×',
+                scaled: fl(scaled),
+                limit: fl(scaled / v.sf),
+                op: fl(op),
+                ftau: fmt.num(ftau, 4),
+                fwl: fmt.num(fwl, 4) + ' (' + rule + ')',
+                fpk: fl(Fpk),
+                favg: fl(Favg),
+                ipk: fmt.sci(2 * Ppk / (Math.PI * w * w) / 1e4, 3) + ' W/cm² (E/τ)',
+                aratio
+            };
+        }
+    });
+});
+</script>
+</body>
+</html>

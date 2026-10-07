@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laser Ablation Process Windows: Fluence, Threshold, Overlap & SPC | Casey D. Foley, PhD</title>
+<meta name="description" content="How to build a robust laser ablation process: peak fluence and threshold, the Liu D² method, the e² efficiency optimum, incubation, pulse and hatch overlap, heat accumulation, DOE process-window mapping, and in-line SPC.">
+<link rel="canonical" href="https://cdfoley.com/learn/laser-ablation-process-windows/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Laser Ablation Process Windows">
+<meta property="og:description" content="Fluence, threshold, incubation, and overlap — how to build an ablation process that holds yield in production.">
+<meta property="og:url" content="https://cdfoley.com/learn/laser-ablation-process-windows/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Laser Ablation Process Windows",
+  "description": "Fluence, threshold, incubation, and overlap — how to build a robust ablation process.",
+  "author": { "@type": "Person", "name": "Casey D. Foley", "url": "https://cdfoley.com/" },
+  "datePublished": "2026-10-06",
+  "dateModified": "2026-10-06",
+  "mainEntityOfPage": "https://cdfoley.com/learn/laser-ablation-process-windows/"
+}
+</script>
+<style>
+    .fig svg { width: 100%; height: auto; display: block; }
+    .fig .lbl { font: 500 13px var(--font); fill: var(--text-2); }
+    .fig .lbl-s { font: 500 11.5px var(--font); fill: var(--muted); }
+    .fig .lbl-a { font: 600 13px var(--font); fill: var(--accent); }
+</style>
+</head>
+<body data-section="learn">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/learn/">Learn</a></li><li aria-current="page">Laser Ablation Process Windows</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <span class="eyebrow">Laser processing</span>
+        <h1>Laser Ablation Process Windows</h1>
+        <p class="lede">An ablation recipe that works on the development bench has to keep working across laser aging, a dirty protective window, a few tens of microns of focus drift, and lot-to-lot material variation. This note describes how to build that margin in from the start: measure the threshold properly, choose the operating fluence and overlap on physical grounds, map the window with designed experiments, and monitor the variables that actually drift.</p>
+        <div class="article-meta"><span>By Casey D. Foley, PhD</span><span>10 min read</span><span>Updated October 2026</span></div>
+    </header>
+
+    <div class="article-layout">
+        <article class="prose">
+            <h2>Fluence is the variable that matters</h2>
+            <p>Laser ablation is a threshold process. Material is removed only where the deposited energy per unit area, the <strong>fluence</strong>, exceeds a material-specific threshold \(F_{th}\). For a Gaussian beam of 1/e² radius \(w_0\) and pulse energy \(E\), the fluence across the spot is</p>
+            <div class="formula">\[ F(r) = F_0 \exp\!\left(-\frac{2r^2}{w_0^2}\right), \qquad F_0 = \frac{2E}{\pi w_0^2}. \]</div>
+            <p>\(F_0\) is the <em>peak</em> fluence, twice the pulse energy divided by the 1/e² area. Ultrafast-ablation papers usually quote thresholds as peak fluence, while many nanosecond papers and datasheets use average fluence, so check which convention a source uses. Average power, pulse energy, and spot size are only inputs; specify and control the process in terms of \(F_0\) and its ratio to threshold. Setting the Gaussian profile equal to \(F_{th}\) gives the diameter of the ablated region:</p>
+            <div class="formula">\[ D^2 = 2w_0^2 \ln\!\left(\frac{F_0}{F_{th}}\right). \]</div>
+
+            <figure class="fig">
+                <svg viewBox="0 0 640 300" role="img" aria-label="Gaussian fluence profile with a horizontal threshold line. The region above threshold is shaded; its width is the ablated diameter D, which is smaller than the 1/e-squared diameter 2 w0.">
+                    <path d="M60 250H600" stroke="var(--border-strong)"/>
+                    <path d="M330 22V250" stroke="var(--border)" stroke-dasharray="3 4"/>
+                    <path d="M234.8 184L242.7 170L250.6 154.7L258.6 138.2L266.5 121.2L274.5 104L282.4 87.2L290.3 71.5L298.3 57.5L306.2 45.9L314.1 37.2L322.1 31.8L330 30L337.9 31.8L345.9 37.2L353.8 45.9L361.7 57.5L369.7 71.5L377.6 87.2L385.5 104L393.5 121.2L401.4 138.2L409.4 154.7L417.3 170L425.2 184Z" fill="var(--c2)" opacity="0.22"/>
+                    <path d="M60 250L69.6 250L79.3 249.9L88.9 249.9L98.6 249.8L108.2 249.7L117.9 249.4L127.5 249.1L137.1 248.4L146.8 247.4L156.4 246L166.1 243.8L175.7 240.7L185.4 236.3L195 230.4L204.6 222.7L214.3 212.8L223.9 200.6L233.6 186L243.2 169.1L252.9 150.2L262.5 129.9L272.1 108.9L281.8 88.4L291.4 69.4L301.1 53.1L310.7 40.6L320.4 32.7L330 30L339.6 32.7L349.3 40.6L358.9 53.1L368.6 69.4L378.2 88.4L387.9 108.9L397.5 129.9L407.1 150.2L416.8 169.1L426.4 186L436.1 200.6L445.7 212.8L455.4 222.7L465 230.4L474.6 236.3L484.3 240.7L493.9 243.8L503.6 246L513.2 247.4L522.9 248.4L532.5 249.1L542.1 249.4L551.8 249.7L561.4 249.8L571.1 249.9L580.7 249.9L590.4 250L600 250" fill="none" stroke="var(--c1)" stroke-width="2.4"/>
+                    <path d="M60 184H600" stroke="var(--c5)" stroke-width="1.5" stroke-dasharray="6 4"/>
+                    <text x="596" y="178" text-anchor="end" class="lbl" style="fill:var(--c5)">F<tspan baseline-shift="sub" font-size="10">th</tspan></text>
+                    <text x="340" y="26" class="lbl-a">F₀ = 2E / πw₀²</text>
+                    <text x="330" y="150" text-anchor="middle" class="lbl">ablated</text>
+                    <path d="M207.3 220.2V262M452.7 220.2V262" stroke="var(--muted)" stroke-dasharray="2 3"/>
+                    <path d="M234.8 184V266M425.2 184V266" stroke="var(--c2)" stroke-dasharray="2 3"/>
+                    <path d="M234.8 266H425.2" stroke="var(--c2)" stroke-width="1.6"/>
+                    <path d="M240.8 261l-6 5 6 5M419.2 261l6 5-6 5" fill="none" stroke="var(--c2)" stroke-width="1.6"/>
+                    <text x="330" y="282" text-anchor="middle" class="lbl" style="fill:var(--c2)">D</text>
+                    <path d="M207.3 290H452.7" stroke="var(--muted)" stroke-width="1.2"/>
+                    <path d="M213.3 285l-6 5 6 5M446.7 285l6 5-6 5" fill="none" stroke="var(--muted)" stroke-width="1.2"/>
+                    <text x="470" y="294" class="lbl-s">2w₀ (1/e²)</text>
+                    <text x="62" y="40" class="lbl-s">fluence</text>
+                </svg>
+                <figcaption>Only the part of the Gaussian profile above \(F_{th}\) ablates. With \(F_0/F_{th} = 3.3\), as drawn, the crater is about 0.77 of the 1/e² diameter. The crater equals \(2w_0\) only when \(F_0 = e^2 F_{th} \approx 7.4\,F_{th}\).</figcaption>
+            </figure>
+
+            <h2>Measuring the threshold: the Liu method</h2>
+            <p>The diameter relation above suggests a clean way to measure both the threshold and the actual beam radius at the work surface. Fire single pulses (or a fixed number of pulses) at several energies and measure each crater diameter. Then plot \(D^2\) against \(\ln E\). The data fall on a straight line with slope \(2w_0^2\) that crosses \(D^2 = 0\) at the threshold energy \(E_{th}\), so \(F_{th} = 2E_{th}/(\pi w_0^2)\). This is J. M. Liu's 1982 technique, originally proposed for measuring spot sizes. It remains the standard way to determine ablation thresholds because it does not require knowing the focused spot in advance.</p>
+
+            <figure class="fig">
+                <svg viewBox="0 0 640 300" role="img" aria-label="Liu plot: crater diameter squared versus the logarithm of pulse energy forms a straight line. The slope equals two w0 squared and the line crosses zero at the threshold energy.">
+                    <path d="M70 30V250H610" fill="none" stroke="var(--border-strong)"/>
+                    <path d="M70 176.7H610M70 103.3H610M70 30H610" stroke="var(--border)" stroke-dasharray="2 4"/>
+                    <path d="M93.2 250L600 29.1" stroke="var(--c1)" stroke-width="2"/>
+                    <g fill="var(--c2)" stroke="var(--surface)" stroke-width="2">
+                        <circle cx="145.7" cy="227.1" r="5"/><circle cx="250.7" cy="181.4" r="5"/><circle cx="355.6" cy="135.6" r="5"/><circle cx="460.6" cy="89.9" r="5"/><circle cx="565.6" cy="44.1" r="5"/>
+                    </g>
+                    <circle cx="93.2" cy="250" r="4.5" fill="none" stroke="var(--c5)" stroke-width="2"/>
+                    <text x="98" y="240" class="lbl" style="fill:var(--c5)">E<tspan baseline-shift="sub" font-size="10">th</tspan> = 0.71 µJ</text>
+                    <text x="300" y="120" class="lbl-a" transform="rotate(-23.5 300 120)">slope = 2w₀² = 450 µm²</text>
+                    <g class="lbl-s" text-anchor="middle">
+                        <text x="145.7" y="268">1</text><text x="250.7" y="268">2</text><text x="355.6" y="268">4</text><text x="460.6" y="268">8</text><text x="565.6" y="268">16</text>
+                    </g>
+                    <g class="lbl-s" text-anchor="end">
+                        <text x="64" y="254">0</text><text x="64" y="180.7">500</text><text x="64" y="107.3">1000</text><text x="64" y="34">1500</text>
+                    </g>
+                    <text x="340" y="292" text-anchor="middle" class="lbl">Pulse energy E (µJ, log scale)</text>
+                    <text x="18" y="140" text-anchor="middle" class="lbl" transform="rotate(-90 18 140)">D² (µm²)</text>
+                </svg>
+                <figcaption>A Liu plot for a 15 µm beam radius and \(F_{th} = 0.20\) J/cm². The craters measure 12.5, 21.6, 27.9, 33.0, and 37.5 µm at 1–16 µJ. The slope returns \(w_0 = 15\) µm, and the intercept gives \(E_{th} = 0.71\) µJ, so \(F_{th} = 2E_{th}/\pi w_0^2 = 0.20\) J/cm².</figcaption>
+            </figure>
+
+            <p>A few practices make the measurement trustworthy:</p>
+            <ul>
+                <li><strong>Span the range.</strong> Use at least five energies from about 1.5 to 20 times threshold. Points very close to threshold are noisy, and points far above it bend away from the line once plasma shielding and thermal effects set in.</li>
+                <li><strong>Define the crater edge consistently.</strong> Decide whether you are measuring the ablation edge or the outer ring of melting or discoloration, and use the same microscope, illumination, and criterion every time. The modification threshold and the ablation threshold differ.</li>
+                <li><strong>Use the slope as a spot-size check.</strong> If the fitted \(w_0\) disagrees with the expected focus, the sample is probably not at the waist. That alone is worth knowing.</li>
+                <li><strong>Repeat at the process pulse count.</strong> Single-pulse thresholds are not the thresholds that matter in a scanned process (see incubation below).</li>
+            </ul>
+
+            <h2>Depth per pulse and the efficiency optimum</h2>
+            <p>For ultrashort pulses on metals and many absorbing materials, the depth removed per pulse follows a logarithmic law,</p>
+            <div class="formula">\[ L = \delta \ln\!\left(\frac{F_0}{F_{th}}\right), \]</div>
+            <p>where \(\delta\) is an effective energy-penetration depth: the optical absorption depth at low fluence, or an electron heat-diffusion length at higher fluence. Integrating this depth over a Gaussian spot gives the removed volume per pulse, \(V = \tfrac{\pi}{4} w_0^2 \delta \ln^2(F_0/F_{th})\). Dividing by the pulse energy \(E = \pi w_0^2 F_0/2\) and maximizing gives a result that is easy to remember:</p>
+            <div class="formula">\[ \frac{V}{E} = \frac{\delta}{2F_0}\ln^2\!\left(\frac{F_0}{F_{th}}\right) \quad\Longrightarrow\quad F_{0,\mathrm{opt}} = e^2 F_{th} \approx 7.4\,F_{th}. \]</div>
+            <p>Below the optimum, much of each pulse falls in the wings below threshold and is wasted. Above it, depth grows only logarithmically, and the extra energy goes into heat, plasma, and debris. The optimum is broad. Anywhere from about 4 × to 15 × threshold, the efficiency stays within about 10 % of the peak. At 2 × threshold it falls to less than half. For nanosecond pulses, melt expulsion and vaporization dominate, so the logarithmic law is only a rough guide. The principle still holds: there is a best fluence for removal per joule, and it is a modest multiple of threshold.</p>
+            <p>The <a href="/tools/ablation-depth/">ablation depth calculator</a> applies the logarithmic model, and the <a href="/tools/fluence/">fluence calculator</a> converts pulse energy and spot size into peak fluence.</p>
+
+            <h2>Incubation: thresholds drop with repeated pulses</h2>
+            <p>Repeated exposure at the same spot accumulates defects, surface roughness, oxidation, and stored strain, and these lower the threshold. A widely used empirical model is</p>
+            <div class="formula">\[ F_{th}(N) = F_{th}(1)\,N^{S-1}, \]</div>
+            <p>where the incubation coefficient \(S = 1\) means no incubation. Commonly reported values for metals are around 0.8–0.9, and dielectrics and polymers can incubate more strongly. With \(S = 0.85\), the threshold after 100 pulses is half the single-pulse value. In practice:</p>
+            <ul>
+                <li><strong>Measure at the effective pulse count of the real process.</strong> A recipe designed from single-pulse data will cut deeper and wider than intended when it is scanned with overlap.</li>
+                <li><strong>Watch for slow edge growth.</strong> With repeated passes, a track edge that sits just below the single-pulse threshold may eventually ablate.</li>
+                <li><strong>Expect substrate damage to incubate too.</strong> When you selectively remove a coating, the substrate's damage threshold incubates as well, so check substrate damage at the full pass count.</li>
+            </ul>
+
+            <h2>Pulse overlap and the effective number of pulses</h2>
+            <p>In a scanned process, the spacing between pulses along the scan direction is the <strong>pulse pitch</strong> \(\Delta x = v/f_{rep}\), and the spacing between adjacent lines is the <strong>hatch</strong> \(\Delta y\). Geometric overlap is usually quoted relative to the 1/e² spot diameter,</p>
+            <div class="formula">\[ \mathrm{OL} = 1 - \frac{\Delta x}{2w_0}, \qquad N_{geo} = \frac{2w_0}{\Delta x}. \]</div>
+            <p>For Gaussian beams a more physical count is the <strong>fluence-equivalent number of pulses</strong>. Summing the overlapping Gaussian profiles along the line gives an accumulated fluence on the track centerline of \(\sqrt{\pi/2}\,F_0 w_0/\Delta x\). That is the same as</p>
+            <div class="formula">\[ N_{eff} = \sqrt{\frac{\pi}{2}}\;\frac{w_0}{\Delta x} \]</div>
+            <p>pulses delivered at full peak fluence. Extending the same sum to two dimensions recovers an intuitive result: the areal energy density of a hatched field is just \(E/(\Delta x\,\Delta y)\).</p>
+            <p>For example, at 1 m/s, 100 kHz, and a 30 µm spot, the pitch is 10 µm. That gives 67 % overlap, 3 geometric pulses per point, and \(N_{eff} = 1.9\). Low overlap leaves scalloped edges and incomplete clearing between pulses. High overlap smooths the edges but raises incubation and heat accumulation. Most coating-removal and scribing processes settle at 50–90 % overlap, chosen by experiment for edge quality. The <a href="/tools/pulse-overlap/">pulse &amp; hatch overlap calculator</a> handles both directions and the area coverage rate.</p>
+
+            <h2>Heat accumulation and the heat-affected zone</h2>
+            <p>Heat spreads a distance of roughly \(\ell = 2\sqrt{\kappa t}\) in time \(t\), where \(\kappa\) is the thermal diffusivity. Two time scales matter:</p>
+            <table>
+                <thead><tr><th>Material</th><th class="num">κ (mm²/s)</th><th class="num">ℓ in 10 ns</th><th class="num">ℓ in 10 ps</th><th class="num">ℓ in 10 µs (100 kHz)</th></tr></thead>
+                <tbody>
+                    <tr><td>Stainless steel</td><td class="num">≈ 4</td><td class="num">0.4 µm</td><td class="num">13 nm</td><td class="num">13 µm</td></tr>
+                    <tr><td>Soda-lime glass</td><td class="num">≈ 0.5</td><td class="num">0.14 µm</td><td class="num">4 nm</td><td class="num">4 µm</td></tr>
+                    <tr><td>Silicon</td><td class="num">≈ 90</td><td class="num">1.9 µm</td><td class="num">60 nm</td><td class="num">60 µm</td></tr>
+                    <tr><td>Aluminum</td><td class="num">≈ 97</td><td class="num">2.0 µm</td><td class="num">62 nm</td><td class="num">62 µm</td></tr>
+                    <tr><td>Copper</td><td class="num">≈ 117</td><td class="num">2.2 µm</td><td class="num">68 nm</td><td class="num">68 µm</td></tr>
+                </tbody>
+            </table>
+            <p>The diffusion length <em>during the pulse</em> sets the minimum heat-affected zone, which is why picosecond and femtosecond pulses give cleaner edges than nanosecond pulses. The diffusion length <em>between pulses</em> controls heat accumulation. In low-diffusivity materials like steel and glass, heat from one pulse is still concentrated within a few spot radii when the next pulse arrives. At high repetition rate and high overlap the surface temperature ratchets upward from pulse to pulse, and you get melt, oxidation, recast, burrs, and microcracking in brittle materials. These effects often appear only after a recipe is moved to a faster, higher-power laser.</p>
+            <p>Standard countermeasures are to lower the repetition rate while holding peak fluence near the optimum, to increase pitch and add passes with cooling time between them, and to scan faster so consecutive pulses land farther apart. The <a href="/tools/thermal-diffusion/">thermal diffusion calculator</a> estimates where accumulation begins for your material and spot.</p>
+
+            <h2>Mapping the process window with designed experiments</h2>
+            <p>A process window is the region of parameter space where every quality response is within specification at the same time. It is best mapped in dimensionless coordinates (peak fluence relative to threshold, and \(N_{eff}\) or overlap) because those transfer between lasers, lenses, and spot sizes far better than raw power and speed.</p>
+            <ol>
+                <li><strong>Screen.</strong> Run a two-level fractional factorial over the candidate factors: pulse energy, pitch (speed or repetition rate), hatch, focus offset, and passes. Responses include depth or clearing, width, edge quality, residue, substrate damage, and cycle time. This identifies the factors that matter.</li>
+                <li><strong>Model.</strong> Run a response-surface design (central composite or Box–Behnken) around the promising region for the two or three important factors. Fit quadratic models to each response.</li>
+                <li><strong>Overlay.</strong> Plot each response's specification limits on the same factor axes. The window is the intersection.</li>
+                <li><strong>Center.</strong> Choose the operating point that maximizes the distance to the nearest window edge, measured in units of expected variation (power drift, focus tolerance), rather than the point with the best average result.</li>
+            </ol>
+            <p>Include focus offset as a factor. Peak fluence scales as \(1/w(z)^2\), so the window's extent in \(z\) is your real depth of focus for this process. It is usually narrower than the optical depth of focus.</p>
+
+            <h2>Robustness: why the operating ratio matters</h2>
+            <p>The logarithmic relations above also show how sensitive the result is to fluence drift. Differentiating gives</p>
+            <div class="formula">\[ \frac{\Delta D}{D} \approx \frac{1}{2\ln(F_0/F_{th})}\,\frac{\Delta F}{F}, \qquad \frac{\Delta L}{L} \approx \frac{1}{\ln(F_0/F_{th})}\,\frac{\Delta F}{F}. \]</div>
+            <p>Consider a 10 % drop in delivered fluence, which a contaminated protective window or an aging diode can easily cause. Running at twice threshold, the track narrows by about 8 % and the depth per pulse falls by about 15 %. Running at \(e^2 F_{th}\), the same drop narrows the track by about 3 % and reduces depth by about 5 %. Operating well above threshold buys robustness. The upper limit is set by heat input, substrate damage, and debris, which the DOE has to establish. A process sitting too close to threshold is a common root cause of yield loss that gets blamed on "material variation."</p>
+
+            <h2>In-line monitoring and SPC for yield</h2>
+            <p>Once the window is defined, keep the process inside it by monitoring what drifts:</p>
+            <ul>
+                <li><strong>Delivered energy at the work plane.</strong> Check it on a schedule with a calibrated thermopile placed below the protective window, not just from the laser's internal monitor. Track protective-window transmission and replace windows on a data-driven interval.</li>
+                <li><strong>Focus and beam quality.</strong> Run a periodic caustic or spot check, especially after maintenance. Thermal lensing in optics with absorbing contamination shifts focus as average power rises.</li>
+                <li><strong>The product characteristic itself.</strong> Use machine vision measurement of track width, position, and clearing on every part, or on a statistically sampled subset. This is the only direct check on output.</li>
+                <li><strong>Material inputs.</strong> Track coating thickness, absorptance, and surface condition from incoming inspection. Changes here move \(F_{th}\).</li>
+            </ul>
+            <p>Put the key characteristics and the delivered power on <a href="/tools/control-chart/">control charts</a>, require demonstrated <a href="/tools/process-capability/">capability</a> (Cpk ≥ 1.33, or 1.67 for critical features) before release, and write reaction plans that say what to check first when a chart signals. The companion article on <a href="/learn/spc-for-laser-processes/">SPC for laser processes</a> covers measurement-system analysis and chart selection.</p>
+
+            <h2>Checklist</h2>
+            <ul>
+                <li>Measure \(F_{th}\) by the Liu method at the process pulse count, and quote <em>peak</em> fluence.</li>
+                <li>Start near \(F_0 \approx e^2 F_{th}\) for efficiency, then let quality responses move the operating point.</li>
+                <li>Specify overlap with its spot-diameter convention, and calculate \(N_{eff}\).</li>
+                <li>Check thermal diffusion lengths against pitch and repetition period before scaling up power.</li>
+                <li>Map the window with DOE in dimensionless coordinates, and center the operating point.</li>
+                <li>Monitor delivered energy, focus, and the product characteristic with SPC and reaction plans.</li>
+            </ul>
+
+            <h2>References</h2>
+            <ol class="refs">
+                <li>J. M. Liu, “Simple technique for measurements of pulsed Gaussian-beam spot sizes,” <em>Optics Letters</em> <strong>7</strong>, 196–198 (1982).</li>
+                <li>Y. Jee, M. F. Becker, and R. M. Walser, “Laser-induced damage on single-crystal metal surfaces,” <em>J. Opt. Soc. Am. B</em> <strong>5</strong>, 648–659 (1988).</li>
+                <li>S. Nolte, C. Momma, H. Jacobs, A. Tünnermann, B. N. Chichkov, B. Wellegehausen, and H. Welling, “Ablation of metals by ultrashort laser pulses,” <em>J. Opt. Soc. Am. B</em> <strong>14</strong>, 2716–2722 (1997).</li>
+                <li>D. Bäuerle, <em>Laser Processing and Chemistry</em>, 4th ed., Springer (2011).</li>
+            </ol>
+        </article>
+        <aside class="toc" data-toc></aside>
+    </div>
+
+    <section class="related">
+        <h2>Related tools &amp; articles</h2>
+        <div data-related="fluence,pulse-overlap,ablation-depth,thermal-diffusion,article:gaussian-beam-optics,article:spc-for-laser-processes"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+</body>
+</html>
