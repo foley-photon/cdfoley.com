@@ -30,7 +30,7 @@
     /* ── Registries ─────────────────────────────────────────────────────── */
     var CATEGORIES = [
         { id: 'photon',  title: 'Photon Energy & Spectroscopy', blurb: 'Energy-unit conversion, photon flux, blackbody emission, line broadening, and spectrometer design.' },
-        { id: 'beam',    title: 'Gaussian Beams & Optics',      blurb: 'Focusing, propagation, beam expansion, scan lenses, apertures, and interface optics.' },
+        { id: 'beam',    title: 'Optics & Glazing',             blurb: 'Focusing, propagation, beam expansion, scan lenses, apertures, Fresnel reflection, and window glazing performance.' },
         { id: 'process', title: 'Laser Processing',             blurb: 'Pulse energy, fluence, overlap, ablation, damage thresholds, and heat accumulation.' },
         { id: 'vacuum',  title: 'Vacuum Technology',            blurb: 'Pressure units, gas kinetics, conductance, and pump-down estimates.' },
         { id: 'vision',  title: 'Machine Vision & Imaging',     blurb: 'Lens selection, field of view, depth of field, resolution, and motion blur.' },
@@ -51,6 +51,7 @@
         { slug: 'f-theta-lens',          cat: 'beam',    title: 'F-Theta Scan Lens',              desc: 'Scan field, spot size, and depth of focus for galvanometer scanning systems.', keys: 'galvo scanner scan field telecentric marking' },
         { slug: 'aperture-transmission', cat: 'beam',    title: 'Gaussian Beam Clipping',         desc: 'Power transmitted through a circular aperture and the aperture needed for a target throughput.', keys: 'aperture iris clipping truncation transmission pinhole' },
         { slug: 'fresnel-equations',     cat: 'beam',    title: 'Fresnel Reflection & Brewster Angle', desc: 's- and p-polarized reflectance vs. angle, Brewster angle, and total internal reflection.', keys: 'fresnel reflectance brewster critical angle snell refraction polarization' },
+        { slug: 'glazing-performance',   cat: 'beam',    title: 'Glazing Performance Calculator', desc: 'U-factor, SHGC, visible and solar transmittance, reflectance, and color for single, double, triple, and vacuum glazing with low-e coatings.', keys: 'window glass glazing igu insulating low-e coating u-factor u-value shgc solar heat gain visible transmittance vt argon krypton vacuum vig nfrc lbnl window', featured: true },
         { slug: 'optical-density',       cat: 'beam',    title: 'Optical Density & Attenuation',  desc: 'Convert between OD, transmission, absorbance, and dB, and stack filters.', keys: 'od transmission attenuation neutral density filter db absorbance' },
         // Laser processing
         { slug: 'pulse-energy',          cat: 'process', title: 'Pulse Energy & Peak Power',      desc: 'Interconvert average power, repetition rate, pulse energy, peak power, and duty cycle.', keys: 'pulse energy peak power duty cycle repetition rate average power' },
@@ -64,6 +65,7 @@
         { slug: 'mean-free-path',        cat: 'vacuum',  title: 'Mean Free Path & Gas Kinetics',  desc: 'Mean free path, Knudsen number, flow regime, number density, impingement rate, and monolayer time.', keys: 'mean free path knudsen flow regime molecular viscous number density monolayer' },
         { slug: 'pumpdown',              cat: 'vacuum',  title: 'Conductance & Pump-Down Time',   desc: 'Tube and orifice conductance, effective pumping speed, and pump-down time for a chamber.', keys: 'conductance pumping speed pump down time effective speed tube orifice' },
         // Machine vision
+        { slug: 'vision-system-configurator', cat: 'vision', title: 'Vision System Configurator', desc: 'Pick a sensor and lens for your field of view and defect size, see the setup drawn, and check depth of field, motion blur, bandwidth, and lighting.', keys: 'camera sensor lens configurator sony imx onsemi gpixel pregius working distance lighting interface gige usb3 coaxpress', featured: true },
         { slug: 'machine-vision-lens',   cat: 'vision',  title: 'Machine Vision Lens Selection',  desc: 'Magnification, field of view, depth of field, pixel resolution, and smallest detectable defect.', keys: 'fov field of view magnification depth of field focal length sensor resolution camera' },
         { slug: 'motion-blur',           cat: 'vision',  title: 'Motion Blur & Exposure',         desc: 'Maximum exposure or strobe time for a moving part, and line-scan rate for a conveyor.', keys: 'motion blur exposure strobe conveyor line scan speed' },
         // Quality & manufacturing
@@ -116,12 +118,12 @@
 
     /* ── Header / footer ────────────────────────────────────────────────── */
     var NAV = [
-        { href: '/#work',         label: 'Work',         section: 'home' },
-        { href: '/#experience',   label: 'Experience',   section: 'home' },
-        { href: '/publications/', label: 'Publications', section: 'publications' },
         { href: '/tools/',        label: 'Tools',        section: 'tools' },
+        { href: '/learn/',        label: 'Learn',        section: 'learn' },
         { href: '/formulas/',     label: 'Formulas',     section: 'formulas' },
-        { href: '/learn/',        label: 'Learn',        section: 'learn' }
+        { href: '/publications/', label: 'Publications', section: 'publications' },
+        { href: '/#about',        label: 'About',        section: 'home' },
+        { href: '/resume/',       label: 'Resume',       section: 'resume' }
     ];
 
     function renderHeader() {
@@ -132,14 +134,11 @@
             var current = n.section === section && n.section !== 'home' ? ' aria-current="page"' : '';
             return '<a href="' + n.href + '"' + current + '>' + n.label + '</a>';
         }).join('');
-        var resumeCurrent = section === 'resume' ? ' aria-current="page"' : '';
         var header = el(
             '<header class="site-header">' +
               '<div class="wrap nav">' +
                 '<a class="brand" href="/">' + BRAND_MARK + '<span>Casey D. Foley<span class="brand-sub">, PhD</span></span></a>' +
-                '<nav class="nav-links" id="nav-links" aria-label="Primary">' + links +
-                  '<a class="nav-cta" href="/resume/"' + resumeCurrent + '>Resume</a>' +
-                '</nav>' +
+                '<nav class="nav-links" id="nav-links" aria-label="Primary">' + links + '</nav>' +
                 '<button class="icon-btn theme-toggle" type="button" aria-label="Toggle dark mode">' + ICONS.moon + ICONS.sun + '</button>' +
                 '<button class="icon-btn menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">' + ICONS.menu + '</button>' +
               '</div>' +
@@ -166,19 +165,19 @@
               '<div class="wrap footer-grid">' +
                 '<div>' +
                   '<div class="footer-name">Casey D. Foley, PhD</div>' +
-                  '<p style="margin:0 0 1rem;max-width:34ch">Laser systems, vacuum processes, optical metrology, and the instruments that tie them together.</p>' +
+                  '<p style="margin:0 0 1rem;max-width:36ch">Free engineering tools and explainers for lasers, optics, vacuum, machine vision, and quality.</p>' +
                 '</div>' +
-                '<div><h4>Profile</h4><ul>' +
-                  '<li><a href="/#work">Selected work</a></li>' +
-                  '<li><a href="/#experience">Experience</a></li>' +
-                  '<li><a href="/#publications">Publications</a></li>' +
-                  '<li><a href="/resume/">Resume</a></li>' +
-                '</ul></div>' +
                 '<div><h4>Resources</h4><ul>' +
-                  '<li><a href="/tools/">Engineering tools</a></li>' +
+                  '<li><a href="/tools/">All ' + TOOLS.length + ' tools</a></li>' +
+                  '<li><a href="/tools/vision-system-configurator/">Vision system configurator</a></li>' +
                   '<li><a href="/formulas/">Formula reference</a></li>' +
                   '<li><a href="/learn/">Knowledge center</a></li>' +
-                  '<li><a href="/tools/energy-converter/">Energy converter</a></li>' +
+                '</ul></div>' +
+                '<div><h4>About</h4><ul>' +
+                  '<li><a href="/#about">About me</a></li>' +
+                  '<li><a href="/#work">Selected work</a></li>' +
+                  '<li><a href="/publications/">Publications</a></li>' +
+                  '<li><a href="/resume/">Resume</a></li>' +
                 '</ul></div>' +
                 '<div><h4>Contact</h4><ul>' +
                   '<li><a href="mailto:' + CONTACT.email + '">Email</a></li>' +
@@ -263,10 +262,26 @@
                 apply();
             });
         });
+        var q0 = new URLSearchParams(location.search).get('q');
+        if (q0) { input.value = q0; apply(); }
         if (location.hash) {
             var pre = hub.querySelector('[data-filter="' + location.hash.slice(1) + '"]');
             if (pre) pre.click();
         }
+    }
+
+    // <div data-tool-cats></div>: one tile per category listing its tools
+    function renderToolCats() {
+        document.querySelectorAll('[data-tool-cats]').forEach(function (box) {
+            box.classList.add('grid', 'grid-3');
+            box.innerHTML = CATEGORIES.map(function (c) {
+                var items = TOOLS.filter(function (t) { return t.cat === c.id; });
+                return '<div class="card cat-card"><h3><a href="/tools/#' + c.id + '">' + esc(c.title) + '</a><span class="count">' + items.length + '</span></h3>' +
+                    '<p>' + esc(c.blurb) + '</p><ul>' + items.map(function (t) {
+                        return '<li><a href="/tools/' + t.slug + '/">' + esc(t.title) + '</a></li>';
+                    }).join('') + '</ul></div>';
+            }).join('');
+        });
     }
 
     // <div data-article-hub></div> on /learn/
@@ -326,6 +341,7 @@
         renderHeader();
         renderFooter();
         renderToolHub();
+        renderToolCats();
         renderArticleHub();
         renderRelated();
         renderCounts();

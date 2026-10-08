@@ -21,6 +21,63 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/vision-data.js"></script>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Machine Vision Lens Selection",
+   "url": "https://cdfoley.com/tools/machine-vision-lens/",
+   "description": "Choose a machine vision lens: field of view, magnification, object-side depth of field, pixel size on the part, smallest detectable defect, diffraction limit vs. pixel pitch, and the focal length needed for a target field of view.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "fov field of view magnification depth of field focal length sensor resolution camera",
+   "author": {
+    "@type": "Person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Machine Vision & Imaging",
+     "item": "https://cdfoley.com/tools/#vision"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Machine Vision Lens Selection",
+     "item": "https://cdfoley.com/tools/machine-vision-lens/"
+    }
+   ]
+  }
+ ]
+}
+</script>
 </head>
 <body data-section="tools">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -47,15 +104,8 @@
                     <label for="sensor">Sensor preset</label>
                     <select id="sensor" name="sensor" class="input">
                         <option value="custom">Custom</option>
-                        <option value="imx273">Sony IMX273 · 1/2.9″ · 1440 × 1080 · 3.45 µm</option>
-                        <option value="imx252">Sony IMX252 · 1/1.8″ · 2048 × 1536 · 3.45 µm</option>
-                        <option value="imx250" selected>Sony IMX250 · 2/3″ · 2448 × 2048 · 3.45 µm</option>
-                        <option value="imx546">Sony IMX546 · 2/3″ · 2856 × 2848 · 2.74 µm</option>
-                        <option value="imx174">Sony IMX174 · 1/1.2″ · 1920 × 1200 · 5.86 µm</option>
-                        <option value="imx183">Sony IMX183 · 1″ · 5472 × 3648 · 2.4 µm</option>
-                        <option value="imx304">Sony IMX304 · 1.1″ · 4096 × 3000 · 3.45 µm</option>
                     </select>
-                    <p class="hint">Common global- and rolling-shutter machine vision sensors. Check your camera's datasheet.</p>
+                    <p class="hint">39 area-scan sensors from Sony, onsemi, Gpixel, and ams OSRAM. Camera makers sometimes crop the array, so check the camera datasheet. To size a whole system, try the <a href="/tools/vision-system-configurator/">vision system configurator</a>.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
@@ -218,7 +268,7 @@
 
     <section class="related">
         <h2>Related tools</h2>
-        <div data-related="motion-blur,focused-spot,energy-converter,article:machine-vision-optics"></div>
+        <div data-related="vision-system-configurator,motion-blur,focused-spot,article:machine-vision-optics"></div>
     </section>
 </main>
 
@@ -227,16 +277,9 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const { fmt } = Calc;
-    const SENSORS = {
-        imx273: { pitch: 3.45, nx: 1440, ny: 1080 },
-        imx252: { pitch: 3.45, nx: 2048, ny: 1536 },
-        imx250: { pitch: 3.45, nx: 2448, ny: 2048 },
-        imx546: { pitch: 2.74, nx: 2856, ny: 2848 },
-        imx174: { pitch: 5.86, nx: 1920, ny: 1200 },
-        imx183: { pitch: 2.4,  nx: 5472, ny: 3648 },
-        imx304: { pitch: 3.45, nx: 4096, ny: 3000 }
-    };
+    const SENSORS = Object.fromEntries(VisionData.sensors.map(x => [x.id, x]));
     const sel = document.getElementById('sensor');
+    sel.insertAdjacentHTML('beforeend', VisionData.sensorOptionsHTML('imx250'));
     const pitchIn = document.getElementById('pitch'), nxIn = document.getElementById('nx'), nyIn = document.getElementById('ny');
     const pitchUnit = pitchIn.parentElement.querySelector('select');
     sel.addEventListener('change', () => {

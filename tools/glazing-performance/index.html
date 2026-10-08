@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glazing Performance Calculator: U-Factor, SHGC, VT &amp; Low-E | Casey D. Foley, PhD</title>
+<meta name="description" content="Free window glazing calculator. Build a single, double, triple, or vacuum glazing unit from clear or low-iron glass at any thickness, low-e coatings, and air, argon, krypton, or vacuum gaps, then get visible transmittance, solar transmittance and reflectance, SHGC, center-of-glass U-factor, color, and spectra.">
+<link rel="canonical" href="https://cdfoley.com/tools/glazing-performance/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Glazing Performance Calculator: U-Factor, SHGC, VT">
+<meta property="og:description" content="Transmission, reflection, SHGC, U-factor, and color for window glass with low-e coatings and gas or vacuum gaps.">
+<meta property="og:url" content="https://cdfoley.com/tools/glazing-performance/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script defer src="/assets/js/glazing-weights.js"></script>
+<script defer src="/assets/js/glazing-engine.js"></script>
+<style>
+    .gl-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.8rem 0.9rem 0.1rem; margin-bottom: 0.9rem; background: var(--surface); }
+    .gl-card h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 0 0 0.6rem; font-weight: 650; display: flex; justify-content: space-between; }
+    .gl-card.gap { background: var(--surface-2); }
+    .check-line { display: flex; gap: 0.5rem; align-items: center; font-size: 0.88rem; color: var(--text-2); margin: -0.2rem 0 0.8rem; }
+    .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-top: 0.9rem; }
+    @media (max-width: 520px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .kpi { background: var(--surface); padding: 0.7rem 0.8rem; }
+    .kpi b { display: block; font-family: var(--mono); font-size: 1.25rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+    .kpi span { font-size: 0.78rem; color: var(--muted); }
+    .xsec svg { display: block; width: 100%; height: auto; }
+    .xsec { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.4rem; }
+    svg .lbl { fill: var(--text-2); font: 500 13px var(--font); }
+    svg .lbl-s { fill: var(--muted); font: 500 11px var(--font); }
+    svg .lbl-t { fill: var(--c2); font: 600 12px var(--font); }
+    svg .glass { fill: var(--c6); fill-opacity: 0.18; stroke: var(--c6); stroke-width: 1.2; }
+    svg .gapf { fill: var(--surface-2); }
+    svg .vac { fill: var(--c4); fill-opacity: 0.08; }
+    svg .coat { stroke: var(--c4); stroke-width: 4; }
+    svg .pillar { fill: var(--muted); }
+    svg .sun { stroke: var(--c2); stroke-width: 2; fill: none; }
+    svg .sunh { fill: var(--c2); }
+    .swatches { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 0.9rem; }
+    .sw { display: flex; gap: 0.5rem; align-items: center; font-size: 0.8rem; color: var(--text-2); }
+    .sw i { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border-strong); display: inline-block; }
+    .imp-list { list-style: none; padding: 0; margin: 0.8rem 0 0; font-size: 0.88rem; }
+    .imp-list li { display: flex; justify-content: space-between; gap: 0.6rem; padding: 0.4rem 0; border-top: 1px solid var(--border); color: var(--text-2); }
+    .imp-list b { color: var(--text); font-weight: 600; }
+    .imp-msg { font-size: 0.85rem; margin-top: 0.5rem; }
+    .imp-msg.bad { color: var(--danger); } .imp-msg.ok { color: var(--ok); }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Glazing Performance Calculator",
+   "url": "https://cdfoley.com/tools/glazing-performance/",
+   "description": "Free window glazing calculator. Build a single, double, triple, or vacuum glazing unit from clear or low-iron glass at any thickness, low-e coatings, and air, argon, krypton, or vacuum gaps, then get visible transmittance, solar transmittance and reflectance, SHGC, center-of-glass U-factor, color, and spectra.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "window glass glazing igu insulating low-e coating u-factor u-value shgc solar heat gain visible transmittance vt argon krypton vacuum vig nfrc lbnl window",
+   "author": {
+    "@type": "Person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Optics & Glazing",
+     "item": "https://cdfoley.com/tools/#beam"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Glazing Performance Calculator",
+     "item": "https://cdfoley.com/tools/glazing-performance/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#beam">Optics &amp; Glazing</a></li><li aria-current="page">Glazing Performance Calculator</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Glazing Performance Calculator</h1>
+        <p class="lede">Build a single, double, triple, or vacuum glazing unit pane by pane: clear or low-iron glass at any standard thickness, low-e coatings on any surface, and air, argon, krypton, xenon, or vacuum gaps. The calculator returns visible and solar transmittance and reflectance, solar heat gain coefficient, center-of-glass U-factor, color, surface temperatures, and full spectra, following the same standards as LBNL WINDOW. Load measured spectra to model specific manufacturer products.</p>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="glz" autocomplete="off">
+            <div class="panel-head"><h2>Glazing system</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="glz">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="np">Panes</label>
+                        <select id="np" name="np" class="input">
+                            <option value="1">Single (monolithic)</option>
+                            <option value="2" selected>Double</option>
+                            <option value="3">Triple</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="H">Glazing height</label>
+                        <div class="input-unit"><input id="H" name="H" value="1" inputmode="decimal" data-positive data-label="glazing height"><select data-dim="length" data-units="m,mm,in,ft" data-default="m"></select></div>
+                        <p class="hint">Sets gap and indoor convection. NFRC uses 1 m.</p>
+                    </div>
+                </div>
+                <div id="stack"></div>
+            </div>
+        </form>
+
+        <section class="panel" id="glz-out" aria-labelledby="out-h">
+            <div class="panel-head"><h2 id="out-h">Performance</h2><span class="badge" data-out="cond">NFRC 100 / 200</span></div>
+            <div class="panel-body">
+                <div class="xsec" data-out="xsec" role="img" aria-label="Cross-section of the glazing unit with surface numbers, coatings, gaps, and winter surface temperatures"></div>
+                <div class="kpis">
+                    <div class="kpi"><b data-out="kU">—</b><span>U-factor, W/m²·K</span></div>
+                    <div class="kpi"><b data-out="kUip">—</b><span>U-factor, Btu/h·ft²·°F</span></div>
+                    <div class="kpi"><b data-out="kSHGC">—</b><span>SHGC</span></div>
+                    <div class="kpi"><b data-out="kVT">—</b><span>Visible transmittance</span></div>
+                </div>
+                <div class="swatches" data-out="swatches"></div>
+                <div class="results" style="margin-top:1rem">
+                    <div class="result"><span class="result-label">Visible reflectance, outside / inside</span><output class="result-value" data-out="rvis">—</output></div>
+                    <div class="result"><span class="result-label">Solar transmittance</span><output class="result-value" data-out="tsol">—</output></div>
+                    <div class="result"><span class="result-label">Solar reflectance, outside / inside</span><output class="result-value" data-out="rsol">—</output></div>
+                    <div class="result"><span class="result-label">Solar absorptance by pane</span><output class="result-value" data-out="asol">—</output></div>
+                    <div class="result"><span class="result-label">UV transmittance <span class="sym">300–380 nm</span></span><output class="result-value" data-out="tuv">—</output></div>
+                    <div class="result"><span class="result-label">Light-to-solar gain <span class="sym">VT/SHGC</span></span><output class="result-value" data-out="lsg">—</output></div>
+                    <div class="result"><span class="result-label">R-value <span class="sym">center of glass</span></span><output class="result-value" data-out="rval">—</output></div>
+                    <div class="result"><span class="result-label">Indoor glass temperature, winter</span><output class="result-value" data-out="tin">—</output>
+                        <span class="result-note" data-out="dew"></span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="sp-h">
+        <div class="panel-head"><h2 id="sp-h">Spectral transmittance and reflectance</h2></div>
+        <div class="panel-body"><div id="glz-plot"></div>
+            <p class="hint" style="margin:.4rem 0 0">Shaded: solar spectrum (ASTM G173, AM1.5 direct + circumsolar). The visible band, 380–780 nm, is marked.</p></div>
+    </section>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="imp-h">
+        <div class="panel-head"><h2 id="imp-h">Use measured product data</h2></div>
+        <div class="panel-body">
+            <p style="margin:0 0 .7rem;color:var(--text-2);font-size:.94rem">Paste or load spectral data for a specific glass or coated product, for example a file exported from LBNL Optics in IGDB format, a product record from the <a href="https://igsdb.lbl.gov/" target="_blank" rel="noopener">IGSDB</a>, or a manufacturer's data. Imported products appear in the glass list for every pane. They stay in this browser and are not uploaded.</p>
+            <textarea id="imp-text" class="input" rows="7" placeholder="{ Thickness } 5.7&#10;{ Emissivity, forward, back } Emis= 0.840 0.037&#10;{ Product Name: … }  { Manufacturer: … }&#10;0.300  0.000  0.047  0.048&#10;0.305  0.002  0.047  0.048&#10;…   (wavelength, T, Rfront, Rback; µm or nm; fractions or %)"></textarea>
+            <div class="btn-row" style="margin-top:.7rem">
+                <button type="button" class="btn btn-primary btn-sm" id="imp-add">Add product</button>
+                <label class="btn btn-secondary btn-sm" style="cursor:pointer">Load file<input type="file" id="imp-file" accept=".txt,.csv,.json,.dat" multiple hidden></label>
+            </div>
+            <div class="imp-msg" id="imp-msg" role="status"></div>
+            <ul class="imp-list" id="imp-list"></ul>
+        </div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How the calculator works</h2>
+        <p>Each pane is described by its spectral transmittance \(T(\lambda)\) and front and back reflectance \(R_f(\lambda)\), \(R_b(\lambda)\) from 300 to 2500 nm. Panes are combined with the net-radiation (multiple-reflection) method, which tracks light bouncing between every pair of surfaces. For two panes,</p>
+        <div class="formula">\[ T = \frac{T_1 T_2}{1 - R_{b,1} R_{f,2}}, \qquad R_f = R_{f,1} + \frac{T_1^2 R_{f,2}}{1 - R_{b,1} R_{f,2}}, \]</div>
+        <p>and the same bookkeeping gives the fraction of sunlight absorbed in each pane. Visible transmittance and reflectance are weighted by the CIE D65 illuminant and the photopic eye response \(V(\lambda)\) from 380 to 780 nm. Solar values are weighted by the ASTM G173 AM1.5 direct-plus-circumsolar spectrum from 300 to 2500 nm, about 53 % of which is visible. Color is CIELAB under D65 with the 1931 2° observer.</p>
+
+        <h2>Generic glass and low-e coatings</h2>
+        <p>Generic panes use a soda-lime glass model: a refractive index near 1.52 and an absorption spectrum set by iron. Ferrous iron (Fe²⁺) absorbs a broad band centered near 1050 nm, which gives clear glass its green edge and cuts near-infrared transmission; ferric iron and the silicate network absorb in the ultraviolet. Low-iron glass has about a tenth of the iron. The model reproduces typical published values, such as 89 % visible and about 80 % solar transmittance for 6 mm clear float and 91 % and 90 % for 6 mm low-iron glass.</p>
+        <p>The four generic coatings represent the main low-e families: a pyrolytic (hard-coat) tin oxide with an emissivity near 0.15, and sputtered single-, double-, and triple-silver stacks with emissivities of about 0.04, 0.025, and 0.015. Each adds silver's sharp rise in near-infrared reflectance. More silver layers mean a steeper edge, so less solar heat passes for the same visible light. The emissivity of the coated surface sets the radiative heat transfer across the gap. Real products vary, so use measured spectra for a specific product.</p>
+        <div class="callout"><p><strong>Surface numbering.</strong> Surfaces are numbered from the outside: a double-pane unit has surfaces #1 (outdoor face) through #4 (indoor face). In heating-dominated climates a low-e coating on #3 keeps more solar gain; in cooling climates a coating on #2 rejects more solar heat. Both give about the same U-factor.</p></div>
+
+        <h2>Heat transfer and U-factor</h2>
+        <p>The thermal model follows the ISO 15099 center-of-glass method used by NFRC and LBNL WINDOW. Each surface has its own temperature, and the model iterates until the energy balance closes. Heat crosses each gap by radiation between the two facing surfaces,</p>
+        <div class="formula">\[ h_r = \frac{\sigma\,(T_1^2 + T_2^2)(T_1 + T_2)}{1/\varepsilon_1 + 1/\varepsilon_2 - 1}, \]</div>
+        <p>and by conduction and convection of the fill gas, using the ISO 15099 vertical-cavity Nusselt correlations with temperature-dependent properties of air, argon, krypton, and xenon. The 90 % fills are mixed with air by mole fraction. A vacuum gap has no gas conduction, so heat crosses only by radiation and through the support pillars. For a square array of pillars of radius \(a\) and spacing \(\lambda\), their conductance is about \(2k_\text{glass}a/\lambda^2\) (Collins and Simko).</p>
+        <p>The U-factor uses NFRC 100 winter conditions: −18 °C outside with 5.5 m/s wind, 21 °C inside, no sun. SHGC uses NFRC 200 summer conditions: 32 °C outside, 24 °C inside, 783 W/m² of sun. SHGC is the solar transmittance plus the inward-flowing fraction of the sunlight absorbed in the panes.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Center-of-glass values only. Whole-window ratings include the frame and the edge spacer, which raise the U-factor by roughly 10–30 % for a typical residential window.</li>
+            <li>Generic layers are representative, typically within a few percent of real products. Use measured spectra for product selection or code compliance.</li>
+            <li>Specular, uncoated-gap optics. Laminated glass interlayers, frits, films, and shades are not modeled.</li>
+            <li>Gas fills are ideal mixtures at atmospheric pressure. Vacuum gaps neglect residual gas conduction, which is small below about 0.1 Pa.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>ISO 15099:2003, <em>Thermal performance of windows, doors and shading devices — Detailed calculations</em>.</li>
+            <li>NFRC 100 (U-factor), NFRC 200 (SHGC and VT), and NFRC 300 (optical properties) procedures.</li>
+            <li>ISO 9050:2003, <em>Glass in building — Determination of light transmittance, solar direct transmittance, total solar energy transmittance, ultraviolet transmittance and related glazing factors</em>.</li>
+            <li>M. Rubin, “Optical properties of soda lime silica glasses,” <em>Solar Energy Materials</em> 12, 275–288 (1985).</li>
+            <li>R. E. Collins and T. M. Simko, “Current status of the science and technology of vacuum glazing,” <em>Solar Energy</em> 62, 189–213 (1998).</li>
+            <li>ASTM G173-03 reference solar spectra (NREL); CIE D65, V(λ), and 1931 colour-matching functions (CIE).</li>
+            <li>Lawrence Berkeley National Laboratory, <a href="https://windows.lbl.gov/software/window" target="_blank" rel="noopener">WINDOW</a> and the International Glazing Database, the reference tools for this calculation.</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="fresnel-equations,optical-density,blackbody,article:vacuum-fundamentals"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const E = window.GlazingEngine, Wt = window.GlazingWeights;
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const THICK = [2.5, 3, 4, 5, 6, 8, 10, 12, 15, 19];
+
+    // ── Imported products (kept in this browser only) ──
+    let imports = [];
+    try { imports = JSON.parse(localStorage.getItem('glz-imports') || '[]'); } catch (e) { imports = []; }
+    const saveImports = () => { try { localStorage.setItem('glz-imports', JSON.stringify(imports)); } catch (e) { /* ignore */ } };
+
+    function glassOptions(sel) {
+        return '<option value="clear"' + (sel === 'clear' ? ' selected' : '') + '>Clear float (generic)</option>' +
+            '<option value="lowiron"' + (sel === 'lowiron' ? ' selected' : '') + '>Low-iron (generic)</option>' +
+            imports.map(p => '<option value="imp:' + p.id + '"' + (sel === 'imp:' + p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('');
+    }
+    const coatOptions = '<option value="none">None</option>' + Object.keys(E.COATINGS).map(k => '<option value="' + k + '">' + E.COATINGS[k].label + ' (ε ≈ ' + E.COATINGS[k].eps + ')</option>').join('');
+    const fillOptions = Object.keys(E.FILLS).map(k => '<option value="' + k + '">' + E.FILLS[k].label + '</option>').join('');
+
+    // Static markup for 3 panes and 2 gaps; unused cards are hidden
+    let html = '';
+    const DEF = [
+        { g: 'clear', t: 6, c: 'double', s: 'back' },
+        { g: 'clear', t: 6, c: 'none', s: 'front' },
+        { g: 'clear', t: 6, c: 'none', s: 'front' }
+    ];
+    for (let i = 1; i <= 3; i++) {
+        const d = DEF[i - 1];
+        html += '<div class="gl-card" data-pane="' + i + '"><h3><span>Pane ' + i + (i === 1 ? ' (outdoors)' : '') + '</span><span data-out="p' + i + 'surf"></span></h3>' +
+            '<div class="field"><label for="p' + i + 'g">Glass</label><select id="p' + i + 'g" name="p' + i + 'g" class="input">' + glassOptions(d.g) + '</select></div>' +
+            '<div class="field-row">' +
+              '<div class="field" data-gen="' + i + '"><label for="p' + i + 't">Thickness</label><select id="p' + i + 't" name="p' + i + 't" class="input">' + THICK.map(t => '<option value="' + t + '"' + (t === d.t ? ' selected' : '') + '>' + t + ' mm</option>').join('') + '</select></div>' +
+              '<div class="field" data-gen="' + i + '"><label for="p' + i + 'c">Low-e coating</label><select id="p' + i + 'c" name="p' + i + 'c" class="input">' + coatOptions.replace('value="' + d.c + '"', 'value="' + d.c + '" selected') + '</select></div>' +
+              '<div class="field"><label for="p' + i + 's">Coated or front face</label><select id="p' + i + 's" name="p' + i + 's" class="input"><option value="front"' + (d.s === 'front' ? ' selected' : '') + '>Faces outdoors</option><option value="back"' + (d.s === 'back' ? ' selected' : '') + '>Faces indoors</option></select></div>' +
+            '</div></div>';
+        if (i < 3) {
+            html += '<div class="gl-card gap" data-gap="' + i + '"><h3><span>Gap ' + i + '</span></h3><div class="field-row">' +
+                '<div class="field"><label for="g' + i + 'f">Fill</label><select id="g' + i + 'f" name="g' + i + 'f" class="input">' + fillOptions.replace('value="argon"', 'value="argon" selected') + '</select></div>' +
+                '<div class="field" data-gas="' + i + '"><label for="g' + i + 'w">Width</label><div class="input-unit"><input id="g' + i + 'w" name="g' + i + 'w" value="12.7" inputmode="decimal" data-positive data-label="gap width"><select data-dim="length" data-units="mm,in" data-default="mm"></select></div></div>' +
+                '<div class="field" data-vac="' + i + '"><label for="g' + i + 'ps">Pillar spacing</label><div class="input-unit"><input id="g' + i + 'ps" name="g' + i + 'ps" value="25" inputmode="decimal" data-positive data-label="pillar spacing"><select data-dim="length" data-units="mm" data-default="mm"></select></div></div>' +
+                '<div class="field" data-vac="' + i + '"><label for="g' + i + 'pd">Pillar diameter</label><div class="input-unit"><input id="g' + i + 'pd" name="g' + i + 'pd" value="0.5" inputmode="decimal" data-positive data-label="pillar diameter"><select data-dim="length" data-units="mm" data-default="mm"></select></div></div>' +
+                '</div></div>';
+        }
+    }
+    $('stack').innerHTML = html;
+
+    // ── Cross-section drawing ──
+    function xsecSVG(np, layers, gaps, temps, coat) {
+        const W = 600, H = 252, x0 = 110, x1 = W - 110, top = 50, bot = 190;
+        const disp = [];
+        for (let i = 0; i < np; i++) {
+            disp.push({ kind: 'pane', w: Math.max(layers[i].t * 1000, 2) });
+            if (i < np - 1) disp.push({ kind: 'gap', w: gaps[i].fill === 'vacuum' ? 2.5 : Math.max(gaps[i].width * 1000, 3), g: gaps[i] });
+        }
+        const tot = disp.reduce((a, d) => a + d.w, 0), k = (x1 - x0) / tot;
+        let x = x0, g = '', surf = 1;
+        const sx = [];
+        g += '<text class="lbl" x="' + (x0 - 14) + '" y="' + (top - 26) + '" text-anchor="end">Outdoors</text>';
+        g += '<text class="lbl" x="' + (x1 + 14) + '" y="' + (top - 26) + '">Indoors</text>';
+        g += '<path class="sun" d="M20 70 L' + (x0 - 12) + ' 110"/><path class="sunh" d="M' + (x0 - 12) + ' 110 l-11 -2 l6 -8 z"/><circle class="sunh" cx="18" cy="66" r="7"/>';
+        disp.forEach((d, j) => {
+            const w = d.w * k;
+            if (d.kind === 'pane') {
+                g += '<rect class="glass" x="' + x + '" y="' + top + '" width="' + w + '" height="' + (bot - top) + '"/>';
+                sx.push(x, x + w);
+            } else {
+                const vac = d.g.fill === 'vacuum';
+                g += '<rect class="' + (vac ? 'vac' : 'gapf') + '" x="' + x + '" y="' + top + '" width="' + w + '" height="' + (bot - top) + '"/>';
+                if (vac) for (let p = top + 14; p < bot - 6; p += 26) g += '<rect class="pillar" x="' + (x + w / 2 - 1.5) + '" y="' + p + '" width="3" height="3"/>';
+                g += '<text class="lbl-s" transform="translate(' + (x + w / 2 + 4) + ',' + ((top + bot) / 2) + ') rotate(-90)" text-anchor="middle">' +
+                    (vac ? 'vacuum' : esc((Math.round(d.g.width * 1e4) / 10) + ' mm ' + E.FILLS[d.g.fill].label.split(' ')[0].toLowerCase())) + '</text>';
+            }
+            x += w;
+        });
+        sx.forEach((xs, i) => {
+            g += '<text class="lbl-s" x="' + xs + '" y="' + (top - 6) + '" text-anchor="middle">#' + (i + 1) + '</text>';
+            if (coat[i]) g += '<line class="coat" x1="' + xs + '" y1="' + top + '" x2="' + xs + '" y2="' + bot + '"/>';
+            if (temps) g += '<text class="lbl-t" x="' + xs + '" y="' + (bot + 16 + (i % 2) * 14) + '" text-anchor="middle">' + Math.round((temps[i] - 273.15) * 10) / 10 + '°</text>';
+        });
+        g += '<text class="lbl-s" x="' + (W / 2) + '" y="' + (H - 2) + '" text-anchor="middle">Purple: low-e coating. Orange: surface temperature (°C) in NFRC winter conditions.</text>';
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '">' + g + '</svg>';
+    }
+
+    const pct = x => fmt.num(100 * x, 3) + ' %';
+    let last = null;
+
+    const calc = Calc.create({
+        id: 'glz',
+        form: '#glz',
+        outputs: 'main',
+        compute(v) {
+            const np = parseInt(v.np, 10);
+            const layers = [], gaps = [], coat = [];
+            for (let i = 1; i <= 3; i++) {
+                const card = document.querySelector('[data-pane="' + i + '"]');
+                card.hidden = i > np;
+                if (i < 3) document.querySelector('[data-gap="' + i + '"]').hidden = i >= np;
+                if (i > np) continue;
+                const gsel = v['p' + i + 'g'], side = v['p' + i + 's'];
+                const isImp = gsel.indexOf('imp:') === 0;
+                document.querySelectorAll('[data-gen="' + i + '"]').forEach(el => { el.hidden = isImp; });
+                let layer;
+                if (isImp) {
+                    const p = imports.find(q => 'imp:' + q.id === gsel);
+                    if (!p) throw Calc.fail('Imported product for pane ' + i + ' is not in this browser. Load it below or choose another glass.', 'p' + i + 'g');
+                    layer = E.imported(p, side === 'back');
+                    coat.push(layer.ef < 0.5, layer.eb < 0.5);
+                } else {
+                    const c = v['p' + i + 'c'];
+                    layer = E.pane(gsel, parseFloat(v['p' + i + 't']), c, side);
+                    coat.push(c !== 'none' && side === 'front', c !== 'none' && side === 'back');
+                }
+                layers.push(layer);
+                const n0 = 2 * i - 1;
+                document.querySelector('[data-out="p' + i + 'surf"]').textContent = 'surfaces #' + n0 + ' and #' + (n0 + 1);
+                if (i < np) {
+                    const fill = v['g' + i + 'f'], vac = fill === 'vacuum';
+                    document.querySelectorAll('[data-gas="' + i + '"]').forEach(el => { el.hidden = vac; });
+                    document.querySelectorAll('[data-vac="' + i + '"]').forEach(el => { el.hidden = !vac; });
+                    if (vac && !(v['g' + i + 'pd'] < v['g' + i + 'ps'])) throw Calc.fail('Pillar diameter must be smaller than the spacing.', 'g' + i + 'pd');
+                    gaps.push({ fill, width: vac ? 0.0003 : v['g' + i + 'w'], pillarSpacing: v['g' + i + 'ps'], pillarRadius: v['g' + i + 'pd'] / 2 });
+                }
+            }
+            const r = E.evaluate(layers, gaps, v.H);
+            last = r;
+            const Uip = r.U / 5.678263;
+            const Tin = r.winter.temps[2 * np - 1] - 273.15;
+            // dew point of 21 °C indoor air at 30 % and 50 % RH (Magnus)
+            const dp = rh => { const a = 17.62, b = 243.12, g = Math.log(rh) + a * 21 / (b + 21); return b * g / (a - g); };
+            const sw = (c, label) => '<span class="sw"><i style="background:rgb(' + c.rgb.join(',') + ')"></i><span>' + label + '<br>L* ' + fmt.num(c.L, 3) + ', a* ' + fmt.num(c.a, 2) + ', b* ' + fmt.num(c.b, 2) + '</span></span>';
+            return {
+                xsec: { html: xsecSVG(np, layers, gaps, r.winter.temps, coat) },
+                kU: fmt.num(r.U, 3), kUip: fmt.num(Uip, 3), kSHGC: fmt.num(r.SHGC, 3), kVT: pct(r.Tvis),
+                swatches: { html: sw(r.colorT, 'Transmitted') + sw(r.colorR, 'Reflected, outside') + sw(r.colorRin, 'Reflected, inside') },
+                rvis: pct(r.Rvis) + ' / ' + pct(r.RvisIn),
+                tsol: pct(r.Tsol),
+                rsol: pct(r.Rsol) + ' / ' + pct(r.RsolIn),
+                asol: r.Asol.map(pct).join(' · '),
+                tuv: pct(r.Tuv),
+                lsg: fmt.num(r.Tvis / r.SHGC, 3),
+                rval: 'R-' + fmt.num(1 / Uip, 3) + '  (' + fmt.num(1 / r.U, 3) + ' m²·K/W)',
+                tin: fmt.num(Tin, 3) + ' °C',
+                dew: Tin < dp(0.5) ? 'Below the 50 % RH dew point of ' + fmt.num(dp(0.5), 3) + ' °C: condensation likely in humid rooms.'
+                    : 'Above the dew point of 21 °C air at 50 % RH (' + fmt.num(dp(0.5), 3) + ' °C).'
+            };
+        },
+        after() { drawPlot(); }
+    });
+
+    function drawPlot() {
+        if (!last || !window.Plot) return;
+        const x = Array.from(E.LAM), s = last.sys;
+        const smax = Math.max(...Wt.solar);
+        Plot.draw('#glz-plot', {
+            height: 300,
+            x: { label: 'Wavelength (nm)', min: 300, max: 2500 },
+            y: { label: 'Percent', min: 0, max: 100 },
+            series: [
+                { type: 'band', x, y: Wt.solar.map(w => 100 * w / smax), y0: x.map(() => 0), color: 'var(--c2)' },
+                { type: 'line', x, y: Array.from(s.T, t => 100 * t), label: 'Transmittance', color: 'var(--c1)' },
+                { type: 'line', x, y: Array.from(s.Rf, t => 100 * t), label: 'Reflectance, outside', color: 'var(--c5)' },
+                { type: 'line', x, y: Array.from(s.Rb, t => 100 * t), label: 'Reflectance, inside', color: 'var(--c4)', dash: true }
+            ],
+            vlines: [{ x: 380, label: '380', color: 'var(--muted)' }, { x: 780, label: '780 nm', color: 'var(--muted)' }],
+            hover: { format: (xv, hits) => fmt.num(xv, 4) + ' nm · ' + hits.filter(h => h.series.label).map(h => h.series.label + ' ' + fmt.num(h.y, 3) + ' %').join(' · ') }
+        });
+    }
+    window.addEventListener('resize', () => { clearTimeout(drawPlot.t); drawPlot.t = setTimeout(drawPlot, 150); });
+
+    // ── Import parsing ──
+    function parseProduct(text, fname) {
+        text = text.trim();
+        if (text[0] === '{' && /"spectral_data"|"measured_data"/.test(text)) {
+            const j = JSON.parse(text);
+            const find = (o, key) => { if (!o || typeof o !== 'object') return undefined; if (key in o) return o[key]; for (const k in o) { const r = find(o[k], key); if (r !== undefined) return r; } };
+            const sd = find(j, 'spectral_data');
+            const rows = Array.isArray(sd) ? sd : find(sd, 'spectral_data');
+            if (!Array.isArray(rows)) throw new Error('no spectral_data array found');
+            const pts = rows.map(r => [r.wavelength, r.T, r.Rf, r.Rb]);
+            return finish(pts, { name: j.name || fname, manufacturer: j.manufacturer_name || '', thickness: find(j, 'thickness'), ef: find(j, 'emissivity_front'), eb: find(j, 'emissivity_back') });
+        }
+        const meta = {
+            thickness: parseFloat((text.match(/\{\s*Thickness\s*\}\s*([\d.]+)/i) || [])[1]),
+            k: parseFloat((text.match(/\{\s*Conductivity\s*\}\s*([\d.]+)/i) || [])[1]),
+            name: ((text.match(/Product Name:\s*([^}\n]+)/i) || [])[1] || '').trim(),
+            manufacturer: ((text.match(/Manufacturer:\s*([^}\n]+)/i) || [])[1] || '').trim()
+        };
+        const em = text.match(/Emis\s*=\s*([\d.]+)[\s,]+([\d.]+)/i) || text.match(/emissivity[^\d\n]*([\d.]+)[\s,]+([\d.]+)/i);
+        if (em) { meta.ef = parseFloat(em[1]); meta.eb = parseFloat(em[2]); }
+        const pts = [];
+        text.split(/\r?\n/).forEach(line => {
+            if (/[{}]/.test(line)) return;
+            const nums = line.trim().split(/[\s,;\t]+/).map(Number);
+            if (nums.length >= 4 && nums.slice(0, 4).every(isFinite)) pts.push(nums.slice(0, 4));
+        });
+        return finish(pts, Object.assign(meta, { name: meta.name || fname || 'Imported product' }));
+    }
+    function finish(pts, meta) {
+        if (pts.length < 20) throw new Error('found ' + pts.length + ' data rows; need wavelength, T, Rf, Rb columns');
+        pts.sort((a, b) => a[0] - b[0]);
+        const micron = pts[pts.length - 1][0] < 50;
+        const pctData = pts.some(p => p[1] > 1.5 || p[2] > 1.5);
+        const s = pctData ? 0.01 : 1;
+        const wl = pts.map(p => micron ? p[0] * 1000 : p[0]);
+        if (wl[0] > 400 || wl[wl.length - 1] < 2000) throw new Error('spectra should span at least 400–2000 nm (found ' + Math.round(wl[0]) + '–' + Math.round(wl[wl.length - 1]) + ' nm)');
+        const p = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            name: (meta.manufacturer ? meta.manufacturer + ' ' : '') + meta.name + (meta.thickness ? ' (' + meta.thickness + ' mm)' : ''),
+            thickness: meta.thickness > 0 ? meta.thickness : 6, k: meta.k > 0 ? meta.k : 1.0,
+            ef: meta.ef > 0 ? meta.ef : 0.84, eb: meta.eb > 0 ? meta.eb : 0.84,
+            wl, T: pts.map(q => q[1] * s), Rf: pts.map(q => q[2] * s), Rb: pts.map(q => q[3] * s)
+        };
+        return p;
+    }
+    function refreshSelects() {
+        for (let i = 1; i <= 3; i++) { const sel = $('p' + i + 'g'), cur = sel.value; sel.innerHTML = glassOptions(cur); if (sel.value !== cur) sel.value = 'clear'; }
+        $('imp-list').innerHTML = imports.map(p => '<li><span><b>' + esc(p.name) + '</b> · ε ' + p.ef + ' / ' + p.eb + ' · ' + p.wl.length + ' points</span><button type="button" class="btn btn-ghost btn-sm" data-del="' + p.id + '">Remove</button></li>').join('');
+    }
+    function addText(text, fname) {
+        const msg = $('imp-msg');
+        try {
+            const p = parseProduct(text, fname);
+            imports.push(p); saveImports(); refreshSelects();
+            msg.className = 'imp-msg ok'; msg.textContent = 'Added ' + p.name + '. Choose it in a pane’s glass list.';
+        } catch (e) { msg.className = 'imp-msg bad'; msg.textContent = 'Could not read ' + (fname || 'the data') + ': ' + e.message + '.'; }
+    }
+    $('imp-add').addEventListener('click', () => addText($('imp-text').value, ''));
+    $('imp-file').addEventListener('change', e => { Array.from(e.target.files).forEach(f => f.text().then(t => addText(t, f.name.replace(/\.[^.]+$/, '')))); e.target.value = ''; });
+    $('imp-list').addEventListener('click', e => {
+        const b = e.target.closest('[data-del]'); if (!b) return;
+        imports = imports.filter(p => p.id !== b.dataset.del); saveImports(); refreshSelects(); calc.run();
+    });
+    refreshSelects();
+});
+</script>
+</body>
+</html>
