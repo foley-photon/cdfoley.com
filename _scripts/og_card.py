@@ -29,13 +29,30 @@ d.line(bot, fill=(110, 168, 254, 70), width=2)
 for x in range(0, W, 14):
     d.line([(x, cy), (x + 6, cy)], fill=(148, 163, 184, 45), width=1)
 
-# Headshot in a ring
-R, cx, cyp = 150, 970, 315
-photo = Image.open('assets/img/headshot-480.jpg').convert('RGB').resize((2 * R, 2 * R), Image.LANCZOS)
-mask = Image.new('L', (2 * R, 2 * R), 0)
-ImageDraw.Draw(mask).ellipse((0, 0, 2 * R - 1, 2 * R - 1), fill=255)
-d.ellipse((cx - R - 6, cyp - R - 6, cx + R + 6, cyp + R + 6), fill=(30, 41, 64))
-img.paste(photo, (cx - R, cyp - R), mask)
+# The site logo (same geometry as _scripts/logo.py): a Gaussian beam focused to an off-center waist
+S, cx, cyp = 260, 975, 315
+k = S / 32 * 4                                    # 4× supersampling
+mk = Image.new('RGBA', (int(32 * k), int(32 * k)), (0, 0, 0, 0))
+md = ImageDraw.Draw(mk)
+md.rounded_rectangle((0, 0, 32 * k - 1, 32 * k - 1), radius=7 * k, fill=(22, 32, 54, 255), outline=(44, 58, 86, 255), width=int(0.35 * k))
+grad = [(110, 168, 254), (34, 211, 238), (52, 211, 153)]
+def gcol(t):
+    if t < 0.55: a, b, f = grad[0], grad[1], t / 0.55
+    else: a, b, f = grad[1], grad[2], (t - 0.55) / 0.45
+    return tuple(round(x + (y - x) * f) for x, y in zip(a, b)) + (255,)
+X0, W0, ZR = 19.5, 2.4, 5.0
+env = lambda x: W0 * math.sqrt(1 + ((x - X0) / ZR) ** 2)
+for x in range(4 * 8, 28 * 8):                   # dashed optical axis
+    if (x // 8) % 4 < 1.5: md.line([(x / 8 * k, 16 * k), ((x + 1) / 8 * k, 16 * k)], fill=(148, 163, 184, 180), width=int(0.9 * k))
+wpx, n = int(2.3 * k), 1600
+for sign in (-1, 1):
+    pts = [(4 + 24 * i / n) for i in range(n + 1)]
+    for i in range(n + 1):                         # dense round dabs give a smooth gradient stroke
+        x, y = pts[i] * k, (16 + sign * env(pts[i])) * k
+        md.ellipse((x - wpx / 2, y - wpx / 2, x + wpx / 2, y + wpx / 2), fill=gcol(i / n))
+md.ellipse((X0 * k - 1.35 * k, 14.65 * k, X0 * k + 1.35 * k, 17.35 * k), fill=(52, 211, 153, 255))
+mk = mk.resize((S, S), Image.LANCZOS)
+img.paste(mk, (cx - S // 2, cyp - S // 2), mk)
 
 d = ImageDraw.Draw(img, 'RGBA')
 x0, maxw = 80, 720
@@ -43,7 +60,7 @@ def fit(text, name, size, minsize):
     while size > minsize and d.textlength(text, font=font(name, size)) > maxw: size -= 1
     return font(name, size)
 
-d.text((x0, 152), 'LASERS · OPTICS · VACUUM · MACHINE VISION', font=font('seguisb.ttf', 19), fill=BLUE)
+d.text((x0, 152), 'LASERS · OPTICS · VACUUM · VISION · QUALITY', font=font('seguisb.ttf', 19), fill=BLUE)
 d.text((x0, 190), 'Casey D. Foley, PhD', font=fit('Casey D. Foley, PhD', 'segoeuib.ttf', 66, 48), fill=WHITE)
 sub = 'Laser & High Vacuum Systems Expert · Physical Chemist'
 d.text((x0, 284), sub, font=fit(sub, 'seguisb.ttf', 30, 22), fill=SUB)

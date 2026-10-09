@@ -33,7 +33,7 @@
         { id: 'beam',    title: 'Optics & Glazing',             blurb: 'Focusing, propagation, beam expansion, scan lenses, apertures, Fresnel reflection, and window glazing performance.' },
         { id: 'process', title: 'Laser Processing',             blurb: 'Pulse energy, fluence, overlap, ablation, damage thresholds, and heat accumulation.' },
         { id: 'vacuum',  title: 'Vacuum Technology',            blurb: 'Pressure units, gas kinetics, conductance, and pump-down estimates.' },
-        { id: 'vision',  title: 'Machine Vision & Imaging',     blurb: 'Lens selection, field of view, depth of field, resolution, and motion blur.' },
+        { id: 'vision',  title: 'Vision, Imaging & Color',      blurb: 'Camera and lens selection, field of view, motion blur, color spaces, and color measurement.' },
         { id: 'quality', title: 'Quality & Manufacturing',      blurb: 'Process capability, control charts, sigma level, OEE, and takt time.' }
     ];
 
@@ -52,6 +52,7 @@
         { slug: 'aperture-transmission', cat: 'beam',    title: 'Gaussian Beam Clipping',         desc: 'Power transmitted through a circular aperture and the aperture needed for a target throughput.', keys: 'aperture iris clipping truncation transmission pinhole' },
         { slug: 'fresnel-equations',     cat: 'beam',    title: 'Fresnel Reflection & Brewster Angle', desc: 's- and p-polarized reflectance vs. angle, Brewster angle, and total internal reflection.', keys: 'fresnel reflectance brewster critical angle snell refraction polarization' },
         { slug: 'glazing-performance',   cat: 'beam',    title: 'Glazing Performance Calculator', desc: 'U-factor, SHGC, visible and solar transmittance, reflectance, and color for single, double, triple, and vacuum glazing with low-e coatings.', keys: 'window glass glazing igu insulating low-e coating u-factor u-value shgc solar heat gain visible transmittance vt argon krypton vacuum vig nfrc lbnl window', featured: true },
+        { slug: 'low-e-sheet-resistance', cat: 'beam',   title: 'Low-E Sheet Resistance & Emissivity', desc: 'Ohms per square to emissivity, silver thickness, RF attenuation, and U-factor, with typical values for each low-e coating family.', keys: 'sheet resistance ohms per square low-e emissivity silver ito fto tin oxide four point probe eddy current rf shielding coating', featured: true },
         { slug: 'optical-density',       cat: 'beam',    title: 'Optical Density & Attenuation',  desc: 'Convert between OD, transmission, absorbance, and dB, and stack filters.', keys: 'od transmission attenuation neutral density filter db absorbance' },
         // Laser processing
         { slug: 'pulse-energy',          cat: 'process', title: 'Pulse Energy & Peak Power',      desc: 'Interconvert average power, repetition rate, pulse energy, peak power, and duty cycle.', keys: 'pulse energy peak power duty cycle repetition rate average power' },
@@ -67,6 +68,7 @@
         // Machine vision
         { slug: 'vision-system-configurator', cat: 'vision', title: 'Vision System Configurator', desc: 'Pick a sensor and lens for your field of view and defect size, see the setup drawn, and check depth of field, motion blur, bandwidth, and lighting.', keys: 'camera sensor lens configurator sony imx onsemi gpixel pregius working distance lighting interface gige usb3 coaxpress', featured: true },
         { slug: 'machine-vision-lens',   cat: 'vision',  title: 'Machine Vision Lens Selection',  desc: 'Magnification, field of view, depth of field, pixel resolution, and smallest detectable defect.', keys: 'fov field of view magnification depth of field focal length sensor resolution camera' },
+        { slug: 'color-converter',       cat: 'vision',  title: 'Color Converter & Color Measurement', desc: 'HEX, RGB, HSV, HSL, CMYK, XYZ, CIELAB, and LCh conversions, ΔE2000, spectra to color, and how cameras and spectrophotometers measure color.', keys: 'color colour hex rgb hsv hsl cmyk cielab lab lch xyz xyy delta e ciede2000 chromaticity spectrophotometer camera low-e coating color measurement', featured: true },
         { slug: 'motion-blur',           cat: 'vision',  title: 'Motion Blur & Exposure',         desc: 'Maximum exposure or strobe time for a moving part, and line-scan rate for a conveyor.', keys: 'motion blur exposure strobe conveyor line scan speed' },
         // Quality & manufacturing
         { slug: 'process-capability',    cat: 'quality', title: 'Process Capability (Cp, Cpk)',   desc: 'Cp, Cpk, Pp, Ppk, and expected PPM from raw data or summary statistics, with a histogram.', keys: 'cpk ppk cp pp capability spc six sigma ppm specification' },
@@ -78,7 +80,7 @@
     var ARTICLES = [
         { slug: 'gaussian-beam-optics',     title: 'Gaussian Beam Optics for Engineers',          desc: 'Waist, Rayleigh range, M², and how to choose optics for the spot size you need.', topic: 'Optics', mins: 8 },
         { slug: 'laser-ablation-process-windows', title: 'Laser Ablation Process Windows',       desc: 'Fluence, threshold, incubation, and overlap—how to build a robust ablation process.', topic: 'Laser processing', mins: 10 },
-        { slug: 'vacuum-fundamentals',      title: 'Vacuum Fundamentals',                          desc: 'Pressure regimes, gas loads, conductance, and why the pump is rarely the bottleneck.', topic: 'Vacuum', mins: 11 },
+        { slug: 'vacuum-fundamentals',      title: 'Vacuum Fundamentals',                          desc: 'Pressure regimes, gas loads, conductance, and why the pump is rarely the bottleneck.', topic: 'Vacuum', mins: 9 },
         { slug: 'spc-for-laser-processes',  title: 'SPC and Process Capability in Production',     desc: 'Control charts, Cpk, and measurement systems for a high-yield laser process.', topic: 'Quality', mins: 9 },
         { slug: 'laser-sustained-plasma',   title: 'Laser-Sustained Plasma Light Sources',         desc: 'How a focused laser sustains a plasma, and why it makes a bright broadband UV source.', topic: 'Light sources', mins: 10 },
         { slug: 'machine-vision-optics',    title: 'Machine Vision Optics for Inspection',         desc: 'Resolution, contrast, depth of field, and lighting for detecting small defects.', topic: 'Imaging', mins: 8 },
@@ -103,10 +105,8 @@
     };
     var BRAND_MARK =
         '<svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">' +
-        '<defs><linearGradient id="bm-g" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#6ea8fe"/><stop offset=".5" stop-color="#22d3ee"/><stop offset="1" stop-color="#34d399"/></linearGradient></defs>' +
-        '<rect width="32" height="32" rx="7" fill="#0b1220"/>' +
-        '<path d="M4 8.5C11 14 21 14 28 8.5M4 23.5C11 18 21 18 28 23.5" fill="none" stroke="url(#bm-g)" stroke-width="2.2" stroke-linecap="round"/>' +
-        '<path d="M4 16h24" stroke="#94a3b8" stroke-width="1" stroke-dasharray="1.5 2.5" opacity=".7"/>' +
+        '<defs><linearGradient id="bm-g" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#6ea8fe"/><stop offset=".55" stop-color="#22d3ee"/><stop offset="1" stop-color="#34d399"/></linearGradient></defs>' +
+        '<rect width="32" height="32" rx="7" fill="#0b1220"/><path d="M4 16h24" stroke="#94a3b8" stroke-width="1" stroke-dasharray="1.5 2.5" opacity=".7"/><path d="M4.00 8.18 L4.67 8.49 L5.33 8.79 L6.00 9.09 L6.67 9.39 L7.33 9.69 L8.00 9.98 L8.67 10.27 L9.33 10.56 L10.00 10.85 L10.67 11.13 L11.33 11.40 L12.00 11.67 L12.67 11.94 L13.33 12.19 L14.00 12.43 L14.67 12.66 L15.33 12.88 L16.00 13.07 L16.67 13.24 L17.33 13.38 L18.00 13.49 L18.67 13.57 L19.33 13.60 L20.00 13.59 L20.67 13.54 L21.33 13.44 L22.00 13.32 L22.67 13.16 L23.33 12.98 L24.00 12.77 L24.67 12.55 L25.33 12.31 L26.00 12.06 L26.67 11.81 L27.33 11.54 L28.00 11.27" fill="none" stroke="url(#bm-g)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.00 23.82 L4.67 23.51 L5.33 23.21 L6.00 22.91 L6.67 22.61 L7.33 22.31 L8.00 22.02 L8.67 21.73 L9.33 21.44 L10.00 21.15 L10.67 20.87 L11.33 20.60 L12.00 20.33 L12.67 20.06 L13.33 19.81 L14.00 19.57 L14.67 19.34 L15.33 19.12 L16.00 18.93 L16.67 18.76 L17.33 18.62 L18.00 18.51 L18.67 18.43 L19.33 18.40 L20.00 18.41 L20.67 18.46 L21.33 18.56 L22.00 18.68 L22.67 18.84 L23.33 19.02 L24.00 19.23 L24.67 19.45 L25.33 19.69 L26.00 19.94 L26.67 20.19 L27.33 20.46 L28.00 20.73" fill="none" stroke="url(#bm-g)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19.5" cy="16" r="1.35" fill="#34d399"/>' +
         '</svg>';
 
     /* ── Helpers ────────────────────────────────────────────────────────── */

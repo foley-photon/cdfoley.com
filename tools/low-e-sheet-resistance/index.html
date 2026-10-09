@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Low-E Coating Sheet Resistance &amp; Emissivity Calculator | Casey D. Foley, PhD</title>
+<meta name="description" content="Sheet resistance data and calculator for low-e coatings: convert ohms per square to emissivity, silver thickness, RF signal attenuation, and window U-factor; typical values for hard-coat, ITO, single-, double-, and triple-silver coatings; four-point-probe and non-contact measurement.">
+<link rel="canonical" href="https://cdfoley.com/tools/low-e-sheet-resistance/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Low-E Sheet Resistance and Emissivity Calculator">
+<meta property="og:description" content="Ohms per square to emissivity, silver thickness, RF attenuation, and U-factor, with typical values for each low-e coating family.">
+<meta property="og:url" content="https://cdfoley.com/tools/low-e-sheet-resistance/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="/assets/css/site.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script defer src="/assets/js/glazing-weights.js"></script>
+<script defer src="/assets/js/glazing-engine.js"></script>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Low-E Sheet Resistance & Emissivity",
+   "url": "https://cdfoley.com/tools/low-e-sheet-resistance/",
+   "description": "Sheet resistance data and calculator for low-e coatings: convert ohms per square to emissivity, silver thickness, RF signal attenuation, and window U-factor; typical values for hard-coat, ITO, single-, double-, and triple-silver coatings; four-point-probe and non-contact measurement.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "sheet resistance ohms per square low-e emissivity silver ito fto tin oxide four point probe eddy current rf shielding coating",
+   "author": {
+    "@type": "Person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Optics & Glazing",
+     "item": "https://cdfoley.com/tools/#beam"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Low-E Sheet Resistance & Emissivity",
+     "item": "https://cdfoley.com/tools/low-e-sheet-resistance/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#beam">Optics &amp; Glazing</a></li><li aria-current="page">Low-E Sheet Resistance</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Low-E Sheet Resistance &amp; Emissivity</h1>
+        <p class="lede">Sheet resistance is the fastest production check of a low-e coating: it tracks the silver (or transparent conductor) that gives the coating its low emissivity. Enter a sheet resistance in ohms per square to get the emissivity, the conductor thickness, how much the coating attenuates radio signals, and what it does to a window's U-factor. Typical values for each coating family, four-point-probe conversion, and measurement notes follow.</p>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="rs" autocomplete="off">
+            <div class="panel-head"><h2>Coating</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="rs">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="Rs">Sheet resistance <span class="sym">R<sub>s</sub></span></label>
+                    <div class="input-unit"><input id="Rs" name="Rs" value="2.5" inputmode="decimal" data-positive data-label="sheet resistance"><span class="unit">Ω/sq</span></div>
+                </div>
+                <div class="field">
+                    <label for="mat">Conductor</label>
+                    <select id="mat" name="mat" class="input">
+                        <option value="4.0" selected>Sputtered silver, thin film (≈ 4 µΩ·cm)</option>
+                        <option value="1.59">Silver, bulk (1.59 µΩ·cm)</option>
+                        <option value="200">ITO (≈ 200 µΩ·cm)</option>
+                        <option value="450">Fluorine-doped tin oxide, pyrolytic (≈ 450 µΩ·cm)</option>
+                    </select>
+                    <p class="hint">Thin silver films are 2–3× more resistive than bulk silver because electrons scatter at the film surfaces and grain boundaries. For multi-silver stacks the thickness is the total silver.</p>
+                </div>
+            </div>
+        </form>
+        <section class="panel" id="rs-out" aria-labelledby="rs-h">
+            <div class="panel-head"><h2 id="rs-h">Results</h2><span class="badge" data-out="family">—</span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Normal emissivity <span class="sym">ε<sub>n</sub></span></span><output class="result-value" data-out="en">—</output></div>
+                    <div class="result"><span class="result-label">Hemispherical emissivity, approx. <span class="sym">ε<sub>h</sub></span></span><output class="result-value" data-out="eh">—</output>
+                        <span class="result-note">ε<sub>h</sub> is what heat-transfer calculations use. For metallic coatings it is about 10–25 % above ε<sub>n</sub>, more so at low emissivity.</span></div>
+                    <div class="result"><span class="result-label">Conductor thickness <span class="sym">t = ρ/R<sub>s</sub></span></span><output class="result-value" data-out="t">—</output></div>
+                    <div class="result"><span class="result-label">RF attenuation, one coated lite <span class="sym">20 log(1 + Z₀/2R<sub>s</sub>)</span></span><output class="result-value" data-out="se">—</output>
+                        <span class="result-note">Far-field plane wave at normal incidence; why low-e windows block cell signals. Real buildings leak through frames and gaps.</span></div>
+                    <div class="result"><span class="result-label">U-factor, 6 mm / 12.7 mm argon / 6 mm, coating on #2</span><output class="result-value" data-out="uar">—</output></div>
+                    <div class="result"><span class="result-label">Same unit with air</span><output class="result-value" data-out="uair">—</output></div>
+                    <div class="result"><span class="result-label">Same unit, uncoated, air <span class="sym">for comparison</span></span><output class="result-value" data-out="u0">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="pl-h">
+        <div class="panel-head"><h2 id="pl-h">Emissivity versus sheet resistance</h2></div>
+        <div class="panel-body"><div id="rs-plot"></div>
+            <p class="hint" style="margin:.4rem 0 0">Line: thin-film limit ε<sub>n</sub> ≈ 4R<sub>s</sub>/Z₀. Points: typical ranges for each coating family. ◆ your coating.</p></div>
+    </section>
+
+    <div class="tool-layout" style="margin-top:1.5rem">
+        <form class="panel" id="fpp" autocomplete="off">
+            <div class="panel-head"><h2>Four-point probe</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="fpp">Reset</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field-row">
+                    <div class="field"><label for="V">Measured voltage</label><div class="input-unit"><input id="V" name="V" value="1.10" inputmode="decimal" data-positive data-label="voltage"><span class="unit">mV</span></div></div>
+                    <div class="field"><label for="I">Applied current</label><div class="input-unit"><input id="I" name="I" value="2.0" inputmode="decimal" data-positive data-label="current"><span class="unit">mA</span></div></div>
+                </div>
+                <div class="field"><label for="cf">Geometry correction factor</label><div class="input-unit"><input id="cf" name="cf" value="1" inputmode="decimal" data-positive data-label="correction factor"><span class="unit">×</span></div>
+                    <p class="hint">1 for a sample much larger than the probe spacing and far from edges; less than 1 near edges or on small coupons.</p></div>
+            </div>
+        </form>
+        <section class="panel" id="fpp-out" aria-labelledby="fpp-h">
+            <div class="panel-head"><h2 id="fpp-h">Sheet resistance</h2></div>
+            <div class="panel-body"><div class="results">
+                <div class="result primary"><span class="result-label">R<sub>s</sub> = (π / ln 2) · V/I · CF</span><output class="result-value" data-out="rs4">—</output></div>
+                <div class="result"><span class="result-label">Emissivity, approx.</span><output class="result-value" data-out="e4">—</output></div>
+            </div>
+            <p class="hint" style="margin-top:.8rem">π/ln 2 = 4.532 for an infinitely large, thin sheet with collinear, equally spaced probes.</p></div>
+        </section>
+    </div>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>Typical sheet resistance of low-e coatings</h2>
+        <table>
+            <thead><tr><th>Coating family</th><th class="num">Sheet resistance (Ω/sq)</th><th class="num">Normal emissivity</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>Uncoated soda-lime glass</td><td class="num">insulating</td><td class="num">0.84 (hemispherical)</td><td>The baseline every low-e coating improves on.</td></tr>
+                <tr><td>Pyrolytic hard-coat (SnO₂:F)</td><td class="num">12–20</td><td class="num">0.13–0.20</td><td>Applied on the float line; durable enough for exposed surfaces and monolithic glass. Higher solar gain.</td></tr>
+                <tr><td>Sputtered ITO</td><td class="num">5–30</td><td class="num">0.06–0.30</td><td>Transparent conductor; heated and anti-condensation glass, displays.</td></tr>
+                <tr><td>Single-silver soft-coat</td><td class="num">3–6</td><td class="num">0.03–0.06</td><td>Most common residential low-e; moderate to high solar gain. Sealed inside an insulating unit.</td></tr>
+                <tr><td>Double-silver</td><td class="num">1.8–3.0</td><td class="num">0.02–0.03</td><td>Spectrally selective; blocks most near-infrared solar heat.</td></tr>
+                <tr><td>Triple-silver</td><td class="num">0.9–1.6</td><td class="num">0.010–0.017</td><td>Highest selectivity (light-to-solar gain about 2 or more) for cooling-dominated buildings.</td></tr>
+            </tbody>
+        </table>
+        <p>Ranges are typical of published product data and the literature; individual products vary, and manufacturers usually specify emissivity rather than sheet resistance. Use the measured value of your own coating for production control.</p>
+
+        <h2>Why sheet resistance predicts emissivity</h2>
+        <p>Sheet resistance is the resistance of a square of film, independent of its size: \(R_s = \rho/t\) for resistivity \(\rho\) and thickness \(t\). In the far infrared, where a 300 K surface radiates, a thin metal film behaves like a sheet of conductance \(1/R_s\). A plane wave meeting such a sheet is partly reflected, partly transmitted, and partly absorbed. The absorbed fraction, which equals the normal emissivity, is</p>
+        <div class="formula">\[ \varepsilon_n = \frac{4y}{(2 + y)^2}, \qquad y = \frac{Z_0}{R_s}, \qquad Z_0 = 376.7\ \Omega, \]</div>
+        <p>and for the low sheet resistances of low-e coatings this reduces to the widely used rule \(\varepsilon_n \approx 4R_s/Z_0 \approx 0.0106\,R_s\) (with \(R_s\) in Ω/sq). Halving the sheet resistance halves the emissivity. That is why coaters add silver layers: two or three thin silver layers reach lower resistance, and lower emissivity, while keeping visible transmission high and the color neutral. The model assumes a free-electron (Drude) metal at long wavelengths; real coatings deviate by roughly 10–20 %, so calibrate the relation against emissivity measurements for a given product.</p>
+        <p>The same sheet conductance attenuates radio waves. A coated lite reflects most of an incident microwave, with a shielding effectiveness of about \(20\log_{10}(1 + Z_0/2R_s)\) dB, or 30–40 dB for silver low-e. This is why low-e windows weaken cell and Wi-Fi signals, and why some projects use frequency-selective laser patterning of the coating to let signals through.</p>
+
+        <h2>How sheet resistance is measured</h2>
+        <ul>
+            <li><strong>Four-point probe.</strong> A current passes through the outer two pins and the voltage is read across the inner two, which removes contact resistance. It suits pyrolytic coatings and exposed conductors. The silver in soft-coat low-e sits under insulating dielectric layers, so contact probes may read poorly or scratch the coating.</li>
+            <li><strong>Non-contact eddy current.</strong> A coil induces currents in the film and senses the loss. It reads through the top dielectric layers without touching the coating, which makes it the standard choice for soft-coat silver stacks, for handheld checks, and for inline gauges that map sheet resistance across the full width of a coater.</li>
+            <li><strong>Emissometers.</strong> Handheld emissometers measure emissivity directly from thermal radiation. They are useful for verifying which surface is coated and for calibrating the sheet-resistance-to-emissivity relation.</li>
+        </ul>
+        <p>Sheet resistance and color tell you different things. Sheet resistance follows the silver, while color follows the dielectric layer thicknesses through thin-film interference. Mapping both across a lite catches most coater drifts. The <a href="/tools/color-converter/">color tool</a> explains how to measure low-e color, and the <a href="/tools/glazing-performance/">glazing calculator</a> turns emissivity into U-factor and SHGC for a full window.</p>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>H. J. Gläser, <em>Large Area Glass Coating</em>, Von Ardenne Anlagentechnik (2000), chapters on low-e layer systems and the sheet-resistance–emissivity relation.</li>
+            <li>C. G. Granqvist, “Transparent conductors as solar energy materials: A panoramic review,” <em>Sol. Energy Mater. Sol. Cells</em> 91, 1529–1598 (2007).</li>
+            <li>F. M. Smits, “Measurement of sheet resistivities with the four-point probe,” <em>Bell Syst. Tech. J.</em> 37, 711–718 (1958).</li>
+            <li>ISO 15099:2003 and NFRC 100 for the U-factor calculation.</li>
+        </ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="glazing-performance,color-converter,optical-density,article:vacuum-fundamentals"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc, E = window.GlazingEngine;
+    const Z0 = 376.730313;
+    const emis = Rs => { const y = Z0 / Rs; return 4 * y / Math.pow(2 + y, 2); };
+    // Approximate hemispherical/normal ratio for metallic low-e surfaces (rises as emissivity falls)
+    const HR = [[0.01, 1.25], [0.03, 1.22], [0.05, 1.18], [0.1, 1.14], [0.2, 1.10], [0.4, 1.03], [0.84, 0.94]];
+    const hemi = en => {
+        if (en <= HR[0][0]) return en * HR[0][1];
+        for (let i = 1; i < HR.length; i++) if (en <= HR[i][0]) { const f = (en - HR[i - 1][0]) / (HR[i][0] - HR[i - 1][0]); return en * (HR[i - 1][1] + f * (HR[i][1] - HR[i - 1][1])); }
+        return en * HR[HR.length - 1][1];
+    };
+    const FAM = [
+        { name: 'Triple-silver', lo: 0.9, hi: 1.6 }, { name: 'Double-silver', lo: 1.8, hi: 3.0 }, { name: 'Single-silver', lo: 3, hi: 6 },
+        { name: 'ITO', lo: 5, hi: 30 }, { name: 'Pyrolytic hard-coat', lo: 12, hi: 20 }
+    ];
+    const family = Rs => {
+        const hits = FAM.filter(f => Rs >= f.lo * 0.97 && Rs <= f.hi * 1.03).map(f => f.name);
+        return hits.length ? hits.join(' or ') + ' range' : Rs < 0.9 ? 'Below typical low-e' : 'Above typical low-e';
+    };
+    function uFactor(eb, fill) {
+        const L = [{ ef: 0.84, eb: eb, t: 0.006, k: 1 }, { ef: 0.84, eb: 0.84, t: 0.006, k: 1 }];
+        const c = E.CONDITIONS.winter, w = E.thermal(L, [{ fill, width: 0.0127 }], c, null, 1);
+        return -w.qRoom / (c.Ti - c.To);
+    }
+    const uStr = U => fmt.num(U, 3) + ' W/m²·K  (' + fmt.num(U / 5.678263, 3) + ' Btu/h·ft²·°F)';
+
+    function plot(Rs) {
+        if (!window.Plot) return;
+        const xs = []; for (let lx = Math.log10(0.5); lx <= Math.log10(50) + 1e-9; lx += 0.02) xs.push(Math.pow(10, lx));
+        const series = [{ type: 'line', x: xs, y: xs.map(emis), label: 'Thin-film limit', color: 'var(--c1)' }];
+        const cols = ['var(--c4)', 'var(--c3)', 'var(--c6)', 'var(--c2)', 'var(--c5)'];
+        FAM.forEach((f, i) => { const x = [f.lo, Math.sqrt(f.lo * f.hi), f.hi]; series.push({ type: 'points', x, y: x.map(emis), label: f.name, color: cols[i], line: true }); });
+        series.push({ type: 'points', x: [Rs], y: [emis(Rs)], label: 'Your coating', color: 'var(--text)' });
+        Plot.draw('#rs-plot', { height: 300, x: { label: 'Sheet resistance (Ω/sq)', log: true, min: 0.5, max: 50 }, y: { label: 'Normal emissivity', log: true, min: 0.004, max: 0.5 },
+            series, hover: { format: (x, hits) => fmt.num(x, 3) + ' Ω/sq · ' + hits.map(h => h.series.label + ' ε ' + fmt.num(h.y, 3)).join(' · ') } });
+    }
+
+    Calc.create({
+        id: 'rs', form: '#rs', outputs: '#rs-out',
+        compute(v) {
+            const en = emis(v.Rs), eh = Math.min(0.95, hemi(en)), rho = parseFloat(v.mat) * 1e-8;   // µΩ·cm → Ω·m
+            return {
+                family: family(v.Rs),
+                en: fmt.num(en, 3), eh: fmt.num(eh, 3),
+                t: fmt.si(rho / v.Rs, 'm', 3),
+                se: fmt.num(20 * Math.log10(1 + Z0 / (2 * v.Rs)), 3) + ' dB',
+                uar: uStr(uFactor(eh, 'argon')), uair: uStr(uFactor(eh, 'air')), u0: uStr(uFactor(0.84, 'air'))
+            };
+        },
+        after(v) { plot(v.Rs); }
+    });
+    Calc.create({
+        id: 'fpp', form: '#fpp', outputs: '#fpp-out',
+        compute(v) {
+            const Rs = Math.PI / Math.LN2 * (v.V / v.I) * v.cf;
+            return { rs4: fmt.num(Rs, 4) + ' Ω/sq', e4: 'ε_n ≈ ' + fmt.num(emis(Rs), 3) + ' · ε_h ≈ ' + fmt.num(Math.min(0.95, hemi(emis(Rs))), 3) };
+        }
+    });
+});
+</script>
+</body>
+</html>
