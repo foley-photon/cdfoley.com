@@ -120,10 +120,10 @@
         { href: '/tools/',        label: 'Tools',        section: 'tools' },
         { href: '/learn/',        label: 'Learn',        section: 'learn' },
         { href: '/formulas/',     label: 'Formulas',     section: 'formulas' },
-        { href: '/games/',        label: 'Games',        section: 'games' },
         { href: '/publications/', label: 'Publications', section: 'publications' },
         { href: '/#about',        label: 'About',        section: 'home' },
-        { href: '/resume/',       label: 'Resume',       section: 'resume' }
+        { href: '/resume/',       label: 'Resume',       section: 'resume' },
+        { href: '/games/',        label: 'Games',        section: 'games' }
     ];
 
     function renderHeader() {

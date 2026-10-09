@@ -1,8 +1,11 @@
-# Regenerates the resume PDFs from resume/index.html (the single source of truth).
+# Builds the resume page and PDFs from the private, multi-version source.
 #
 #   pwsh ./_scripts/build-resume.ps1
 #
+# Source (edit this one)
+#   applications/resume-source.html              every version, tagged data-v="master mfg rd inspect" (git-ignored)
 # Outputs
+#   resume/index.html                            public page, master version only (via _scripts/resume_public.py)
 #   resume.pdf                                   master version, published at cdfoley.com/resume.pdf
 #   applications/Casey-Foley-PhD-Resume-*.pdf    tailored versions (git-ignored, never published)
 #
@@ -34,6 +37,11 @@ $contactFile = Join-Path $root 'applications\contact.json'
 if (Test-Path $contactFile) { $phone = (Get-Content $contactFile -Raw | ConvertFrom-Json).phone }
 if (-not $phone) { Write-Warning "No phone in $contactFile; tailored PDFs will omit it." }
 
+$source = Join-Path $root 'applications/resume-source.html'
+if (-not (Test-Path $source)) { throw "Missing $source (the private resume source)." }
+python (Join-Path $PSScriptRoot 'resume_public.py')
+if ($LASTEXITCODE) { throw 'resume_public.py failed.' }
+
 $port = Get-Random -Minimum 20000 -Maximum 40000
 $server = Start-Process python -ArgumentList '-m', 'http.server', $port, '--bind', '127.0.0.1' `
     -WorkingDirectory $root -WindowStyle Hidden -PassThru
@@ -47,7 +55,7 @@ try {
 
     foreach ($v in $variants.Keys) {
         $out = $variants[$v]
-        $url = "http://127.0.0.1:$port/resume/?v=$v&print"
+        $url = if ($v -eq 'master') { "http://127.0.0.1:$port/resume/?print" } else { "http://127.0.0.1:$port/applications/resume-source.html?v=$v&print" }
         if ($v -ne 'master' -and $phone) { $url += '&phone=' + [uri]::EscapeDataString($phone) }
         $edgeProfile = Join-Path ([IO.Path]::GetTempPath()) ("edge-pdf-" + [guid]::NewGuid())
         & $edge --headless=new --disable-gpu --no-first-run --disable-extensions "--user-data-dir=$edgeProfile" `
