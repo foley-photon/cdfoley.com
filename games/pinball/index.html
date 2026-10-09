@@ -3,19 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Orbit Pinball: Free 3D Space Pinball Game</title>
-<meta name="description" content="Play Orbit Pinball, a free 3D space pinball table in your browser: launch, flip, and complete missions on a grand tour of the solar system. Keyboard and touch controls; no ads, no sign-up.">
+<title>Orbit Pinball: Free 3D Space Pinball Game Online</title>
+<meta name="description" content="Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the planets, with multiball. No ads.">
 <link rel="canonical" href="https://cdfoley.com/games/pinball/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Orbit Pinball">
-<meta property="og:description" content="A free 3D space pinball table: complete missions on a grand tour of the solar system.">
+<meta property="og:description" content="Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the planets, with multiball. No ads.">
 <meta property="og:url" content="https://cdfoley.com/games/pinball/">
-<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/game-pinball.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Orbit Pinball: 3D Space Pinball: Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the planets, with multiball. No ads.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <link rel="stylesheet" href="/assets/css/games.css">
 <script src="/assets/js/site.js"></script>
@@ -61,7 +63,7 @@
    "@type": "VideoGame",
    "name": "Orbit Pinball",
    "url": "https://cdfoley.com/games/pinball/",
-   "description": "Play Orbit Pinball, a free 3D space pinball table in your browser: launch, flip, and complete missions on a grand tour of the solar system. Keyboard and touch controls; no ads, no sign-up.",
+   "description": "Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the planets, with multiball. No ads.",
    "genre": "Pinball",
    "gamePlatform": "Web browser",
    "playMode": "SinglePlayer",
@@ -114,7 +116,7 @@
 <main id="main" class="wrap page">
     <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Orbit Pinball</li></ol></nav>
     <header class="page-head" style="margin-bottom:1rem">
-        <h1>Orbit Pinball</h1>
+        <h1>Orbit Pinball: 3D Space Pinball</h1>
         <p class="lede">A 3D space pinball table. Launch the ball, keep it in play, and complete a mission at each planet on a grand tour of the solar system.</p>
     </header>
 
@@ -693,7 +695,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !paused) togglePause(); });
     window.addEventListener('blur', () => { setFlip(FL, false); setFlip(FR, false); launchUp(); });
 
-    let lastW = 0;
+    let lastW = stage.clientWidth;
+    fit();                                     // size the table before the first paint (no layout shift)
     new ResizeObserver(() => { if (stage.clientWidth !== lastW) { lastW = stage.clientWidth; requestAnimationFrame(() => { fit(); render(); }); } }).observe(stage);
     let last = performance.now();
     function frame(t) {

@@ -27,6 +27,13 @@ def registry(name):
 TOOLS, ARTICLES, CATS = registry('TOOLS'), registry('ARTICLES'), registry('CATEGORIES')
 CAT = {c['id']: c['title'] for c in CATS}
 
+# Keep the fallback counts that crawlers read before site.js runs in step with the registries.
+for f in ['index.html', 'tools/index.html', 'learn/index.html']:
+    s = open(f, encoding='utf-8').read()
+    t = re.sub(r'(<span data-tool-count>)\d+(</span>)', r'\g<1>%d\2' % len(TOOLS), s)
+    t = re.sub(r'(<span data-article-count>)\d+(</span>)', r'\g<1>%d\2' % len(ARTICLES), t)
+    if t != s: open(f, 'w', encoding='utf-8').write(t)
+
 def put_ld(path, data):
     s = open(path, encoding='utf-8').read()
     block = '<script type="application/ld+json" id="ld-page">\n' + json.dumps(data, ensure_ascii=False, indent=1) + '\n</script>\n'
@@ -150,9 +157,13 @@ print('sitemap.xml: %d URLs' % len(urls))
 # 3. Site name on every page (Google and link previews show it beside the page title), then audit
 for f in pages:
     s = open(f, encoding='utf-8').read()
-    if 'og:site_name' not in s and '<meta property="og:type"' in s:
-        s = re.sub(r'(<meta property="og:type"[^>]*>\n)', r'\1<meta property="og:site_name" content="%s">\n' % SITE_NAME, s, count=1)
-        open(f, 'w', encoding='utf-8').write(s)
+    t = s
+    if 'og:site_name' not in t and '<meta property="og:type"' in t:
+        t = re.sub(r'(<meta property="og:type"[^>]*>\n)', r'\1<meta property="og:site_name" content="%s">\n' % SITE_NAME, t, count=1)
+    if 'InterVariable.woff2" as="font"' not in t and '<link rel="stylesheet" href="/assets/css/site.css">' in t:   # preload the text font
+        t = t.replace('<link rel="stylesheet" href="/assets/css/site.css">', '<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>\n<link rel="stylesheet" href="/assets/css/site.css">', 1)
+    if t != s:
+        open(f, 'w', encoding='utf-8').write(t); s = t
     miss = [k for k, ok in [('title', '<title>' in s), ('description', bool(meta(s, 'description'))),
                             ('canonical', 'rel="canonical"' in s), ('og:title', bool(meta(s, 'og:title', 'property'))),
                             ('og:description', bool(meta(s, 'og:description', 'property')))] if not ok]
