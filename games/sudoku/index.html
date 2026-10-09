@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sudoku: Free Online Puzzles, Easy to Expert | Casey D. Foley, PhD</title>
+<meta name="description" content="Play Sudoku free in your browser: fresh puzzles with exactly one solution at four difficulty levels, pencil notes, hints, mistake highlighting, undo, and saved progress. No ads, no sign-up.">
+<link rel="canonical" href="https://cdfoley.com/games/sudoku/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Sudoku">
+<meta property="og:description" content="Fresh Sudoku puzzles with one solution each, from easy to expert. Free, in your browser.">
+<meta property="og:url" content="https://cdfoley.com/games/sudoku/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
+<style>
+    .sd { display: grid; grid-template-columns: repeat(9, 1fr); width: 100%; max-width: 480px; aspect-ratio: 1; margin: 0 auto; border: 2px solid var(--text); border-radius: 6px; overflow: hidden; background: var(--surface); user-select: none; -webkit-user-select: none; }
+    .sd button { border: 0; border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); background: var(--surface); color: var(--accent); font: 600 clamp(1rem, 4.8vw, 1.6rem)/1 var(--font); padding: 0; position: relative; cursor: pointer; min-width: 0; }
+    .sd button:focus { outline: none; }
+    .sd button.given { color: var(--text); font-weight: 750; }
+    .sd button.c2, .sd button.c5 { border-right: 2px solid var(--text); }
+    .sd button.c8 { border-right: 0; }
+    .sd button.r2, .sd button.r5 { border-bottom: 2px solid var(--text); }
+    .sd button.r8 { border-bottom: 0; }
+    .sd button.peer { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+    .sd button.same { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); }
+    .sd button.sel { background: color-mix(in srgb, var(--accent) 34%, var(--surface)); }
+    .sd button.bad { color: var(--danger); }
+    .sd button.conflict { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--danger) 55%, transparent); }
+    .sd .notes { position: absolute; inset: 2px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); font: 500 clamp(.5rem, 2.1vw, .74rem)/1 var(--font); color: var(--muted); align-items: center; justify-items: center; }
+    .sd-pad { display: grid; grid-template-columns: repeat(9, 1fr); gap: .35rem; max-width: 480px; margin: .8rem auto 0; }
+    .sd-pad button { height: 52px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 700 1.25rem/1 var(--font); cursor: pointer; padding: 0; }
+    .sd-pad button small { display: block; font-size: .6rem; color: var(--muted); font-weight: 600; margin-top: .2rem; }
+    .sd-pad button:disabled { opacity: .35; cursor: default; }
+    .sd-tools { display: flex; gap: .4rem; justify-content: center; flex-wrap: wrap; align-items: center; margin-top: .7rem; }
+</style>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Sudoku</li></ol></nav>
+    <div class="game-shell" style="max-width:560px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Sudoku</h1>
+            <p class="lede">Fill the grid so that every row, every column, and every 3 × 3 box contains the digits 1 to 9 exactly once. Every puzzle is freshly generated and has exactly one solution.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip">Time<b id="time">0:00</b></span><span class="chip">Mistakes<b id="mistakes">0</b></span><span class="chip">Best<b id="best">—</b></span></div>
+            <div class="game-actions">
+                <select id="level" aria-label="Difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option><option value="expert">Expert</option></select>
+                <button class="btn btn-primary btn-sm" type="button" id="new">New puzzle</button>
+            </div>
+        </div>
+        <div class="game-stage">
+            <div class="sd" id="grid" role="grid" aria-label="Sudoku grid"></div>
+            <div class="game-overlay" id="overlay" hidden><h2 id="ov-title">Solved!</h2><p id="ov-text"></p><button class="btn btn-primary" type="button" id="again">New puzzle</button></div>
+        </div>
+        <div class="sd-pad" id="pad" aria-label="Number pad"></div>
+        <div class="sd-tools">
+            <button class="btn btn-secondary btn-sm" type="button" id="undo">Undo</button>
+            <button class="btn btn-secondary btn-sm" type="button" id="erase">Erase</button>
+            <button class="btn btn-secondary btn-sm" type="button" id="notes" aria-pressed="false">Notes: off</button>
+            <button class="btn btn-secondary btn-sm" type="button" id="hint">Hint</button>
+            <label class="toggle"><input type="checkbox" id="showbad" checked> Show mistakes</label>
+        </div>
+        <p class="game-help"><strong>Click</strong> or tap a square, then a number. <kbd>1</kbd>–<kbd>9</kbd> enter a digit, <kbd>0</kbd> or <kbd>Backspace</kbd> erases, the arrow keys move, <kbd>N</kbd> switches to pencil notes, and <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes. Placing a digit clears it from the notes in its row, column, and box. Your puzzle is saved in this browser.</p>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const G = window.Games, $ = id => document.getElementById(id), gridEl = $('grid');
+    const TARGET = { easy: 40, medium: 32, hard: 27, expert: 24 };
+    const ROW = i => (i / 9) | 0, COL = i => i % 9, BOX = i => ((ROW(i) / 3) | 0) * 3 + ((COL(i) / 3) | 0);
+    const PEERS = Array.from({ length: 81 }, (_, i) => { const s = []; for (let j = 0; j < 81; j++) if (j !== i && (ROW(j) === ROW(i) || COL(j) === COL(i) || BOX(j) === BOX(i))) s.push(j); return s; });
+    const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+    // Count solutions (stopping at `limit`), filling the most constrained square first. `out` receives the first solution.
+    function solutions(g, limit, random, out) {
+        const rows = new Array(9).fill(0), cols = new Array(9).fill(0), boxes = new Array(9).fill(0);
+        for (let i = 0; i < 81; i++) if (g[i]) { const b = 1 << g[i]; rows[ROW(i)] |= b; cols[COL(i)] |= b; boxes[BOX(i)] |= b; }
+        let count = 0;
+        (function rec() {
+            let best = -1, bestMask = 0, bestN = 10;
+            for (let i = 0; i < 81; i++) if (!g[i]) {
+                const m = ~(rows[ROW(i)] | cols[COL(i)] | boxes[BOX(i)]) & 0x3fe;
+                let n = 0; for (let x = m; x; x &= x - 1) n++;
+                if (n < bestN) { bestN = n; best = i; bestMask = m; if (n <= 1) break; }
+            }
+            if (best < 0) { count++; if (out && count === 1) out.splice(0, 81, ...g); return count >= limit; }
+            if (!bestN) return false;
+            const r = ROW(best), c = COL(best), bx = BOX(best), ds = [];
+            for (let d = 1; d <= 9; d++) if (bestMask & (1 << d)) ds.push(d);
+            if (random) shuffle(ds);
+            for (const d of ds) {
+                const b = 1 << d; g[best] = d; rows[r] |= b; cols[c] |= b; boxes[bx] |= b;
+                const stop = rec();
+                g[best] = 0; rows[r] &= ~b; cols[c] &= ~b; boxes[bx] &= ~b;
+                if (stop) return true;
+            }
+            return false;
+        })();
+        return count;
+    }
+    function generate(target) {
+        const full = []; solutions(new Array(81).fill(0), 1, true, full);
+        const puzzle = full.slice(); let givens = 81;
+        for (const i of shuffle([...Array(41).keys()])) {          // remove symmetric pairs while the solution stays unique
+            if (givens <= target) break;
+            const j = 80 - i, a = puzzle[i], b = puzzle[j];
+            puzzle[i] = 0; puzzle[j] = 0;
+            if (solutions(puzzle.slice(), 2, false) !== 1) { puzzle[i] = a; puzzle[j] = b; }
+            else givens -= i === j ? 1 : 2;
+        }
+        for (const i of shuffle([...Array(81).keys()])) {          // then single squares, for the sparsest levels
+            if (givens <= target) break;
+            if (!puzzle[i]) continue;
+            const a = puzzle[i]; puzzle[i] = 0;
+            if (solutions(puzzle.slice(), 2, false) !== 1) puzzle[i] = a; else givens--;
+        }
+        return { puzzle, solution: full };
+    }
+
+    let S = null, sel = -1, notesMode = false, history = [], tick = null;
+    const level = () => $('level').value, fmtT = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    function showBest() { const b = +G.get('sudoku-best-' + (S ? S.level : level()), 0); $('best').textContent = b ? fmtT(b) : '—'; }
+    function newPuzzle() {
+        const lv = level();
+        let best = null;                                              // expert: keep the sparsest of a few attempts
+        for (let k = 0; k < (lv === 'expert' ? 5 : 1) && !(best && best.puzzle.filter(Boolean).length <= TARGET[lv]); k++) {
+            const g = generate(TARGET[lv]);
+            if (!best || g.puzzle.filter(Boolean).length < best.puzzle.filter(Boolean).length) best = g;
+        }
+        const { puzzle, solution } = best;
+        S = { level: lv, puzzle, solution, vals: puzzle.slice(), notes: new Array(81).fill(0), elapsed: 0, mistakes: 0, hints: 0, done: false };
+        sel = -1; history = []; $('overlay').hidden = true; build(); save(); showBest(); startClock();
+    }
+    const save = () => G.setJSON('sudoku-state', S);
+    function startClock() {
+        clearInterval(tick);
+        tick = setInterval(() => { if (!S.done && !document.hidden) { S.elapsed++; $('time').textContent = fmtT(S.elapsed); if (S.elapsed % 5 === 0) save(); } }, 1000);
+        $('time').textContent = fmtT(S.elapsed); $('mistakes').textContent = S.mistakes;
+    }
+
+    function build() {
+        gridEl.innerHTML = '';
+        for (let i = 0; i < 81; i++) {
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'c' + COL(i) + ' r' + ROW(i); b.dataset.i = i; b.setAttribute('role', 'gridcell');
+            gridEl.appendChild(b);
+        }
+        $('pad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => '<button type="button" data-d="' + d + '">' + d + '<small></small></button>').join('');
+        paint();
+    }
+    function paint() {
+        const cells = gridEl.children, selV = sel >= 0 ? S.vals[sel] : 0, showBad = $('showbad').checked, counts = new Array(10).fill(0);
+        for (let i = 0; i < 81; i++) {
+            const b = cells[i], v = S.vals[i], given = S.puzzle[i] > 0;
+            if (v) counts[v]++;
+            if (v) b.textContent = v;
+            else if (S.notes[i]) { let h = '<span class="notes">'; for (let d = 1; d <= 9; d++) h += '<span>' + (S.notes[i] & (1 << d) ? d : '') + '</span>'; b.innerHTML = h + '</span>'; }
+            else b.textContent = '';
+            const conflict = v && PEERS[i].some(j => S.vals[j] === v);
+            b.classList.toggle('given', given);
+            b.classList.toggle('sel', i === sel);
+            b.classList.toggle('peer', sel >= 0 && i !== sel && PEERS[sel].includes(i));
+            b.classList.toggle('same', !!selV && v === selV && i !== sel);
+            b.classList.toggle('bad', showBad && !given && !!v && v !== S.solution[i]);
+            b.classList.toggle('conflict', showBad && !!conflict);
+            b.setAttribute('aria-label', 'Row ' + (ROW(i) + 1) + ', column ' + (COL(i) + 1) + ': ' + (v || 'empty'));
+        }
+        [...$('pad').children].forEach(btn => { const d = +btn.dataset.d, left = 9 - counts[d]; btn.querySelector('small').textContent = left > 0 ? left + ' left' : ''; btn.disabled = left <= 0 && !notesMode; });
+        $('undo').disabled = !history.length;
+        $('notes').textContent = 'Notes: ' + (notesMode ? 'on' : 'off'); $('notes').setAttribute('aria-pressed', notesMode);
+        $('notes').classList.toggle('on', notesMode);
+    }
+    function select(i) { sel = i; paint(); if (i >= 0) gridEl.children[i].focus({ preventScroll: true }); }
+    function input(d) {
+        if (S.done || sel < 0 || S.puzzle[sel]) return;
+        const i = sel;
+        history.push({ i, val: S.vals[i], notes: S.notes[i], peers: PEERS[i].map(j => S.notes[j]) });
+        if (notesMode && d) { if (!S.vals[i]) S.notes[i] ^= 1 << d; else history.pop(); }
+        else {
+            S.vals[i] = S.vals[i] === d ? 0 : d; S.notes[i] = 0;
+            if (S.vals[i]) {
+                PEERS[i].forEach(j => { S.notes[j] &= ~(1 << d); });
+                if (S.vals[i] !== S.solution[i]) { S.mistakes++; $('mistakes').textContent = S.mistakes; G.tone(200, 150, 0.12, 'triangle', 0.03); }
+                else G.tone(660, 660, 0.05, 'sine', 0.025);
+            }
+        }
+        if (history.length > 400) history.shift();
+        paint(); save(); checkWin();
+    }
+    function erase() {
+        if (S.done || sel < 0 || S.puzzle[sel] || (!S.vals[sel] && !S.notes[sel])) return;
+        history.push({ i: sel, val: S.vals[sel], notes: S.notes[sel], peers: PEERS[sel].map(j => S.notes[j]) });
+        S.vals[sel] = 0; S.notes[sel] = 0; paint(); save();
+    }
+    function undo() {
+        const h = history.pop(); if (!h || S.done) return;
+        S.vals[h.i] = h.val; S.notes[h.i] = h.notes; PEERS[h.i].forEach((j, k) => { S.notes[j] = h.peers[k]; });
+        sel = h.i; paint(); save();
+    }
+    function hint() {
+        if (S.done) return;
+        let i = sel >= 0 && !S.puzzle[sel] && S.vals[sel] !== S.solution[sel] ? sel : -1;
+        if (i < 0) { const open = []; for (let k = 0; k < 81; k++) if (S.vals[k] !== S.solution[k]) open.push(k); if (!open.length) return; i = open[Math.floor(Math.random() * open.length)]; }
+        sel = i; const keepNotes = notesMode; notesMode = false;
+        S.vals[i] = 0; S.hints++; input(S.solution[i]); notesMode = keepNotes; paint();
+    }
+    function checkWin() {
+        if (!S.vals.every((v, i) => v === S.solution[i])) return;
+        S.done = true; clearInterval(tick); save();
+        const key = 'sudoku-best-' + S.level, prev = +G.get(key, 0), record = !S.hints && (!prev || S.elapsed < prev);
+        if (record) G.set(key, S.elapsed);
+        showBest();
+        $('ov-title').textContent = 'Solved!';
+        $('ov-text').textContent = S.level[0].toUpperCase() + S.level.slice(1) + ' puzzle in ' + fmtT(S.elapsed) + (S.mistakes ? ', ' + S.mistakes + ' mistake' + (S.mistakes > 1 ? 's' : '') : ', no mistakes') + (S.hints ? ', ' + S.hints + ' hint' + (S.hints > 1 ? 's' : '') + '.' : '.') + (record ? ' A new best time!' : '');
+        $('overlay').hidden = false; [523, 659, 784, 1046].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.14, 'square', 0.03), k * 110));
+    }
+
+    gridEl.addEventListener('click', e => { const b = e.target.closest('button'); if (b) select(+b.dataset.i); });
+    $('pad').addEventListener('click', e => { const b = e.target.closest('button'); if (b) input(+b.dataset.d); });
+    $('erase').addEventListener('click', erase);
+    $('undo').addEventListener('click', undo);
+    $('hint').addEventListener('click', hint);
+    $('notes').addEventListener('click', () => { notesMode = !notesMode; paint(); });
+    $('showbad').addEventListener('change', () => { G.set('sudoku-showbad', $('showbad').checked ? '1' : '0'); paint(); });
+    const fresh = () => { $('new').disabled = true; $('new').textContent = 'Generating…'; setTimeout(() => { newPuzzle(); $('new').disabled = false; $('new').textContent = 'New puzzle'; }, 30); };
+    $('new').addEventListener('click', fresh);
+    $('again').addEventListener('click', fresh);
+    $('level').addEventListener('change', () => { G.set('sudoku-level', level()); fresh(); });
+    document.addEventListener('keydown', e => {
+        if (e.target.matches && e.target.matches('input, select, textarea') || e.altKey) return;
+        const m = /^(?:Digit|Numpad)([0-9])$/.exec(e.code);
+        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); undo(); return; }
+        if (e.ctrlKey || e.metaKey) return;
+        if (m) { e.preventDefault(); +m[1] ? input(+m[1]) : erase(); }
+        else if (e.code === 'Backspace' || e.code === 'Delete') { e.preventDefault(); erase(); }
+        else if (e.code === 'KeyN') { notesMode = !notesMode; paint(); }
+        else if (e.code.startsWith('Arrow')) {
+            e.preventDefault(); if (sel < 0) return select(40);
+            const r = ROW(sel), c = COL(sel), d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.code];
+            select(((r + d[0] + 9) % 9) * 9 + (c + d[1] + 9) % 9);
+        }
+    });
+
+    $('showbad').checked = G.get('sudoku-showbad', '1') !== '0';
+    const lv = G.get('sudoku-level', 'medium'); if (TARGET[lv]) $('level').value = lv;
+    const saved = G.getJSON('sudoku-state');
+    if (saved && !saved.done && Array.isArray(saved.vals) && saved.vals.length === 81 && Array.isArray(saved.solution) && TARGET[saved.level]) {
+        S = saved; $('level').value = S.level; build(); showBest(); startClock();
+    } else newPuzzle();
+    window.__sudoku = {
+        generate, solutions, newPuzzle, input, select, undo, hint, erase,
+        get state() { return { level: S.level, givens: S.puzzle.filter(Boolean).length, vals: S.vals.slice(), solution: S.solution.slice(), puzzle: S.puzzle.slice(), notes: S.notes.slice(), done: S.done, mistakes: S.mistakes, hints: S.hints }; },
+        setNotes(on) { notesMode = on; paint(); }
+    };
+});
+</script>
+</body>
+</html>

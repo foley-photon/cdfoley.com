@@ -23,34 +23,36 @@ d = ImageDraw.Draw(img, 'RGBA')
 cy, z0, w0, zR = 315, 760, 22, 230
 top = [(x, cy - min(w0 * math.sqrt(1 + ((x - z0) / zR) ** 2), 150)) for x in range(0, W + 1, 6)]
 bot = [(x, 2 * cy - y) for x, y in top]
-d.polygon(top + bot[::-1], fill=(34, 211, 238, 16))
-d.line(top, fill=(110, 168, 254, 70), width=2)
-d.line(bot, fill=(110, 168, 254, 70), width=2)
-for x in range(0, W, 14):
-    d.line([(x, cy), (x + 6, cy)], fill=(148, 163, 184, 45), width=1)
+d.polygon(top + bot[::-1], fill=(168, 85, 247, 16))
+d.line(top, fill=(167, 139, 250, 70), width=2)
+d.line(bot, fill=(167, 139, 250, 70), width=2)
 
-# The site logo (same geometry as _scripts/logo.py): a Gaussian beam focused to an off-center waist
+# The site logo (same geometry and colors as _scripts/logo.py): a tightly focused, filled Gaussian beam
 S, cx, cyp = 260, 975, 315
 k = S / 32 * 4                                    # 4× supersampling
 mk = Image.new('RGBA', (int(32 * k), int(32 * k)), (0, 0, 0, 0))
 md = ImageDraw.Draw(mk)
 md.rounded_rectangle((0, 0, 32 * k - 1, 32 * k - 1), radius=7 * k, fill=(22, 32, 54, 255), outline=(44, 58, 86, 255), width=int(0.35 * k))
-grad = [(110, 168, 254), (34, 211, 238), (52, 211, 153)]
-def gcol(t):
-    if t < 0.55: a, b, f = grad[0], grad[1], t / 0.55
-    else: a, b, f = grad[1], grad[2], (t - 0.55) / 0.45
-    return tuple(round(x + (y - x) * f) for x, y in zip(a, b)) + (255,)
-X0, W0, ZR = 19.5, 2.4, 5.0
+grad = [(139, 92, 246), (168, 85, 247), (192, 132, 252)]
+def gcol(t, a=255):
+    if t < 0.5: p, q, f = grad[0], grad[1], t / 0.5
+    else: p, q, f = grad[1], grad[2], (t - 0.5) / 0.5
+    return tuple(round(x + (y - x) * f) for x, y in zip(p, q)) + (a,)
+X0, W0, ZR = 16.0, 1.7, 3.6
 env = lambda x: W0 * math.sqrt(1 + ((x - X0) / ZR) ** 2)
-for x in range(4 * 8, 28 * 8):                   # dashed optical axis
-    if (x // 8) % 4 < 1.5: md.line([(x / 8 * k, 16 * k), ((x + 1) / 8 * k, 16 * k)], fill=(148, 163, 184, 180), width=int(0.9 * k))
+fill = Image.new('RGBA', mk.size, (0, 0, 0, 0))   # translucent fill between the edges, one gradient column at a time
+fd = ImageDraw.Draw(fill)
+for px in range(int(4 * k), int(28 * k) + 1):
+    x = px / k
+    fd.line([(px, (16 - env(x)) * k), (px, (16 + env(x)) * k)], fill=gcol((x - 4) / 24, 72))
+mk = Image.alpha_composite(mk, fill)
+md = ImageDraw.Draw(mk)
 wpx, n = int(2.3 * k), 1600
 for sign in (-1, 1):
     pts = [(4 + 24 * i / n) for i in range(n + 1)]
     for i in range(n + 1):                         # dense round dabs give a smooth gradient stroke
         x, y = pts[i] * k, (16 + sign * env(pts[i])) * k
         md.ellipse((x - wpx / 2, y - wpx / 2, x + wpx / 2, y + wpx / 2), fill=gcol(i / n))
-md.ellipse((X0 * k - 1.35 * k, 14.65 * k, X0 * k + 1.35 * k, 17.35 * k), fill=(52, 211, 153, 255))
 mk = mk.resize((S, S), Image.LANCZOS)
 img.paste(mk, (cx - S // 2, cyp - S // 2), mk)
 

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paddle Ball: Free Retro Table-Tennis Arcade Game | Casey D. Foley, PhD</title>
+<meta name="description" content="Play Paddle Ball free in your browser: the classic two-paddle arcade game against the computer at three difficulty levels, or with a friend on one keyboard or screen. No ads, no sign-up.">
+<link rel="canonical" href="https://cdfoley.com/games/paddle-ball/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Paddle Ball">
+<meta property="og:description" content="The classic two-paddle arcade game, against the computer or a friend. Free, in your browser.">
+<meta property="og:url" content="https://cdfoley.com/games/paddle-ball/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Paddle Ball</li></ol></nav>
+    <div class="game-shell" style="max-width:900px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Paddle Ball</h1>
+            <p class="lede">The classic two-paddle arcade duel. Return the ball past your opponent; where it hits your paddle sets the angle, and every rally speeds it up. First to 11 wins.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip">Wins vs computer<b id="wins">0</b></span></div>
+            <div class="game-actions">
+                <select id="mode" aria-label="Players"><option value="1">1 player</option><option value="2">2 players</option></select>
+                <select id="level" aria-label="Computer difficulty"><option value="easy">Easy</option><option value="normal" selected>Normal</option><option value="hard">Hard</option></select>
+                <button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button>
+                <button class="btn btn-secondary btn-sm" type="button" id="pause">Pause</button>
+                <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
+            </div>
+        </div>
+        <div class="game-stage">
+            <div class="arcade-box">
+                <canvas class="arcade" id="board" aria-label="Paddle Ball court" tabindex="0"></canvas>
+                <div class="game-overlay dark" id="overlay">
+                    <h2 id="ov-title">Paddle Ball</h2>
+                    <p id="ov-text">Move your paddle with the mouse, a finger, or <kbd>W</kbd> <kbd>S</kbd> / <kbd>↑</kbd> <kbd>↓</kbd>.</p>
+                    <button class="btn btn-primary" type="button" id="start">Start</button>
+                </div>
+            </div>
+        </div>
+        <p class="game-help"><strong>One player:</strong> you are the cyan paddle on the left. Move it with the mouse, by dragging on the court, or with <kbd>W</kbd> <kbd>S</kbd> or <kbd>↑</kbd> <kbd>↓</kbd>. <strong>Two players:</strong> left uses <kbd>W</kbd> <kbd>S</kbd>, right uses <kbd>↑</kbd> <kbd>↓</kbd>; on a touch screen, each player drags on their own half of the court. <kbd>P</kbd> pauses.</p>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const G = window.Games, $ = id => document.getElementById(id);
+    const W = 800, H = 500, PW = 12, PH = 84, R = 7, WIN = 11;
+    const cv = $('board'), view = G.canvas(cv, W, H, 0.7, () => draw()), ctx = view.ctx;
+    const AI = { easy: { speed: 260, err: 95, react: 0.4, wake: 0.6 }, normal: { speed: 370, err: 60, react: 0.2, wake: 0.4 }, hard: { speed: 500, err: 42, react: 0.08, wake: 0.2 } };   // err: how far off-centre it aims; wake: how far across the ball must be before it reacts
+    const L = { x: 28, y: H / 2, target: null, score: 0, c: '#22d3ee' }, Rt = { x: W - 28 - PW, y: H / 2, target: null, score: 0, c: '#e879f9' };
+    const ball = { x: W / 2, y: H / 2, vx: 0, vy: 0, sp: 0 }, keys = {}, trail = [];
+    let state = 'title', paused = false, serveIn = 0, serveDir = 1, aiT = 0, aiAim = H / 2, aiErr = null, flash = null;
+    const mode = () => $('mode').value, level = () => $('level').value;
+    const winsKey = () => 'paddle-wins-' + level();
+
+    function showWins() { $('wins').textContent = G.get(winsKey(), '0'); }
+    function newGame() {
+        G.audio();
+        L.score = Rt.score = 0; L.y = Rt.y = H / 2; L.target = Rt.target = null;
+        serveDir = Math.random() < 0.5 ? -1 : 1; resetBall();
+        state = 'play'; paused = false; $('overlay').hidden = true; $('pause').textContent = 'Pause';
+        $('level').disabled = mode() === '2'; cv.focus({ preventScroll: true });
+    }
+    function resetBall() { ball.x = W / 2; ball.y = H / 2; ball.vx = ball.vy = 0; ball.sp = 0; serveIn = 0.9; trail.length = 0; }
+    function serve() {
+        const a = (Math.random() - 0.5) * 0.8;
+        ball.sp = 340; ball.vx = serveDir * ball.sp * Math.cos(a); ball.vy = ball.sp * Math.sin(a);
+    }
+    function point(winner) {
+        winner.score++; flash = { side: winner === L ? 'left' : 'right', t: 0.5 };
+        G.tone(winner === L ? 660 : 220, winner === L ? 990 : 110, 0.25, 'square', 0.04);
+        serveDir = winner === L ? 1 : -1;            // serve toward the player who lost the point
+        if (winner.score >= WIN) return gameOver(winner);
+        resetBall();
+    }
+    function gameOver(winner) {
+        state = 'over';
+        let msg;
+        if (mode() === '1') {
+            if (winner === L) { const w = (+G.get(winsKey(), 0) || 0) + 1; G.set(winsKey(), w); showWins(); msg = 'You win ' + L.score + '–' + Rt.score + ' on ' + level() + '!'; }
+            else msg = 'The computer wins ' + Rt.score + '–' + L.score + '.';
+        } else msg = (winner === L ? 'Left' : 'Right') + ' player wins ' + Math.max(L.score, Rt.score) + '–' + Math.min(L.score, Rt.score) + '.';
+        $('ov-title').textContent = 'Game over'; $('ov-text').textContent = msg; $('start').textContent = 'Play again'; $('overlay').hidden = false;
+    }
+
+    function predictY() {
+        const t = (Rt.x - R - ball.x) / ball.vx, span = H - 2 * R;
+        let y = ball.y + ball.vy * t - R;
+        y = ((y % (2 * span)) + 2 * span) % (2 * span); if (y > span) y = 2 * span - y;
+        return y + R;
+    }
+    function movePaddle(p, dt, up, down, speed) {
+        if (up || down) { p.target = null; p.y += ((down ? 1 : 0) - (up ? 1 : 0)) * 540 * dt; }
+        else if (p.target !== null) { const d = p.target - p.y; p.y += Math.sign(d) * Math.min(Math.abs(d), (speed || 1500) * dt); }
+        p.y = Math.max(PH / 2, Math.min(H - PH / 2, p.y));
+    }
+    function update(dt) {
+        if (flash && (flash.t -= dt) <= 0) flash = null;
+        if (state !== 'play' || paused) return;
+        const two = mode() === '2';
+        movePaddle(L, dt, keys.KeyW || (!two && keys.ArrowUp), keys.KeyS || (!two && keys.ArrowDown));
+        if (two) movePaddle(Rt, dt, keys.ArrowUp, keys.ArrowDown);
+        else {
+            const ai = AI[level()];
+            aiT -= dt;
+            const incoming = ball.vx > 0 && !serveIn;
+            if (!incoming) aiErr = null; else if (aiErr === null) aiErr = (Math.random() - 0.5) * 2 * ai.err;   // one aiming error per return
+            if (aiT <= 0) { aiT = ai.react; aiAim = incoming && ball.x > W * ai.wake ? predictY() + aiErr : H / 2 + (ball.y - H / 2) * 0.3; }
+            Rt.target = Math.abs(aiAim - Rt.y) > 4 ? aiAim : null;
+            movePaddle(Rt, dt, false, false, ai.speed);
+        }
+        if (serveIn > 0) { serveIn -= dt; if (serveIn <= 0) { serveIn = 0; serve(); } return; }
+        const n = Math.max(1, Math.ceil(ball.sp * dt / 4));
+        for (let i = 0; i < n && state === 'play'; i++) step(dt / n);
+        trail.push([ball.x, ball.y]); if (trail.length > 10) trail.shift();
+    }
+    function bounce(p, dir) {
+        const off = Math.max(-1, Math.min(1, (ball.y - p.y) / (PH / 2))), a = off * 0.95;
+        ball.sp = Math.min(900, ball.sp * 1.05);
+        ball.vx = dir * ball.sp * Math.cos(a); ball.vy = ball.sp * Math.sin(a);
+        ball.x = dir > 0 ? p.x + PW + R : p.x - R;
+        G.tone(dir > 0 ? 440 : 520, dir > 0 ? 440 : 520, 0.05, 'square', 0.035);
+    }
+    function step(h) {
+        ball.x += ball.vx * h; ball.y += ball.vy * h;
+        if (ball.y < R) { ball.y = R; ball.vy = Math.abs(ball.vy); G.tone(260, 260, 0.03, 'triangle', 0.025); }
+        if (ball.y > H - R) { ball.y = H - R; ball.vy = -Math.abs(ball.vy); G.tone(260, 260, 0.03, 'triangle', 0.025); }
+        if (ball.vx < 0 && ball.x - R <= L.x + PW && ball.x - R >= L.x - 10 && Math.abs(ball.y - L.y) <= PH / 2 + R) bounce(L, 1);
+        if (ball.vx > 0 && ball.x + R >= Rt.x && ball.x + R <= Rt.x + PW + 10 && Math.abs(ball.y - Rt.y) <= PH / 2 + R) bounce(Rt, -1);
+        if (ball.x < -R * 2) point(Rt); else if (ball.x > W + R * 2) point(L);
+    }
+
+    function draw() {
+        view.begin();
+        ctx.fillStyle = '#05070f'; ctx.fillRect(0, 0, W, H);
+        if (flash) { const g = ctx.createLinearGradient(flash.side === 'left' ? W : 0, 0, flash.side === 'left' ? W * 0.6 : W * 0.4, 0); g.addColorStop(0, 'rgba(255,255,255,' + (flash.t * 0.25) + ')'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+        ctx.strokeStyle = 'rgba(203,213,225,.35)'; ctx.lineWidth = 4; ctx.setLineDash([14, 14]);
+        ctx.beginPath(); ctx.moveTo(W / 2, 8); ctx.lineTo(W / 2, H); ctx.stroke(); ctx.setLineDash([]);
+        ctx.font = '700 64px ui-monospace, "Cascadia Mono", Consolas, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillStyle = 'rgba(34,211,238,.85)'; ctx.fillText(L.score, W / 2 - 90, 24);
+        ctx.fillStyle = 'rgba(232,121,249,.85)'; ctx.fillText(Rt.score, W / 2 + 90, 24);
+        ctx.font = '600 13px Inter, system-ui, sans-serif'; ctx.fillStyle = 'rgba(203,213,225,.5)';
+        ctx.fillText(mode() === '1' ? 'YOU' : 'LEFT', W / 2 - 90, 96); ctx.fillText(mode() === '1' ? 'COMPUTER' : 'RIGHT', W / 2 + 90, 96);
+        for (const p of [L, Rt]) {
+            ctx.shadowColor = p.c; ctx.shadowBlur = 14; ctx.fillStyle = p.c;
+            ctx.fillRect(p.x, p.y - PH / 2, PW, PH); ctx.shadowBlur = 0;
+        }
+        trail.forEach((t, i) => { ctx.globalAlpha = i / trail.length * 0.35; ctx.fillStyle = '#f8fafc'; ctx.fillRect(t[0] - R, t[1] - R, R * 2, R * 2); });
+        ctx.globalAlpha = 1;
+        if (state === 'play' && (serveIn === 0 || Math.floor(serveIn * 6) % 2 === 0)) { ctx.fillStyle = '#ffffff'; ctx.fillRect(ball.x - R, ball.y - R, R * 2, R * 2); }
+        if (paused) { ctx.fillStyle = 'rgba(5,7,15,.6)'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#f5f3ff'; ctx.font = '800 40px Inter, system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.fillText('Paused', W / 2, H / 2); }
+    }
+
+    function togglePause() { if (state !== 'play') return; paused = !paused; $('pause').textContent = paused ? 'Resume' : 'Pause'; }
+    const HANDLED = ['KeyW', 'KeyS', 'ArrowUp', 'ArrowDown'];
+    document.addEventListener('keydown', e => {
+        if (e.target.matches && e.target.matches('input, select, textarea')) return;
+        if (HANDLED.includes(e.code)) { keys[e.code] = true; e.preventDefault(); }
+        else if (e.code === 'KeyP' || e.code === 'Escape') { e.preventDefault(); togglePause(); }
+        else if ((e.code === 'Space' || e.code === 'Enter') && state !== 'play' && !(e.target.matches && e.target.matches('button, a'))) { e.preventDefault(); newGame(); }
+    });
+    document.addEventListener('keyup', e => { keys[e.code] = false; });
+    const touches = new Map();
+    cv.addEventListener('pointerdown', e => {          // each finger steers the paddle on the half where it landed
+        e.preventDefault(); const p = view.point(e), side = mode() === '2' && p.x > W / 2 ? Rt : L;
+        touches.set(e.pointerId, side); side.target = p.y;
+    });
+    cv.addEventListener('pointermove', e => {
+        const side = touches.get(e.pointerId) || (e.pointerType === 'mouse' && mode() === '1' ? L : null);
+        if (side) side.target = view.point(e).y;
+    });
+    ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, e => touches.delete(e.pointerId)));
+    $('start').addEventListener('click', newGame);
+    $('new').addEventListener('click', newGame);
+    $('pause').addEventListener('click', () => { togglePause(); cv.focus({ preventScroll: true }); });
+    $('mode').addEventListener('change', () => { G.set('paddle-mode', mode()); $('level').disabled = mode() === '2'; if (state === 'play') newGame(); });
+    $('level').addEventListener('change', () => { G.set('paddle-level', level()); showWins(); if (state === 'play') newGame(); });
+    G.soundButton($('sound'));
+    document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !paused) togglePause(); });
+    window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+    const sm = G.get('paddle-mode', '1'), sl = G.get('paddle-level', 'normal');
+    if (sm === '1' || sm === '2') $('mode').value = sm;
+    if (AI[sl]) $('level').value = sl;
+    $('level').disabled = mode() === '2'; showWins();
+    G.loop(dt => { update(dt); draw(); });
+    window.__paddle = {
+        newGame, sim(sec) { for (let i = 0; i < Math.round(sec * 120); i++) update(1 / 120); },
+        get state() { return { state, left: L.score, right: Rt.score, ball: { ...ball }, Ly: L.y, Ry: Rt.y, serveIn }; },
+        setBall(x, y, vx, vy) { Object.assign(ball, { x, y, vx, vy, sp: Math.hypot(vx, vy) }); serveIn = 0; },
+        setLeft(y) { L.y = y; L.target = y; }, setScore(l, r) { L.score = l; Rt.score = r; }
+    };
+});
+</script>
+</body>
+</html>

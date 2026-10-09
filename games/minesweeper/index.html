@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minesweeper: Free Online Game | Casey D. Foley, PhD</title>
+<meta name="description" content="Play Minesweeper in your browser: beginner, intermediate, and expert boards, a safe first click, chording, flags, and best times. Mouse and touch controls; no ads, no sign-up.">
+<link rel="canonical" href="https://cdfoley.com/games/minesweeper/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Minesweeper">
+<meta property="og:description" content="Classic Minesweeper with three board sizes, a safe first click, and chording. Free, in your browser.">
+<meta property="og:url" content="https://cdfoley.com/games/minesweeper/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<style>
+    .ms-scroll { overflow-x: auto; padding-bottom: 0.4rem; }
+    .ms-board { --cell: 30px; display: grid; gap: 2px; width: max-content; margin: 0 auto; padding: 8px; background: var(--border); border-radius: var(--radius-sm); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+    .ms-board button { width: var(--cell); height: var(--cell); border: 0; border-radius: 4px; padding: 0; font: 700 calc(var(--cell) * 0.52) var(--mono); line-height: 1; cursor: pointer;
+        background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, var(--surface)) 0%, color-mix(in srgb, var(--accent) 34%, var(--surface)) 100%); color: var(--text); }
+    .ms-board button:hover { filter: brightness(1.08); }
+    .ms-board button.open { background: var(--surface); cursor: default; }
+    .ms-board button.boom { background: var(--danger); color: #fff; }
+    .ms-board button.wrong { background: var(--warn-soft); }
+    .n1 { color: #2563eb !important; } .n2 { color: #16a34a !important; } .n3 { color: #dc2626 !important; } .n4 { color: #1e3a8a !important; }
+    .n5 { color: #9a3412 !important; } .n6 { color: #0e7490 !important; } .n7 { color: var(--text) !important; } .n8 { color: var(--muted) !important; }
+    :root[data-theme="dark"] .n1 { color: #60a5fa !important; } :root[data-theme="dark"] .n2 { color: #4ade80 !important; } :root[data-theme="dark"] .n3 { color: #f87171 !important; } :root[data-theme="dark"] .n4 { color: #a5b4fc !important; } :root[data-theme="dark"] .n5 { color: #fdba74 !important; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .n1 { color: #60a5fa !important; } :root:not([data-theme="light"]) .n2 { color: #4ade80 !important; } :root:not([data-theme="light"]) .n3 { color: #f87171 !important; } :root:not([data-theme="light"]) .n4 { color: #a5b4fc !important; } :root:not([data-theme="light"]) .n5 { color: #fdba74 !important; } }
+    .face { font-size: 1.2rem; line-height: 1; padding: 0.3rem 0.6rem; }
+</style>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Minesweeper</li></ol></nav>
+    <div class="game-shell" style="max-width:1000px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Minesweeper</h1>
+            <p class="lede">Clear every square that doesn't hide a mine. Each number counts the mines touching that square. Your first click is always safe.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip">Mines<b id="left">10</b></span><span class="chip">Time<b id="time">0</b></span><span class="chip">Best<b id="best">—</b></span></div>
+            <div class="game-actions">
+                <select id="level" aria-label="Difficulty">
+                    <option value="beginner">Beginner · 9 × 9 · 10</option>
+                    <option value="intermediate">Intermediate · 16 × 16 · 40</option>
+                    <option value="expert">Expert · 30 × 16 · 99</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" type="button" id="flagmode" aria-pressed="false">🚩 Flag mode</button>
+                <button class="btn btn-secondary btn-sm face" type="button" id="face" aria-label="New game">🙂</button>
+            </div>
+        </div>
+        <div class="game-stage">
+            <div class="ms-scroll"><div class="ms-board" id="board" role="grid" aria-label="Minesweeper board"></div></div>
+            <div class="game-overlay" id="overlay" hidden><h2 id="ov-title"></h2><p id="ov-text"></p><button class="btn btn-primary" type="button" id="again">Play again</button></div>
+        </div>
+        <p class="game-help"><strong>Click</strong> to reveal. <strong>Right-click</strong>, <strong>long-press</strong>, or turn on <em>Flag mode</em> to flag a mine. Click a revealed number whose mines are all flagged to open its other neighbors at once (chording). Click the face for a new game.</p>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const LEVELS = { beginner: [9, 9, 10], intermediate: [16, 16, 40], expert: [30, 16, 99] };
+    const $ = id => document.getElementById(id), board = $('board');
+    let W, H, M, mine, adj, st, started, over, opened, flags, t0, tick, flagMode = false, level;
+    const OPEN = 1, FLAG = 2;
+    const nb = i => { const x = i % W, y = (i / W) | 0, out = []; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < W && ny < H) out.push(ny * W + nx); } return out; };
+    const bestKey = () => 'mines-best-' + level;
+    function showBest() { let b = null; try { b = localStorage.getItem(bestKey()); } catch (e) { /* ignore */ } $('best').textContent = b ? b + ' s' : '—'; }
+
+    function newGame() {
+        level = $('level').value; [W, H, M] = LEVELS[level];
+        try { localStorage.setItem('mines-level', level); } catch (e) { /* ignore */ }
+        mine = new Uint8Array(W * H); adj = new Uint8Array(W * H); st = new Uint8Array(W * H);
+        started = false; over = false; opened = 0; flags = 0; clearInterval(tick); $('time').textContent = 0; $('face').textContent = '🙂';
+        $('overlay').hidden = true;
+        const cell = Math.max(24, Math.min(34, Math.floor((Math.min(window.innerWidth, 1000) - 48) / W) - 2));
+        board.style.setProperty('--cell', cell + 'px');
+        board.style.gridTemplateColumns = 'repeat(' + W + ', var(--cell))';
+        board.innerHTML = Array.from({ length: W * H }, (_, i) => '<button type="button" data-i="' + i + '" aria-label="Hidden square"></button>').join('');
+        showBest(); update();
+    }
+    function layMines(safe) {
+        const banned = new Set([safe, ...nb(safe)]);
+        const pool = []; for (let i = 0; i < W * H; i++) if (!banned.has(i)) pool.push(i);
+        for (let k = 0; k < M; k++) { const j = k + Math.floor(Math.random() * (pool.length - k)); [pool[k], pool[j]] = [pool[j], pool[k]]; mine[pool[k]] = 1; }
+        for (let i = 0; i < W * H; i++) adj[i] = nb(i).reduce((s, j) => s + mine[j], 0);
+    }
+    function update() { $('left').textContent = M - flags; }
+    function paint(i) {
+        const b = board.children[i];
+        if (st[i] === OPEN) {
+            b.className = 'open' + (adj[i] && !mine[i] ? ' n' + adj[i] : '');
+            b.textContent = mine[i] ? '✹' : adj[i] || '';
+            b.setAttribute('aria-label', mine[i] ? 'Mine' : adj[i] ? adj[i] + ' adjacent mines' : 'Empty');
+        } else if (st[i] === FLAG) { b.className = ''; b.textContent = '🚩'; b.setAttribute('aria-label', 'Flagged'); }
+        else { b.className = ''; b.textContent = ''; b.setAttribute('aria-label', 'Hidden square'); }
+    }
+    function reveal(i) {
+        if (st[i] !== 0) return;
+        if (!started) { started = true; layMines(i); t0 = Date.now(); tick = setInterval(() => { $('time').textContent = Math.floor((Date.now() - t0) / 1000); }, 250); }
+        if (mine[i]) return lose(i);
+        const stack = [i];
+        while (stack.length) {
+            const k = stack.pop();
+            if (st[k] !== 0) continue;
+            st[k] = OPEN; opened++; paint(k);
+            if (adj[k] === 0) nb(k).forEach(j => { if (st[j] === 0 && !mine[j]) stack.push(j); });
+        }
+        if (opened === W * H - M) win();
+    }
+    function chord(i) {
+        const n = nb(i), f = n.filter(j => st[j] === FLAG).length;
+        if (f === adj[i]) n.forEach(j => { if (!over && st[j] === 0) reveal(j); });
+    }
+    function toggleFlag(i) {
+        if (st[i] === OPEN || over) return;
+        st[i] = st[i] === FLAG ? 0 : FLAG; flags += st[i] === FLAG ? 1 : -1; paint(i); update();
+    }
+    function finish() { over = true; clearInterval(tick); }
+    function lose(i) {
+        finish(); $('face').textContent = '😵';
+        for (let k = 0; k < W * H; k++) {
+            if (mine[k] && st[k] !== FLAG) { st[k] = OPEN; paint(k); }
+            else if (!mine[k] && st[k] === FLAG) board.children[k].classList.add('wrong');
+        }
+        board.children[i].classList.add('boom');
+        setTimeout(() => { $('ov-title').textContent = 'Boom'; $('ov-text').textContent = 'You uncovered a mine. ' + opened + ' of ' + (W * H - M) + ' safe squares cleared.'; $('overlay').hidden = false; }, 650);
+    }
+    function win() {
+        finish(); $('face').textContent = '😎';
+        for (let k = 0; k < W * H; k++) if (mine[k] && st[k] !== FLAG) { st[k] = FLAG; flags++; paint(k); }
+        update();
+        const t = Math.max(1, Math.round((Date.now() - t0) / 1000)); $('time').textContent = t;
+        let prev = null; try { prev = +localStorage.getItem(bestKey()) || null; } catch (e) { /* ignore */ }
+        const record = !prev || t < prev;
+        if (record) { try { localStorage.setItem(bestKey(), t); } catch (e) { /* ignore */ } }
+        showBest();
+        $('ov-title').textContent = 'Cleared!'; $('ov-text').textContent = t + ' seconds' + (record ? ' — a new best for ' + level + '.' : '.'); $('overlay').hidden = false;
+    }
+
+    function act(i, flag) {
+        if (over) return;
+        if (st[i] === OPEN) { if (adj[i]) chord(i); return; }
+        if (flag || flagMode) toggleFlag(i); else if (st[i] !== FLAG) reveal(i);
+    }
+    let press = null, longFired = false;
+    board.addEventListener('contextmenu', e => { const b = e.target.closest('button'); if (b) { e.preventDefault(); if (!longFired) act(+b.dataset.i, true); } });
+    board.addEventListener('pointerdown', e => {
+        const b = e.target.closest('button'); if (!b || e.button === 2) return;
+        longFired = false;
+        if (e.pointerType !== 'mouse') press = setTimeout(() => { longFired = true; act(+b.dataset.i, true); if (navigator.vibrate) navigator.vibrate(15); }, 420);
+        if (!over && !(st[+b.dataset.i])) $('face').textContent = '😮';
+    });
+    const cancel = () => { clearTimeout(press); press = null; if (!over) $('face').textContent = '🙂'; };
+    board.addEventListener('pointerup', cancel); board.addEventListener('pointerleave', cancel); board.addEventListener('pointercancel', cancel);
+    board.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (longFired) { longFired = false; return; } act(+b.dataset.i, false); });
+    $('flagmode').addEventListener('click', () => { flagMode = !flagMode; $('flagmode').classList.toggle('on', flagMode); $('flagmode').setAttribute('aria-pressed', flagMode); });
+    $('face').addEventListener('click', newGame);
+    $('again').addEventListener('click', newGame);
+    $('level').addEventListener('change', newGame);
+    try { const l = localStorage.getItem('mines-level'); if (l && LEVELS[l]) $('level').value = l; } catch (e) { /* ignore */ }
+    newGame();
+    window.__mines = { reveal: i => act(i, false), flag: i => act(i, true), state: () => ({ W, H, M, opened, flags, over, started }), mines: () => Array.from(mine) };
+});
+</script>
+</body>
+</html>

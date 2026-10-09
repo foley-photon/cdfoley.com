@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Space Rocks: Free Retro Space Shooter Game | Casey D. Foley, PhD</title>
+<meta name="description" content="Play Space Rocks free in your browser: pilot a ship through a field of drifting rocks, blast them into smaller pieces, and dodge the saucer. Classic vector-style arcade action with keyboard and touch controls.">
+<link rel="canonical" href="https://cdfoley.com/games/space-rocks/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Space Rocks">
+<meta property="og:description" content="Blast drifting space rocks into smaller pieces and dodge the saucer. Free, in your browser.">
+<meta property="og:url" content="https://cdfoley.com/games/space-rocks/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Space Rocks</li></ol></nav>
+    <div class="game-shell" style="max-width:900px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Space Rocks</h1>
+            <p class="lede">Pilot your ship through a field of drifting rocks. Every hit splits a rock into smaller, faster pieces. Clear the field to reach the next wave, and watch out for the saucer that shoots back.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip">Score<b id="score">0</b></span><span class="chip">Ships<b id="lives">3</b></span><span class="chip">Wave<b id="level">1</b></span><span class="chip">Best<b id="best">0</b></span></div>
+            <div class="game-actions">
+                <button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button>
+                <button class="btn btn-secondary btn-sm" type="button" id="pause">Pause</button>
+                <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
+            </div>
+        </div>
+        <div class="game-stage">
+            <div class="arcade-box">
+                <canvas class="arcade" id="board" aria-label="Space Rocks playfield" tabindex="0"></canvas>
+                <div class="game-overlay dark" id="overlay">
+                    <h2 id="ov-title">Space Rocks</h2>
+                    <p id="ov-text"><kbd>←</kbd> <kbd>→</kbd> turn, <kbd>↑</kbd> thrust, <kbd>Space</kbd> fire, <kbd>Shift</kbd> hyperspace.</p>
+                    <button class="btn btn-primary" type="button" id="start">Start</button>
+                </div>
+            </div>
+        </div>
+        <div class="touch-pad" style="grid-template-columns:repeat(5,1fr)">
+            <button type="button" id="t-left" aria-label="Turn left">⟲</button>
+            <button type="button" id="t-right" aria-label="Turn right">⟳</button>
+            <button type="button" id="t-thrust">Thrust</button>
+            <button type="button" id="t-fire">Fire</button>
+            <button type="button" id="t-hyper">Hyper</button>
+        </div>
+        <p class="game-help"><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> turn, <kbd>↑</kbd> or <kbd>W</kbd> thrust, <kbd>Space</kbd> fires (hold for rapid fire), <kbd>Shift</kbd> or <kbd>H</kbd> jumps to hyperspace, and <kbd>P</kbd> pauses. Large rocks are worth 20, medium 50, and small 100; the saucer is worth 200, or 1,000 for the small one. You earn an extra ship every 10,000 points.</p>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const G = window.Games, $ = id => document.getElementById(id);
+    const W = 800, H = 600, TAU = Math.PI * 2;
+    const cv = $('board'), view = G.canvas(cv, W, H, 0.72, () => draw()), ctx = view.ctx;
+    const SIZES = { 3: { r: 46, pts: 20, v: 1 }, 2: { r: 26, pts: 50, v: 1.3 }, 1: { r: 14, pts: 100, v: 1.7 } };
+    const STARS = Array.from({ length: 90 }, () => [Math.random() * W, Math.random() * H, Math.random() * 1.3 + 0.3]);
+    const ship = { x: W / 2, y: H / 2, a: -Math.PI / 2, vx: 0, vy: 0, r: 13, alive: false, inv: 0, thrust: false, hyperCd: 0 };
+    const keys = { left: false, right: false, thrust: false, fire: false };
+    let rocks = [], bullets = [], sparks = [], saucer = null, saucerT = 0, score = 0, lives = 3, level = 0, nextLife = 10000;
+    let state = 'title', paused = false, fireCd = 0, respawnT = 0, waveT = 0, beatT = 0, beatHi = false, thrustSnd = 0, banner = null;
+    let best = +G.get('rocks-best', 0) || 0;
+
+    const wrap = o => { o.x = (o.x + W) % W; o.y = (o.y + H) % H; };
+    const rand = (a, b) => a + Math.random() * (b - a);
+    function makeRock(size, x, y) {
+        const s = SIZES[size], ang = rand(0, TAU), sp = rand(38, 80) * s.v * (1 + level * 0.08), n = 10 + size * 2;
+        return { x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, r: s.r, size, a: rand(0, TAU), spin: rand(-1, 1), shape: Array.from({ length: n }, () => rand(0.72, 1.12)) };
+    }
+    function startWave() {
+        rocks = []; const n = Math.min(11, 4 + level);
+        for (let i = 0; i < n; i++) {
+            let x, y; do { x = rand(0, W); y = rand(0, H); } while (Math.hypot(x - ship.x, y - ship.y) < 190);
+            rocks.push(makeRock(3, x, y));
+        }
+        saucerT = rand(16, 26); banner = { text: 'Wave ' + (level + 1), t: 1.6 }; hud();
+    }
+    function spawnShip() { Object.assign(ship, { x: W / 2, y: H / 2, a: -Math.PI / 2, vx: 0, vy: 0, alive: true, inv: 2.5 }); }
+    function newGame() {
+        G.audio();
+        score = 0; lives = 3; level = 0; nextLife = 10000; bullets = []; sparks = []; saucer = null;
+        spawnShip(); startWave(); state = 'play'; paused = false; $('pause').textContent = 'Pause';
+        $('overlay').hidden = true; hud(); cv.focus({ preventScroll: true });
+    }
+    function hud() { $('score').textContent = G.fmt(score); $('lives').textContent = lives; $('level').textContent = level + 1; $('best').textContent = G.fmt(Math.max(best, score)); }
+    function addScore(n) {
+        score += n;
+        if (score >= nextLife) { lives++; nextLife += 10000; banner = { text: 'Extra ship', t: 1.4 }; [523, 784, 1046].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.1, 'square', 0.03), k * 90)); }
+        hud();
+    }
+    function burst(x, y, n, c, speed) { for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(20, speed || 160); sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: rand(0.4, 1), c }); } }
+    function breakRock(i, byPlayer) {
+        const r = rocks[i]; rocks.splice(i, 1);
+        if (byPlayer) addScore(SIZES[r.size].pts);
+        burst(r.x, r.y, 6 + r.size * 4, '#c4b5fd');
+        G.noise(0.15 + r.size * 0.1, 0.06 + r.size * 0.03, 500 + 300 * (3 - r.size));
+        if (r.size > 1) for (let k = 0; k < 2; k++) rocks.push(makeRock(r.size - 1, r.x, r.y));
+    }
+    function killShip() {
+        if (!ship.alive || ship.inv > 0) return;
+        ship.alive = false; lives--; hud();
+        burst(ship.x, ship.y, 30, '#22d3ee', 220); G.noise(0.9, 0.18, 700);
+        if (lives <= 0) { state = 'over'; setTimeout(gameOver, 1200); } else respawnT = 1.6;
+    }
+    function gameOver() {
+        const record = score > best;
+        if (record) { best = score; G.set('rocks-best', best); }
+        $('ov-title').textContent = 'Game over';
+        $('ov-text').textContent = 'Score ' + G.fmt(score) + ', reached wave ' + (level + 1) + (record && score ? ' — a new best!' : '. Best ' + G.fmt(best) + '.');
+        $('start').textContent = 'Play again'; $('overlay').hidden = false; hud();
+    }
+    function fire() {
+        if (!ship.alive || fireCd > 0 || bullets.filter(b => !b.enemy).length >= 5) return;
+        fireCd = 0.17;
+        const c = Math.cos(ship.a), s = Math.sin(ship.a);
+        bullets.push({ x: ship.x + c * ship.r, y: ship.y + s * ship.r, vx: ship.vx + c * 640, vy: ship.vy + s * 640, t: 0.95 });
+        G.tone(900, 420, 0.07, 'square', 0.02);
+    }
+    function hyperspace() {
+        if (!ship.alive || ship.hyperCd > 0 || state !== 'play') return;
+        burst(ship.x, ship.y, 12, '#22d3ee', 90);
+        ship.x = rand(40, W - 40); ship.y = rand(40, H - 40); ship.vx = ship.vy = 0; ship.inv = Math.max(ship.inv, 0.6); ship.hyperCd = 2.5;
+        G.tone(200, 1200, 0.25, 'sine', 0.04);
+    }
+    function spawnSaucer() {
+        const small = score >= 20000 || (level >= 3 && Math.random() < 0.4), left = Math.random() < 0.5;
+        saucer = { x: left ? -20 : W + 20, y: rand(60, H - 60), vx: (left ? 1 : -1) * (small ? 150 : 110), vy: 0, r: small ? 10 : 18, small, fireT: 1, turnT: 1.5 };
+    }
+    function saucerFire() {
+        let a;
+        if (saucer.small && ship.alive) a = Math.atan2(ship.y - saucer.y, ship.x - saucer.x) + rand(-0.2, 0.2);
+        else a = rand(0, TAU);
+        bullets.push({ x: saucer.x, y: saucer.y, vx: Math.cos(a) * 360, vy: Math.sin(a) * 360, t: 1.4, enemy: true });
+        G.tone(520, 300, 0.08, 'triangle', 0.025);
+    }
+
+    function update(dt) {
+        if (banner && (banner.t -= dt) <= 0) banner = null;
+        for (const s of sparks) { s.x += s.vx * dt; s.y += s.vy * dt; s.t -= dt; }
+        sparks = sparks.filter(s => s.t > 0);
+        if (paused) return;
+        for (const r of rocks) { r.x += r.vx * dt; r.y += r.vy * dt; r.a += r.spin * dt; wrap(r); }
+        if (state !== 'play') return;
+        fireCd -= dt; ship.hyperCd -= dt;
+        if (ship.alive) {
+            ship.inv = Math.max(0, ship.inv - dt);
+            ship.a += ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) * 4.6 * dt;
+            ship.thrust = keys.thrust;
+            if (ship.thrust) {
+                ship.vx += Math.cos(ship.a) * 360 * dt; ship.vy += Math.sin(ship.a) * 360 * dt;
+                if ((thrustSnd -= dt) <= 0) { thrustSnd = 0.09; G.noise(0.09, 0.025, 380); }
+            }
+            const drag = Math.exp(-0.5 * dt); ship.vx *= drag; ship.vy *= drag;
+            const sp = Math.hypot(ship.vx, ship.vy); if (sp > 480) { ship.vx *= 480 / sp; ship.vy *= 480 / sp; }
+            ship.x += ship.vx * dt; ship.y += ship.vy * dt; wrap(ship);
+            if (keys.fire) fire();
+        } else if (respawnT > 0 && (respawnT -= dt) <= 0) {
+            if (rocks.some(r => Math.hypot(r.x - W / 2, r.y - H / 2) < r.r + 110) || saucer) respawnT = 0.25; else spawnShip();
+        }
+        for (const b of bullets) { b.x += b.vx * dt; b.y += b.vy * dt; b.t -= dt; wrap(b); }
+        // saucer
+        if (!saucer && level >= 1 && (saucerT -= dt) <= 0) spawnSaucer();
+        if (saucer) {
+            saucer.x += saucer.vx * dt; saucer.y += saucer.vy * dt; saucer.y = (saucer.y + H) % H;
+            if ((saucer.turnT -= dt) <= 0) { saucer.turnT = 1.5; saucer.vy = [-60, 0, 60][Math.floor(Math.random() * 3)]; }
+            if ((saucer.fireT -= dt) <= 0) { saucer.fireT = saucer.small ? 0.9 : 1.2; saucerFire(); }
+            if ((saucer.snd = (saucer.snd || 0) - dt) <= 0) { saucer.snd = 0.22; G.tone(saucer.small ? 1200 : 700, saucer.small ? 1350 : 780, 0.18, 'sine', 0.012); }
+            if (saucer.x < -40 || saucer.x > W + 40) { saucer = null; saucerT = rand(14, 24); }
+        }
+        // collisions: player bullets
+        for (const b of bullets) {
+            if (b.t <= 0) continue;
+            if (!b.enemy) {
+                for (let i = rocks.length - 1; i >= 0; i--) if (Math.hypot(b.x - rocks[i].x, b.y - rocks[i].y) < rocks[i].r) { b.t = 0; breakRock(i, true); break; }
+                if (b.t > 0 && saucer && Math.hypot(b.x - saucer.x, b.y - saucer.y) < saucer.r + 2) {
+                    b.t = 0; addScore(saucer.small ? 1000 : 200); burst(saucer.x, saucer.y, 24, '#f0abfc', 200); G.noise(0.6, 0.14, 900);
+                    saucer = null; saucerT = rand(14, 24);
+                }
+            } else if (ship.alive && Math.hypot(b.x - ship.x, b.y - ship.y) < ship.r * 0.9) { b.t = 0; killShip(); }
+        }
+        bullets = bullets.filter(b => b.t > 0);
+        if (saucer) for (let i = rocks.length - 1; i >= 0; i--) if (Math.hypot(saucer.x - rocks[i].x, saucer.y - rocks[i].y) < rocks[i].r + saucer.r) { burst(saucer.x, saucer.y, 18, '#f0abfc'); breakRock(i, false); saucer = null; saucerT = rand(14, 24); break; }
+        if (ship.alive) {
+            for (let i = rocks.length - 1; i >= 0; i--) if (Math.hypot(ship.x - rocks[i].x, ship.y - rocks[i].y) < rocks[i].r + ship.r * 0.75 && ship.inv <= 0) { breakRock(i, true); killShip(); break; }
+            if (ship.alive && saucer && ship.inv <= 0 && Math.hypot(ship.x - saucer.x, ship.y - saucer.y) < saucer.r + ship.r * 0.75) { addScore(saucer.small ? 1000 : 200); saucer = null; saucerT = rand(14, 24); killShip(); }
+        }
+        // heartbeat that quickens as the field thins out
+        if (state === 'play' && rocks.length && (beatT -= dt) <= 0) { beatT = Math.max(0.3, 0.25 + rocks.length * 0.06); beatHi = !beatHi; G.tone(beatHi ? 58 : 50, beatHi ? 52 : 45, 0.12, 'triangle', 0.06); }
+        if (!rocks.length && !saucer && state === 'play') {
+            if (!waveT) waveT = 1.8;
+            else if ((waveT -= dt) <= 0) { waveT = 0; level++; startWave(); }
+        }
+    }
+
+    function line(pts, color, close) {
+        ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        if (close) ctx.closePath();
+        ctx.strokeStyle = color; ctx.globalAlpha = 0.25; ctx.lineWidth = 5; ctx.stroke();
+        ctx.globalAlpha = 1; ctx.lineWidth = 1.7; ctx.stroke();
+    }
+    const rot = (x, y, a, ox, oy) => [ox + x * Math.cos(a) - y * Math.sin(a), oy + x * Math.sin(a) + y * Math.cos(a)];
+    function drawWrapped(o, r, fn) {               // draw again on the far side when an object straddles an edge
+        const xs = [0], ys = [0];
+        if (o.x < r) xs.push(W); if (o.x > W - r) xs.push(-W); if (o.y < r) ys.push(H); if (o.y > H - r) ys.push(-H);
+        for (const dx of xs) for (const dy of ys) fn(o.x + dx, o.y + dy);
+    }
+    function draw() {
+        view.begin();
+        ctx.fillStyle = '#04050c'; ctx.fillRect(0, 0, W, H);
+        for (const [x, y, s] of STARS) { ctx.fillStyle = 'rgba(255,255,255,' + (0.25 + s * 0.3) + ')'; ctx.fillRect(x, y, s, s); }
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        for (const r of rocks) drawWrapped(r, r.r, (x, y) => line(r.shape.map((k, i) => rot(Math.cos(i / r.shape.length * TAU) * r.r * k, Math.sin(i / r.shape.length * TAU) * r.r * k, r.a, x, y)), '#c4b5fd', true));
+        if (saucer) {
+            const s = saucer.r, x = saucer.x, y = saucer.y;
+            line([[x - s, y], [x - s * 0.45, y - s * 0.4], [x + s * 0.45, y - s * 0.4], [x + s, y], [x + s * 0.45, y + s * 0.4], [x - s * 0.45, y + s * 0.4]], '#f0abfc', true);
+            line([[x - s, y], [x + s, y]], '#f0abfc'); line([[x - s * 0.45, y - s * 0.4], [x - s * 0.2, y - s * 0.8], [x + s * 0.2, y - s * 0.8], [x + s * 0.45, y - s * 0.4]], '#f0abfc');
+        }
+        for (const b of bullets) { ctx.fillStyle = b.enemy ? '#f0abfc' : '#fef9c3'; ctx.beginPath(); ctx.arc(b.x, b.y, 2.2, 0, TAU); ctx.fill(); }
+        for (const s of sparks) { ctx.globalAlpha = Math.min(1, s.t * 1.5); ctx.fillStyle = s.c; ctx.fillRect(s.x - 1.5, s.y - 1.5, 3, 3); }
+        ctx.globalAlpha = 1;
+        if (ship.alive && !(ship.inv > 0 && Math.floor(ship.inv * 8) % 2)) {
+            const r = ship.r;
+            drawWrapped(ship, r, (x, y) => {
+                line([rot(r, 0, ship.a, x, y), rot(-r * 0.8, r * 0.72, ship.a, x, y), rot(-r * 0.45, 0, ship.a, x, y), rot(-r * 0.8, -r * 0.72, ship.a, x, y)], '#22d3ee', true);
+                if (ship.thrust && Math.random() < 0.8) line([rot(-r * 0.6, r * 0.38, ship.a, x, y), rot(-r * (1.2 + Math.random() * 0.6), 0, ship.a, x, y), rot(-r * 0.6, -r * 0.38, ship.a, x, y)], '#fb923c');
+            });
+        }
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        if (banner) { ctx.globalAlpha = Math.min(1, banner.t * 2); ctx.fillStyle = '#f5f3ff'; ctx.font = '800 34px Inter, system-ui, sans-serif'; ctx.fillText(banner.text, W / 2, H * 0.3); ctx.globalAlpha = 1; }
+        if (paused) { ctx.fillStyle = 'rgba(4,5,12,.6)'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#f5f3ff'; ctx.font = '800 40px Inter, system-ui, sans-serif'; ctx.fillText('Paused', W / 2, H / 2); }
+    }
+
+    function togglePause() { if (state !== 'play') return; paused = !paused; $('pause').textContent = paused ? 'Resume' : 'Pause'; }
+    const KEYMAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'thrust', KeyW: 'thrust', Space: 'fire', KeyJ: 'fire' };
+    document.addEventListener('keydown', e => {
+        if (e.target.matches && e.target.matches('input, select, textarea')) return;
+        if (KEYMAP[e.code]) {
+            if (e.code === 'Space' && e.target.matches && e.target.matches('button, a')) return;
+            e.preventDefault();
+            if (state === 'title' || (state === 'over' && !$('overlay').hidden)) { if (e.code === 'Space') newGame(); return; }
+            keys[KEYMAP[e.code]] = true;
+        } else if (['ShiftLeft', 'ShiftRight', 'KeyH', 'KeyX'].includes(e.code)) { e.preventDefault(); hyperspace(); }
+        else if (e.code === 'KeyP' || e.code === 'Escape') { e.preventDefault(); togglePause(); }
+        else if (e.code === 'ArrowDown') e.preventDefault();
+    });
+    document.addEventListener('keyup', e => { if (KEYMAP[e.code]) keys[KEYMAP[e.code]] = false; });
+    G.hold($('t-left'), () => { keys.left = true; }, () => { keys.left = false; });
+    G.hold($('t-right'), () => { keys.right = true; }, () => { keys.right = false; });
+    G.hold($('t-thrust'), () => { keys.thrust = true; }, () => { keys.thrust = false; });
+    G.hold($('t-fire'), () => { if (state === 'play') keys.fire = true; else newGame(); }, () => { keys.fire = false; });
+    G.hold($('t-hyper'), hyperspace, () => {});
+    cv.addEventListener('pointerdown', e => { e.preventDefault(); if (state === 'play') fire(); });
+    $('start').addEventListener('click', newGame);
+    $('new').addEventListener('click', newGame);
+    $('pause').addEventListener('click', () => { togglePause(); cv.focus({ preventScroll: true }); });
+    G.soundButton($('sound'));
+    document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !paused) togglePause(); });
+    window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+    for (let i = 0; i < 6; i++) rocks.push(makeRock(1 + (i % 3), rand(0, W), rand(0, H)));   // drifting rocks behind the title screen
+    hud();
+    G.loop(dt => { update(dt); draw(); });
+    window.__rocks = {
+        newGame, fire, hyperspace, keys, sim(sec) { for (let i = 0; i < Math.round(sec * 120); i++) update(1 / 120); },
+        get state() { return { state, score, lives, level, rocks: rocks.length, bullets: bullets.length, saucer: !!saucer, ship: { ...ship } }; },
+        get rocks() { return rocks; }, set rocksList(v) { rocks = v; }, makeRock, spawnSaucer, ship, setSaucerTimer(t) { saucerT = t; }
+    };
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solitaire (Klondike): Free Online Card Game | Casey D. Foley, PhD</title>
+<meta name="description" content="Play Klondike solitaire in your browser: draw one or three, drag or tap to move, unlimited undo, and auto-finish. Works with mouse and touch; no ads, no sign-up.">
+<link rel="canonical" href="https://cdfoley.com/games/solitaire/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Solitaire (Klondike)">
+<meta property="og:description" content="Classic Klondike solitaire with draw one or three, undo, and auto-finish. Free, in your browser.">
+<meta property="og:url" content="https://cdfoley.com/games/solitaire/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<style>
+    .felt { position: relative; border-radius: var(--radius-lg); background: radial-gradient(ellipse at 50% 30%, #17785a 0%, #0f5a43 60%, #0b4634 100%); box-shadow: inset 0 0 40px rgba(0,0,0,.25); overflow: hidden; user-select: none; -webkit-user-select: none; }
+    .slot { position: absolute; width: var(--cw); height: var(--ch); border-radius: calc(var(--cw) * 0.08); border: 2px dashed rgba(255,255,255,.28); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.35); font: 700 calc(var(--cw) * 0.32) var(--font); cursor: pointer; }
+    .slot.stock::after { content: "↻"; font-size: calc(var(--cw) * 0.4); }
+    .card { position: absolute; left: 0; top: 0; width: var(--cw); height: var(--ch); border-radius: calc(var(--cw) * 0.08); transition: transform .18s ease; cursor: pointer; touch-action: none; }
+    .card.dragging { transition: none; filter: drop-shadow(0 8px 14px rgba(0,0,0,.35)); }
+    .card .face, .card .back { position: absolute; inset: 0; border-radius: inherit; }
+    .card .face { display: none; background: #fdfdfb; border: 1px solid #c9d1dc; color: #18181b; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+    .card.up .face { display: block; } .card.up .back { display: none; }
+    .card.red .face { color: #c81e1e; }
+    .card .back { border: 1px solid #0b1220; box-shadow: 0 1px 2px rgba(0,0,0,.3);
+        background: linear-gradient(135deg, transparent 46%, rgba(110,168,254,.55) 48%, rgba(52,211,153,.55) 52%, transparent 54%) center / 100% 100% no-repeat,
+                    repeating-linear-gradient(45deg, #17284a 0 5px, #13213d 5px 10px); outline: 3px solid #fdfdfb; outline-offset: -5px; }
+    .corner { position: absolute; font: 700 calc(var(--cw) * 0.2)/0.95 var(--font); text-align: center; letter-spacing: -0.02em; }
+    .corner.tl { top: 5%; left: 7%; } .corner.br { bottom: 5%; right: 7%; transform: rotate(180deg); }
+    .pip { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw) * 0.48); line-height: 1; }
+    .pip.court { font: 700 calc(var(--cw) * 0.34) var(--font); }
+    .card.hint .face { box-shadow: 0 0 0 3px #fbbf24; }
+    .sol-bar .chip { background: var(--surface); }
+</style>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Solitaire</li></ol></nav>
+    <div class="game-shell" style="max-width:900px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Solitaire</h1>
+            <p class="lede">Klondike: build each suit up from ace to king on the four foundations. In the tableau, stack cards down in alternating colors; only kings go in empty columns.</p>
+        </header>
+        <div class="game-bar sol-bar">
+            <div class="chips"><span class="chip">Moves<b id="moves">0</b></span><span class="chip">Time<b id="time">0:00</b></span><span class="chip">Best<b id="best">—</b></span></div>
+            <div class="game-actions">
+                <select id="draw" aria-label="Draw mode"><option value="1">Draw 1</option><option value="3">Draw 3</option></select>
+                <button class="btn btn-secondary btn-sm" type="button" id="undo">Undo</button>
+                <button class="btn btn-secondary btn-sm" type="button" id="hint">Hint</button>
+                <button class="btn btn-secondary btn-sm" type="button" id="finish" hidden>Auto-finish</button>
+                <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
+            </div>
+        </div>
+        <div class="game-stage">
+            <div class="felt" id="table" aria-label="Solitaire table"></div>
+            <div class="game-overlay" id="overlay" hidden><h2>You won!</h2><p id="ov-text"></p><button class="btn btn-primary" type="button" id="again">Deal again</button></div>
+        </div>
+        <p class="game-help"><strong>Drag</strong> cards to move them, or <strong>tap</strong> a card to send it to the best legal spot (foundations first). Tap the deck to draw; tap the empty deck to turn the waste pile over. Face-down cards flip automatically when uncovered. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.</p>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const $ = id => document.getElementById(id), table = $('table');
+    const SUITS = ['♠', '♥', '♦', '♣'], RANKS = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    const NAMES = ['', 'Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King'], SUIT_NAMES = ['spades', 'hearts', 'diamonds', 'clubs'];
+    const red = c => c.s === 1 || c.s === 2;
+    let S, moves, undoStack, t0, tick, els = {}, L = {}, drag = null, won = false;
+
+    // ── Model ──
+    function deal() {
+        const deck = [];
+        for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) deck.push({ id: s * 13 + r, s, r, up: false });
+        for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+        S = { stock: [], waste: [], found: [[], [], [], []], tab: [[], [], [], [], [], [], []] };
+        for (let c = 0; c < 7; c++) for (let k = 0; k <= c; k++) { const card = deck.pop(); card.up = k === c; S.tab[c].push(card); }
+        S.stock = deck;
+        moves = 0; undoStack = []; won = false; clearInterval(tick); t0 = null;
+        $('time').textContent = '0:00'; $('overlay').hidden = true; showBest(); update();
+    }
+    const pileOf = p => p.pile === 'tab' ? S.tab[p.idx] : p.pile === 'found' ? S.found[p.idx] : S[p.pile];
+    function locate(id) {
+        for (const pile of ['stock', 'waste']) { const k = S[pile].findIndex(c => c.id === id); if (k >= 0) return { pile, idx: 0, pos: k }; }
+        for (let i = 0; i < 4; i++) { const k = S.found[i].findIndex(c => c.id === id); if (k >= 0) return { pile: 'found', idx: i, pos: k }; }
+        for (let i = 0; i < 7; i++) { const k = S.tab[i].findIndex(c => c.id === id); if (k >= 0) return { pile: 'tab', idx: i, pos: k }; }
+        return null;
+    }
+    function movable(loc) {
+        const p = pileOf(loc);
+        if (loc.pile === 'stock') return null;
+        if (loc.pile === 'tab') return p[loc.pos].up ? p.slice(loc.pos) : null;
+        return loc.pos === p.length - 1 ? [p[loc.pos]] : null;
+    }
+    function accepts(cards, dest) {
+        const p = pileOf(dest), top = p[p.length - 1], c = cards[0];
+        if (dest.pile === 'found') return cards.length === 1 && (top ? top.s === c.s && c.r === top.r + 1 : c.r === 1);
+        if (dest.pile === 'tab') return top ? top.up && red(top) !== red(c) && c.r === top.r - 1 : c.r === 13;
+        return false;
+    }
+    function snapshot() { undoStack.push(JSON.stringify({ S, moves })); if (undoStack.length > 300) undoStack.shift(); }
+    function startClock() { if (!t0) { t0 = Date.now(); tick = setInterval(clock, 500); } }
+    function clock() { if (!t0) return; const s = Math.floor((Date.now() - t0) / 1000); $('time').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+    function move(src, dest) {
+        const cards = movable(src);
+        if (!cards || !accepts(cards, dest)) return false;
+        snapshot(); startClock();
+        pileOf(src).splice(src.pos, cards.length);
+        pileOf(dest).push(...cards);
+        if (src.pile === 'tab') { const p = S.tab[src.idx]; if (p.length && !p[p.length - 1].up) p[p.length - 1].up = true; }
+        moves++; render(); update(); checkWin();
+        return true;
+    }
+    function drawStock() {
+        if (!S.stock.length && !S.waste.length) return;
+        snapshot(); startClock();
+        if (!S.stock.length) { S.stock = S.waste.reverse().map(c => (c.up = false, c)); S.waste = []; }
+        else { const n = +$('draw').value; for (let i = 0; i < n && S.stock.length; i++) { const c = S.stock.pop(); c.up = true; S.waste.push(c); } }
+        moves++; render(); update();
+    }
+    function autoMove(loc) {
+        const cards = movable(loc); if (!cards) return false;
+        if (cards.length === 1 && loc.pile !== 'found') for (let i = 0; i < 4; i++) if (move(loc, { pile: 'found', idx: i })) return true;
+        const order = [0, 1, 2, 3, 4, 5, 6].filter(i => !(loc.pile === 'tab' && loc.idx === i));
+        for (const i of order) if (S.tab[i].length && move(loc, { pile: 'tab', idx: i })) return true;
+        if (!(loc.pile === 'tab' && loc.pos === 0)) for (const i of order) if (!S.tab[i].length && move(loc, { pile: 'tab', idx: i })) return true;
+        return false;
+    }
+    function canFinish() { return !S.stock.length && !S.waste.length && S.tab.every(p => p.every(c => c.up)); }
+    function checkWin() {
+        if (S.found.reduce((n, f) => n + f.length, 0) !== 52) return;
+        won = true; clearInterval(tick);
+        const secs = Math.max(1, Math.round((Date.now() - (t0 || Date.now())) / 1000)), key = 'sol-best-' + $('draw').value;
+        let prev = null; try { prev = +localStorage.getItem(key) || null; } catch (e) { /* ignore */ }
+        const record = !prev || secs < prev;
+        if (record) { try { localStorage.setItem(key, secs); } catch (e) { /* ignore */ } }
+        showBest();
+        $('ov-text').textContent = moves + ' moves in ' + fmtTime(secs) + (record ? ' — a new best for draw ' + $('draw').value + '.' : '.');
+        setTimeout(() => { $('overlay').hidden = false; }, 350);
+    }
+    const fmtTime = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    function showBest() { let b = null; try { b = localStorage.getItem('sol-best-' + $('draw').value); } catch (e) { /* ignore */ } $('best').textContent = b ? fmtTime(+b) : '—'; }
+    function update() { $('moves').textContent = moves; $('undo').disabled = !undoStack.length; $('finish').hidden = won || !canFinish(); }
+    function findHint() {
+        const srcs = [];
+        if (S.waste.length) srcs.push({ pile: 'waste', idx: 0, pos: S.waste.length - 1 });
+        S.tab.forEach((p, i) => p.forEach((c, k) => { if (c.up) srcs.push({ pile: 'tab', idx: i, pos: k }); }));
+        for (const src of srcs) {
+            const cards = movable(src); if (!cards) continue;
+            if (cards.length === 1) for (let i = 0; i < 4; i++) if (accepts(cards, { pile: 'found', idx: i })) return src;
+            for (let i = 0; i < 7; i++) {
+                if (src.pile === 'tab' && src.idx === i) continue;
+                if (!S.tab[i].length && src.pile === 'tab' && src.pos === 0) continue;
+                if (accepts(cards, { pile: 'tab', idx: i })) {
+                    // skip moves that just shuffle a run between equal columns
+                    if (src.pile === 'tab' && src.pos > 0 && S.tab[src.idx][src.pos - 1].up && S.tab[i].length) continue;
+                    return src;
+                }
+            }
+        }
+        return S.stock.length || S.waste.length ? 'stock' : null;
+    }
+
+    // ── View ──
+    function cardHTML(c) {
+        const r = RANKS[c.r], s = SUITS[c.s], court = c.r > 10 || c.r === 1;
+        return '<div class="face"><span class="corner tl">' + r + '<br>' + s + '</span><span class="pip' + (c.r > 10 ? ' court' : '') + '">' + (c.r > 10 ? r + s : s) + '</span><span class="corner br">' + r + '<br>' + s + '</span></div><div class="back"></div>';
+    }
+    function build() {
+        table.innerHTML = '';
+        const slot = (cls, label) => { const d = document.createElement('div'); d.className = 'slot ' + cls; if (label) d.textContent = label; table.appendChild(d); return d; };
+        L.slots = { stock: slot('stock'), waste: slot('waste'), found: [0, 1, 2, 3].map(() => slot('found', 'A')), tab: [0, 1, 2, 3, 4, 5, 6].map(() => slot('tab', 'K')) };
+        els = {};
+        for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) {
+            const c = { s, r }, d = document.createElement('div');
+            d.className = 'card' + (red(c) ? ' red' : ''); d.dataset.id = s * 13 + r; d.innerHTML = cardHTML(c);
+            d.setAttribute('aria-label', NAMES[r] + ' of ' + SUIT_NAMES[s]);
+            table.appendChild(d); els[s * 13 + r] = d;
+        }
+    }
+    function layout() {
+        const W = table.clientWidth, gap = Math.max(6, Math.round(W * 0.014));
+        const cw = Math.min(110, Math.floor((W - 8 * gap) / 7)), ch = Math.round(cw * 1.4);
+        table.style.setProperty('--cw', cw + 'px'); table.style.setProperty('--ch', ch + 'px');
+        const ox = Math.round((W - 7 * cw - 6 * gap) / 2), x = i => ox + i * (cw + gap);
+        Object.assign(L, { W, gap, cw, ch, x, top: gap, tabY: gap * 2 + ch });
+        const place = (el, i, y) => { el.style.left = x(i) + 'px'; el.style.top = y + 'px'; };
+        place(L.slots.stock, 0, L.top); place(L.slots.waste, 1, L.top);
+        L.slots.found.forEach((el, i) => place(el, 3 + i, L.top));
+        L.slots.tab.forEach((el, i) => place(el, i, L.tabY));
+    }
+    function render() {
+        if (!L.cw) return;
+        const { x, cw, ch, top, tabY, gap } = L;
+        let z = 1;
+        const put = (c, px, py, zi) => { const el = els[c.id]; el.classList.toggle('up', c.up); el.style.transform = 'translate(' + px + 'px,' + py + 'px)'; el.style.zIndex = zi; el.classList.remove('hint'); };
+        S.stock.forEach((c, k) => put(c, x(0) + Math.min(k, 6) * 0.4, top - Math.min(k, 6) * 0.4, z++));
+        const nShow = +$('draw').value === 3 ? 3 : 1, w0 = Math.max(0, S.waste.length - nShow);
+        S.waste.forEach((c, k) => put(c, x(1) + Math.max(0, k - w0) * cw * 0.24, top, z++));
+        S.found.forEach((f, i) => f.forEach(c => put(c, x(3 + i), top, z++)));
+        const avail = Math.max(window.innerHeight * 0.62, ch * 4.2);
+        let maxH = ch;
+        S.tab.forEach((p, i) => {
+            const down = p.filter(c => !c.up).length, upN = p.length - down;
+            let dDown = ch * 0.1, dUp = ch * 0.27;
+            const need = down * dDown + Math.max(0, upN - 1) * dUp + ch;
+            if (need > avail && upN > 1) dUp = Math.max(ch * 0.14, (avail - ch - down * dDown) / (upN - 1));
+            let y = tabY;
+            p.forEach((c, k) => { put(c, x(i), y, 100 + k); y += c.up ? dUp : dDown; });
+            maxH = Math.max(maxH, y - tabY + ch - (p.length ? (p[p.length - 1].up ? dUp : dDown) : 0));
+        });
+        table.style.height = Math.ceil(tabY + maxH + gap * 2) + 'px';
+    }
+
+    // ── Input ──
+    function dropTarget(px, py) {
+        const { x, cw, ch, top, tabY, gap } = L;
+        for (let i = 0; i < 4; i++) if (px > x(3 + i) - gap && px < x(3 + i) + cw + gap && py > top - gap && py < top + ch + gap) return { pile: 'found', idx: i };
+        if (py > tabY - gap) for (let i = 0; i < 7; i++) if (px > x(i) - gap / 2 && px < x(i) + cw + gap / 2) return { pile: 'tab', idx: i };
+        return null;
+    }
+    const tablePoint = e => { const r = table.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    table.addEventListener('pointerdown', e => {
+        if (won) return;
+        const cardEl = e.target.closest('.card'), slotEl = e.target.closest('.slot');
+        if (!cardEl) { if (slotEl === L.slots.stock) drawStock(); return; }
+        const loc = locate(+cardEl.dataset.id);
+        if (loc.pile === 'stock') { drawStock(); return; }
+        const cards = movable(loc);
+        if (!cards) return;
+        e.preventDefault();
+        const [px, py] = tablePoint(e);
+        drag = { loc, ids: cards.map(c => c.id), sx: px, sy: py, moved: false, base: cards.map(c => { const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(els[c.id].style.transform); return [+m[1], +m[2]]; }) };
+        try { table.setPointerCapture(e.pointerId); } catch (err) { /* pointer already released */ }
+    });
+    table.addEventListener('pointermove', e => {
+        if (!drag) return;
+        const [px, py] = tablePoint(e), dx = px - drag.sx, dy = py - drag.sy;
+        if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+        drag.moved = true;
+        drag.ids.forEach((id, k) => { const el = els[id]; el.classList.add('dragging'); el.style.zIndex = 1000 + k; el.style.transform = 'translate(' + (drag.base[k][0] + dx) + 'px,' + (drag.base[k][1] + dy) + 'px)'; });
+    });
+    table.addEventListener('pointerup', e => {
+        if (!drag) return;
+        const d = drag; drag = null;
+        d.ids.forEach(id => els[id].classList.remove('dragging'));
+        if (d.moved) {
+            const [px, py] = tablePoint(e), dx = px - d.sx, dy = py - d.sy;
+            const dest = dropTarget(d.base[0][0] + dx + L.cw / 2, d.base[0][1] + dy + L.ch * 0.3);
+            if (!(dest && !(dest.pile === d.loc.pile && dest.idx === d.loc.idx) && move(d.loc, dest))) render();
+        } else if (!autoMove(d.loc)) { const el = els[d.ids[0]]; el.animate([{ marginLeft: '0' }, { marginLeft: '-5px' }, { marginLeft: '5px' }, { marginLeft: '0' }], { duration: 220 }); }
+    });
+    table.addEventListener('pointercancel', () => { if (drag) { drag.ids.forEach(id => els[id].classList.remove('dragging')); drag = null; render(); } });
+
+    function undo() { if (!undoStack.length || won) return; const u = JSON.parse(undoStack.pop()); S = u.S; moves = u.moves; render(); update(); }
+    $('undo').addEventListener('click', undo);
+    document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); } });
+    $('new').addEventListener('click', () => { deal(); render(); update(); });
+    $('again').addEventListener('click', () => { deal(); render(); update(); });
+    $('draw').addEventListener('change', () => { try { localStorage.setItem('sol-draw', $('draw').value); } catch (e) { /* ignore */ } deal(); render(); update(); });
+    $('hint').addEventListener('click', () => {
+        const h = findHint();
+        if (h === 'stock') { L.slots.stock.animate([{ opacity: 1 }, { opacity: 0.3 }, { opacity: 1 }], { duration: 500 }); const t = S.stock[S.stock.length - 1]; if (t) els[t.id].animate([{ filter: 'brightness(1)' }, { filter: 'brightness(1.6)' }, { filter: 'brightness(1)' }], { duration: 500 }); }
+        else if (h) { const c = pileOf(h)[h.pos]; els[c.id].classList.add('hint'); setTimeout(() => els[c.id].classList.remove('hint'), 1200); }
+    });
+    $('finish').addEventListener('click', function step() {
+        for (let i = 0; i < 7; i++) {
+            const p = S.tab[i]; if (!p.length) continue;
+            const src = { pile: 'tab', idx: i, pos: p.length - 1 };
+            for (let f = 0; f < 4; f++) if (move(src, { pile: 'found', idx: f })) { if (!won) setTimeout(step, 90); return; }
+        }
+    });
+
+    try { const d = localStorage.getItem('sol-draw'); if (d === '1' || d === '3') $('draw').value = d; } catch (e) { /* ignore */ }
+    build(); deal(); layout(); render(); update();
+    new ResizeObserver(() => { const w = table.clientWidth; if (w !== L.W) { layout(); render(); } }).observe(table);
+    window.addEventListener('resize', () => render());
+    window.__sol = { get state() { return S; }, move, autoMove, locate, drawStock, accepts, canFinish };
+});
+</script>
+</body>
+</html>

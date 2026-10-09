@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snake: Free Online Game | Casey D. Foley, PhD</title>
+<meta name="description" content="Play Snake in your browser: steer a laser beam to collect photons, grow longer, and speed up. Keyboard, swipe, and touch controls; no ads, no sign-up.">
+<link rel="canonical" href="https://cdfoley.com/games/snake/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Snake">
+<meta property="og:description" content="Steer a laser beam to collect photons. Free, in your browser.">
+<meta property="og:url" content="https://cdfoley.com/games/snake/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<style>
+    .game-stage { max-width: 520px; margin: 0 auto; }
+    #board { display: block; width: 100%; aspect-ratio: 1; border-radius: var(--radius-lg); border: 1px solid var(--border); touch-action: none; }
+    .dpad { display: grid; grid-template-columns: repeat(3, 58px); grid-template-rows: repeat(2, 50px); gap: 6px; justify-content: center; margin-top: 0.9rem; }
+    .dpad button { font-size: 1.2rem; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); cursor: pointer; touch-action: manipulation; }
+    .dpad button:active { background: var(--accent-soft); }
+    .dpad .up { grid-column: 2; grid-row: 1; } .dpad .left { grid-column: 1; grid-row: 2; } .dpad .down { grid-column: 2; grid-row: 2; } .dpad .right { grid-column: 3; grid-row: 2; }
+    @media (hover: hover) and (pointer: fine) { .dpad { display: none; } }
+</style>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Snake</li></ol></nav>
+    <div class="game-shell">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Snake</h1>
+            <p class="lede">Steer the beam to collect photons. Each one makes it longer and a little faster. Don't run into yourself.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip">Score<b id="score">0</b></span><span class="chip">Best<b id="best">0</b></span><span class="chip">Speed<b id="level">1</b></span></div>
+            <div class="game-actions">
+                <label class="toggle"><input type="checkbox" id="wrap"> Wrap edges</label>
+                <button class="btn btn-secondary btn-sm" type="button" id="pause">Pause</button>
+                <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
+            </div>
+        </div>
+        <div class="game-stage">
+            <canvas id="board" aria-label="Snake game board" tabindex="0"></canvas>
+            <div class="game-overlay" id="overlay">
+                <h2 id="ov-title">Snake</h2>
+                <p id="ov-text">Arrow keys or WASD to steer. Swipe or use the pad on touch screens.</p>
+                <button class="btn btn-primary" type="button" id="start">Start</button>
+            </div>
+        </div>
+        <div class="dpad" aria-label="Direction pad">
+            <button class="up" type="button" data-d="up" aria-label="Up">▲</button>
+            <button class="left" type="button" data-d="left" aria-label="Left">◀</button>
+            <button class="down" type="button" data-d="down" aria-label="Down">▼</button>
+            <button class="right" type="button" data-d="right" aria-label="Right">▶</button>
+        </div>
+        <p class="game-help"><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> steer · <kbd>Space</kbd> pause · <kbd>Enter</kbd> new game. With <em>Wrap edges</em> on, the beam passes through the walls.</p>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const N = 20, $ = id => document.getElementById(id);
+    const cv = $('board'), ctx = cv.getContext('2d');
+    const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+    const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
+    let snake, dir, queue, food, score, alive, running, paused, timer, tick;
+    let best = 0;
+    try { best = +localStorage.getItem('snake-best') || 0; } catch (e) { /* storage unavailable */ }
+    $('best').textContent = best;
+    try { $('wrap').checked = localStorage.getItem('snake-wrap') === '1'; } catch (e) { /* ignore */ }
+
+    function size() {
+        const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, s = Math.round(r.width * dpr);
+        if (cv.width !== s) { cv.width = s; cv.height = s; }
+        draw();
+    }
+    function reset() {
+        const m = N >> 1;
+        snake = [{ x: m, y: m }, { x: m - 1, y: m }, { x: m - 2, y: m }];
+        dir = 'right'; queue = []; score = 0; alive = true; paused = false; tick = 140;
+        placeFood(); update();
+    }
+    function placeFood() {
+        const free = [];
+        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!snake.some(p => p.x === x && p.y === y)) free.push({ x, y });
+        food = free[Math.floor(Math.random() * free.length)];
+    }
+    function update() {
+        $('score').textContent = score;
+        $('level').textContent = 1 + Math.floor((140 - tick) / 8);
+        $('pause').textContent = paused ? 'Resume' : 'Pause';
+    }
+    function opposite(a, b) { return DIRS[a][0] === -DIRS[b][0] && DIRS[a][1] === -DIRS[b][1]; }
+    function steer(d) {
+        if (!running && alive) { start(); }
+        const last = queue.length ? queue[queue.length - 1] : dir;
+        if (d !== last && !opposite(d, last) && queue.length < 3) queue.push(d);
+    }
+    function step() {
+        if (!running || paused) return;
+        if (queue.length) dir = queue.shift();
+        const head = snake[0], v = DIRS[dir];
+        let nx = head.x + v[0], ny = head.y + v[1];
+        if ($('wrap').checked) { nx = (nx + N) % N; ny = (ny + N) % N; }
+        const grow = food && nx === food.x && ny === food.y;
+        const body = grow ? snake : snake.slice(0, -1);
+        if (nx < 0 || ny < 0 || nx >= N || ny >= N || body.some(p => p.x === nx && p.y === ny)) return gameOver();
+        snake.unshift({ x: nx, y: ny });
+        if (grow) { score++; tick = Math.max(62, tick - 4); placeFood(); } else snake.pop();
+        update(); draw();
+        timer = setTimeout(step, tick);
+    }
+    function start() {
+        if (!alive) reset();
+        running = true; paused = false; $('overlay').hidden = true; update();
+        clearTimeout(timer); timer = setTimeout(step, tick); cv.focus({ preventScroll: true });
+    }
+    function gameOver() {
+        alive = false; running = false; clearTimeout(timer);
+        if (score > best) { best = score; $('best').textContent = best; try { localStorage.setItem('snake-best', best); } catch (e) { /* ignore */ } }
+        $('ov-title').textContent = 'Game over';
+        $('ov-text').textContent = 'Score ' + score + (score && score === best ? ' — a new best!' : '. Best ' + best + '.');
+        $('start').textContent = 'Play again';
+        $('overlay').hidden = false; draw();
+    }
+    function togglePause() {
+        if (!running) return;
+        paused = !paused; update();
+        if (!paused) { clearTimeout(timer); timer = setTimeout(step, tick); }
+        draw();
+    }
+
+    function css(v, fb) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || fb; }
+    function mix(a, b, t) { return a.map((x, i) => Math.round(x + (b[i] - x) * t)); }
+    function draw() {
+        if (!snake) return;
+        const W = cv.width, c = W / N;
+        ctx.fillStyle = css('--surface', '#fff'); ctx.fillRect(0, 0, W, W);
+        ctx.fillStyle = css('--surface-2', '#f2f5f9');
+        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if ((x + y) % 2) ctx.fillRect(x * c, y * c, c, c);
+        // photon
+        const fx = (food.x + 0.5) * c, fy = (food.y + 0.5) * c;
+        const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, c * 0.9);
+        g.addColorStop(0, 'rgba(251,191,36,1)'); g.addColorStop(0.35, 'rgba(251,146,60,.85)'); g.addColorStop(1, 'rgba(251,146,60,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fx, fy, c * 0.9, 0, 2 * Math.PI); ctx.fill();
+        // beam: green head fading to blue tail
+        const head = [52, 211, 153], mid = [34, 211, 238], tail = [110, 168, 254];
+        for (let i = snake.length - 1; i >= 0; i--) {
+            const t = snake.length > 1 ? i / (snake.length - 1) : 0;
+            const col = t < 0.5 ? mix(head, mid, t * 2) : mix(mid, tail, (t - 0.5) * 2);
+            const p = snake[i], pad = i === 0 ? c * 0.06 : c * 0.14;
+            ctx.fillStyle = 'rgb(' + col + ')';
+            const r = c * 0.28;
+            ctx.beginPath(); ctx.roundRect(p.x * c + pad, p.y * c + pad, c - 2 * pad, c - 2 * pad, r); ctx.fill();
+        }
+        // eyes
+        const h = snake[0], v = DIRS[dir], ex = (h.x + 0.5) * c, ey = (h.y + 0.5) * c;
+        ctx.fillStyle = '#0b1220';
+        const px = -v[1], py = v[0];   // perpendicular to the direction of travel
+        [1, -1].forEach(s => { ctx.beginPath(); ctx.arc(ex + v[0] * c * 0.18 + px * s * c * 0.17, ey + v[1] * c * 0.18 + py * s * c * 0.17, c * 0.07, 0, 2 * Math.PI); ctx.fill(); });
+        if (paused) { ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(0, 0, W, W); ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(W / 14) + 'px ' + css('--font', 'sans-serif'); ctx.textAlign = 'center'; ctx.fillText('Paused', W / 2, W / 2); }
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.target.matches && e.target.matches('input, select, textarea') && e.target.id !== 'wrap') return;
+        if (KEYS[e.key]) { e.preventDefault(); steer(KEYS[e.key]); }
+        else if (e.key === ' ' || e.key === 'p' || e.key === 'P') { if (running) { e.preventDefault(); togglePause(); } else if (e.key === ' ' && !$('overlay').hidden) { e.preventDefault(); start(); } }
+        else if (e.key === 'Enter' && document.activeElement === cv) { e.preventDefault(); reset(); start(); }
+    });
+    let t0 = null;
+    cv.addEventListener('touchstart', e => { const t = e.touches[0]; t0 = [t.clientX, t.clientY]; }, { passive: true });
+    cv.addEventListener('touchend', e => {
+        if (!t0) return; const t = e.changedTouches[0], dx = t.clientX - t0[0], dy = t.clientY - t0[1]; t0 = null;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return;
+        steer(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+    });
+    document.querySelectorAll('.dpad button').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); steer(b.dataset.d); }));
+    $('start').addEventListener('click', () => { if (!alive) reset(); start(); });
+    $('new').addEventListener('click', () => { clearTimeout(timer); reset(); start(); });
+    $('pause').addEventListener('click', () => { togglePause(); cv.focus({ preventScroll: true }); });
+    $('wrap').addEventListener('change', () => { try { localStorage.setItem('snake-wrap', $('wrap').checked ? '1' : '0'); } catch (e) { /* ignore */ } });
+    document.addEventListener('visibilitychange', () => { if (document.hidden && running && !paused) togglePause(); });
+    document.addEventListener('themechange', draw);
+    new ResizeObserver(size).observe(cv);
+    reset(); running = false; size();
+    window.__snake = { state: () => ({ snake, food, score, alive, running, paused, tick }), setFood: (x, y) => { food = { x, y }; } };
+});
+</script>
+</body>
+</html>

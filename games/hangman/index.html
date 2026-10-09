@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hangman: Free Science and Engineering Word Game | Casey D. Foley, PhD</title>
+<meta name="description" content="Play Hangman free in your browser with science and engineering words: physics, chemistry, lasers and optics, vacuum and materials, space, and engineering. Each word comes with a short definition.">
+<link rel="canonical" href="https://cdfoley.com/games/hangman/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Hangman: science and engineering words">
+<meta property="og:description" content="Guess science and engineering words letter by letter, and learn a definition with each one.">
+<meta property="og:url" content="https://cdfoley.com/games/hangman/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
+<style>
+    .hm { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 1.4rem; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.2rem; }
+    .hm svg { width: 100%; height: auto; color: var(--text); }
+    .hm .part { opacity: 0; transition: opacity .25s; }
+    .hm .part.on { opacity: 1; }
+    .hm .x-eyes { display: none; } .hm.lost .x-eyes { display: inline; }
+    .hm-cat { color: var(--muted); font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: .5rem; }
+    .hm-word { display: flex; flex-wrap: wrap; gap: .3rem; font: 700 1.6rem/1.2 var(--mono); }
+    .hm-word span { width: 1.3em; text-align: center; border-bottom: 3px solid var(--border-strong); min-height: 1.35em; }
+    .hm-word span.missed { color: var(--danger); }
+    .hm-result { margin-top: 1rem; padding: .8rem 1rem; border-radius: var(--radius-sm); background: var(--surface-2); }
+    .hm-result p { margin: .2rem 0 .6rem; color: var(--text-2); }
+    .hm-result strong.win { color: var(--ok); } .hm-result strong.loss { color: var(--danger); }
+    .kb { display: grid; gap: .35rem; margin-top: 1rem; }
+    .kb-row { display: flex; justify-content: center; gap: .3rem; }
+    .kb button { flex: 0 1 2.7rem; min-width: 0; height: 3rem; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 700 1rem var(--font); cursor: pointer; padding: 0; }
+    .kb button:hover:not(:disabled) { border-color: var(--accent); }
+    .kb button.hit { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); opacity: 1; }
+    .kb button.miss { opacity: .35; }
+    .kb button:disabled { cursor: default; }
+    @media (max-width: 620px) { .hm { grid-template-columns: 1fr; } .hm svg { max-width: 170px; margin: 0 auto; display: block; } }
+</style>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Hangman</li></ol></nav>
+    <div class="game-shell" style="max-width:720px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Hangman</h1>
+            <p class="lede">Guess the science or engineering word one letter at a time. Six wrong guesses and the round is lost. Every word comes with a short definition, so you learn something either way.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip">Streak<b id="streak">0</b></span><span class="chip">Best streak<b id="best">0</b></span><span class="chip">Wrong<b id="misses">0/6</b></span></div>
+            <div class="game-actions">
+                <select id="cat" aria-label="Category"></select>
+                <button class="btn btn-secondary btn-sm" type="button" id="hint">Hint</button>
+                <button class="btn btn-primary btn-sm" type="button" id="new">New word</button>
+            </div>
+        </div>
+        <div class="hm" id="hm">
+            <svg viewBox="0 0 200 220" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round">
+                <path d="M20 205H120M45 205V15H140V40" stroke-width="6"/>
+                <path d="M45 50L75 15" stroke-width="4" opacity=".6"/>
+                <circle class="part" cx="140" cy="60" r="20"/>
+                <path class="part" d="M140 80V140"/>
+                <path class="part" d="M140 96L114 122"/>
+                <path class="part" d="M140 96L166 122"/>
+                <path class="part" d="M140 140L118 178"/>
+                <path class="part" d="M140 140L162 178"/>
+                <g class="x-eyes" stroke-width="2.5"><path d="M131 53l6 6M137 53l-6 6M143 53l6 6M149 53l-6 6"/></g>
+            </svg>
+            <div>
+                <div class="hm-cat" id="catlabel"></div>
+                <div class="hm-word" id="word" aria-live="polite"></div>
+                <div class="hm-result" id="result" hidden><strong id="res-title"></strong><p id="res-def"></p><button class="btn btn-primary btn-sm" type="button" id="next">Next word</button></div>
+            </div>
+        </div>
+        <div class="kb" id="kb" aria-label="Letters"></div>
+        <p class="game-help">Type letters on your keyboard or tap them above. <strong>Hint</strong> reveals a letter but costs one wrong guess. Press <kbd>Enter</kbd> for the next word. Your streak counts words solved in a row.</p>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const G = window.Games, $ = id => document.getElementById(id);
+    const WORDS = {
+        'Physics': [
+            ['PHOTON', 'A quantum of light: the smallest packet of electromagnetic energy.'],
+            ['ENTROPY', 'A measure of disorder; in an isolated system it never decreases.'],
+            ['MOMENTUM', 'Mass times velocity; it is conserved when no outside force acts.'],
+            ['INERTIA', 'An object’s resistance to any change in its motion.'],
+            ['VELOCITY', 'Speed together with a direction.'],
+            ['GRAVITY', 'The attraction between masses.'],
+            ['NEUTRINO', 'A nearly massless, neutral particle that passes through matter almost without interacting.'],
+            ['FRICTION', 'The force that resists one surface sliding over another.'],
+            ['PENDULUM', 'A weight on a pivot whose swing period depends on its length and on gravity.'],
+            ['TORQUE', 'Rotational force: force times its distance from the pivot.'],
+            ['JOULE', 'The SI unit of energy: one newton of force acting over one meter.'],
+            ['NEWTON', 'The SI unit of force: what accelerates one kilogram by one meter per second squared.'],
+            ['KELVIN', 'The SI unit of temperature; zero kelvin is absolute zero.'],
+            ['ELECTRON', 'The light, negatively charged particle found around every atomic nucleus.'],
+            ['PLASMA', 'An ionized gas of free electrons and ions, often called the fourth state of matter.'],
+            ['QUARK', 'A fundamental particle; three of them make up each proton and neutron.'],
+            ['RESONANCE', 'Large oscillations that build when a system is driven at its natural frequency.'],
+            ['CAPACITOR', 'A component that stores energy in the electric field between two conductors.'],
+            ['MAGNETISM', 'Forces that arise from moving electric charges and from electron spin.'],
+            ['SUPERCONDUCTOR', 'A material whose electrical resistance drops to zero below a critical temperature.']
+        ],
+        'Chemistry': [
+            ['CATALYST', 'A substance that speeds up a reaction without being used up.'],
+            ['MOLECULE', 'Two or more atoms held together by chemical bonds.'],
+            ['ISOTOPE', 'Atoms of the same element with different numbers of neutrons.'],
+            ['OXIDATION', 'The loss of electrons by an atom, ion, or molecule.'],
+            ['REDUCTION', 'The gain of electrons by an atom, ion, or molecule.'],
+            ['POLYMER', 'A large molecule built from many repeating units.'],
+            ['SOLVENT', 'The substance that dissolves another to form a solution.'],
+            ['ENTHALPY', 'A system’s heat content; its change equals the heat absorbed at constant pressure.'],
+            ['TITRATION', 'Finding a concentration by adding a reagent of known strength until the reaction is complete.'],
+            ['ELECTROLYTE', 'A substance that conducts electricity when dissolved or melted, because it forms ions.'],
+            ['SPECTROSCOPY', 'Studying matter through the light it absorbs, emits, or scatters.'],
+            ['VALENCE', 'Describes the outer-shell electrons an atom uses to form bonds.'],
+            ['ALKALINE', 'Basic, with a pH above 7.'],
+            ['CHIRALITY', 'The property of a molecule that cannot be superimposed on its mirror image.'],
+            ['ISOMER', 'One of two or more molecules with the same formula but different structures.'],
+            ['HALOGEN', 'An element of group 17, such as fluorine, chlorine, bromine, or iodine.'],
+            ['MOLARITY', 'Concentration in moles of solute per liter of solution.'],
+            ['EQUILIBRIUM', 'The state in which the forward and reverse reactions run at equal rates.'],
+            ['BUFFER', 'A solution that resists changes in pH when acid or base is added.'],
+            ['ANION', 'A negatively charged ion.']
+        ],
+        'Lasers & optics': [
+            ['LASER', 'Light amplification by stimulated emission of radiation.'],
+            ['WAVELENGTH', 'The distance between successive peaks of a wave.'],
+            ['REFRACTION', 'The bending of light as it passes from one material into another.'],
+            ['DIFFRACTION', 'The spreading of waves as they pass edges and small openings.'],
+            ['POLARIZATION', 'The direction in which a light wave’s electric field oscillates.'],
+            ['COHERENCE', 'A steady phase relationship within a light wave, which lets it interfere cleanly.'],
+            ['APERTURE', 'The opening that limits how much light passes through an optical system.'],
+            ['PRISM', 'A wedge of glass that bends light and separates it into colors.'],
+            ['FIBER', 'A thin strand of glass that guides light by total internal reflection.'],
+            ['INTERFEROMETER', 'An instrument that measures tiny distances by interfering two beams of light.'],
+            ['FLUENCE', 'Laser pulse energy per unit area, usually in joules per square centimeter.'],
+            ['GAUSSIAN', 'The bell-shaped intensity profile of an ideal laser beam.'],
+            ['ABLATION', 'Removing material by vaporizing it with an intense laser pulse.'],
+            ['PHOTODIODE', 'A semiconductor device that turns light into an electric current.'],
+            ['HOLOGRAM', 'A recorded interference pattern that reconstructs a three-dimensional image.'],
+            ['DISPERSION', 'The change of refractive index with wavelength, which spreads white light into colors.'],
+            ['MONOCHROMATOR', 'An instrument that picks a narrow band of wavelengths out of a broader source.'],
+            ['FEMTOSECOND', 'One quadrillionth of a second, the time scale of ultrafast laser pulses.'],
+            ['LENS', 'A curved piece of glass or plastic that focuses or spreads light.'],
+            ['ASTIGMATISM', 'An aberration in which light in two perpendicular planes focuses at different distances.']
+        ],
+        'Vacuum & materials': [
+            ['VACUUM', 'A space where the gas pressure is far below atmospheric pressure.'],
+            ['TORR', 'A pressure unit equal to 1/760 of a standard atmosphere, about one millimeter of mercury.'],
+            ['TURBOPUMP', 'A turbomolecular pump, whose fast-spinning rotor blades knock gas molecules toward the exhaust.'],
+            ['OUTGASSING', 'The release of gas that was dissolved in or stuck to a material, especially under vacuum.'],
+            ['MANOMETER', 'An instrument that measures pressure.'],
+            ['CONDUCTANCE', 'In vacuum work, how easily gas flows through a tube or opening.'],
+            ['FLANGE', 'A rim used to bolt two parts of a vacuum system together around a seal.'],
+            ['GASKET', 'A soft or metal seal squeezed between two mating surfaces.'],
+            ['CRYOPUMP', 'A pump that captures gas by freezing it onto very cold surfaces.'],
+            ['ADSORPTION', 'Gas molecules sticking to a surface.'],
+            ['DESORPTION', 'Molecules leaving a surface they were stuck to.'],
+            ['ALLOY', 'A metal made by mixing two or more elements.'],
+            ['CERAMIC', 'A hard, heat-resistant, inorganic material such as alumina.'],
+            ['ANNEALING', 'Heating a material and cooling it slowly to relieve internal stress.'],
+            ['CREEP', 'Slow, permanent deformation of a material under a steady load.'],
+            ['CORROSION', 'Gradual chemical attack on a material, such as rusting.'],
+            ['DUCTILITY', 'A material’s ability to be drawn into a wire without breaking.'],
+            ['HARDNESS', 'A material’s resistance to scratching or denting.'],
+            ['SILICON', 'The semiconductor element at the heart of most electronics.'],
+            ['GRAPHENE', 'A single layer of carbon atoms arranged in a honeycomb lattice.']
+        ],
+        'Space': [
+            ['GALAXY', 'A system of billions of stars, gas, and dust bound together by gravity.'],
+            ['NEBULA', 'A cloud of gas and dust in space, where new stars can form.'],
+            ['ASTEROID', 'A rocky body orbiting the Sun, most of them between Mars and Jupiter.'],
+            ['COMET', 'An icy body that grows a glowing tail as it nears the Sun.'],
+            ['SUPERNOVA', 'The explosive death of a massive star.'],
+            ['PULSAR', 'A spinning neutron star whose beams of radiation sweep past Earth like a lighthouse.'],
+            ['QUASAR', 'An extremely bright galaxy core powered by a supermassive black hole.'],
+            ['ECLIPSE', 'When one body passes into the shadow of another.'],
+            ['SATELLITE', 'An object that orbits a planet.'],
+            ['TELESCOPE', 'An instrument that gathers light to show distant objects.'],
+            ['METEOR', 'The streak of light from a bit of space rock burning up in the atmosphere.'],
+            ['EQUINOX', 'One of the two days each year when day and night are about equal in length.'],
+            ['SOLSTICE', 'The day with the longest or the shortest daylight of the year.'],
+            ['EXOPLANET', 'A planet that orbits a star other than the Sun.'],
+            ['AURORA', 'Light in the polar sky from charged solar particles striking the upper atmosphere.'],
+            ['CONSTELLATION', 'A named pattern of stars in the sky.'],
+            ['REDSHIFT', 'The stretching of light to longer wavelengths from a source moving away.'],
+            ['PARALLAX', 'The apparent shift of a nearby star as Earth orbits the Sun, used to measure its distance.'],
+            ['ZENITH', 'The point in the sky directly overhead.'],
+            ['PERIHELION', 'The point in an orbit that is closest to the Sun.']
+        ],
+        'Engineering': [
+            ['TOLERANCE', 'The allowed variation in a dimension or value.'],
+            ['CALIPER', 'A tool with two jaws for measuring the distance between opposite sides.'],
+            ['MICROMETER', 'A precision screw gauge for measuring small thicknesses and diameters.'],
+            ['ACTUATOR', 'A device that turns energy into motion, such as a motor or cylinder.'],
+            ['SENSOR', 'A device that detects a physical quantity and reports it as a signal.'],
+            ['FEEDBACK', 'Using a system’s output to adjust its input, as a thermostat does.'],
+            ['CALIBRATION', 'Comparing an instrument with a known standard and correcting it.'],
+            ['THERMOCOUPLE', 'Two different metals joined to make a small voltage that depends on temperature.'],
+            ['PROTOTYPE', 'An early model built to test a design.'],
+            ['FIRMWARE', 'Software built into a device’s hardware.'],
+            ['HYDRAULICS', 'Using pressurized liquid to transmit force.'],
+            ['GEARBOX', 'A set of gears that trades speed for torque.'],
+            ['BEARING', 'A part that lets a shaft turn or slide with little friction.'],
+            ['WELDING', 'Joining parts by melting them together.'],
+            ['CANTILEVER', 'A beam supported at only one end.'],
+            ['DATASHEET', 'A document listing a component’s specifications and ratings.'],
+            ['HISTOGRAM', 'A bar chart showing how often values fall into each range.'],
+            ['AUTOMATION', 'Using machines and controls to run a process with little manual work.'],
+            ['METROLOGY', 'The science of measurement.'],
+            ['OSCILLOSCOPE', 'An instrument that plots voltage against time.']
+        ]
+    };
+    const ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'], MAX = 6;
+    let word = '', def = '', category = '', guessed = new Set(), misses = 0, over = true, recent = [];
+    let streak = +G.get('hangman-streak', 0) || 0, best = +G.get('hangman-best', 0) || 0;
+
+    $('cat').innerHTML = '<option value="all">All categories</option>' + Object.keys(WORDS).map(c => '<option>' + c + '</option>').join('');
+    const savedCat = G.get('hangman-cat', 'all'); if (savedCat === 'all' || WORDS[savedCat]) $('cat').value = savedCat;
+    $('kb').innerHTML = ROWS.map(r => '<div class="kb-row">' + [...r].map(l => '<button type="button" data-l="' + l + '" aria-label="' + l + '">' + l + '</button>').join('') + '</div>').join('');
+
+    function newWord() {
+        const cat = $('cat').value, pool = [];
+        for (const [c, list] of Object.entries(WORDS)) if (cat === 'all' || cat === c) list.forEach(w => pool.push([c, ...w]));
+        let pick, tries = 0;
+        do { pick = pool[Math.floor(Math.random() * pool.length)]; } while (recent.includes(pick[1]) && ++tries < 50);
+        recent.push(pick[1]); if (recent.length > 25) recent.shift();
+        [category, word, def] = pick;
+        guessed = new Set(); misses = 0; over = false;
+        $('result').hidden = true; $('hm').classList.remove('lost');
+        render();
+    }
+    function render(final) {
+        $('catlabel').textContent = category + ' · ' + word.length + ' letters';
+        const w = $('word'); w.style.fontSize = word.length > 11 ? '1.15rem' : word.length > 8 ? '1.35rem' : '';
+        w.innerHTML = [...word].map(l => guessed.has(l) ? '<span>' + l + '</span>' : final ? '<span class="missed">' + l + '</span>' : '<span></span>').join('');
+        w.setAttribute('aria-label', [...word].map(l => (guessed.has(l) ? l : 'blank')).join(' '));
+        document.querySelectorAll('#hm .part').forEach((p, i) => p.classList.toggle('on', i < misses));
+        document.querySelectorAll('#kb button').forEach(b => {
+            const l = b.dataset.l, used = guessed.has(l);
+            b.disabled = used || over; b.classList.toggle('hit', used && word.includes(l)); b.classList.toggle('miss', used && !word.includes(l));
+        });
+        $('misses').textContent = misses + '/' + MAX; $('streak').textContent = streak; $('best').textContent = best;
+        $('hint').disabled = over || misses >= MAX - 1;
+    }
+    function guess(l) {
+        if (over || guessed.has(l)) return;
+        guessed.add(l);
+        if (word.includes(l)) G.tone(660, 880, 0.08, 'triangle', 0.03);
+        else { misses++; G.tone(220, 160, 0.12, 'square', 0.03); }
+        check();
+    }
+    function check() {
+        if ([...word].every(l => guessed.has(l))) finish(true);
+        else if (misses >= MAX) finish(false);
+        else render();
+    }
+    function finish(won) {
+        over = true;
+        if (won) { streak++; if (streak > best) { best = streak; G.set('hangman-best', best); } [523, 659, 784].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.12, 'square', 0.03), k * 100)); }
+        else { streak = 0; $('hm').classList.add('lost'); G.tone(300, 90, 0.5, 'sawtooth', 0.035); }
+        G.set('hangman-streak', streak);
+        render(!won);
+        $('res-title').textContent = won ? 'Solved: ' + word : 'Out of guesses. The word was ' + word + '.';
+        $('res-title').className = won ? 'win' : 'loss';
+        $('res-def').textContent = word.charAt(0) + word.slice(1).toLowerCase() + ': ' + def;
+        $('result').hidden = false; $('next').focus({ preventScroll: true });
+    }
+    function hint() {
+        if (over || misses >= MAX - 1) return;
+        const hidden = [...new Set(word)].filter(l => !guessed.has(l));
+        if (!hidden.length) return;
+        guessed.add(hidden[Math.floor(Math.random() * hidden.length)]); misses++;
+        G.tone(440, 660, 0.1, 'sine', 0.03); check();
+    }
+
+    $('kb').addEventListener('click', e => { const b = e.target.closest('button'); if (b) guess(b.dataset.l); });
+    $('new').addEventListener('click', () => { if (!over && guessed.size) { streak = 0; G.set('hangman-streak', 0); } newWord(); });
+    $('next').addEventListener('click', newWord);
+    $('hint').addEventListener('click', hint);
+    $('cat').addEventListener('change', () => { G.set('hangman-cat', $('cat').value); recent = []; newWord(); });
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey || e.altKey || (e.target.matches && e.target.matches('input, select, textarea'))) return;
+        if (/^Key[A-Z]$/.test(e.code)) { e.preventDefault(); guess(e.code.slice(3)); }
+        else if (e.code === 'Enter' && over && !(e.target.matches && e.target.matches('button, a'))) { e.preventDefault(); newWord(); }
+    });
+    newWord();
+    window.__hangman = { WORDS, guess, hint, newWord, get state() { return { word, def, category, misses, over, streak, best, guessed: [...guessed] }; } };
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2048: Free Number Puzzle Game | Casey D. Foley, PhD</title>
+<meta name="description" content="Play 2048 free in your browser: slide the tiles, merge matching numbers, and build a 2048 tile. Swipe or arrow keys, undo, and saved progress; no ads, no sign-up.">
+<link rel="canonical" href="https://cdfoley.com/games/2048/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="2048">
+<meta property="og:description" content="Slide and merge matching tiles to build 2048. Free, in your browser.">
+<meta property="og:url" content="https://cdfoley.com/games/2048/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og-card.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
+<style>
+    .t-board { position: relative; width: 100%; max-width: 480px; aspect-ratio: 1; margin: 0 auto; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg); touch-action: none; user-select: none; -webkit-user-select: none; outline: none; }
+    .t-board:focus-visible { box-shadow: 0 0 0 3px var(--accent-soft); }
+    .t-cell { position: absolute; background: var(--border); opacity: .75; border-radius: 8px; }
+    .t-tile { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-family: var(--font); font-weight: 800; font-variant-numeric: tabular-nums; transition: transform .1s ease-in-out; z-index: 1; }
+    .t-tile.new { animation: t-appear .16s ease .1s backwards; }
+    .t-tile.merged { animation: t-pop .18s ease; z-index: 2; }
+    @keyframes t-appear { from { opacity: 0; scale: .3; } to { opacity: 1; scale: 1; } }
+    @keyframes t-pop { 0% { scale: 1; } 45% { scale: 1.16; } 100% { scale: 1; } }
+    @media (prefers-reduced-motion: reduce) { .t-tile { transition: none; } .t-tile.new, .t-tile.merged { animation: none; } }
+    .t-overlay .btn + .btn { margin-left: .4rem; }
+</style>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">2048</li></ol></nav>
+    <div class="game-shell" style="max-width:560px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>2048</h1>
+            <p class="lede">Slide all the tiles at once. When two tiles with the same number touch, they merge into one with double the value. Build a 2048 tile, then keep going as far as you can.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip">Score<b id="score">0</b></span><span class="chip">Best<b id="best">0</b></span></div>
+            <div class="game-actions">
+                <button class="btn btn-secondary btn-sm" type="button" id="undo">Undo</button>
+                <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
+            </div>
+        </div>
+        <div class="game-stage">
+            <div class="t-board" id="board" tabindex="0" role="grid" aria-label="2048 board. Use the arrow keys or swipe to move the tiles."><div id="cells"></div><div id="tiles"></div></div>
+            <div class="game-overlay t-overlay" id="overlay" hidden><h2 id="ov-title"></h2><p id="ov-text"></p><div><button class="btn btn-primary" type="button" id="again">New game</button><button class="btn btn-secondary" type="button" id="keep" hidden>Keep going</button></div></div>
+        </div>
+        <p class="game-help"><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> slide the tiles; on a touch screen, swipe the board. <kbd>U</kbd> or <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes a move. Your game is saved in this browser, so you can come back to it.</p>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const G = window.Games, $ = id => document.getElementById(id), board = $('board'), tilesEl = $('tiles');
+    const COLORS = { 2: ['#ede9fe', '#3b0764'], 4: ['#ddd6fe', '#3b0764'], 8: ['#c4b5fd', '#2e1065'], 16: ['#a78bfa', '#ffffff'], 32: ['#8b5cf6', '#ffffff'], 64: ['#7c3aed', '#ffffff'],
+        128: ['#22d3ee', '#083344'], 256: ['#06b6d4', '#ffffff'], 512: ['#0891b2', '#ffffff'], 1024: ['#f59e0b', '#ffffff'], 2048: ['#f97316', '#ffffff'] };
+    const VEC = { up: [-1, 0], right: [0, 1], down: [1, 0], left: [0, -1] };
+    let grid, score = 0, best = +G.get('2048-best', 0) || 0, won = false, keepGoing = false, history = [], pending = null, nextId = 1, geo = { cell: 0, gap: 0 };
+
+    function layout() {
+        const S = board.clientWidth, gap = S * 0.03, cell = (S - 5 * gap) / 4;
+        geo = { cell, gap };
+        $('cells').innerHTML = Array.from({ length: 16 }, (_, i) => '<div class="t-cell" style="left:' + (gap + (i % 4) * (cell + gap)) + 'px;top:' + (gap + Math.floor(i / 4) * (cell + gap)) + 'px;width:' + cell + 'px;height:' + cell + 'px"></div>').join('');
+        eachTile(t => place(t));
+    }
+    const eachTile = fn => { for (const row of grid) for (const t of row) if (t) fn(t); };
+    function style(t) {
+        const col = COLORS[t.v] || ['#0f172a', '#fbbf24'], digits = String(t.v).length;
+        t.el.textContent = t.v;
+        t.el.style.background = col[0]; t.el.style.color = col[1];
+        t.el.style.fontSize = geo.cell * (digits <= 2 ? 0.46 : digits === 3 ? 0.38 : digits === 4 ? 0.3 : 0.24) + 'px';
+        t.el.style.boxShadow = t.v >= 128 ? '0 0 ' + Math.min(26, 6 + Math.log2(t.v)) + 'px ' + col[0] : 'none';
+    }
+    function place(t) {
+        const { cell, gap } = geo;
+        t.el.style.width = t.el.style.height = cell + 'px';
+        t.el.style.transform = 'translate(' + (gap + t.c * (cell + gap)) + 'px,' + (gap + t.r * (cell + gap)) + 'px)';
+        style(t);
+    }
+    function makeTile(r, c, v, isNew) {
+        const t = { id: nextId++, r, c, v, el: document.createElement('div') };
+        t.el.className = 't-tile' + (isNew ? ' new' : '');
+        tilesEl.appendChild(t.el); grid[r][c] = t; place(t);
+        return t;
+    }
+    function addRandom() {
+        const empty = [];
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (!grid[r][c]) empty.push([r, c]);
+        if (!empty.length) return;
+        const [r, c] = empty[Math.floor(Math.random() * empty.length)];
+        makeTile(r, c, Math.random() < 0.9 ? 2 : 4, true);
+    }
+    const values = () => grid.map(row => row.map(t => (t ? t.v : 0)));
+    function load(cells) {
+        tilesEl.innerHTML = ''; grid = [[], [], [], []].map(() => [null, null, null, null]);
+        cells.forEach((row, r) => row.forEach((v, c) => { if (v) makeTile(r, c, v, false); }));
+    }
+    function newGame() {
+        flush(); load([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
+        score = 0; won = false; keepGoing = false; history = [];
+        addRandom(); addRandom(); $('overlay').hidden = true; hud(); save(); board.focus({ preventScroll: true });
+    }
+    function hud() {
+        if (score > best) { best = score; G.set('2048-best', best); }
+        $('score').textContent = G.fmt(score); $('best').textContent = G.fmt(best); $('undo').disabled = !history.length;
+    }
+    const save = () => G.setJSON('2048-state', { cells: values(), score, won, keepGoing });
+
+    function canMove() {
+        const v = values();
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+            if (!v[r][c]) return true;
+            if (c < 3 && v[r][c] === v[r][c + 1]) return true;
+            if (r < 3 && v[r][c] === v[r + 1][c]) return true;
+        }
+        return false;
+    }
+    function move(dir) {
+        flush();
+        if (!$('overlay').hidden) return false;
+        const [dr, dc] = VEC[dir], rows = [0, 1, 2, 3], cols = [0, 1, 2, 3];
+        if (dr === 1) rows.reverse(); if (dc === 1) cols.reverse();
+        const before = { cells: values(), score, won }, merged = new Set(), gone = [];
+        let moved = false;
+        for (const r of rows) for (const c of cols) {
+            const t = grid[r][c]; if (!t) continue;
+            let nr = r, nc = c, into = null;
+            for (;;) {
+                const tr = nr + dr, tc = nc + dc;
+                if (tr < 0 || tr > 3 || tc < 0 || tc > 3) break;
+                const o = grid[tr][tc];
+                if (!o) { nr = tr; nc = tc; continue; }
+                if (o.v === t.v && !merged.has(o)) into = o;
+                break;
+            }
+            if (into) {
+                grid[r][c] = null; t.r = into.r; t.c = into.c; gone.push(t);
+                into.v *= 2; merged.add(into); score += into.v; moved = true;
+                t.el.style.zIndex = 0; place(t);                 // slides under its partner, which shows the new value after the slide
+            } else if (nr !== r || nc !== c) {
+                grid[r][c] = null; grid[nr][nc] = t; t.r = nr; t.c = nc; moved = true; place(t);
+            }
+        }
+        if (!moved) return false;
+        history.push(before); if (history.length > 100) history.shift();
+        G.tone(merged.size ? 520 + 40 * Math.log2(Math.max(...[...merged].map(o => o.v))) : 300, 0, merged.size ? 0.07 : 0.03, 'triangle', 0.03);
+        pending = () => {
+            gone.forEach(t => t.el.remove());
+            merged.forEach(o => { style(o); o.el.classList.remove('merged', 'new'); void o.el.offsetWidth; o.el.classList.add('merged'); });
+            addRandom(); save();
+            if (!won && [...merged].some(o => o.v === 2048)) { won = true; save(); show('You made 2048!', 'Score ' + G.fmt(score) + '. Keep going for a bigger tile, or start over.', true); }
+            else if (!canMove()) { show('No moves left', 'Final score ' + G.fmt(score) + (score >= best ? ' — a new best!' : '. Best ' + G.fmt(best) + '.'), false); G.set('2048-state', ''); }
+        };
+        pending.timer = setTimeout(flush, 110);
+        hud();
+        return true;
+    }
+    function flush() { if (!pending) return; const p = pending; pending = null; clearTimeout(p.timer); p(); }
+    function show(title, text, canContinue) {
+        $('ov-title').textContent = title; $('ov-text').textContent = text; $('keep').hidden = !canContinue; $('overlay').hidden = false;
+        G.tone(523, 1046, 0.3, 'square', 0.035);
+    }
+    function undo() {
+        flush(); const s = history.pop(); if (!s) return;
+        load(s.cells); score = s.score; won = s.won; $('overlay').hidden = true; hud(); save();
+    }
+
+    const KEYS = { ArrowUp: 'up', ArrowRight: 'right', ArrowDown: 'down', ArrowLeft: 'left', KeyW: 'up', KeyD: 'right', KeyS: 'down', KeyA: 'left' };
+    document.addEventListener('keydown', e => {
+        if (e.target.matches && e.target.matches('input, select, textarea')) return;
+        if (KEYS[e.code] && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); move(KEYS[e.code]); }
+        else if (e.code === 'KeyU' || ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ')) { e.preventDefault(); undo(); }
+    });
+    let start = null;
+    board.addEventListener('pointerdown', e => { start = [e.clientX, e.clientY]; board.focus({ preventScroll: true }); });
+    board.addEventListener('pointerup', e => {
+        if (!start) return; const dx = e.clientX - start[0], dy = e.clientY - start[1]; start = null;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+        move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+    });
+    board.addEventListener('pointercancel', () => { start = null; });
+    $('new').addEventListener('click', newGame);
+    $('again').addEventListener('click', newGame);
+    $('keep').addEventListener('click', () => { keepGoing = true; $('overlay').hidden = true; save(); board.focus({ preventScroll: true }); });
+    $('undo').addEventListener('click', undo);
+
+    grid = [[], [], [], []].map(() => [null, null, null, null]);
+    layout();
+    const saved = G.getJSON('2048-state');
+    if (saved && Array.isArray(saved.cells) && saved.cells.length === 4 && saved.cells.flat().some(Boolean)) {
+        load(saved.cells); score = saved.score || 0; won = !!saved.won; keepGoing = !!saved.keepGoing; hud();
+        if (!canMove()) newGame();
+    } else newGame();
+    new ResizeObserver(() => { flush(); layout(); }).observe(board);
+    window.__2048 = { move, flush, undo, newGame, set(cells, s) { flush(); load(cells); score = s || 0; won = false; history = []; $('overlay').hidden = true; hud(); }, get state() { return { cells: values(), score, won, over: !canMove(), overlay: !$('overlay').hidden }; } };
+});
+</script>
+</body>
+</html>
