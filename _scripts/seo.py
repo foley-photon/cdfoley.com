@@ -42,6 +42,21 @@ def put_ld(path, data):
         s = s.replace('</head>', block + '</head>', 1)
     open(path, 'w', encoding='utf-8').write(s)
 
+def modified(f):
+    """When a page's content last changed, as an ISO 8601 date-time with time zone (what Google expects).
+    Edits that only touch the date fields themselves are ignored, so re-running this script doesn't move the date."""
+    def real(diff):
+        return any(l[:1] in '+-' and not l.startswith(('+++', '---')) and not re.search(r'"date(Modified|Published)"', l)
+                   for l in diff.splitlines())
+    now = datetime.datetime.now().astimezone().isoformat(timespec='seconds')
+    if real(subprocess.run(['git', 'diff', 'HEAD', '-U0', '--', f], capture_output=True, text=True).stdout):
+        return now                                             # uncommitted content edits
+    for line in subprocess.run(['git', 'log', '--format=%H %cI', '--', f], capture_output=True, text=True).stdout.splitlines():
+        sha, when = line.split()
+        if real(subprocess.run(['git', 'show', '-U0', '--format=', sha, '--', f], capture_output=True, text=True).stdout):
+            return when
+    return now
+
 def meta(s, name, attr='name'):
     m = re.search(r'<meta ' + attr + r'="' + re.escape(name) + r'" content="([^"]*)"', s)
     return m.group(1) if m else ''
@@ -124,7 +139,16 @@ person = next(json.loads(b) for b in re.findall(r'<script type="application/ld\+
               if '"@type": "Person"' in b)
 person.pop('@context', None)
 put_ld('resume/index.html', {'@context': 'https://schema.org', '@type': 'ProfilePage', 'url': SITE + '/resume/',
-    'dateModified': datetime.date.today().isoformat(), 'mainEntity': person})
+    'dateModified': modified('resume/index.html'), 'mainEntity': person})
+
+# Articles: Google wants full ISO 8601 date-times with a time zone, not bare dates
+for a in ARTICLES:
+    f = 'learn/%s/index.html' % a['slug']
+    if not os.path.exists(f): continue
+    s = open(f, encoding='utf-8').read()
+    t = re.sub(r'("datePublished": ?")(\d{4}-\d{2}-\d{2})(")', r'\g<1>\g<2>T09:00:00-04:00\3', s)
+    t = re.sub(r'("dateModified": ?")[^"]*(")', lambda m: m.group(1) + modified(f) + m.group(2), t)
+    if t != s: open(f, 'w', encoding='utf-8').write(t)
 formulas = open('formulas/index.html', encoding='utf-8').read()
 put_ld('formulas/index.html', {'@context': 'https://schema.org', '@type': 'CollectionPage', 'name': 'Formula reference',
     'url': SITE + '/formulas/', 'description': meta(formulas, 'description'), 'author': AUTHOR})
