@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ['1111111111', '..........', '2222222222', '..........', '1111111111', '2222222222', '1111111111']
     ];
     const POWER = { wide: { label: 'W', c: '#a78bfa' }, multi: { label: 'M', c: '#22d3ee' }, slow: { label: 'S', c: '#facc15' }, life: { label: '+', c: '#f472b6' } };
-    let score = 0, lives = 3, level = 0, bricks = [], balls = [], drops = [], sparks = [], state = 'title', paused = false;
+    let clock = 0, lastBrick = 0, score = 0, lives = 3, level = 0, bricks = [], balls = [], drops = [], sparks = [], state = 'title', paused = false;
     let wideT = 0, slowT = 0, banner = null, aim = null, best = +G.get('breaker-best', 0) || 0;
     const keys = { l: false, r: false }, paddle = { x: W / 2, y: H - 44, w: 84, h: 12 };
 
@@ -166,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function update(dt) {
+        clock += dt;
         if (state !== 'play' || paused) return;
         if (banner && (banner.t -= dt) <= 0) banner = null;
         wideT = Math.max(0, wideT - dt); slowT = Math.max(0, slowT - dt);
@@ -200,7 +201,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (b.y > H + b.r) { b.dead = true; return; }
         const p = paddle;
         if (b.vy > 0 && b.y + b.r >= p.y - p.h / 2 && b.y - b.r <= p.y + p.h / 2 && Math.abs(b.x - p.x) <= p.w / 2 + b.r) {
-            const off = Math.max(-1, Math.min(1, (b.x - p.x) / (p.w / 2))), a = off * 1.05 + (Math.random() - 0.5) * 0.08;   // up to 60° from vertical; the jitter stops endless straight-up loops
+            const off = Math.max(-1, Math.min(1, (b.x - p.x) / (p.w / 2)));
+            let a = off * 1.05 + (Math.random() - 0.5) * 0.08;                // up to 60° from vertical, set by where it hits
+            if (clock - lastBrick > 8) a += (Math.random() - 0.5) * 0.9;        // no brick broken for a while: break up the pattern
+            if (Math.abs(a) < 0.17) a = (a < 0 ? -1 : 1) * 0.17;                // never straight up, so it can't shuttle up one empty column
+            a = Math.max(-1.05, Math.min(1.05, a));
             b.sp = Math.min(maxSpeed(), b.sp * 1.015);
             b.vx = b.sp * Math.sin(a); b.vy = -b.sp * Math.cos(a); b.y = p.y - p.h / 2 - b.r;
             G.tone(330, 330, 0.05, 'square', 0.03);
@@ -222,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     function hitBrick(kb) {
-        kb.hp--; kb.flash = 0.12;
+        kb.hp--; kb.flash = 0.12; lastBrick = clock;
         if (kb.hp > 0) { G.tone(900, 700, 0.05, 'triangle', 0.03); return; }
         score += kb.pts; hud();
         for (let i = 0; i < 10; i++) sparks.push({ x: kb.x + kb.w / 2, y: kb.y + kb.h / 2, vx: (Math.random() - 0.5) * 260, vy: (Math.random() - 0.8) * 200, t: 0.5 + Math.random() * 0.3, c: kb.c });

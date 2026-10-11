@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
     circles.push(...bumpers);
     const SAUCER = { x: 420, y: 440 };
     function flipper(px, py, side) { const f = { px, py, side, len: 80, r0: 12, r1: 6.5, rest: 0.5, up: -0.42, ang: 0.5, w: 0, pressed: false }; flippers.push(f); return f; }
-    const FL = flipper(165, 900, 1), FR = flipper(355, 900, -1);
+    const FL = flipper(165, 922, 1), FR = flipper(355, 922, -1);   // pivots sit below the inlane guide ends, so the ball rolls straight on
 
     // ── Missions ────────────────────────────────────────────────────────────────────────────
     const GOALS = { bumpers: 'Hit the pop bumpers', drops: 'Knock down all three drop targets', fuel: 'Hit the fuel targets', wormhole: 'Sink the wormhole', lanes: 'Light all three top lanes' };
@@ -314,7 +314,12 @@ document.addEventListener('DOMContentLoaded', () => {
         b.x = o.x + nx * R; b.y = o.y + ny * R; NX = nx; NY = ny;
         const vn = b.vx * nx + b.vy * ny;
         if (vn < 0) { const e = vn > -35 ? 0 : o.e; b.vx -= (1 + e) * vn * nx; b.vy -= (1 + e) * vn * ny; }
-        if (o.kick) { const v2 = b.vx * nx + b.vy * ny; if (v2 < o.kick) { b.vx += (o.kick - v2) * nx; b.vy += (o.kick - v2) * ny; } }
+        if (o.kick) {
+            b.bumpRun = (b.bumpRun || 0) + 1;                    // bumper hits since the ball last reached a flipper
+            const a = (Math.random() - 0.5) * 0.24, c = Math.cos(a), sn = Math.sin(a), kx = nx * c - ny * sn, ky = nx * sn + ny * c;
+            const k = b.bumpRun > 40 ? 450 : o.kick * (0.92 + Math.random() * 0.16), v2 = b.vx * kx + b.vy * ky;
+            if (v2 < k) { b.vx += (k - v2) * kx; b.vy += (k - v2) * ky; }
+        }
         return vn < 0 ? -vn : 0;
     }
     function flipAxis(f) { const dx = f.side * Math.cos(f.ang), dy = Math.sin(f.ang); return [dx, dy, f.px + dx * f.len, f.py + dy * f.len]; }
@@ -325,14 +330,17 @@ document.addEventListener('DOMContentLoaded', () => {
         let nx = b.x - cx, ny = b.y - cy; const d2 = nx * nx + ny * ny;
         if (d2 >= R * R) return;
         const d = Math.sqrt(d2) || 1e-6; nx /= d; ny /= d;
-        b.x = cx + nx * R; b.y = cy + ny * R; b.flipT = time;
+        b.x = cx + nx * R; b.y = cy + ny * R; b.flipT = time; b.flipHeld = f.pressed; b.slingRun = 0; b.bumpRun = 0;
         const w = f.side * f.w, qx = cx + nx * rad - f.px, qy = cy + ny * rad - f.py;
         const svx = -w * qy, svy = w * qx, vn = (b.vx - svx) * nx + (b.vy - svy) * ny;
         if (vn < 0) { const e = vn > -35 ? 0 : 0.35; b.vx -= (1 + e) * vn * nx; b.vy -= (1 + e) * vn * ny; }
     }
     function onWall(w, b, imp) {
         if (w.kind === 'sling' && imp > 60 && w.sling.flash <= 0) {
-            const v2 = b.vx * NX + b.vy * NY; b.vx += (720 - v2) * NX; b.vy += (720 - v2) * NY;
+            b.slingRun = (b.slingRun || 0) + 1;                  // sling kicks since the ball last reached a flipper or the upper table
+            const a = (Math.random() - 0.5) * 0.38, c = Math.cos(a), sn = Math.sin(a), kx = NX * c - NY * sn, ky = NX * sn + NY * c;
+            const k = b.slingRun > 6 ? 260 : 620 + Math.random() * 160, v2 = b.vx * kx + b.vy * ky;
+            if (v2 < k) { b.vx += (k - v2) * kx; b.vy += (k - v2) * ky; }
             w.sling.flash = 0.15; add(100, 20); tone(300, 200, 0.05, 'square', 0.03);
         } else if (w.kind === 'drop' && w.up) {
             w.up = false; add(2500, 500); tone(180, 120, 0.1, 'sawtooth', 0.035);
@@ -409,9 +417,16 @@ document.addEventListener('DOMContentLoaded', () => {
             b.ejectCd -= dt;
             if (b.held > 0) { b.held -= dt; if (b.held <= 0) { b.held = 0; b.ejectCd = 0.4; b.vx = -520 + Math.random() * 80; b.vy = -620; tone(120, 500, 0.15, 'sawtooth', 0.03); } continue; }
             const inLane = b.x > 500 && b.y > 330;
-            if (!inLane && Math.hypot(b.vx, b.vy) < 15 && time - b.flipT > 0.2) {
+            if (b.y < 600) b.slingRun = 0;
+            if (b.y > 600) b.bumpRun = 0;
+            const cradled = time - b.flipT < 0.2 && b.flipHeld;
+            if (!inLane && Math.hypot(b.vx, b.vy) < 15 && !cradled) {
                 b.still += dt;
-                if (b.still > 2.5) { b.still = 0; b.vy = -380; b.vx = (Math.random() - 0.5) * 300; say('Nudge!', 1.2); }
+                if (b.still > 2.5) {
+                    b.still = 0; say('Nudge!', 1.2);
+                    if (b.y > 780) { b.vx = (b.x < 260 ? 1 : -1) * (180 + Math.random() * 80); b.vy = -120; }
+                    else { b.vy = -380; b.vx = (Math.random() - 0.5) * 300; }
+                }
             } else b.still = 0;
         }
         if (dropResetAt && time > dropResetAt) { drops.forEach(d => { d.up = true; }); dropResetAt = 0; }
