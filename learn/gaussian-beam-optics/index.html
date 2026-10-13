@@ -22,8 +22,8 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script type="application/ld+json">
 {
@@ -32,16 +32,22 @@
   "headline": "Gaussian Beam Optics for Engineers",
   "description": "Waist, Rayleigh range, M², and how to choose optics for the spot size you need.",
   "author": { "@type": "Person", "name": "Casey D. Foley", "url": "https://cdfoley.com/" },
+  "image": "https://cdfoley.com/assets/img/og/learn-gaussian-beam-optics.jpg",
   "datePublished": "2026-10-06T09:00:00-04:00",
-  "dateModified": "2026-10-09T08:40:51-04:00",
+  "dateModified": "2026-10-13T10:00:33-04:00",
   "mainEntityOfPage": "https://cdfoley.com/learn/gaussian-beam-optics/"
 }
 </script>
 <style>
-    .fig svg { width: 100%; height: auto; display: block; }
+    .fig > svg { width: 100%; height: auto; display: block; }
     .fig .lbl { font: 500 13px var(--font); fill: var(--text-2); }
     .fig .lbl-s { font: 500 12px var(--font); fill: var(--muted); }
     .fig .lbl-a { font: 600 13px var(--font); fill: var(--accent); }
+    @media (max-width: 560px) {
+        .fig .lbl, .fig .lbl-a { font-size: 21px; }
+        .fig .lbl-s { font-size: 19px; }
+        .fig tspan { font-size: 0.75em; }
+    }
 </style>
 </head>
 <body data-section="learn">
@@ -64,7 +70,7 @@
         <article class="prose">
             <h2>The Gaussian intensity profile</h2>
             <p>A laser oscillating in its lowest-order transverse mode (TEM₀₀) has a transverse intensity profile that is very nearly Gaussian:</p>
-            <div class="formula">\[ I(r) = I_0 \exp\!\left(-\frac{2r^2}{w^2}\right), \qquad I_0 = \frac{2P}{\pi w^2} \]</div>
+            <div class="formula">\[ \begin{gathered} I(r) = I_0 \exp\!\left(-\frac{2r^2}{w^2}\right) \\[4pt] I_0 = \frac{2P}{\pi w^2} \end{gathered} \]</div>
             <p>Here \(w\) is the <strong>1/e² radius</strong>, where intensity falls to 13.5 % of its peak, and \(P\) is the total power. The 1/e² circle contains 86.5 % of the power. Three consequences come up repeatedly:</p>
             <ul>
                 <li><strong>The peak is twice the average.</strong> On-axis intensity \(I_0 = 2P/(\pi w^2)\) is twice the power divided by the 1/e² area. The same factor of 2 applies to fluence. Whether a datasheet or paper quotes peak or average fluence is one of the most common sources of disagreement about thresholds.</li>
@@ -75,7 +81,7 @@
 
             <h2>Waist, Rayleigh range, and divergence</h2>
             <p>A Gaussian beam keeps its Gaussian shape as it propagates. Its radius follows a hyperbola about the narrowest point, the <strong>waist</strong> \(w_0\):</p>
-            <div class="formula">\[ w(z) = w_0\sqrt{1 + \left(\frac{z}{z_R}\right)^2}, \qquad z_R = \frac{\pi w_0^2}{M^2\lambda}, \qquad \theta = \frac{M^2\lambda}{\pi w_0} \]</div>
+            <div class="formula">\[ \begin{gathered} w(z) = w_0\sqrt{1 + \left(\frac{z}{z_R}\right)^2} \\[4pt] z_R = \frac{\pi w_0^2}{M^2\lambda}, \qquad \theta = \frac{M^2\lambda}{\pi w_0} \end{gathered} \]</div>
 
             <figure class="fig">
                 <svg viewBox="0 0 640 300" role="img" aria-label="Hyperbolic envelope of a Gaussian beam around its waist. The radius is w0 at the waist, square root of two times w0 at plus and minus the Rayleigh range, and approaches straight asymptotes at the far-field half-angle theta.">
@@ -87,19 +93,19 @@
                     <!-- waist -->
                     <path d="M330 124V176" stroke="var(--c2)" stroke-width="1.6"/>
                     <path d="M325 128l5-6 5 6M325 172l5 6 5-6" fill="none" stroke="var(--c2)" stroke-width="1.6"/>
-                    <text x="338" y="146" class="lbl">2w₀</text>
+                    <text x="330" y="113" text-anchor="middle" class="lbl">2w₀</text>
                     <!-- Rayleigh range -->
                     <path d="M240 96V204M420 96V204" stroke="var(--c3)" stroke-width="1.2" stroke-dasharray="3 3"/>
                     <path d="M420 112V188" stroke="var(--c3)" stroke-width="1.6"/>
-                    <text x="426" y="160" class="lbl">2√2·w₀</text>
+                    <text x="426" y="172" class="lbl">2√2·w₀</text>
                     <path d="M330 262H420" stroke="var(--c3)" stroke-width="1.6"/>
                     <path d="M336 257l-6 5 6 5M414 257l6 5-6 5" fill="none" stroke="var(--c3)" stroke-width="1.6"/>
                     <text x="375" y="282" text-anchor="middle" class="lbl">z<tspan baseline-shift="sub" font-size="10">R</tspan></text>
                     <text x="240" y="90" text-anchor="middle" class="lbl-s">−z<tspan baseline-shift="sub" font-size="9">R</tspan></text>
                     <text x="420" y="90" text-anchor="middle" class="lbl-s">+z<tspan baseline-shift="sub" font-size="9">R</tspan></text>
                     <!-- divergence -->
-                    <path d="M560 150A230 230 0 0 0 557 124" fill="none" stroke="var(--muted)" stroke-width="1.4"/>
-                    <text x="566" y="140" class="lbl">θ</text>
+                    <path d="M560 150A230 230 0 0 0 549.6 81.7" fill="none" stroke="var(--muted)" stroke-width="1.4"/>
+                    <text x="569" y="117" class="lbl">θ</text>
                     <text x="72" y="44" class="lbl-a">w(z)</text>
                     <text x="620" y="146" text-anchor="end" class="lbl-s">z</text>
                 </svg>
@@ -120,15 +126,15 @@
             <div class="formula">\[ d_0 = 2w_0 = \frac{4 M^2 \lambda f}{\pi D}. \]</div>
             <p>An 8 mm beam at 1064 nm (M² = 1.1) through a 100 mm lens gives an 18.6 µm spot. The formula tells you which knobs exist: a shorter wavelength (the same optics at 355 nm give 6.2 µm), a shorter focal length, a larger input beam, or better beam quality. Run it in reverse to size the optics. A 20 µm spot from a 160 mm f-theta lens needs an input beam of \(D = 4M^2\lambda f/(\pi d_0) \approx 11.9\) mm, which in turn sets the beam expander ratio and the minimum scanner aperture.</p>
             <p>The price is <strong>depth of focus</strong>. If the process tolerates a spot-size growth \(\varepsilon\), the usable focal depth is</p>
-            <div class="formula">\[ \mathrm{DOF} = 2z_R\sqrt{(1+\varepsilon)^2 - 1} \;\approx\; 0.50\,\frac{d_0^2}{M^2\lambda}\quad(\varepsilon = 5\,\%). \]</div>
-            <p>For a 20 µm spot at 1064 nm that is ±86 µm, or 0.17 mm in total. Because DOF scales with \(d_0^2\), halving the spot cuts the depth of focus by four. In production, height variation of the part, fixture flatness, and thermal drift of the optics all draw on that budget. This is why tightly focused processes often need autofocus or height tracking, or a deliberately larger spot with more pulse energy. The <a href="/tools/focused-spot/">focused spot size calculator</a> reports spot, \(z_R\), and DOF together.</p>
+            <div class="formula">\[ \begin{aligned} \mathrm{DOF} &= 2z_R\sqrt{(1+\varepsilon)^2 - 1} \\ &\approx 0.50\,\frac{d_0^2}{M^2\lambda}\quad(\varepsilon = 5\,\%). \end{aligned} \]</div>
+            <p>For a 20 µm spot at 1064 nm with M² = 1.1, that is ±86 µm, or 0.17 mm in total. Because DOF scales with \(d_0^2\), halving the spot cuts the depth of focus by four. In production, height variation of the part, fixture flatness, and thermal drift of the optics all draw on that budget. This is why tightly focused processes often need autofocus or height tracking, or a deliberately larger spot with more pulse energy. The <a href="/tools/focused-spot/">focused spot size calculator</a> reports spot, \(z_R\), and DOF together.</p>
 
             <h2>Shorter lens or bigger beam?</h2>
             <p>Both routes shrink the spot in the same proportion, and for a given final spot size the depth of focus is the same either way. It depends only on \(d_0\), \(M^2\), and \(\lambda\). The choice therefore comes down to everything else:</p>
             <ul>
                 <li><strong>Working distance and scan field.</strong> A longer focal length keeps the lens farther from spatter and fume, leaves room for gas nozzles and fixtures, and for an f-theta lens gives a larger scan field, which grows in proportion to \(f\).</li>
                 <li><strong>Aperture size and speed.</strong> A larger beam needs larger optics, and in a galvo scanner larger mirrors with more inertia, which cost acceleration and marking speed.</li>
-                <li><strong>Aberrations.</strong> Fast lenses (low f-number) introduce spherical aberration sooner. A larger beam on a longer lens can reach the same f-number, so check the lens's specified spot size at your beam diameter.</li>
+                <li><strong>Aberrations.</strong> Fast lenses (low f-number) introduce spherical aberration sooner, and for a given spot both routes end at the same working f-number, \(f/D\), so neither avoids it. Check the lens's specified spot size at your beam diameter.</li>
                 <li><strong>Optic damage.</strong> Expanding the beam lowers fluence on every optic downstream of the expander, which adds margin against laser-induced damage and contamination burn-in.</li>
             </ul>
             <p>The <a href="/tools/beam-expander/">beam expander</a> and <a href="/tools/f-theta-lens/">f-theta lens</a> calculators let you compare the two approaches with your own numbers.</p>
@@ -136,18 +142,18 @@
             <h2>Apertures and truncation</h2>
             <p>The Gaussian tails extend indefinitely, so every aperture clips some power. A circular aperture of radius \(a\) centered on a beam of radius \(w\) transmits</p>
             <div class="formula">\[ T_P = 1 - \exp\!\left(-\frac{2a^2}{w^2}\right). \]</div>
-            <p>An aperture equal to the 1/e² diameter passes 86.5 %. One 1.5 times larger passes 98.9 %, and one twice as large passes 99.97 %. Clipping costs more than the lost power, though. The hard edge diffracts light into rings, the focal spot gets larger than the Gaussian formula predicts, and the clipped light heats mounts and apertures. For a beam filling its aperture at the 1/e² diameter, the spot is about 1.83 \(\lambda f M^2/D\) instead of 1.27 \(\lambda f M^2/D\), roughly 44 % larger. A ratio of beam to aperture diameter of 0.6–0.8 is a reasonable compromise for galvo scanners. The <a href="/tools/aperture-transmission/">beam clipping tool</a> computes the transmitted power, and the focused-spot tool includes the exact truncation factor.</p>
+            <p>An aperture equal to the 1/e² diameter passes 86.5 %. One 1.5 times larger passes 98.9 %, and one twice as large passes 99.97 %. Clipping costs more than the lost power, though. The hard edge diffracts light into rings, the focal spot gets larger than the Gaussian formula predicts, and the clipped light heats mounts and apertures. For a beam filling its aperture at the 1/e² diameter, the spot is about \(1.83\,\lambda f M^2/D\) instead of \(1.27\,\lambda f M^2/D\), roughly 44 % larger. A ratio of beam to aperture diameter of 0.6–0.8 is a reasonable compromise for galvo scanners. The <a href="/tools/aperture-transmission/">beam clipping tool</a> computes the transmitted power, and the focused-spot tool includes the exact truncation factor.</p>
 
             <h2>When the focus is not at f</h2>
-            <p>The simple focusing formula assumes the incoming beam's Rayleigh range is much longer than the focal length. For a 4 mm radius beam at 1064 nm, \(z_R\) is about 43 m, so the assumption holds easily. It fails for small beams and long focal lengths. S. A. Self's thin-lens equation for Gaussian beams makes this explicit. With the input waist a distance \(s\) in front of the lens, the output waist lies at \(s''\) given by</p>
-            <div class="formula">\[ \frac{1}{s + z_R^2/(s - f)} + \frac{1}{s''} = \frac{1}{f}, \qquad w_0'' = \frac{w_0}{\sqrt{(1 - s/f)^2 + (z_R/f)^2}} . \]</div>
-            <p>Take a 1 mm diameter beam (\(w_0 = 0.5\) mm, \(z_R = 0.74\) m at 1064 nm) with its waist at a 1000 mm lens. The output waist forms 353 mm behind the lens, not 1000 mm, and its radius is 0.40 mm instead of the 0.68 mm the simple formula predicts. The furthest the output waist can ever lie from the lens is \(f + f^2/(2z_R)\). When a long-focal-length system "focuses short," this is usually the reason, not a mislabeled lens.</p>
+            <p>The simple focusing formula assumes the incoming beam's Rayleigh range is much longer than the focal length. For the 8 mm beam above (\(w_0 = 4\) mm, M² = 1.1), \(z_R\) is about 43 m, so the assumption holds easily. It fails for small beams and long focal lengths. S. A. Self's thin-lens equation for Gaussian beams makes this explicit. With the input waist \(w_0\) a distance \(s\) in front of the lens and \(z_R\) its Rayleigh range, the output waist \(w_0''\) lies at \(s''\) given by</p>
+            <div class="formula">\[ \begin{gathered} \frac{1}{s + z_R^2/(s - f)} + \frac{1}{s''} = \frac{1}{f}, \\[6pt] w_0'' = \frac{w_0}{\sqrt{(1 - s/f)^2 + (z_R/f)^2}} . \end{gathered} \]</div>
+            <p>Take a 1 mm diameter beam (\(w_0 = 0.5\) mm, M² = 1, \(z_R = 0.74\) m at 1064 nm) with its waist at a 1000 mm lens. The output waist forms 353 mm behind the lens, not 1000 mm, and its radius is 0.40 mm instead of the 0.68 mm the simple formula predicts. The furthest the output waist can ever lie from the lens is \(f + f^2/(2z_R)\). When a long-focal-length system "focuses short," this is usually the reason, not a mislabeled lens.</p>
 
             <h2>Practical rules of thumb</h2>
             <ul>
                 <li><strong>State the width convention.</strong> Write 1/e² diameter, FWHM, or D4σ, and peak or average fluence, in every specification and report.</li>
-                <li><strong>Size optics from the BPP.</strong> Spot size and working distance are linked through \(M^2\lambda/\pi\). If the specified spot, working distance, and laser BPP don't fit together, no lens will make them fit.</li>
-                <li><strong>Budget depth of focus explicitly.</strong> Sum part flatness, fixture tolerance, stage runout, and thermal focus shift, and compare the total with the ±ε DOF before choosing the spot size.</li>
+                <li><strong>Size optics from the BPP.</strong> Spot size, working distance, and the beam diameter at the lens are linked through \(M^2\lambda/\pi\). If the specified spot, working distance, available aperture, and laser BPP don't fit together, no lens will make them fit.</li>
+                <li><strong>Budget depth of focus explicitly.</strong> Sum part flatness, fixture tolerance, stage runout, and thermal focus shift, and compare the total with the DOF for your spot-size tolerance ε before choosing the spot size.</li>
                 <li><strong>Keep beam-to-aperture ratios near or below 0.7.</strong> Beyond that, a larger input beam gives little improvement in spot size, and pointing errors start to cost power.</li>
                 <li><strong>Measure the caustic, not one plane.</strong> A beam profiler stepped through focus is the fastest way to find a degraded M², a thermal lens, or a focus that has moved after a lens change.</li>
             </ul>
@@ -157,7 +163,7 @@
                 <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), chapters 16–17.</li>
                 <li>B. E. A. Saleh and M. C. Teich, <em>Fundamentals of Photonics</em>, 3rd ed., Wiley (2019), chapter 3.</li>
                 <li>S. A. Self, “Focusing of spherical Gaussian beams,” <em>Applied Optics</em> <strong>22</strong>, 658–661 (1983).</li>
-                <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios.</li>
+                <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios — Part 1: Stigmatic and simple astigmatic beams.</li>
             </ol>
         </article>
         <aside class="toc" data-toc></aside>
