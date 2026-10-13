@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         audio();
         balls = []; score = 0; ballNo = 1; mult = 1; bonus = 0; missionIdx = 0; missionCount = 0; shieldUntil = 0; multiShield = false;
         lanes.forEach(l => { l.lit = false; }); drops.forEach(d => { d.up = true; }); dropResetAt = 0; autoLaunchAt = 0;
-        serve(false); state = 'play'; paused = false; $('overlay').hidden = true; hudDirty = true;
+        serve(false); state = 'play'; paused = false; $('pause').textContent = 'Pause'; $('overlay').hidden = true; hudDirty = true;
         say('Ball 1: hold Launch and release to fire.', 4); cv.focus({ preventScroll: true });
     }
     function serve(auto) { balls.push(newBall()); armShield = !auto; if (auto) autoLaunchAt = time + 0.6; }
@@ -704,7 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('start').addEventListener('click', () => newGame());
     $('new').addEventListener('click', () => newGame());
     $('pause').addEventListener('click', () => { togglePause(); cv.focus({ preventScroll: true }); });
-    const soundLabel = () => { $('sound').textContent = soundOn ? 'Sound on' : 'Sound off'; };
+    const soundLabel = () => { $('sound').textContent = soundOn ? 'Sound on' : 'Sound off'; $('sound').setAttribute('aria-pressed', soundOn ? 'true' : 'false'); };
     $('sound').addEventListener('click', () => { soundOn = !soundOn; audio(); soundLabel(); try { localStorage.setItem('pinball-sound', soundOn ? '1' : '0'); } catch (e) { /* ignore */ } });
     soundLabel();
     document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !paused) togglePause(); });

@@ -131,12 +131,13 @@
             </svg>
             <div>
                 <div class="hm-cat" id="catlabel"></div>
-                <div class="hm-word" id="word" aria-live="polite"></div>
+                <div class="hm-word" id="word" role="img"></div>
+                <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
                 <div class="hm-result" id="result" hidden><strong id="res-title"></strong><p id="res-def"></p><button class="btn btn-primary btn-sm" type="button" id="next">Next word</button></div>
             </div>
         </div>
-        <div class="kb" id="kb" aria-label="Letters"></div>
-        <p class="game-help">Type letters on your keyboard or tap them above. <strong>Hint</strong> reveals a letter but costs one wrong guess. Press <kbd>Enter</kbd> for the next word. Your streak counts words solved in a row.</p>
+        <div class="kb" id="kb" role="group" aria-label="Letters"></div>
+        <p class="game-help">Type letters on your keyboard or tap them above. <strong>Hint</strong> reveals a letter but costs one wrong guess. Press <kbd>Enter</kbd> for the next word. Your streak counts words solved in a row; skipping a word after you start guessing ends it.</p>
     </div>
 </main>
 
@@ -156,11 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ['NEUTRINO', 'A nearly massless, neutral particle that passes through matter almost without interacting.'],
             ['FRICTION', 'The force that resists one surface sliding over another.'],
             ['PENDULUM', 'A weight on a pivot whose swing period depends on its length and on gravity.'],
-            ['TORQUE', 'Rotational force: force times its distance from the pivot.'],
+            ['TORQUE', 'Rotational force: force times its perpendicular distance from the pivot.'],
             ['JOULE', 'The SI unit of energy: one newton of force acting over one meter.'],
-            ['NEWTON', 'The SI unit of force: what accelerates one kilogram by one meter per second squared.'],
+            ['NEWTON', 'The SI unit of force: what accelerates one kilogram at one meter per second squared.'],
             ['KELVIN', 'The SI unit of temperature; zero kelvin is absolute zero.'],
-            ['ELECTRON', 'The light, negatively charged particle found around every atomic nucleus.'],
+            ['ELECTRON', 'The light, negatively charged particle that surrounds the nucleus of an atom.'],
             ['PLASMA', 'An ionized gas of free electrons and ions, often called the fourth state of matter.'],
             ['QUARK', 'A fundamental particle; three of them make up each proton and neutron.'],
             ['RESONANCE', 'Large oscillations that build when a system is driven at its natural frequency.'],
@@ -180,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ['TITRATION', 'Finding a concentration by adding a reagent of known strength until the reaction is complete.'],
             ['ELECTROLYTE', 'A substance that conducts electricity when dissolved or melted, because it forms ions.'],
             ['SPECTROSCOPY', 'Studying matter through the light it absorbs, emits, or scatters.'],
-            ['VALENCE', 'Describes the outer-shell electrons an atom uses to form bonds.'],
+            ['VALENCE', 'An atom’s combining power: how many bonds it can form, set by its outer-shell electrons.'],
             ['ALKALINE', 'Basic, with a pH above 7.'],
             ['CHIRALITY', 'The property of a molecule that cannot be superimposed on its mirror image.'],
             ['ISOMER', 'One of two or more molecules with the same formula but different structures.'],
@@ -203,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ['INTERFEROMETER', 'An instrument that measures tiny distances by interfering two beams of light.'],
             ['FLUENCE', 'Laser pulse energy per unit area, usually in joules per square centimeter.'],
             ['GAUSSIAN', 'The bell-shaped intensity profile of an ideal laser beam.'],
-            ['ABLATION', 'Removing material by vaporizing it with an intense laser pulse.'],
+            ['ABLATION', 'Removing material from a surface by vaporizing or blasting it off, as with an intense laser pulse.'],
             ['PHOTODIODE', 'A semiconductor device that turns light into an electric current.'],
             ['HOLOGRAM', 'A recorded interference pattern that reconstructs a three-dimensional image.'],
             ['DISPERSION', 'The change of refractive index with wavelength, which spreads white light into colors.'],
@@ -235,15 +236,15 @@ document.addEventListener('DOMContentLoaded', () => {
             ['GRAPHENE', 'A single layer of carbon atoms arranged in a honeycomb lattice.']
         ],
         'Space': [
-            ['GALAXY', 'A system of billions of stars, gas, and dust bound together by gravity.'],
+            ['GALAXY', 'A vast system of stars, gas, dust, and dark matter bound together by gravity.'],
             ['NEBULA', 'A cloud of gas and dust in space, where new stars can form.'],
             ['ASTEROID', 'A rocky body orbiting the Sun, most of them between Mars and Jupiter.'],
             ['COMET', 'An icy body that grows a glowing tail as it nears the Sun.'],
-            ['SUPERNOVA', 'The explosive death of a massive star.'],
+            ['SUPERNOVA', 'A star’s explosion: a massive star collapsing at the end of its life, or a white dwarf blowing apart.'],
             ['PULSAR', 'A spinning neutron star whose beams of radiation sweep past Earth like a lighthouse.'],
             ['QUASAR', 'An extremely bright galaxy core powered by a supermassive black hole.'],
             ['ECLIPSE', 'When one body passes into the shadow of another.'],
-            ['SATELLITE', 'An object that orbits a planet.'],
+            ['SATELLITE', 'An object that orbits a planet or another larger body.'],
             ['TELESCOPE', 'An instrument that gathers light to show distant objects.'],
             ['METEOR', 'The streak of light from a bit of space rock burning up in the atmosphere.'],
             ['EQUINOX', 'One of the two days each year when day and night are about equal in length.'],
@@ -251,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ['EXOPLANET', 'A planet that orbits a star other than the Sun.'],
             ['AURORA', 'Light in the polar sky from charged solar particles striking the upper atmosphere.'],
             ['CONSTELLATION', 'A named pattern of stars in the sky.'],
-            ['REDSHIFT', 'The stretching of light to longer wavelengths from a source moving away.'],
+            ['REDSHIFT', 'The stretching of light to longer wavelengths, as from a source moving away or from the expansion of space.'],
             ['PARALLAX', 'The apparent shift of a nearby star as Earth orbits the Sun, used to measure its distance.'],
             ['ZENITH', 'The point in the sky directly overhead.'],
             ['PERIHELION', 'The point in an orbit that is closest to the Sun.']
@@ -264,13 +265,13 @@ document.addEventListener('DOMContentLoaded', () => {
             ['SENSOR', 'A device that detects a physical quantity and reports it as a signal.'],
             ['FEEDBACK', 'Using a system’s output to adjust its input, as a thermostat does.'],
             ['CALIBRATION', 'Comparing an instrument with a known standard and correcting it.'],
-            ['THERMOCOUPLE', 'Two different metals joined to make a small voltage that depends on temperature.'],
+            ['THERMOCOUPLE', 'Two different metals joined so that a temperature difference makes a small, measurable voltage.'],
             ['PROTOTYPE', 'An early model built to test a design.'],
             ['FIRMWARE', 'Software built into a device’s hardware.'],
             ['HYDRAULICS', 'Using pressurized liquid to transmit force.'],
-            ['GEARBOX', 'A set of gears that trades speed for torque.'],
+            ['GEARBOX', 'A set of gears that trades speed for torque, or torque for speed.'],
             ['BEARING', 'A part that lets a shaft turn or slide with little friction.'],
-            ['WELDING', 'Joining parts by melting them together.'],
+            ['WELDING', 'Joining parts, usually by melting them together.'],
             ['CANTILEVER', 'A beam supported at only one end.'],
             ['DATASHEET', 'A document listing a component’s specifications and ratings.'],
             ['HISTOGRAM', 'A bar chart showing how often values fall into each range.'],
@@ -290,19 +291,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function newWord() {
         const cat = $('cat').value, pool = [];
         for (const [c, list] of Object.entries(WORDS)) if (cat === 'all' || cat === c) list.forEach(w => pool.push([c, ...w]));
-        let pick, tries = 0;
-        do { pick = pool[Math.floor(Math.random() * pool.length)]; } while (recent.includes(pick[1]) && ++tries < 50);
-        recent.push(pick[1]); if (recent.length > 25) recent.shift();
+        while (recent.length > Math.min(25, Math.floor(pool.length / 2))) recent.shift();
+        const fresh = pool.filter(p => !recent.includes(p[1])), pick = fresh[Math.floor(Math.random() * fresh.length)];
+        recent.push(pick[1]);
         [category, word, def] = pick;
         guessed = new Set(); misses = 0; over = false;
         $('result').hidden = true; $('hm').classList.remove('lost');
-        render();
+        render(); say('New word: ' + category + ', ' + word.length + ' letters.');
     }
     function render(final) {
         $('catlabel').textContent = category + ' · ' + word.length + ' letters';
-        const w = $('word'); w.style.fontSize = word.length > 11 ? '1.15rem' : word.length > 8 ? '1.35rem' : '';
+        const w = $('word');
         w.innerHTML = [...word].map(l => guessed.has(l) ? '<span>' + l + '</span>' : final ? '<span class="missed">' + l + '</span>' : '<span></span>').join('');
-        w.setAttribute('aria-label', [...word].map(l => (guessed.has(l) ? l : 'blank')).join(' '));
+        w.setAttribute('aria-label', pattern()); fit();
         document.querySelectorAll('#hm .part').forEach((p, i) => p.classList.toggle('on', i < misses));
         document.querySelectorAll('#kb button').forEach(b => {
             const l = b.dataset.l, used = guessed.has(l);
@@ -311,11 +312,21 @@ document.addEventListener('DOMContentLoaded', () => {
         $('misses').textContent = misses + '/' + MAX; $('streak').textContent = streak; $('best').textContent = best;
         $('hint').disabled = over || misses >= MAX - 1;
     }
+    // Size the letters so the whole word stays on one line, even for 14 letters on a phone
+    function fit() {
+        const w = $('word'), n = word.length, rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+        const size = Math.min(n > 11 ? 1.15 : n > 8 ? 1.35 : 1.6, ((w.clientWidth - 2) / rem - (n - 1) * 0.3) / (n * 1.3));
+        w.style.fontSize = (size > 0.6 ? size : 0.6) + 'rem';
+    }
+    window.addEventListener('resize', fit);
+    const pattern = () => [...word].map(l => (guessed.has(l) ? l : 'blank')).join(' ');
+    const say = msg => { $('sr').textContent = msg; };
     function guess(l) {
         if (over || guessed.has(l)) return;
         guessed.add(l);
         if (word.includes(l)) G.tone(660, 880, 0.08, 'triangle', 0.03);
         else { misses++; G.tone(220, 160, 0.12, 'square', 0.03); }
+        say(l + (word.includes(l) ? ' is in the word: ' + pattern() + '.' : ' is not in the word. ' + misses + ' of ' + MAX + ' wrong.'));
         check();
     }
     function check() {
@@ -333,24 +344,29 @@ document.addEventListener('DOMContentLoaded', () => {
         $('res-title').className = won ? 'win' : 'loss';
         $('res-def').textContent = word.charAt(0) + word.slice(1).toLowerCase() + ': ' + def;
         $('result').hidden = false; $('next').focus({ preventScroll: true });
+        say($('res-title').textContent + ' ' + $('res-def').textContent);
     }
     function hint() {
         if (over || misses >= MAX - 1) return;
         const hidden = [...new Set(word)].filter(l => !guessed.has(l));
         if (!hidden.length) return;
-        guessed.add(hidden[Math.floor(Math.random() * hidden.length)]); misses++;
+        const l = hidden[Math.floor(Math.random() * hidden.length)];
+        guessed.add(l); misses++;
+        say('Hint: ' + l + ' revealed: ' + pattern() + '. ' + misses + ' of ' + MAX + ' wrong.');
         G.tone(440, 660, 0.1, 'sine', 0.03); check();
     }
 
     $('kb').addEventListener('click', e => { const b = e.target.closest('button'); if (b) guess(b.dataset.l); });
-    $('new').addEventListener('click', () => { if (!over && guessed.size) { streak = 0; G.set('hangman-streak', 0); } newWord(); });
+    const abandon = () => { if (!over && guessed.size) { streak = 0; G.set('hangman-streak', 0); } };
+    $('new').addEventListener('click', () => { abandon(); newWord(); });
     $('next').addEventListener('click', newWord);
     $('hint').addEventListener('click', hint);
-    $('cat').addEventListener('change', () => { G.set('hangman-cat', $('cat').value); recent = []; newWord(); });
+    $('cat').addEventListener('change', () => { abandon(); G.set('hangman-cat', $('cat').value); recent = []; newWord(); });
     document.addEventListener('keydown', e => {
         if (e.ctrlKey || e.metaKey || e.altKey || (e.target.matches && e.target.matches('input, select, textarea'))) return;
-        if (/^Key[A-Z]$/.test(e.code)) { e.preventDefault(); guess(e.code.slice(3)); }
-        else if (e.code === 'Enter' && over && !(e.target.matches && e.target.matches('button, a'))) { e.preventDefault(); newWord(); }
+        const l = /^[a-z]$/i.test(e.key) ? e.key.toUpperCase() : /^Key[A-Z]$/.test(e.code) && e.key.length === 1 && e.key.charCodeAt(0) > 127 ? e.code.slice(3) : '';
+        if (l) { e.preventDefault(); guess(l); }
+        else if (e.key === 'Enter' && over && !(e.target.matches && e.target.matches('button, a'))) { e.preventDefault(); newWord(); }
     });
     newWord();
     window.__hangman = { WORDS, guess, hint, newWord, get state() { return { word, def, category, misses, over, streak, best, guessed: [...guessed] }; } };

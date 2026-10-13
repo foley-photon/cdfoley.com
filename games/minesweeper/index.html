@@ -114,7 +114,7 @@
             </div>
         </div>
         <div class="game-stage">
-            <div class="ms-scroll"><div class="ms-board" id="board" role="grid" aria-label="Minesweeper board"></div></div>
+            <div class="ms-scroll"><div class="ms-board" id="board" role="group" aria-label="Minesweeper board"></div></div>
             <div class="game-overlay" id="overlay" hidden><h2 id="ov-title"></h2><p id="ov-text"></p><button class="btn btn-primary" type="button" id="again">Play again</button></div>
         </div>
         <p class="game-help"><strong>Click</strong> to reveal. <strong>Right-click</strong>, <strong>long-press</strong>, or turn on <em>Flag mode</em> to flag a mine. Click a revealed number whose mines are all flagged to open its other neighbors at once (chording). Click the face for a new game.</p>
@@ -131,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const OPEN = 1, FLAG = 2;
     const nb = i => { const x = i % W, y = (i / W) | 0, out = []; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < W && ny < H) out.push(ny * W + nx); } return out; };
     const bestKey = () => 'mines-best-' + level;
+    const label = (i, what) => 'Row ' + ((i / W | 0) + 1) + ', column ' + (i % W + 1) + ': ' + what;
     function showBest() { let b = null; try { b = localStorage.getItem(bestKey()); } catch (e) { /* ignore */ } $('best').textContent = b ? b + ' s' : '—'; }
 
     function newGame() {
@@ -142,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cell = Math.max(24, Math.min(34, Math.floor((Math.min(window.innerWidth, 1000) - 48) / W) - 2));
         board.style.setProperty('--cell', cell + 'px');
         board.style.gridTemplateColumns = 'repeat(' + W + ', var(--cell))';
-        board.innerHTML = Array.from({ length: W * H }, (_, i) => '<button type="button" data-i="' + i + '" aria-label="Hidden square"></button>').join('');
+        board.innerHTML = Array.from({ length: W * H }, (_, i) => '<button type="button" data-i="' + i + '" aria-label="' + label(i, 'hidden') + '"></button>').join('');
         showBest(); update();
     }
     function layMines(safe) {
@@ -157,9 +158,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (st[i] === OPEN) {
             b.className = 'open' + (adj[i] && !mine[i] ? ' n' + adj[i] : '');
             b.textContent = mine[i] ? '✹' : adj[i] || '';
-            b.setAttribute('aria-label', mine[i] ? 'Mine' : adj[i] ? adj[i] + ' adjacent mines' : 'Empty');
-        } else if (st[i] === FLAG) { b.className = ''; b.textContent = '🚩'; b.setAttribute('aria-label', 'Flagged'); }
-        else { b.className = ''; b.textContent = ''; b.setAttribute('aria-label', 'Hidden square'); }
+            b.setAttribute('aria-label', label(i, mine[i] ? 'mine' : adj[i] ? adj[i] + ' adjacent mine' + (adj[i] > 1 ? 's' : '') : 'empty'));
+        } else if (st[i] === FLAG) { b.className = ''; b.textContent = '🚩'; b.setAttribute('aria-label', label(i, 'flagged')); }
+        else { b.className = ''; b.textContent = ''; b.setAttribute('aria-label', label(i, 'hidden')); }
     }
     function reveal(i) {
         if (st[i] !== 0) return;
@@ -201,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const record = !prev || t < prev;
         if (record) { try { localStorage.setItem(bestKey(), t); } catch (e) { /* ignore */ } }
         showBest();
-        $('ov-title').textContent = 'Cleared!'; $('ov-text').textContent = t + ' seconds' + (record ? ' — a new best for ' + level + '.' : '.'); $('overlay').hidden = false;
+        $('ov-title').textContent = 'Cleared!'; $('ov-text').textContent = t + (t === 1 ? ' second' : ' seconds') + (record ? ' — a new best for ' + level + '.' : '.'); $('overlay').hidden = false;
     }
 
     function act(i, flag) {

@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ship = { x: W / 2, y: H / 2, a: -Math.PI / 2, vx: 0, vy: 0, r: 13, alive: false, inv: 0, thrust: false, hyperCd: 0 };
     const keys = { left: false, right: false, thrust: false, fire: false };
     let rocks = [], bullets = [], sparks = [], saucer = null, saucerT = 0, score = 0, lives = 3, level = 0, nextLife = 10000;
-    let state = 'title', paused = false, fireCd = 0, respawnT = 0, waveT = 0, beatT = 0, beatHi = false, thrustSnd = 0, banner = null;
+    let state = 'title', paused = false, fireCd = 0, respawnT = 0, waveT = 0, beatT = 0, beatHi = false, thrustSnd = 0, banner = null, overTimer = 0;
     let best = +G.get('rocks-best', 0) || 0;
 
     const wrap = o => { o.x = (o.x + W) % W; o.y = (o.y + H) % H; };
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function spawnShip() { Object.assign(ship, { x: W / 2, y: H / 2, a: -Math.PI / 2, vx: 0, vy: 0, alive: true, inv: 2.5 }); }
     function newGame() {
-        G.audio();
+        G.audio(); clearTimeout(overTimer);         // a new game started during the pause after the last ship is lost
         score = 0; lives = 3; level = 0; nextLife = 10000; bullets = []; sparks = []; saucer = null;
         spawnShip(); startWave(); state = 'play'; paused = false; $('pause').textContent = 'Pause';
         $('overlay').hidden = true; hud(); cv.focus({ preventScroll: true });
@@ -170,11 +170,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ship.alive || ship.inv > 0) return;
         ship.alive = false; lives--; hud();
         burst(ship.x, ship.y, 30, '#22d3ee', 220); G.noise(0.9, 0.18, 700);
-        if (lives <= 0) { state = 'over'; setTimeout(gameOver, 1200); } else respawnT = 1.6;
+        if (lives <= 0) {                           // save the best now; the overlay follows after the explosion
+            state = 'over'; const record = score > best;
+            if (record) { best = score; G.set('rocks-best', best); }
+            overTimer = setTimeout(() => gameOver(record), 1200);
+        } else respawnT = 1.6;
     }
-    function gameOver() {
-        const record = score > best;
-        if (record) { best = score; G.set('rocks-best', best); }
+    function gameOver(record) {
         $('ov-title').textContent = 'Game over';
         $('ov-text').textContent = 'Score ' + G.fmt(score) + ', reached wave ' + (level + 1) + (record && score ? ' — a new best!' : '. Best ' + G.fmt(best) + '.');
         $('start').textContent = 'Play again'; $('overlay').hidden = false; hud();

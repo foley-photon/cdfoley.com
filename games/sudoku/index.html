@@ -26,6 +26,7 @@
     .sd { display: grid; grid-template-columns: repeat(9, 1fr); width: 100%; max-width: 480px; aspect-ratio: 1; margin: 0 auto; border: 2px solid var(--text); border-radius: 6px; overflow: hidden; background: var(--surface); user-select: none; -webkit-user-select: none; }
     .sd button { border: 0; border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); background: var(--surface); color: var(--accent); font: 600 clamp(1rem, 4.8vw, 1.6rem)/1 var(--font); padding: 0; position: relative; cursor: pointer; min-width: 0; }
     .sd button:focus { outline: none; }
+    .sd button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
     .sd button.given { color: var(--text); font-weight: 750; }
     .sd button.c2, .sd button.c5 { border-right: 2px solid var(--text); }
     .sd button.c8 { border-right: 0; }
@@ -116,7 +117,7 @@
             </div>
         </div>
         <div class="game-stage">
-            <div class="sd" id="grid" role="grid" aria-label="Sudoku grid"></div>
+            <div class="sd" id="grid" role="group" aria-label="Sudoku grid"></div>
             <div class="game-overlay" id="overlay" hidden><h2 id="ov-title">Solved!</h2><p id="ov-text"></p><button class="btn btn-primary" type="button" id="again">New puzzle</button></div>
         </div>
         <div class="sd-pad" id="pad" aria-label="Number pad"></div>
@@ -212,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gridEl.innerHTML = '';
         for (let i = 0; i < 81; i++) {
             const b = document.createElement('button');
-            b.type = 'button'; b.className = 'c' + COL(i) + ' r' + ROW(i); b.dataset.i = i; b.setAttribute('role', 'gridcell');
+            b.type = 'button'; b.className = 'c' + COL(i) + ' r' + ROW(i); b.dataset.i = i;
             gridEl.appendChild(b);
         }
         $('pad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => '<button type="button" data-d="' + d + '">' + d + '<small></small></button>').join('');
@@ -233,7 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
             b.classList.toggle('same', !!selV && v === selV && i !== sel);
             b.classList.toggle('bad', showBad && !given && !!v && v !== S.solution[i]);
             b.classList.toggle('conflict', showBad && !!conflict);
-            b.setAttribute('aria-label', 'Row ' + (ROW(i) + 1) + ', column ' + (COL(i) + 1) + ': ' + (v || 'empty'));
+            b.setAttribute('aria-label', 'Row ' + (ROW(i) + 1) + ', column ' + (COL(i) + 1) + ': ' + (v || 'empty') + (given ? ', given' : ''));
+            b.tabIndex = i === (sel >= 0 ? sel : 0) ? 0 : -1;          // one tab stop for the grid; the arrow keys move within it
         }
         [...$('pad').children].forEach(btn => { const d = +btn.dataset.d, left = 9 - counts[d]; btn.querySelector('small').textContent = left > 0 ? left + ' left' : ''; btn.disabled = left <= 0 && !notesMode; });
         $('undo').disabled = !history.length;
@@ -286,6 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     gridEl.addEventListener('click', e => { const b = e.target.closest('button'); if (b) select(+b.dataset.i); });
+    gridEl.addEventListener('focusin', e => { const b = e.target.closest('button'); if (b && +b.dataset.i !== sel) select(+b.dataset.i); });
     $('pad').addEventListener('click', e => { const b = e.target.closest('button'); if (b) input(+b.dataset.d); });
     $('erase').addEventListener('click', erase);
     $('undo').addEventListener('click', undo);

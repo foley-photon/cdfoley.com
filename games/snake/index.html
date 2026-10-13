@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function placeFood() {
         const free = [];
         for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!snake.some(p => p.x === x && p.y === y)) free.push({ x, y });
-        food = free[Math.floor(Math.random() * free.length)];
+        food = free.length ? free[Math.floor(Math.random() * free.length)] : null;   // null: the beam fills the board
     }
     function update() {
         $('score').textContent = score;
@@ -173,6 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nx < 0 || ny < 0 || nx >= N || ny >= N || body.some(p => p.x === nx && p.y === ny)) return gameOver();
         snake.unshift({ x: nx, y: ny });
         if (grow) { score++; tick = Math.max(62, tick - 4); placeFood(); } else snake.pop();
+        if (!food) { update(); return gameOver(true); }
         update(); draw();
         timer = setTimeout(step, tick);
     }
@@ -181,11 +182,12 @@ document.addEventListener('DOMContentLoaded', () => {
         running = true; paused = false; $('overlay').hidden = true; update();
         clearTimeout(timer); timer = setTimeout(step, tick); cv.focus({ preventScroll: true });
     }
-    function gameOver() {
+    function gameOver(won) {
         alive = false; running = false; clearTimeout(timer);
-        if (score > best) { best = score; $('best').textContent = best; try { localStorage.setItem('snake-best', best); } catch (e) { /* ignore */ } }
-        $('ov-title').textContent = 'Game over';
-        $('ov-text').textContent = 'Score ' + score + (score && score === best ? ' — a new best!' : '. Best ' + best + '.');
+        const record = score > best;
+        if (record) { best = score; $('best').textContent = best; try { localStorage.setItem('snake-best', best); } catch (e) { /* ignore */ } }
+        $('ov-title').textContent = won ? 'Board filled!' : 'Game over';
+        $('ov-text').textContent = 'Score ' + score + (record ? ' — a new best!' : '. Best ' + best + '.');
         $('start').textContent = 'Play again';
         $('overlay').hidden = false; draw();
     }
@@ -204,11 +206,13 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillStyle = css('--surface', '#fff'); ctx.fillRect(0, 0, W, W);
         ctx.fillStyle = css('--surface-2', '#f2f5f9');
         for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if ((x + y) % 2) ctx.fillRect(x * c, y * c, c, c);
-        // photon
-        const fx = (food.x + 0.5) * c, fy = (food.y + 0.5) * c;
-        const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, c * 0.9);
-        g.addColorStop(0, 'rgba(251,191,36,1)'); g.addColorStop(0.35, 'rgba(251,146,60,.85)'); g.addColorStop(1, 'rgba(251,146,60,0)');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fx, fy, c * 0.9, 0, 2 * Math.PI); ctx.fill();
+        // photon (none once the beam fills the board)
+        if (food) {
+            const fx = (food.x + 0.5) * c, fy = (food.y + 0.5) * c;
+            const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, c * 0.9);
+            g.addColorStop(0, 'rgba(251,191,36,1)'); g.addColorStop(0.35, 'rgba(251,146,60,.85)'); g.addColorStop(1, 'rgba(251,146,60,0)');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fx, fy, c * 0.9, 0, 2 * Math.PI); ctx.fill();
+        }
         // beam: green head fading to blue tail
         const head = [52, 211, 153], mid = [34, 211, 238], tail = [110, 168, 254];
         for (let i = snake.length - 1; i >= 0; i--) {

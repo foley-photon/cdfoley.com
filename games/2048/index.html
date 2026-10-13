@@ -107,7 +107,7 @@
             </div>
         </div>
         <div class="game-stage">
-            <div class="t-board" id="board" tabindex="0" role="grid" aria-label="2048 board. Use the arrow keys or swipe to move the tiles."><div id="cells"></div><div id="tiles"></div></div>
+            <div class="t-board" id="board" tabindex="0" role="application" aria-label="2048 board. Use the arrow keys or swipe to move the tiles."><div id="cells"></div><div id="tiles"></div></div>
             <div class="game-overlay t-overlay" id="overlay" hidden><h2 id="ov-title"></h2><p id="ov-text"></p><div><button class="btn btn-primary" type="button" id="again">New game</button><button class="btn btn-secondary" type="button" id="keep" hidden>Keep going</button></div></div>
         </div>
         <p class="game-help"><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> slide the tiles; on a touch screen, swipe the board. <kbd>U</kbd> or <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes a move. Your game is saved in this browser, so you can come back to it.</p>
@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const COLORS = { 2: ['#ede9fe', '#3b0764'], 4: ['#ddd6fe', '#3b0764'], 8: ['#c4b5fd', '#2e1065'], 16: ['#a78bfa', '#ffffff'], 32: ['#8b5cf6', '#ffffff'], 64: ['#7c3aed', '#ffffff'],
         128: ['#22d3ee', '#083344'], 256: ['#06b6d4', '#ffffff'], 512: ['#0891b2', '#ffffff'], 1024: ['#f59e0b', '#ffffff'], 2048: ['#f97316', '#ffffff'] };
     const VEC = { up: [-1, 0], right: [0, 1], down: [1, 0], left: [0, -1] };
-    let grid, score = 0, best = +G.get('2048-best', 0) || 0, won = false, keepGoing = false, history = [], pending = null, nextId = 1, geo = { cell: 0, gap: 0 };
+    let grid, score = 0, best = +G.get('2048-best', 0) || 0, won = false, keepGoing = false, history = [], pending = null, nextId = 1, geo = { cell: 0, gap: 0 }, startBest = best;
 
     function layout() {
         const S = board.clientWidth, gap = S * 0.03, cell = (S - 5 * gap) / 4;
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function newGame() {
         flush(); load([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
-        score = 0; won = false; keepGoing = false; history = [];
+        score = 0; won = false; keepGoing = false; history = []; startBest = best;
         addRandom(); addRandom(); $('overlay').hidden = true; hud(); save(); board.focus({ preventScroll: true });
     }
     function hud() {
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
             merged.forEach(o => { style(o); o.el.classList.remove('merged', 'new'); void o.el.offsetWidth; o.el.classList.add('merged'); });
             addRandom(); save();
             if (!won && [...merged].some(o => o.v === 2048)) { won = true; save(); show('You made 2048!', 'Score ' + G.fmt(score) + '. Keep going for a bigger tile, or start over.', true); }
-            else if (!canMove()) { show('No moves left', 'Final score ' + G.fmt(score) + (score >= best ? ' — a new best!' : '. Best ' + G.fmt(best) + '.'), false); G.set('2048-state', ''); }
+            else if (!canMove()) { show('No moves left', 'Final score ' + G.fmt(score) + (score > startBest ? ' — a new best!' : '. Best ' + G.fmt(best) + '.'), false); G.set('2048-state', ''); }
         };
         pending.timer = setTimeout(flush, 110);
         hud();
@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', e => {
         if (e.target.matches && e.target.matches('input, select, textarea')) return;
         if (KEYS[e.code] && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); move(KEYS[e.code]); }
-        else if (e.code === 'KeyU' || ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ')) { e.preventDefault(); undo(); }
+        else if ((e.code === 'KeyU' && !e.ctrlKey && !e.metaKey && !e.altKey) || ((e.ctrlKey || e.metaKey) && !e.altKey && e.code === 'KeyZ')) { e.preventDefault(); undo(); }
     });
     let start = null;
     board.addEventListener('pointerdown', e => { start = [e.clientX, e.clientY]; board.focus({ preventScroll: true }); });
