@@ -10,6 +10,7 @@
 @font-face { font-family: 'Inter Fallback'; src: local('Arial'), local('Helvetica Neue'), local('Helvetica'); size-adjust: 107.4%; ascent-override: 90.2%; descent-override: 22.48%; line-gap-override: 0%; }
 @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('/assets/fonts/JetBrainsMono-Regular.woff2') format('woff2'); }
 @font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 600; font-display: swap; src: url('/assets/fonts/JetBrainsMono-SemiBold.woff2') format('woff2'); }
+@font-face { font-family: 'Mono Eta'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('/assets/fonts/InterVariable.woff2') format('woff2'); unicode-range: U+03B7; }   /* JetBrains Mono's η is a copy of n */
 
 /* ── Tokens ─────────────────────────────────────────────────────────────── */
 :root {
@@ -19,6 +20,7 @@
     --surface-2:     #f2f5f9;
     --border:        #e2e8f0;
     --border-strong: #cbd5e1;
+    --border-input:  #7f8da1;   /* form-field outlines: >= 3:1 against every page surface (WCAG 1.4.11) */
     --text:          #0f172a;
     --text-2:        #334155;
     --muted:         #5f6b7e;
@@ -45,7 +47,7 @@
     --c1: #1d4ed8; --c2: #c2410c; --c3: #047857; --c4: #7c3aed; --c5: #dc2626; --c6: #0e7490;
 
     --font: 'Inter', 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --mono: 'Mono Eta', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
     --radius-sm: 6px;
     --radius:    10px;
@@ -67,6 +69,7 @@
         --surface-2:     #16213a;
         --border:        #1f2a44;
         --border-strong: #2d3b5c;
+        --border-input:  #5f6e8a;
         --text:          #e6eaf2;
         --text-2:        #c3ccdb;
         --muted:         #8b98ae;
@@ -98,6 +101,7 @@
     --surface-2:     #16213a;
     --border:        #1f2a44;
     --border-strong: #2d3b5c;
+    --border-input:  #5f6e8a;
     --text:          #e6eaf2;
     --text-2:        #c3ccdb;
     --muted:         #8b98ae;
@@ -168,6 +172,7 @@ sub, sup { line-height: 0; }
 
 .wrap { max-width: var(--maxw); margin: 0 auto; padding-left: var(--gutter); padding-right: var(--gutter); }
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.nowrap { white-space: nowrap; }   /* keeps a short hyphenated term such as "3-vendor" on one line */
 
 /* ── Site header ────────────────────────────────────────────────────────── */
 .site-header {
@@ -450,7 +455,7 @@ a.card h3 { color: var(--text); }
 .field-row:last-child > .field:last-child { margin-bottom: 0; }
 .field-row:not(:last-child) > .field > .hint:last-child { margin-bottom: 0; }   /* a <p> hint's margin can't collapse into the field's inside a grid row */
 
-.input-unit { display: flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); overflow: hidden; transition: border-color 0.15s, box-shadow 0.15s; }
+.input-unit { display: flex; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); overflow: hidden; transition: border-color 0.15s, box-shadow 0.15s; }
 .input-unit:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .input-unit input, .input-unit select, .input, select.input, textarea.input {
     font: inherit; font-size: 0.97rem; color: var(--text); background: transparent; border: 0; outline: 0;
@@ -462,7 +467,7 @@ a.card h3 { color: var(--text); }
     font-size: 0.86rem; color: var(--text-2); padding: 0.55rem 0.6rem; cursor: pointer;
 }
 .input-unit .unit { cursor: default; display: flex; align-items: center; min-width: 52px; justify-content: center; }
-.input, select.input, textarea.input { width: 100%; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); }
+.input, select.input, textarea.input { width: 100%; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); }
 .input:focus, select.input:focus, textarea.input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 textarea.input { font-family: var(--mono); font-size: 0.88rem; resize: vertical; min-height: 120px; line-height: 1.5; }
 .input-unit input[aria-invalid="true"] { color: var(--danger); }
@@ -487,7 +492,7 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
 }
 .result:first-child { border-top: 0; padding-top: 0; }
 .result-label { flex: 1 1 7.5rem; font-size: 0.9rem; color: var(--text-2); }
-.result-label .sym { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); margin-left: 0.3rem; }
+.result-label .sym { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); margin-left: 0.3rem; white-space: nowrap; }
 .result-value {
     font-family: var(--mono); font-size: 1rem; font-weight: 600; color: var(--text);
     font-variant-numeric: tabular-nums; text-align: right; cursor: copy; border-radius: 4px; padding: 0 0.25rem; margin-left: auto;
@@ -561,7 +566,7 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
 
 /* Tools hub */
 .tool-search { position: relative; max-width: 520px; margin-bottom: 1.6rem; }
-.tool-search input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.6rem; font-size: 1rem; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); font-family: inherit; }
+.tool-search input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.6rem; font-size: 1rem; border: 1px solid var(--border-input); border-radius: var(--radius); background: var(--surface); color: var(--text); font-family: inherit; }
 .tool-search input:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .tool-search svg { position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted); }
 .tool-cats { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 2rem; }

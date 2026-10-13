@@ -146,7 +146,7 @@
             <div class="vars">\(\mathcal{R}\) responsivity (A/W) · \(I_\text{ph}\) photocurrent (A) · \(\eta\) external quantum efficiency (electrons per incident photon, 0–1 without gain) · \(e\) elementary charge</div>
         </div>
 
-        <div class="ref-item" id="planck">
+        <div class="ref-item" id="planck" data-keywords="grey body greybody graybody">
             <div><h3>Planck's law (spectral radiance)<a class="anchor" href="#planck" aria-label="Link to Planck's law">#</a></h3>
                 <p class="ref-desc">Spectral radiance of an ideal blackbody at temperature \(T\). <a class="calc-link" href="/tools/blackbody/">Calculator →</a></p></div>
             <div class="formula">\[ B_\lambda(\lambda,T) = \frac{2hc^2}{\lambda^5}\,\frac{1}{\exp\!\left(\dfrac{hc}{\lambda k_B T}\right) - 1} \]</div>
@@ -167,7 +167,7 @@
             <div class="vars">\(M\) radiant exitance (W/m²) · \(\varepsilon\) total hemispherical emissivity (1 for a blackbody) · \(\sigma\) Stefan–Boltzmann constant · \(T\) temperature (K)</div>
         </div>
 
-        <div class="ref-item" id="doppler">
+        <div class="ref-item" id="doppler" data-keywords="molar mass atomic mass">
             <div><h3>Doppler (thermal) linewidth<a class="anchor" href="#doppler" aria-label="Link to Doppler linewidth">#</a></h3>
                 <p class="ref-desc">Gaussian FWHM of a spectral line broadened by the Maxwell–Boltzmann velocity distribution. <a class="calc-link" href="/tools/doppler-broadening/">Calculator →</a></p></div>
             <div class="formula">\[ \begin{aligned} \frac{\Delta\nu_D}{\nu_0} = \frac{\Delta\lambda_D}{\lambda_0} &= \sqrt{\frac{8\,k_B T\ln 2}{m c^2}} \\[4pt] &\approx 7.162\times10^{-7}\sqrt{\frac{T\,[\text{K}]}{M\,[\text{u}]}} \end{aligned} \]</div>
@@ -224,8 +224,8 @@
         <div class="ref-item" id="focused-spot">
             <div><h3>Focused spot diameter (with truncation)<a class="anchor" href="#focused-spot" aria-label="Link to Focused spot diameter">#</a></h3>
                 <p class="ref-desc">1/e² diameter at the focus of a lens, including beam quality and clipping by the clear aperture. <a class="calc-link" href="/tools/focused-spot/">Calculator →</a></p></div>
-            <div class="formula">\[ d_F = \mathrm{APO}(T)\,\frac{\lambda f' M^2}{D_b}, \qquad T = \frac{D_b}{D_t} \]</div>
-            <div class="vars">\(d_F\) focused 1/e² diameter · \(D_b\) input 1/e² beam diameter at the lens · \(D_t\) clear aperture (lens, scanner mirror, or iris) · \(f'\) focal length · \(M^2\) beam quality · APO apodization factor: \(4/\pi \approx 1.273\) for \(T \lesssim 0.4\), 1.29 at \(T = 0.5\), 1.45 at \(T = 0.7\), 1.83 at \(T = 1\)</div>
+            <div class="formula">\[ \begin{gathered} d_F = \mathrm{APO}(T/M)\,\frac{\lambda f' M^2}{D_b} \\[4pt] T = \frac{D_b}{D_t}, \qquad M = \sqrt{M^2} \end{gathered} \]</div>
+            <div class="vars">\(d_F\) focused 1/e² diameter · \(D_b\) input 1/e² beam diameter at the lens · \(D_t\) clear aperture (lens, scanner mirror, or iris) · \(f'\) focal length · \(M^2\) beam quality · APO apodization factor of a TEM₀₀ beam, evaluated at \(T/M\), the truncation ratio of the embedded Gaussian (\(T/M = T\) for \(M^2 = 1\)): \(4/\pi \approx 1.273\) below 0.4, 1.29 at 0.5, 1.45 at 0.7, 1.83 at 1</div>
         </div>
 
         <div class="ref-item" id="waist-radius">
@@ -475,7 +475,7 @@
             <div class="vars">\(n\) number density (m⁻³) · \(p\) pressure (Pa) · \(k_B\) Boltzmann constant · \(T\) temperature (K) · at 20&nbsp;°C: \({2.47\times10^{20}}\ \text{m}^{-3}\) per Pa, or \({3.3\times10^{16}}\ \text{cm}^{-3}\) at 1&nbsp;Torr</div>
         </div>
 
-        <div class="ref-item" id="mean-speed">
+        <div class="ref-item" id="mean-speed" data-keywords="molar mass molecular weight">
             <div><h3>Mean molecular speed<a class="anchor" href="#mean-speed" aria-label="Link to Mean molecular speed">#</a></h3>
                 <p class="ref-desc">Average speed of the Maxwell–Boltzmann distribution. It appears in every molecular-flow conductance. <a class="calc-link" href="/tools/mean-free-path/">Calculator →</a></p></div>
             <div class="formula">\[ \begin{gathered} \bar v = \sqrt{\frac{8k_B T}{\pi m}} \\[4pt] v_\text{rms} = \sqrt{\frac{3k_BT}{m}}, \qquad v_p = \sqrt{\frac{2k_BT}{m}} \end{gathered} \]</div>
@@ -735,13 +735,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const fold = s => (s.normalize ? s.normalize('NFKD') : s).toLowerCase()
         .replace(/[\u0300-\u036f]/g, '').replace(/[-\u2010-\u2015]/g, '').replace(/[\s\u200b]+/g, ' ');
 
-    // searchable text: title, description, variable notes, and the short name in the anchor's label ("Xbar-R control
-    // limits"). site.js has already rendered KaTeX (its DOMContentLoaded handler runs first), so the LaTeX source is
-    // included via KaTeX's annotation.
+    // searchable text: title, description, variable notes, the short name in the anchor's label ("Xbar-R control
+    // limits"), and any hidden synonyms in data-keywords ("grey", "molar mass"). site.js has already rendered KaTeX (its
+    // DOMContentLoaded handler runs first), so the LaTeX source is included via KaTeX's annotation.
     const text = new Map(items.map(it => {
         const a = it.querySelector('h3 a.anchor');
         const name = a ? (a.getAttribute('aria-label') || '').replace(/^Link to /, '') : '';
-        return [it, fold(it.textContent + ' ' + name)];
+        return [it, fold(it.textContent + ' ' + name + ' ' + (it.dataset.keywords || ''))];
     }));
 
     function updateCounts() {
