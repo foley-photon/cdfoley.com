@@ -29,7 +29,7 @@
 (function () {
     'use strict';
 
-    /* ── Physical constants (CODATA 2018; SI-exact where defined) ───────── */
+    /* ── Physical constants (CODATA 2022; SI-exact where defined) ───────── */
     var K = {
         c: 299792458,                  // m/s
         h: 6.62607015e-34,             // J·s
@@ -40,12 +40,12 @@
         R: 8.314462618,                // J/(mol·K)
         sigma: 5.670374419e-8,         // W/(m²·K⁴)
         wien: 2.897771955e-3,          // m·K
-        Eh: 4.3597447222071e-18,       // J (Hartree)
-        Rinf: 10973731.568160,         // 1/m
-        u: 1.66053906660e-27,          // kg (atomic mass unit)
-        me: 9.1093837015e-31,          // kg
-        eps0: 8.8541878128e-12,        // F/m
-        a0: 5.29177210903e-11,         // m (Bohr radius)
+        Eh: 4.3597447222060e-18,       // J (Hartree)
+        Rinf: 10973731.568157,         // 1/m
+        u: 1.66053906892e-27,          // kg (atomic mass unit)
+        me: 9.1093837139e-31,          // kg
+        eps0: 8.8541878188e-12,        // F/m
+        a0: 5.29177210544e-11,         // m (Bohr radius)
         cal: 4.184,                    // J (thermochemical calorie)
         atm: 101325,                   // Pa
         torr: 101325 / 760             // Pa
@@ -92,21 +92,35 @@
     }
 
     /* ── Number parsing & formatting ────────────────────────────────────── */
+    // one comma followed by exactly three digits ("1,064", "-12,500") reads as thousands or as decimals
+    var AMBIGUOUS_COMMA = /^[-+]?[1-9]\d{0,2},\d{3}([eE][-+]?\d+)?$/;
+    function normNum(s) {
+        // "2,5 × 10^-3" → "2,5e-3" (before the comma rules, so a decimal comma works with ×10ⁿ too)
+        return String(s).trim().replace(/[−‒–]/g, '-').replace(/\s+/g, '').replace(/[×x*]10\^?([-+]?\d+)$/i, 'e$1');
+    }
     function parseNum(s) {
         if (s === null || s === undefined) return NaN;
-        s = String(s).trim();
+        s = normNum(s);
         if (!s) return NaN;
-        s = s.replace(/[−‒–]/g, '-').replace(/\s+/g, '');
         if (s.indexOf(',') !== -1) {
-            // "1,234,567.8" → thousands separators; "1,5" / "0,25" → decimal comma; anything else is ambiguous
-            if (/^[-+]?\d{1,3}(,\d{3})+(\.\d*)?([eE][-+]?\d+)?$/.test(s)) s = s.replace(/,/g, '');
+            // "1,234,567" / "1,234.5" → thousands separators; "1,5" / "0,532" / "1,0645" → decimal comma;
+            // "1,064" is ambiguous and, like anything else, is rejected rather than guessed (see commaReadings)
+            if (AMBIGUOUS_COMMA.test(s)) return NaN;
+            if (/^[-+]?[1-9]\d{0,2}(,\d{3})+(\.\d*)?([eE][-+]?\d+)?$/.test(s)) s = s.replace(/,/g, '');
             else if (/^[-+]?\d*,\d+([eE][-+]?\d+)?$/.test(s)) s = s.replace(',', '.');
             else return NaN;
         }
-        s = s.replace(/(?:[×x*]|×)10\^?([-+]?\d+)$/i, 'e$1');
         s = s.replace(/E/g, 'e');
         if (!/^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/.test(s)) return NaN;
         return parseFloat(s);
+    }
+    // the readings of an ambiguous comma, for error messages: "1,064" → "1064 or 1.064 (decimal comma: 1,0640)",
+    // since a decimal keypad in a comma locale has no "." key (otherwise null)
+    function commaReadings(s) {
+        s = normNum(s === null || s === undefined ? '' : s);
+        if (!AMBIGUOUS_COMMA.test(s)) return null;
+        var m = s.match(/^([^eE]*)(.*)$/);
+        return s.replace(',', '') + ' or ' + s.replace(',', '.') + ' (decimal comma: ' + m[1] + '0' + m[2] + ')';
     }
 
     var SUP = { '-': '⁻', '+': '', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
@@ -149,7 +163,7 @@
             var s = x.toExponential(sig - 1).split('e');
             var m = trimNum(s[0]), e = parseInt(s[1], 10);
             if (e >= 0 && e <= 2) return plainDecimal(x, sig).replace(/^-/, '−');
-            return (m.replace(/^-/, '−')) + ' × 10' + sup(e);
+            return (m.replace(/^-/, '−')) + '\u00a0×\u00a010' + sup(e);   // no-break spaces: a narrow result never wraps inside the number
         },
         // SI prefix: fmt.si(2.5e-6, 'm') → "2.5 µm"
         si: function (x, unit, sig, opts) {
@@ -189,7 +203,15 @@
             t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
         return x >= 0 ? r : 2 - r;
     }
-    function erf(x) { return 1 - erfc(x); }
+    function erf(x) {
+        // Maclaurin series near zero, where 1 − erfc(x) would lose the relative precision (and the sign)
+        if (Math.abs(x) < 0.5) {
+            var x2 = x * x, term = x, sum = x;
+            for (var n = 1; n < 25; n++) { term *= -x2 / n; sum += term / (2 * n + 1); }
+            return 2 / Math.sqrt(Math.PI) * sum;
+        }
+        return 1 - erfc(x);
+    }
     function normCdf(z) { return 0.5 * erfc(-z / Math.SQRT2); }
     // Acklam's inverse normal CDF (relative error < 1.2e-9)
     function normInv(p) {
@@ -221,37 +243,92 @@
         return Math.sqrt(s / (xs.length - 1));
     }
     // parse a pasted block of numbers (newline, comma, tab, or space separated)
-    function parseList(text) {
-        return String(text || '').split(/[\s,;]+/).map(parseNum).filter(function (x) { return isFinite(x); });
+    // With a field name, Calc.parseList(v.data, 'data') refuses, with an error on that field, what it would otherwise
+    // split or drop and so shift every later value: a decimal comma ("12,04" reads as 12 and 4), a thousands
+    // separator, text after the first number ("NA"), or an empty cell in a tab- or comma-separated paste.
+    function parseList(text, field) {
+        var str = String(text || '');
+        if (field) checkList(str, field);
+        return str.split(/[\s,;]+/).map(parseNum).filter(function (x) { return isFinite(x); });
+    }
+    function checkList(str, field) {
+        var isNum = function (t) { return isFinite(parseNum(t)); }, i;
+        // a comma next to a space, or two commas in one run ("10,20,30"), shows that commas separate the values here
+        if (/(^|[\s;])[-+−]?\d+,\d+(?=[\s;]|$)/.test(str) && !/\d\.\d/.test(str) && !/,\s|\s,|\d,\d+,/.test(str))
+            throw fail('Use a period as the decimal mark (12.04, not 12,04). Separate values with spaces, tabs, commas, or new lines.', field);
+        if (/(^|[\s;])[-+−]?\d{1,3}(,\d{3})+\.\d+(?=[\s;]|$)/.test(str))
+            throw fail('Remove the thousands separators (1234.5, not 1,234.5). Commas separate values.', field);
+        var toks = str.split(/[\s,;]+/).filter(Boolean), seen = false;   // text before the first number is a header
+        for (i = 0; i < toks.length; i++) {
+            if (isNum(toks[i])) seen = true;
+            else if (seen) throw fail('“' + toks[i] + '” is not a number. Delete it or enter the value.', field);
+        }
+        // blank cells (a column no row uses, or blanks after the last value, are harmless)
+        var rows = str.split(/\r?\n/).map(function (l) { return l.split(/[\t,;]/).map(function (c) { return c.trim(); }); })
+            .filter(function (r) { return r.some(Boolean); }), used = [], cells = [];
+        rows.forEach(function (r) { r.forEach(function (c, j) { if (c) used[j] = true; }); });
+        rows.forEach(function (r) { r.forEach(function (c, j) { if (rows.length === 1 || used[j]) cells.push(c); }); });
+        for (i = 0; i < cells.length && !isNum(cells[i]); i++) { /* skip a header */ }
+        var gap = cells.indexOf('', i);
+        if (i < cells.length && gap !== -1 && cells.slice(gap).some(Boolean)) throw fail('The pasted data contain an empty cell. Fill it in or delete it.', field);
     }
 
     /* ── Errors ─────────────────────────────────────────────────────────── */
     function CalcError(message, field) { this.message = message; this.field = field; }
     function fail(message, field) { return new CalcError(message, field); }
+    // an invalid field points at the message box, so a screen reader reads the reason along with the field
+    var errIds = 0;
+    function markInvalid(c, box) {
+        c.setAttribute('aria-invalid', 'true');
+        if (!box) return;
+        if (!box.id) box.id = 'calc-error-' + (++errIds);
+        if (c._desc === undefined) c._desc = c.getAttribute('aria-describedby');
+        c.setAttribute('aria-describedby', (c._desc ? c._desc + ' ' : '') + box.id);
+    }
+    function markValid(c) {
+        c.removeAttribute('aria-invalid');
+        if (c._desc === undefined) return;
+        if (c._desc) c.setAttribute('aria-describedby', c._desc); else c.removeAttribute('aria-describedby');
+        c._desc = undefined;
+    }
 
     /* ── Clipboard ──────────────────────────────────────────────────────── */
+    // resolves true when the text was copied and false when the browser refused (it never rejects)
     function copyText(text) {
-        if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
-        var ta = document.createElement('textarea');
-        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); } catch (e) { /* ignore */ }
-        ta.remove();
-        return Promise.resolve();
+        function legacy() {
+            var ta = document.createElement('textarea'), prev = document.activeElement, ok = false;
+            ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            try { ok = document.execCommand('copy'); } catch (e) { /* ignore */ }
+            ta.remove();
+            if (prev && prev.focus) prev.focus();
+            return Promise.resolve(ok);
+        }
+        // the async API can still be refused (document not focused, permissions policy in a frame)
+        if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(function () { return true; }, legacy);
+        return legacy();
     }
     function flash(elm, cls, text) {
-        var old = elm.textContent;
+        if (elm._flashText === undefined) elm._flashText = elm.textContent;   // the resting text, even when clicked again mid-flash
+        clearTimeout(elm._flashT);
         elm.classList.add(cls);
         if (text) elm.textContent = text;
-        setTimeout(function () { elm.classList.remove(cls); if (text) elm.textContent = old; }, 1100);
+        elm._flashT = setTimeout(function () {
+            elm.classList.remove(cls);
+            if (text) elm.textContent = elm._flashText;
+            elm._flashText = undefined;
+        }, 1100);
     }
     document.addEventListener('click', function (e) {
         var v = e.target.closest('.result-value');
         if (v && v.textContent.trim() && v.textContent.trim() !== '—') {
-            copyText(v.textContent.trim().replace(/−/g, '-')).then(function () { flash(v, 'copied'); });
+            copyText(v.textContent.trim().replace(/−/g, '-').replace(/\u00a0/g, ' ')).then(function (ok) { if (ok) flash(v, 'copied'); });
         }
         var share = e.target.closest('[data-action="share"]');
-        if (share) { copyText(location.href).then(function () { flash(share, 'copied', 'Link copied'); }); }
+        if (share) {
+            if (hashRetry) writeHash();   // a hash update the browser throttled is still pending
+            copyText(location.href).then(function (ok) { if (ok) flash(share, 'copied', 'Link copied'); });
+        }
     });
 
     /* ── Hash state ─────────────────────────────────────────────────────── */
@@ -260,13 +337,25 @@
         if (!h || h.indexOf('=') === -1) return null;
         try { return new URLSearchParams(h); } catch (e) { return null; }
     }
-    var hashWriters = [];
-    function writeHash() {
+    var hashWriters = [], hashRetry = 0, hashFails = 0;
+    function writeHash(retry) {
+        clearTimeout(hashRetry); hashRetry = 0;
+        if (retry !== true) hashFails = 0;   // each edit gets a fresh set of retries; only the timer's own retries use them up
         var p = new URLSearchParams();
         hashWriters.forEach(function (w) { w(p); });
         var s = p.toString();
-        history.replaceState(null, '', s ? '#' + s : location.pathname + location.search);
+        try { history.replaceState(null, '', s ? '#' + s : location.pathname + location.search); hashFails = 0; }
+        catch (e) {   // Safari throws after 100 calls in 10 s (a held-down key): try again shortly so the link is not left stale
+            if (++hashFails <= 20) hashRetry = setTimeout(function () { writeHash(true); }, 1000);
+        }
     }
+    // A link to this page opened in the tab that already shows it (a bookmark, an edited address, Back) changes only
+    // the fragment, which does not reload the page: reload when the link describes a different state than the one shown.
+    var hashCheckers = [];
+    window.addEventListener('hashchange', function () {
+        var h = readHash();   // null for an in-page anchor such as #references
+        if (h && hashCheckers.some(function (differs) { return differs(h); })) location.reload();
+    });
 
     /* ── Unit selects ───────────────────────────────────────────────────── */
     function initUnitSelect(sel) {
@@ -292,12 +381,16 @@
         if (root.tagName === 'FORM') root.addEventListener('submit', function (e) { e.preventDefault(); });
 
         root.querySelectorAll('select[data-dim]').forEach(function (sel) {
+            var named = sel.getAttribute('aria-label');
             initUnitSelect(sel);
             if (!sel.name) {
                 var box = sel.closest('.input-unit');
                 var inp = box && box.querySelector('input[name]');
                 if (inp) { sel.name = inp.name + '_u'; inp.dataset.unitSelect = sel.name; }
             }
+            // a screen reader names each unit list after its field ("Wavelength unit"), not just "Unit"
+            var field = !named && sel.name && root.querySelector('input[data-unit-select="' + sel.name + '"]');
+            if (field) { var l = labelFor(field); sel.setAttribute('aria-label', l.charAt(0).toUpperCase() + l.slice(1) + ' unit'); }
         });
 
         var controls = function () { return Array.prototype.slice.call(root.querySelectorAll('input[name], select[name], textarea[name]')); };
@@ -318,12 +411,33 @@
             return s;
         }
         function setState(s) {
-            controls().forEach(function (c) {
+            var all = controls();
+            all.forEach(function (c) {
                 if (!(c.name in s)) return;
-                if (c.type === 'radio') c.checked = c.value === s[c.name];
-                else if (c.type === 'checkbox') c.checked = s[c.name] === '1';
-                else c.value = s[c.name];
+                var val = s[c.name];
+                c._exact = null;
+                // a value the control does not offer (an edited or outdated link) keeps the current choice
+                if (c.type === 'radio') {
+                    if (!all.some(function (r) { return r.type === 'radio' && r.name === c.name && r.value === val; })) return;
+                    c.checked = c.value === val;
+                }
+                else if (c.type === 'checkbox') c.checked = val === '1';
+                else if (c.tagName === 'SELECT') {
+                    if (!Array.prototype.some.call(c.options, function (o) { return o.value === val; })) return;
+                    c.value = val;
+                }
+                else c.value = val;
                 if (c.matches('select[data-dim]')) c.dataset.prev = c.value;
+            });
+            syncKeyboards();
+        }
+        // iOS's decimal keypad has no minus key: a temperature field gets the full keyboard while its unit is °C or °F
+        function syncKeyboards() {
+            root.querySelectorAll('select[data-dim="temperature"]').forEach(function (sel) {
+                var inp = root.querySelector('input[data-unit-select="' + sel.name + '"]');
+                if (!inp) return;
+                if (inp._kb === undefined) inp._kb = inp.getAttribute('inputmode');
+                if (inp._kb === 'decimal' || inp._kb === 'numeric') inp.setAttribute('inputmode', sel.value === 'K' ? inp._kb : 'text');
             });
         }
         var defaults = getState();
@@ -337,12 +451,19 @@
             });
             setState(s);
         }
+        syncKeyboards();
 
         hashWriters.push(function (p) {
             var s = getState(), changed = false;
             Object.keys(s).forEach(function (k) { if (s[k] !== defaults[k]) changed = true; });
             if (!changed) return;
             Object.keys(s).forEach(function (k) { p.set(prefix + k, s[k]); });
+        });
+        hashCheckers.push(function (h) {   // the state a link describes is the defaults plus its own keys
+            var want = {}, now = getState();
+            Object.keys(defaults).forEach(function (k) { want[k] = defaults[k]; });
+            h.forEach(function (val, key) { if (!prefix || key.indexOf(prefix) === 0) want[key.slice(prefix.length)] = val; });
+            return Object.keys(now).some(function (k) { return k in want && want[k] !== now[k]; });
         });
 
         function unitOf(input) {
@@ -351,11 +472,13 @@
             return sel ? { dim: sel.dataset.dim, unit: sel.value } : null;
         }
 
+        var skipped = [];   // fields the last read() let through because they sat in a hidden group
         function read() {
             var v = { $raw: {}, $unit: {} };
             var errors = [];
+            skipped = [];
             controls().forEach(function (c) {
-                c.removeAttribute('aria-invalid');
+                markValid(c);
                 if (c.matches('select[data-dim]')) return;
                 if (c.type === 'radio') { if (c.checked) v[c.name] = c.value; return; }
                 if (c.type === 'checkbox') { v[c.name] = c.checked; return; }
@@ -364,22 +487,33 @@
                 var x = parseNum(raw);
                 var label = labelFor(c);
                 var Label = label.charAt(0).toUpperCase() + label.slice(1);
+                // a field in a hidden group (another mode) is not in use, so it never blocks: an invalid value reads as NaN
+                var hidden = c.closest('[hidden]') !== null;
+                var msg = null;
                 if (isNaN(x)) {
                     if (raw.trim() === '' && c.dataset.optional !== undefined) { v[c.name] = NaN; return; }
-                    errors.push(fail(raw.trim() === '' ? 'Enter a value for ' + label + '.' : '“' + raw + '” is not a number (' + label + ').', c.name));
-                    return;
+                    var both = commaReadings(raw);
+                    msg = raw.trim() === '' ? 'Enter a value for ' + label + '.'
+                        : both ? '“' + raw.trim() + '” is ambiguous (' + label + '): enter ' + both + '.'
+                        : '“' + raw + '” is not a number (' + label + ').';
+                } else {
+                    var u = unitOf(c);
+                    if (u) { v.$unit[c.name] = u.unit; x = toSI(u.dim, u.unit, x); }
+                    if (!isFinite(x)) msg = Label + ' is out of range.';   // "1e400", or a unit conversion that overflows
+                    else if (c.dataset.positive !== undefined && !(x > 0)) msg = Label + ' must be greater than zero.';
+                    else if (c.dataset.nonneg !== undefined && x < 0) msg = Label + ' cannot be negative.';
+                    else if (c.dataset.min !== undefined && x < parseFloat(c.dataset.min)) msg = Label + ' must be at least ' + c.dataset.min + '.';
+                    else if (c.dataset.max !== undefined && x > parseFloat(c.dataset.max)) msg = Label + ' must be at most ' + c.dataset.max + '.';
                 }
-                var u = unitOf(c);
-                if (u) { v.$unit[c.name] = u.unit; x = toSI(u.dim, u.unit, x); }
-                if (c.dataset.positive !== undefined && !(x > 0)) errors.push(fail(Label + ' must be greater than zero.', c.name));
-                if (c.dataset.nonneg !== undefined && x < 0) errors.push(fail(Label + ' cannot be negative.', c.name));
-                if (c.dataset.min !== undefined && x < parseFloat(c.dataset.min)) errors.push(fail(Label + ' must be at least ' + c.dataset.min + '.', c.name));
-                if (c.dataset.max !== undefined && x > parseFloat(c.dataset.max)) errors.push(fail(Label + ' must be at most ' + c.dataset.max + '.', c.name));
+                if (msg && hidden) { v[c.name] = NaN; skipped.push(c); return; }
+                if (msg) { errors.push(fail(msg, c.name)); return; }
                 v[c.name] = x;
             });
             if (errors.length) throw errors[0];
             return v;
         }
+        // compute() may unhide a group (a mode switch) whose fields read() let through while hidden: check them now
+        function revealed() { return skipped.some(function (c) { return c.closest('[hidden]') === null; }); }
 
         function labelFor(c) {
             if (c.dataset.label) return c.dataset.label;
@@ -394,23 +528,25 @@
         function outputs() { return outRoot.querySelectorAll('[data-out]'); }
         function clearOutputs() { outputs().forEach(function (o) { o.textContent = '—'; }); }
 
-        function run(fromUser) {
+        function run(fromUser, again) {
             var v, r;
             try {
                 v = read();
                 r = opts.compute(v) || {};
                 errBox.classList.remove('show'); errBox.textContent = '';
             } catch (err) {
+                if (!again && revealed()) { run(fromUser, true); return; }
                 if (!(err instanceof CalcError)) { console.error(err); err = fail('Calculation error: ' + err.message); }
                 errBox.textContent = err.message; errBox.classList.add('show');
                 if (err.field) {
                     var bad = root.querySelector('[name="' + err.field + '"]');
-                    if (bad) bad.setAttribute('aria-invalid', 'true');
+                    if (bad) markInvalid(bad, errBox);
                 }
                 clearOutputs();
-                if (opts.onError) opts.onError(err);
+                if (opts.onError) { try { opts.onError(err); } catch (e) { console.error(e); } }
                 return;
             }
+            if (!again && revealed()) { run(fromUser, true); return; }
             outputs().forEach(function (o) {
                 var key = o.dataset.out;
                 if (!(key in r)) return;
@@ -422,7 +558,8 @@
                 else if (val && typeof val === 'object' && 'html' in val) o.innerHTML = val.html;
                 else o.textContent = val === undefined ? '—' : String(val);
             });
-            if (opts.after) opts.after(v, r);
+            // a failure while drawing (a plot) is logged; it must not stop the page from setting up or the link from updating
+            if (opts.after) { try { opts.after(v, r); } catch (e) { console.error(e); } }
             if (fromUser) writeHash();
         }
 
@@ -433,14 +570,18 @@
         root.addEventListener('change', function (e) {
             var sel = e.target;
             if (sel.matches('select[data-dim]')) {
-                // keep the physical quantity constant when the unit changes
+                // keep the physical quantity constant when the unit changes. While the text is unedited the exact
+                // value is carried along, so switching back and forth (mm → in → mm) does not drift by the rounding
                 var inp = root.querySelector('input[data-unit-select="' + sel.name + '"]');
                 var x = inp ? parseNum(inp.value) : NaN;
                 if (inp && isFinite(x) && sel.dataset.prev) {
-                    var si = toSI(sel.dataset.dim, sel.dataset.prev, x);
+                    var ex = inp._exact;
+                    var si = ex && ex.text === inp.value && ex.unit === sel.dataset.prev ? ex.si : toSI(sel.dataset.dim, sel.dataset.prev, x);
                     inp.value = fmt.plain(fromSI(sel.dataset.dim, sel.value, si), 6);
+                    inp._exact = { si: si, text: inp.value, unit: sel.value };
                 }
                 sel.dataset.prev = sel.value;
+                syncKeyboards();
             }
             schedule();
         });
@@ -472,26 +613,45 @@
         var edited = false;
         // shares the URL hash with any Calc.create calculators on the same page
         hashWriters.push(function (p) { if (edited) p.set(prefix + source, inputs[source].value.trim()); });
+        hashCheckers.push(function (h) {
+            var want = '';
+            h.forEach(function (val, key) {
+                if (want || (prefix && key.indexOf(prefix) !== 0)) return;
+                if (inputs[key.slice(prefix.length)]) want = key + '=' + val;
+            });
+            return want !== (edited ? prefix + source + '=' + inputs[source].value.trim() : '');
+        });
 
         function markSource(n) {
             names.forEach(function (k) { var box = inputs[k].closest('.input-unit'); if (box) box.classList.toggle('source', k === n); });
         }
+        // returns true when the value was converted
         function update(n, fromUser) {
-            var x = parseNum(inputs[n].value);
-            names.forEach(function (k) { inputs[k].removeAttribute('aria-invalid'); });
+            var raw = inputs[n].value.trim();
+            var x = parseNum(raw);
+            names.forEach(function (k) { markValid(inputs[k]); });
             if (!isFinite(x) || (opts.positive !== false && !(x > 0))) {
-                if (inputs[n].value.trim() !== '') {
-                    inputs[n].setAttribute('aria-invalid', 'true');
-                    if (errBox) { errBox.textContent = opts.positive !== false ? 'Enter a positive number.' : 'Enter a number.'; errBox.classList.add('show'); }
+                // stay quiet while an exponent is still being typed ("1.6e", "1.6e-"); the other fields keep their values
+                if (fromUser && /\d[eE][-+]?$/.test(raw)) { if (errBox) errBox.classList.remove('show'); return false; }
+                if (raw !== '') {
+                    markInvalid(inputs[n], errBox);
+                    var both = commaReadings(raw);
+                    if (errBox) {
+                        errBox.textContent = both ? '“' + raw + '” is ambiguous: enter ' + both + '.'
+                            : Math.abs(x) === Infinity ? 'That value is out of range.'
+                            : isNaN(x) ? '“' + raw + '” is not a number.'
+                            : opts.positive !== false ? 'Enter a positive number.' : 'Enter a number.';
+                        errBox.classList.add('show');
+                    }
                 }
-                return;
+                return false;
             }
             var base = opts.fields[n].to(x);
             var msg = opts.validate ? opts.validate(base, n) : null;   // optional domain check on the base value
             if (msg || !isFinite(base)) {
-                inputs[n].setAttribute('aria-invalid', 'true');
+                markInvalid(inputs[n], errBox);
                 if (errBox) { errBox.textContent = msg || 'That value is out of range.'; errBox.classList.add('show'); }
-                return;
+                return false;
             }
             if (errBox) errBox.classList.remove('show');
             names.forEach(function (k) {
@@ -499,18 +659,25 @@
                 inputs[k].value = fmt.plain(opts.fields[k].from(base), sig);
             });
             source = n; markSource(n);
-            if (opts.after) opts.after(base, n);
+            if (opts.after) { try { opts.after(base, n); } catch (e) { console.error(e); } }
             if (fromUser) { edited = true; writeHash(); }
+            return true;
         }
         names.forEach(function (n) {
             inputs[n].addEventListener('input', function () { update(n, true); });
             inputs[n].addEventListener('focus', function () { inputs[n].select(); });
+            // leaving a field with an unfinished exponent ("1.6e-") flags it, which typing it deliberately did not
+            inputs[n].addEventListener('change', function () { if (/\d[eE][-+]?$/.test(inputs[n].value.trim())) update(n, false); });
         });
         var h = readHash(), started = false;
         if (h) h.forEach(function (val, key) {
             if (started || (prefix && key.indexOf(prefix) !== 0)) return;
             var k = key.slice(prefix.length);
-            if (inputs[k]) { inputs[k].value = val; update(k, false); started = true; edited = true; }
+            if (!inputs[k]) return;
+            inputs[k].value = val;
+            // a value that does not convert (an edited or truncated link) falls back to the default below, except an ambiguous
+            // "1,064" (from a link made before such values were refused): it stays in its field with its message, as if typed
+            if (update(k, false) || commaReadings(val)) { started = true; edited = true; source = k; markSource(k); }
         });
         if (!started) { inputs[source].value = defaultValue; update(source, false); }
 

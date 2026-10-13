@@ -8,8 +8,23 @@
 (function (root) {
     'use strict';
     var WHITE = [0.95047, 1.0, 1.08883];   // D65, 2°
-    var M = [[0.4124564, 0.3575761, 0.1804375], [0.2126729, 0.7151522, 0.0721750], [0.0193339, 0.1191920, 0.9503041]];
-    var MI = [[3.2404542, -1.5371385, -0.4985314], [-0.9692660, 1.8760108, 0.0415560], [0.0556434, -0.2040259, 1.0572252]];
+    function inv3(m) {
+        var a = [[m[1][1] * m[2][2] - m[1][2] * m[2][1], m[0][2] * m[2][1] - m[0][1] * m[2][2], m[0][1] * m[1][2] - m[0][2] * m[1][1]],
+                 [m[1][2] * m[2][0] - m[1][0] * m[2][2], m[0][0] * m[2][2] - m[0][2] * m[2][0], m[0][2] * m[1][0] - m[0][0] * m[1][2]],
+                 [m[1][0] * m[2][1] - m[1][1] * m[2][0], m[0][1] * m[2][0] - m[0][0] * m[2][1], m[0][0] * m[1][1] - m[0][1] * m[1][0]]];
+        var det = m[0][0] * a[0][0] + m[0][1] * a[1][0] + m[0][2] * a[2][0];
+        return a.map(function (r) { return r.map(function (x) { return x / det; }); });
+    }
+    // RGB → XYZ matrix built from the sRGB primaries, with columns scaled so R = G = B = 1 gives exactly WHITE.
+    // It matches the familiar 7-decimal matrix (0.4124564, 0.3575761, …) to within 5e-8, but unlike the rounded
+    // pair it maps white to white and MI·M = I, so neutral grays stay neutral through RGB → XYZ → RGB.
+    var M = (function () {
+        var xy = [[0.64, 0.33], [0.30, 0.60], [0.15, 0.06]];
+        var P = [xy.map(function (p) { return p[0] / p[1]; }), [1, 1, 1], xy.map(function (p) { return (1 - p[0] - p[1]) / p[1]; })];
+        var s = mul(inv3(P), WHITE);
+        return P.map(function (r) { return r.map(function (x, j) { return x * s[j]; }); });
+    })();
+    var MI = inv3(M);
     function mul(m, v) { return [m[0][0] * v[0] + m[0][1] * v[1] + m[0][2] * v[2], m[1][0] * v[0] + m[1][1] * v[1] + m[1][2] * v[2], m[2][0] * v[0] + m[2][1] * v[1] + m[2][2] * v[2]]; }
     function toLinear(c) { return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
     function toGamma(l) { var s = l < 0 ? -1 : 1; l = Math.abs(l); return s * (l <= 0.0031308 ? 12.92 * l : 1.055 * Math.pow(l, 1 / 2.4) - 0.055); }
@@ -49,7 +64,7 @@
     }
     function rgbToHsl(rgb) {
         var hsv = rgbToHsv(rgb), mx = Math.max.apply(null, rgb), mn = Math.min.apply(null, rgb), l = (mx + mn) / 2;
-        var s = mx === mn ? 0 : (mx - mn) / (1 - Math.abs(2 * l - 1));
+        var den = 1 - Math.abs(2 * l - 1), s = mx === mn || den <= 0 ? 0 : (mx - mn) / den;   // den is 0 only at black and white
         return [hsv[0], s, l];
     }
     function hslToRgb(hsl) {

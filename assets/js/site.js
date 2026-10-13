@@ -39,41 +39,41 @@
 
     var TOOLS = [
         // Photon energy & spectroscopy
-        { slug: 'energy-converter',      cat: 'photon',  title: 'Energy & Wavelength Converter',  desc: 'Convert between nm, cm⁻¹, eV, Hartree, kJ/mol, kcal/mol, K, Hz, and J. Every field is live.', keys: 'hartree wavenumber electronvolt rydberg frequency photon energy units spectroscopy nm to ev cm-1 wavelength kj/mol kcal/mol' },
-        { slug: 'photon-flux',           cat: 'photon',  title: 'Photon Energy & Flux',           desc: 'Photons per second and per pulse from optical power, pulse energy, and wavelength.', keys: 'photon count photons per second quantum efficiency detector flux energy pulse photocurrent responsivity' },
+        { slug: 'energy-converter',      cat: 'photon',  title: 'Energy & Wavelength Converter',  desc: 'Convert between nm, cm⁻¹, eV, Hartree, kJ/mol, kcal/mol, K, Hz, and J. Every field is live.', keys: 'hartree wavenumber wave number electronvolt electron volt rydberg frequency photon energy units spectroscopy nm to ev cm-1 wavelength kj/mol kcal/mol joule kelvin' },
+        { slug: 'photon-flux',           cat: 'photon',  title: 'Photon Energy & Flux',           desc: 'Photons per second and per pulse from optical power, pulse energy, and wavelength.', keys: 'photon count photons per second quantum efficiency detector flux energy pulse photocurrent responsivity laser' },
         { slug: 'blackbody',             cat: 'photon',  title: 'Blackbody Radiation',            desc: 'Planck spectrum, Wien peak, Stefan–Boltzmann exitance, and in-band power fraction.', keys: 'planck wien stefan boltzmann plasma temperature emission spectrum radiance plancks law displacement stefan-boltzmann spectral emissivity gray body' },
-        { slug: 'doppler-broadening',    cat: 'photon',  title: 'Spectral Line Broadening',       desc: 'Doppler (Gaussian) and natural (Lorentzian) linewidths, and the Voigt FWHM.', keys: 'doppler natural linewidth voigt temperature lifetime plasma spectroscopy broadening fwhm lorentzian gaussian profile' },
-        { slug: 'grating-equation',      cat: 'photon',  title: 'Diffraction Grating & Spectrometer', desc: 'Diffraction angle, angular and linear dispersion, resolving power, and spectral bandpass.', keys: 'grating equation spectrometer czerny turner dispersion resolution littrow blaze diffraction calculator linear resolving power bandpass free spectral range' },
+        { slug: 'doppler-broadening',    cat: 'photon',  title: 'Spectral Line Broadening',       desc: 'Doppler (Gaussian) and natural (Lorentzian) linewidths, and the Voigt FWHM.', keys: 'doppler natural linewidth line width voigt temperature lifetime plasma spectroscopy broadening fwhm lorentzian gaussian profile' },
+        { slug: 'grating-equation',      cat: 'photon',  title: 'Diffraction Grating & Spectrometer', desc: 'Diffraction angle, angular and linear dispersion, resolving power, and spectral bandpass.', keys: 'grating equation spectrometer monochromator czerny turner dispersion resolution littrow blaze diffraction calculator linear resolving power bandpass free spectral range' },
         // Gaussian beams & optics
-        { slug: 'focused-spot',          cat: 'beam',    title: 'Focused Spot Size',              desc: 'Focused 1/e² diameter from wavelength, focal length, input beam, M², and aperture truncation.', keys: 'beam waist spot diameter focus gaussian m2 truncation apodization laser size focused calculator diffraction limited' },
-        { slug: 'gaussian-beam',         cat: 'beam',    title: 'Gaussian Beam Propagation',      desc: 'Rayleigh range, beam radius, wavefront curvature, Gouy phase, and divergence vs. distance.', keys: 'rayleigh range depth of focus divergence propagation w(z) gouy gaussian beam calculator waist radius' },
-        { slug: 'beam-expander',         cat: 'beam',    title: 'Beam Expander',                  desc: 'Output diameter and divergence for Galilean or Keplerian expanders, and the effect on spot size.', keys: 'telescope galilean keplerian magnification collimation beam expander lens spacing laser collimator' },
-        { slug: 'f-theta-lens',          cat: 'beam',    title: 'F-Theta Scan Lens',              desc: 'Scan field, spot size, and depth of focus for galvanometer scanning systems.', keys: 'galvo scanner scan field telecentric marking f-theta lens spot size resolution angle' },
-        { slug: 'aperture-transmission', cat: 'beam',    title: 'Gaussian Beam Clipping',         desc: 'Power transmitted through a circular aperture and the aperture needed for a target throughput.', keys: 'aperture iris clipping truncation transmission pinhole gaussian beam slit knife edge profile spatial filter' },
-        { slug: 'fresnel-equations',     cat: 'beam',    title: 'Fresnel Reflection & Brewster Angle', desc: 's- and p-polarized reflectance vs. angle, Brewster angle, and total internal reflection.', keys: 'fresnel reflectance brewster critical angle snell refraction polarization total internal reflection loss s p' },
+        { slug: 'focused-spot',          cat: 'beam',    title: 'Focused Spot Size',              desc: 'Focused 1/e² diameter from wavelength, focal length, input beam, M², and aperture truncation.', keys: 'beam waist spot diameter focus gaussian m2 beam quality truncation apodization laser size focused calculator diffraction limited' },
+        { slug: 'gaussian-beam',         cat: 'beam',    title: 'Gaussian Beam Propagation',      desc: 'Rayleigh range, beam radius, wavefront curvature, Gouy phase, and divergence vs. distance.', keys: 'rayleigh range depth of focus divergence propagation w(z) gouy gaussian beam calculator waist radius laser m2 beam quality bpp beam parameter product dof' },
+        { slug: 'beam-expander',         cat: 'beam',    title: 'Beam Expander',                  desc: 'Output diameter and divergence for Galilean or Keplerian expanders, and the effect on spot size.', keys: 'telescope galilean keplerian magnification collimation beam expander lens spacing laser collimator m2' },
+        { slug: 'f-theta-lens',          cat: 'beam',    title: 'F-Theta Scan Lens',              desc: 'Scan field, spot size, and depth of focus for galvanometer scanning systems.', keys: 'galvo scanner scan field telecentric marking f-theta ftheta lens spot size resolution angle laser' },
+        { slug: 'aperture-transmission', cat: 'beam',    title: 'Gaussian Beam Clipping',         desc: 'Power transmitted through a circular aperture, slit, or past a knife edge, and the size needed for a target throughput.', keys: 'aperture iris clipping truncation transmission pinhole gaussian beam slit knife edge profile spatial filter laser' },
+        { slug: 'fresnel-equations',     cat: 'beam',    title: 'Fresnel Reflection & Brewster Angle', desc: 's- and p-polarized reflectance vs. angle, Brewster angle, and total internal reflection.', keys: 'fresnel reflectance brewster critical angle snell refraction polarization total internal reflection tir loss s p' },
         { slug: 'glazing-performance',   cat: 'beam',    title: 'Glazing Performance Calculator', desc: 'U-factor, SHGC, visible and solar transmittance, reflectance, and color for single, double, triple, and vacuum glazing with low-e coatings.', keys: 'window glass glazing igu insulating low-e coating u-factor u-value shgc solar heat gain visible transmittance vt argon krypton vacuum vig nfrc lbnl window calculator', featured: true },
         { slug: 'low-e-sheet-resistance', cat: 'beam',   title: 'Low-E Sheet Resistance & Emissivity', desc: 'Ohms per square to emissivity, silver thickness, RF attenuation, and U-factor, with typical values for each low-e coating family.', keys: 'sheet resistance ohms per square low-e emissivity silver ito fto tin oxide four point probe eddy current rf shielding coating calculator', featured: true },
-        { slug: 'optical-density',       cat: 'beam',    title: 'Optical Density & Attenuation',  desc: 'Convert between OD, transmission, absorbance, and dB, and stack filters.', keys: 'od transmission attenuation neutral density filter db absorbance optical calculator nd to' },
+        { slug: 'optical-density',       cat: 'beam',    title: 'Optical Density & Attenuation',  desc: 'Convert between OD, transmittance, dB, and percent blocked, stack ND filters, and find the OD needed for a target power.', keys: 'od transmission attenuation neutral density filter db absorbance optical calculator nd to laser' },
         // Laser processing
-        { slug: 'pulse-energy',          cat: 'process', title: 'Pulse Energy & Peak Power',      desc: 'Interconvert average power, repetition rate, pulse energy, peak power, and duty cycle.', keys: 'pulse energy peak power duty cycle repetition rate average power calculator sech2 gaussian' },
-        { slug: 'fluence',               cat: 'process', title: 'Fluence & Irradiance',           desc: 'Peak and average fluence and irradiance for a Gaussian spot—the parameters that drive ablation.', keys: 'fluence irradiance intensity energy density power density laser peak j/cm2 w/cm2' },
-        { slug: 'pulse-overlap',         cat: 'process', title: 'Pulse & Hatch Overlap',          desc: 'Pulse-to-pulse and line-to-line overlap, pulses per spot, and area coverage rate for scanning.', keys: 'overlap scan speed hatch pitch pulses per spot scribing marking pulse calculator distance rep rate' },
-        { slug: 'ablation-depth',        cat: 'process', title: 'Ablation Depth & Threshold',     desc: 'Logarithmic ablation model, threshold from crater diameters (Liu method), and incubation.', keys: 'ablation threshold depth liu method incubation penetration depth rate d2 crater diameter fluence laser calculator' },
-        { slug: 'lidt',                  cat: 'process', title: 'Damage Threshold (LIDT) Scaling',desc: 'Scale a laser-induced damage threshold to a new pulse duration, wavelength, and beam size.', keys: 'lidt damage threshold optics coating scaling laser induced pulse duration' },
-        { slug: 'thermal-diffusion',     cat: 'process', title: 'Thermal Diffusion & Heat Accumulation', desc: 'Thermal diffusion length, heat-affected zone estimates, and the repetition rate where heat builds up.', keys: 'thermal diffusivity diffusion length heat affected zone haz accumulation' },
+        { slug: 'pulse-energy',          cat: 'process', title: 'Pulse Energy & Peak Power',      desc: 'Interconvert average power, repetition rate, pulse energy, peak power, and duty cycle.', keys: 'pulse energy peak power duty cycle repetition rate average power calculator sech2 gaussian laser' },
+        { slug: 'fluence',               cat: 'process', title: 'Fluence & Irradiance',           desc: 'Peak and average fluence, peak irradiance, and the diameter above an ablation threshold for Gaussian and top-hat spots.', keys: 'fluence irradiance intensity energy density power density laser peak j/cm2 w/cm2' },
+        { slug: 'pulse-overlap',         cat: 'process', title: 'Pulse & Hatch Overlap',          desc: 'Pulse-to-pulse and line-to-line overlap, pulses per spot, and area coverage rate for scanning.', keys: 'overlap scan speed hatch pitch pulses per spot scribing marking pulse calculator distance rep rate laser' },
+        { slug: 'ablation-depth',        cat: 'process', title: 'Ablation Threshold & Depth',     desc: 'Logarithmic ablation model, threshold from crater diameters (Liu method), and incubation.', keys: 'ablation threshold depth liu method incubation penetration depth rate d2 crater diameter fluence laser calculator' },
+        { slug: 'lidt',                  cat: 'process', title: 'Damage Threshold (LIDT) Scaling',desc: 'Scale a laser-induced damage threshold to your pulse duration and wavelength, and check the margin at your fluence or CW power density.', keys: 'lidt damage threshold optics coating scaling laser induced pulse duration' },
+        { slug: 'thermal-diffusion',     cat: 'process', title: 'Thermal Diffusion & Heat Accumulation', desc: 'Thermal diffusion length, heat-affected zone estimates, and the repetition rate where heat builds up.', keys: 'thermal diffusivity diffusion length heat affected zone haz accumulation laser pulsed' },
         // Vacuum
         { slug: 'pressure-converter',    cat: 'vacuum',  title: 'Pressure Unit Converter',        desc: 'Pa, mbar, Torr, mTorr, atm, psi, bar, and inHg, with the vacuum regime for each value.', keys: 'pressure torr mbar pascal atm psi vacuum units to pa mtorr mmhg inhg kpa bar converter' },
         { slug: 'mean-free-path',        cat: 'vacuum',  title: 'Mean Free Path & Gas Kinetics',  desc: 'Mean free path, Knudsen number, flow regime, number density, impingement rate, and monolayer time.', keys: 'mean free path knudsen flow regime molecular viscous number density monolayer calculator gas kinetics' },
-        { slug: 'pumpdown',              cat: 'vacuum',  title: 'Conductance & Pump-Down Time',   desc: 'Tube and orifice conductance, effective pumping speed, and pump-down time for a chamber.', keys: 'conductance pumping speed pump down time effective speed tube orifice calculator vacuum pumpdown outgassing' },
+        { slug: 'pumpdown',              cat: 'vacuum',  title: 'Conductance & Pump-Down Time',   desc: 'Tube and orifice conductance, effective pumping speed, and pump-down time for a chamber.', keys: 'conductance pumping speed pump down time effective speed tube orifice calculator vacuum pumpdown outgassing base pressure' },
         // Machine vision
-        { slug: 'vision-system-configurator', cat: 'vision', title: 'Vision System Configurator', desc: 'Pick a sensor and lens for your field of view and defect size, see the setup drawn, and check depth of field, motion blur, bandwidth, and lighting.', keys: 'camera sensor lens configurator sony imx onsemi gpixel pregius working distance lighting interface gige usb3 coaxpress machine vision selection', featured: true },
-        { slug: 'machine-vision-lens',   cat: 'vision',  title: 'Machine Vision Lens Selection',  desc: 'Magnification, field of view, depth of field, pixel resolution, and smallest detectable defect.', keys: 'fov field of view magnification depth of field focal length sensor resolution camera lens calculator working distance' },
-        { slug: 'color-converter',       cat: 'vision',  title: 'Color Converter & Color Measurement', desc: 'HEX, RGB, HSV, HSL, CMYK, XYZ, CIELAB, and LCh conversions, ΔE2000, spectra to color, and how cameras and spectrophotometers measure color.', keys: 'color colour hex rgb hsv hsl cmyk cielab lab lch xyz xyy delta e ciede2000 chromaticity spectrophotometer camera low-e coating color measurement to difference calculator', featured: true },
-        { slug: 'motion-blur',           cat: 'vision',  title: 'Motion Blur & Exposure',         desc: 'Maximum exposure or strobe time for a moving part, and line-scan rate for a conveyor.', keys: 'motion blur exposure strobe conveyor line scan speed time calculator rate frame' },
+        { slug: 'vision-system-configurator', cat: 'vision', title: 'Vision System Configurator', desc: 'Pick a sensor and lens for your field of view and defect size, see the setup drawn, and check depth of field, motion blur, bandwidth, and lighting.', keys: 'camera sensor lens configurator sony imx onsemi gpixel pregius working distance pixel size lighting interface gige usb3 coaxpress machine vision selection', featured: true },
+        { slug: 'machine-vision-lens',   cat: 'vision',  title: 'Machine Vision Lens Selection',  desc: 'Magnification, field of view, depth of field, pixel resolution, and smallest detectable defect.', keys: 'fov field of view magnification depth of field dof focal length sensor resolution pixel size camera lens calculator working distance' },
+        { slug: 'color-converter',       cat: 'vision',  title: 'Color Converter & Color Measurement', desc: 'HEX, RGB, HSV, HSL, CMYK, XYZ, xyY, CIELAB, and LCh conversions, ΔE00 and ΔE*ab, spectra to color, and how cameras and spectrophotometers measure color.', keys: 'color colour hex rgb srgb hsv hsl cmyk cielab lab lch xyz xyy delta e 2000 ΔE2000 ciede2000 de2000 de00 chromaticity spectrophotometer camera low-e coating color measurement color difference calculator', featured: true },
+        { slug: 'motion-blur',           cat: 'vision',  title: 'Motion Blur & Exposure',         desc: 'Maximum exposure or strobe time for a moving part, blur at a given exposure, and the frame or line-scan rate for a conveyor.', keys: 'motion blur exposure strobe conveyor line scan speed time calculator rate frame' },
         // Quality & manufacturing
         { slug: 'process-capability',    cat: 'quality', title: 'Process Capability (Cp, Cpk)',   desc: 'Cp, Cpk, Pp, Ppk, and expected PPM from raw data or summary statistics, with a histogram.', keys: 'cpk ppk cp pp capability spc six sigma ppm specification calculator process index cpm' },
         { slug: 'control-chart',         cat: 'quality', title: 'Control Chart Limits',           desc: 'X̄–R, X̄–S, and I–MR control limits from your data, with out-of-control points flagged.', keys: 'control chart spc xbar r s individuals moving range ucl lcl western electric limits calculator x-bar i-mr' },
-        { slug: 'sigma-level',           cat: 'quality', title: 'DPMO, Yield & Sigma Level',      desc: 'Convert between defects per million, yield, and sigma level, and compute rolled throughput yield.', keys: 'dpmo sigma level yield rolled throughput rty six sigma defects calculator dpu' },
+        { slug: 'sigma-level',           cat: 'quality', title: 'DPMO, Yield & Sigma Level',      desc: 'Convert between defects per million, yield, and sigma level, and compute rolled throughput yield.', keys: 'dpmo sigma level yield rolled throughput rty six sigma defects calculator dpu dpo first pass yield fpy' },
         { slug: 'oee-takt',              cat: 'quality', title: 'OEE & Takt Time',                desc: 'Overall equipment effectiveness from availability, performance, and quality, plus takt time.', keys: 'oee takt time cycle time availability performance quality lean overall equipment effectiveness line balancing' }
     ];
 
@@ -130,8 +130,15 @@
         var slot = document.getElementById('site-header');
         if (!slot) return;
         var section = document.body.dataset.section || '';
+        var here = location.pathname.replace(/index\.html$/, '');
         var links = NAV.map(function (n) {
-            var current = n.section === section && n.section !== 'home' ? ' aria-current="page"' : '';
+            // The link to this very page is the current page; on a page inside a section (a tool, an article, a game)
+            // the section link is highlighted but marked only as the current item, so it doesn't claim to be this page.
+            var current = '';
+            if (n.section !== 'home') {
+                if (here === n.href) current = ' aria-current="page"';
+                else if (n.section === section) current = ' class="active" aria-current="true"';
+            }
             return '<a href="' + n.href + '"' + current + '>' + n.label + '</a>';
         }).join('');
         var header = el(
@@ -147,12 +154,28 @@
         header.querySelector('.theme-toggle').addEventListener('click', toggleTheme);
         var menuBtn = header.querySelector('.menu-toggle');
         var navLinks = header.querySelector('.nav-links');
-        menuBtn.addEventListener('click', function () {
-            var open = navLinks.classList.toggle('open');
+        function setMenu(open) {
+            navLinks.classList.toggle('open', open);
             menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+        menuBtn.addEventListener('click', function (e) {
+            var open = !navLinks.classList.contains('open');
+            setMenu(open);
+            // Opened from the keyboard (detail 0): the links come before this button in tab order, so start there
+            if (open && e.detail === 0) navLinks.querySelector('a').focus();
         });
         navLinks.addEventListener('click', function (e) {
-            if (e.target.closest('a')) { navLinks.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false'); }
+            if (e.target.closest('a')) setMenu(false);
+        });
+        // Close the mobile menu with Escape, by clicking or tapping outside the header, or by tabbing out of it
+        document.addEventListener('keydown', function (e) {
+            if ((e.key === 'Escape' || e.key === 'Esc') && navLinks.classList.contains('open')) { setMenu(false); menuBtn.focus(); }
+        });
+        function outside(e) { if (navLinks.classList.contains('open') && !header.contains(e.target)) setMenu(false); }
+        document.addEventListener('pointerdown', outside);    // iOS Safari sends no click for taps on plain text
+        document.addEventListener('click', outside);
+        header.addEventListener('focusout', function (e) {
+            if (navLinks.classList.contains('open') && e.relatedTarget && !header.contains(e.relatedTarget)) setMenu(false);
         });
     }
 
@@ -194,10 +217,39 @@
         slot.replaceWith(footer);
     }
 
+    /* ── Search ─────────────────────────────────────────────────────────── */
+    // Text folded for matching: lower case, no accents, superscripts as plain digits (M² → m2, J/cm² → j cm2,
+    // cm⁻¹ → cm 1), possessives dropped (Planck's → planck), and other punctuation turned into spaces.
+    function fold(s) {
+        s = String(s).toLowerCase();
+        if (s.normalize) s = s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+        return s.replace(/['\u2019]s\b/g, '').replace(/['\u2019^]/g, '').replace(/[^a-z0-9\u0370-\u03ff]+/g, ' ').trim();
+    }
+    // Words that don't narrow the search: every tool is a free online calculator ("fluence calculator", "how to convert torr to mbar")
+    var STOP = ' a an and the of for to in on at by with from or vs versus how what is are do does i my calculator calculators calculate calculating calculation calculations calc compute tool tools online free convert converting conversion conversions formula formulas equation equations law laws ';
+    function queryWords(q) {
+        return fold(q).split(' ').filter(function (w) { return w && STOP.indexOf(' ' + w + ' ') === -1; });
+    }
+    // Each query word must begin a word of the text ("ev" finds "eV" but not "level"); a one-letter word must be a
+    // whole word, and a plural also finds its singular ("lasers" → "laser", "lenses" → "lens").
+    function hasWords(text, words) {
+        var hay = ' ' + text + ' ';
+        return words.every(function (w) {
+            if (w.length === 1) return hay.indexOf(' ' + w + ' ') !== -1;
+            if (hay.indexOf(' ' + w) !== -1) return true;
+            if (w.length >= 5 && w.slice(-1) === 's' && hay.indexOf(' ' + w.slice(0, -1)) !== -1) return true;
+            return w.length >= 6 && w.slice(-2) === 'es' && hay.indexOf(' ' + w.slice(0, -2)) !== -1;
+        });
+    }
+    function toolText(t) { return fold([t.title, t.desc, t.keys, t.slug, catTitle(t.cat)].join(' ')); }
+    function articleText(a) { return fold([a.title, a.desc, a.topic, a.slug].join(' ')); }
+    // Tools and articles matching every word of a query (none for an empty query)
+    function findTools(q) { var w = queryWords(q); return w.length ? TOOLS.filter(function (t) { return hasWords(toolText(t), w); }) : []; }
+    function findArticles(q) { var w = queryWords(q); return w.length ? ARTICLES.filter(function (a) { return hasWords(articleText(a), w); }) : []; }
+
     /* ── Listings ───────────────────────────────────────────────────────── */
     function toolCard(t) {
-        return '<a class="card tool-card" href="/tools/' + t.slug + '/" data-cat="' + t.cat + '" data-search="' +
-            esc((t.title + ' ' + t.desc + ' ' + t.keys + ' ' + catTitle(t.cat)).toLowerCase()) + '">' +
+        return '<a class="card tool-card" href="/tools/' + t.slug + '/" data-cat="' + t.cat + '" data-search="' + esc(toolText(t)) + '">' +
             '<h3>' + esc(t.title) + '</h3><p>' + esc(t.desc) + '</p>' +
             '<div class="card-meta">' + esc(catTitle(t.cat)) + '</div></a>';
     }
@@ -229,46 +281,68 @@
         var groups = CATEGORIES.map(function (c) {
             var items = TOOLS.filter(function (t) { return t.cat === c.id; });
             return '<section class="tool-group" data-group="' + c.id + '" id="' + c.id + '">' +
-                '<h2>' + esc(c.title) + ' <span class="count">' + items.length + '</span></h2>' +
+                '<h2>' + esc(c.title) + ' <span class="count">' + items.length + '<span class="visually-hidden"> tools</span></span></h2>' +
                 '<div class="grid grid-3">' + items.map(toolCard).join('') + '</div></section>';
         }).join('');
         hub.innerHTML =
             '<div class="tool-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>' +
             '<input type="search" placeholder="Search ' + TOOLS.length + ' calculators — e.g. “Rayleigh”, “Cpk”, “Torr”" aria-label="Search tools" autocomplete="off"></div>' +
-            cats + groups + '<p class="empty-state">No tools match that search.</p>';
+            cats + groups + '<p class="empty-state"></p><p class="visually-hidden" role="status"></p>';
 
         var input = hub.querySelector('input[type="search"]');
+        var buttons = hub.querySelectorAll('[data-filter]');
+        var empty = hub.querySelector('.empty-state'), status = hub.querySelector('[role="status"]');
         var filter = '';
         function apply() {
-            var q = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-            var any = false;
+            var words = queryWords(input.value);
+            var shown = 0, elsewhere = 0;
             hub.querySelectorAll('.tool-group').forEach(function (g) {
-                var shown = 0;
+                var n = 0;
                 g.querySelectorAll('.tool-card').forEach(function (card) {
-                    var ok = (!filter || card.dataset.cat === filter) &&
-                        q.every(function (w) { return card.dataset.search.indexOf(w) !== -1; });
+                    var hit = hasWords(card.dataset.search, words);
+                    var ok = hit && (!filter || card.dataset.cat === filter);
+                    if (hit && !ok) elsewhere++;
                     card.style.display = ok ? '' : 'none';
-                    if (ok) shown++;
+                    if (ok) n++;
                 });
-                g.style.display = shown ? '' : 'none';
-                if (shown) any = true;
+                g.style.display = n ? '' : 'none';
+                shown += n;
             });
-            hub.querySelector('.empty-state').style.display = any ? 'none' : 'block';
+            empty.innerHTML = filter && elsewhere
+                ? 'No tools in ' + esc(catTitle(filter)) + ' match that search. <button type="button" class="btn btn-secondary btn-sm" data-show-all>Show ' +
+                  elsewhere + (elsewhere === 1 ? ' match' : ' matches') + ' in all categories</button>'
+                : 'No tools match that search.';
+            empty.style.display = shown ? 'none' : 'block';
+            status.textContent = words.length || filter ? (shown === 1 ? '1 tool' : shown + ' tools') + ' shown' : '';
         }
-        input.addEventListener('input', apply);
-        hub.querySelectorAll('[data-filter]').forEach(function (b) {
-            b.addEventListener('click', function () {
-                filter = b.dataset.filter;
-                hub.querySelectorAll('[data-filter]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
-                apply();
-            });
+        function setFilter(id) {
+            var known = Array.prototype.some.call(buttons, function (x) { return x.dataset.filter === id; });
+            if (!known) return;
+            filter = id;
+            buttons.forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.filter === id ? 'true' : 'false'); });
+            apply();
+        }
+        // Keep the search and the category in the address, so Back, reload, and shared links show the same list
+        function syncUrl() {
+            var p = new URLSearchParams(location.search), q = input.value.trim();
+            if (q) p.set('q', q); else p.delete('q');
+            var s = p.toString(), url = location.pathname + (s ? '?' + s : '') + (filter ? '#' + filter : '');
+            if (url !== location.pathname + location.search + location.hash) {
+                try { history.replaceState(history.state, '', url); } catch (e) { /* ignore */ }
+            }
+        }
+        input.addEventListener('input', function () { apply(); syncUrl(); });
+        buttons.forEach(function (b) {
+            b.addEventListener('click', function () { setFilter(b.dataset.filter); syncUrl(); });
         });
+        hub.addEventListener('click', function (e) {
+            if (e.target.closest('[data-show-all]')) { setFilter(''); syncUrl(); input.focus(); }
+        });
+        window.addEventListener('hashchange', function () { setFilter(location.hash.slice(1)); });
         var q0 = new URLSearchParams(location.search).get('q');
-        if (q0) { input.value = q0; apply(); }
-        if (location.hash) {
-            var pre = hub.querySelector('[data-filter="' + location.hash.slice(1) + '"]');
-            if (pre) pre.click();
-        }
+        if (q0) input.value = q0;
+        if (location.hash) setFilter(location.hash.slice(1));
+        apply();
     }
 
     // <div data-tool-cats></div>: one tile per category listing its tools
@@ -277,7 +351,7 @@
             box.classList.add('grid', 'grid-3');
             box.innerHTML = CATEGORIES.map(function (c) {
                 var items = TOOLS.filter(function (t) { return t.cat === c.id; });
-                return '<div class="card cat-card"><h3><a href="/tools/#' + c.id + '">' + esc(c.title) + '</a><span class="count">' + items.length + '</span></h3>' +
+                return '<div class="card cat-card"><h3><a href="/tools/#' + c.id + '">' + esc(c.title) + '</a> <span class="count">' + items.length + '<span class="visually-hidden"> tools</span></span></h3>' +
                     '<p>' + esc(c.blurb) + '</p><ul>' + items.map(function (t) {
                         return '<li><a href="/tools/' + t.slug + '/">' + esc(t.title) + '</a></li>';
                     }).join('') + '</ul></div>';
@@ -335,6 +409,29 @@
             ignoredClasses: ['no-math'],
             throwOnError: false
         });
+        // Keep punctuation on the line of its formula: browsers may wrap between KaTeX's inline-block boxes and a
+        // following "," or "." (or after a "(" before the formula). Such a formula and its punctuation go in a nowrap
+        // span; the breaks KaTeX allows inside a long formula, between its .base boxes, stay as wrappable zero-width spaces.
+        document.querySelectorAll('.katex').forEach(function (k) {
+            var w = k.parentNode;
+            if (k.closest('.katex-display') || w.parentNode.classList.contains('math-nb')) return;
+            var n = w.nextSibling, p = w.previousSibling;
+            var after = n && n.nodeType === 3 ? (n.nodeValue.match(/^[,.;:!?)\]]+/) || [''])[0] : '';
+            var before = p && p.nodeType === 3 ? (p.nodeValue.match(/[(\[]$/) || [''])[0] : '';
+            if (!after && !before) return;
+            var s = document.createElement('span');
+            s.className = 'math-nb'; s.style.whiteSpace = 'nowrap';
+            w.parentNode.insertBefore(s, w);
+            if (before) { p.nodeValue = p.nodeValue.slice(0, -before.length); s.appendChild(document.createTextNode(before)); }
+            s.appendChild(w);
+            if (after) { n.nodeValue = n.nodeValue.slice(after.length); s.appendChild(document.createTextNode(after)); }
+            var bases = k.querySelectorAll('.katex-html > .base');
+            for (var i = 0; i < bases.length - 1; i++) {
+                var z = document.createElement('span');
+                z.style.whiteSpace = 'normal'; z.textContent = '\u200b';
+                bases[i].parentNode.insertBefore(z, bases[i].nextSibling);
+            }
+        });
     }
 
     /* ── Boot ───────────────────────────────────────────────────────────── */
@@ -356,6 +453,7 @@
     window.Site = {
         tools: TOOLS, articles: ARTICLES, categories: CATEGORIES, contact: CONTACT, icons: ICONS,
         toolBySlug: toolBySlug, articleBySlug: articleBySlug, catTitle: catTitle,
+        searchWords: queryWords, findTools: findTools, findArticles: findArticles,
         theme: currentTheme, renderMath: renderMath
     };
 })();

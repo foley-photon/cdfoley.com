@@ -41,8 +41,8 @@
 
     --spectrum: linear-gradient(90deg, #5b21b6 0%, #1d4ed8 18%, #0891b2 36%, #16a34a 54%, #ca8a04 70%, #ea580c 85%, #dc2626 100%);
 
-    /* chart series */
-    --c1: #1d4ed8; --c2: #ea580c; --c3: #059669; --c4: #7c3aed; --c5: #dc2626; --c6: #0891b2;
+    /* chart series: dark enough to use as label text (>= 4.5:1 on the light surfaces) */
+    --c1: #1d4ed8; --c2: #c2410c; --c3: #047857; --c4: #7c3aed; --c5: #dc2626; --c6: #0e7490;
 
     --font: 'Inter', 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -151,10 +151,12 @@ img { height: auto; display: block; }
 hr { border: 0; border-top: 1px solid var(--border); margin: 2rem 0; }
 small { font-size: 0.85em; }
 code, kbd, samp { font-family: var(--mono); font-size: 0.9em; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+kbd { color: var(--text); }   /* readable on its own chip, also inside the dark game overlays */
 sub, sup { line-height: 0; }
 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-::selection { background: var(--accent-soft); }
+::selection { background: var(--accent-soft); background: color-mix(in srgb, var(--accent) 28%, transparent); }
+::placeholder { color: var(--muted); opacity: 1; }
 
 .skip-link {
     position: absolute; left: -9999px; top: 8px; z-index: 1000;
@@ -170,6 +172,7 @@ sub, sup { line-height: 0; }
 /* ── Site header ────────────────────────────────────────────────────────── */
 .site-header {
     position: sticky; top: 0; z-index: 100;
+    background: var(--bg);
     background: color-mix(in srgb, var(--bg) 88%, transparent);
     backdrop-filter: saturate(160%) blur(14px);
     -webkit-backdrop-filter: saturate(160%) blur(14px);
@@ -230,6 +233,8 @@ sub, sup { line-height: 0; }
         padding: 0.5rem var(--gutter) 1rem;
         background: var(--bg); border-bottom: 1px solid var(--border);
         box-shadow: var(--shadow);
+        max-height: calc(100vh - var(--header-h) - 1px); max-height: calc(100dvh - var(--header-h) - 1px);   /* landscape phones */
+        overflow-y: auto; overscroll-behavior: contain;
         display: none;
     }
     .nav-links.open { display: flex; }
@@ -253,6 +258,7 @@ sub, sup { line-height: 0; }
 .site-footer h2, .site-footer h4 { color: var(--ink-text); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.8rem; }
 .site-footer a { color: var(--ink-muted); }
 .site-footer a:hover { color: #fff; }
+.site-footer :focus-visible, .contact-band :focus-visible { outline-color: var(--ink-text); }   /* the accent ring is 2.8:1 on ink */
 .site-footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
 .footer-name { color: var(--ink-text); font-weight: 650; font-size: 1rem; margin-bottom: 0.3rem; }
 .footer-bottom {
@@ -425,8 +431,9 @@ a.card h3 { color: var(--text); }
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.9rem 1.2rem; border-bottom: 1px solid var(--border); }
 .panel-head h2, .panel-head h3 { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; font-weight: 650; }
 .panel-body { padding: 1.2rem; }
-.panel-body table { display: block; max-width: 100%; overflow-x: auto; }
+.panel-body table { display: block; max-width: 100%; overflow-x: auto; position: relative; }   /* positioned, so the scroll box also clips KaTeX's absolutely positioned MathML copy, which would otherwise widen the page */
 .panel + .panel { margin-top: 1.2rem; }
+.tool-layout > .panel + .panel { margin-top: 0; }   /* the grid gap spaces stacked panels */
 .sticky-panel { position: sticky; top: calc(var(--header-h) + 16px); }
 @media (max-width: 860px) { .sticky-panel { position: static; } }
 
@@ -434,9 +441,14 @@ a.card h3 { color: var(--text); }
 .field { margin-bottom: 0.95rem; }
 .field:last-child { margin-bottom: 0; }
 .field > label, .field-label { display: flex; justify-content: space-between; gap: 0.5rem; align-items: baseline; font-size: 0.88rem; font-weight: 550; color: var(--text); margin-bottom: 0.35rem; }
+.field-label:has(> .seg) { flex-wrap: wrap; row-gap: 0.35rem; }   /* a toggle drops below its label on narrow screens */
 .field .sym { font-family: var(--mono); font-size: 0.8rem; font-weight: 400; color: var(--muted); }
 .field .hint, .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; line-height: 1.45; }
 .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0 0.9rem; }
+/* when a row stacks on a phone, its last field keeps the usual space below it */
+.field-row > .field:last-child { margin-bottom: 0.95rem; }
+.field-row:last-child > .field:last-child { margin-bottom: 0; }
+.field-row:not(:last-child) > .field > .hint:last-child { margin-bottom: 0; }   /* a <p> hint's margin can't collapse into the field's inside a grid row */
 
 .input-unit { display: flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); overflow: hidden; transition: border-color 0.15s, box-shadow 0.15s; }
 .input-unit:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
@@ -458,29 +470,31 @@ textarea.input { font-family: var(--mono); font-size: 0.88rem; resize: vertical;
 input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-.seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; }
+.seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; min-width: min-content; }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
 .seg label { padding: 0.4rem 0.8rem; font-size: 0.85rem; cursor: pointer; color: var(--text-2); border-left: 1px solid var(--border); margin: 0; }
 .seg label:first-of-type { border-left: 0; }
 .seg input:checked + label { background: var(--accent); color: var(--on-accent); }
 .seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -2px; }
+.seg input:checked:focus-visible + label { outline-color: var(--on-accent); outline-offset: -4px; }
 
 /* Results */
 .results { display: grid; gap: 0; }
+/* a long value moves under its label instead of squeezing the label into a narrow column */
 .result {
-    display: grid; grid-template-columns: 1fr auto; gap: 0.25rem 1rem; align-items: baseline;
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.25rem 1rem; align-items: baseline;
     padding: 0.7rem 0; border-top: 1px solid var(--border);
 }
 .result:first-child { border-top: 0; padding-top: 0; }
-.result-label { font-size: 0.9rem; color: var(--text-2); }
+.result-label { flex: 1 1 7.5rem; font-size: 0.9rem; color: var(--text-2); }
 .result-label .sym { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); margin-left: 0.3rem; }
 .result-value {
     font-family: var(--mono); font-size: 1rem; font-weight: 600; color: var(--text);
-    font-variant-numeric: tabular-nums; text-align: right; cursor: copy; border-radius: 4px; padding: 0 0.25rem;
+    font-variant-numeric: tabular-nums; text-align: right; cursor: copy; border-radius: 4px; padding: 0 0.25rem; margin-left: auto;
 }
 .result-value:hover { background: var(--surface-2); }
 .result-value.copied { background: var(--ok-soft); color: var(--ok); }
-.result-note { grid-column: 1 / -1; font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
+.result-note { flex: 1 0 100%; font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
 .result.primary .result-value { font-size: 1.25rem; color: var(--accent); }
 .result.primary .result-label { font-weight: 600; color: var(--text); }
 .calc-error { display: none; font-size: 0.88rem; color: var(--danger); background: var(--danger-soft); border-radius: var(--radius-sm); padding: 0.6rem 0.8rem; margin-bottom: 0.9rem; }
@@ -490,6 +504,8 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
 .badge-ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
 .badge-warn { background: var(--warn-soft); color: var(--warn); border-color: var(--warn-border); }
 .badge-bad { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+.badge:empty { display: none; }
+.tool-layout:has(.calc-error.show) .badge { display: none; }   /* results are blank during an input error, so a verdict would be stale */
 
 /* Converter grid (energy / pressure style: every field is both input and output) */
 .conv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 0.9rem 1.2rem; }
@@ -517,6 +533,15 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
     padding: 0.9rem 1.1rem; overflow-x: auto; margin: 1rem 0; text-align: center;
 }
 .formula .katex-display { margin: 0.3em 0; }
+/* scroll cue: a soft shadow marks each edge where a formula (or a prose table, below) continues */
+.formula {
+    background:
+        linear-gradient(to right, var(--code-bg) 30%, transparent) left / 2.5rem 100% no-repeat local,
+        linear-gradient(to left, var(--code-bg) 30%, transparent) right / 2.5rem 100% no-repeat local,
+        radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--text) 22%, transparent), transparent) left / 0.75rem 100% no-repeat scroll,
+        radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--text) 22%, transparent), transparent) right / 0.75rem 100% no-repeat scroll,
+        var(--code-bg);
+}
 
 /* Plot */
 .plot { width: 100%; height: auto; display: block; font-family: var(--font); }
@@ -565,7 +590,14 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
 .prose li { margin-bottom: 0.35rem; }
 .prose li::marker { color: var(--muted); }
 .prose strong { color: var(--text); font-weight: 600; }
-.prose table { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 1.2rem 0; display: block; overflow-x: auto; }
+.prose table { width: 100%; border-collapse: collapse; font-size: 0.92rem; margin: 1.2rem 0; display: block; overflow-x: auto; position: relative; }   /* positioned: see .panel-body table */
+.prose > table {
+    background:
+        linear-gradient(to right, var(--bg) 30%, transparent) left / 2.5rem 100% no-repeat local,
+        linear-gradient(to left, var(--bg) 30%, transparent) right / 2.5rem 100% no-repeat local,
+        radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--text) 22%, transparent), transparent) left / 0.75rem 100% no-repeat scroll,
+        radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--text) 22%, transparent), transparent) right / 0.75rem 100% no-repeat scroll;
+}
 .prose th, .prose td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
 .prose th { color: var(--text); font-weight: 600; background: var(--surface-2); white-space: nowrap; }
 .prose td.num, .prose th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 0.88rem; }
@@ -604,6 +636,12 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
     .site-header, .site-footer, .calc-actions, .menu-toggle, .theme-toggle, .toc, .no-print { display: none !important; }
     body { background: #fff; color: #000; }
     .panel, .card { box-shadow: none; }
+}
+
+/* Forced colors (Windows high contrast) drop backgrounds and box-shadows: keep focus and selected states visible */
+@media (forced-colors: active) {
+    .input-unit:focus-within, .input:focus, .tool-search input:focus { outline: 2px solid Highlight; outline-offset: 1px; }
+    .seg input:checked + label, .tool-cats button[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; border-color: Highlight; }
 }
 
 /* Justify running prose where the measure is wide enough to avoid rivers. */

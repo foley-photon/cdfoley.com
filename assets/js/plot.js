@@ -13,8 +13,9 @@
        { type: 'points', x: [], y: [], color, colors: [] , line: true }     markers (+ optional line)
      ],
      vlines: [{ x, label, color }], hlines: [{ y, label, color }],
-     hover: true | { format: (x, hits) => 'text' }
+     hover: true | { format: (x, hits) => 'text', hint }     readout by pointer, tap, or keyboard (focus, ← →)
    })
+   Plot.clear(container)                                 remove a chart, e.g. when the inputs are invalid
    ========================================================================== */
 (function () {
     'use strict';
@@ -31,8 +32,12 @@
     function linTicks(min, max, count) {
         if (!(max > min)) return [min];
         var step = niceStep(max - min, count);
+        // whole multiples of the step: no accumulated rounding (a "−5.6e-17" zero tick), and no endless loop
+        // when the step is below the floating-point spacing of the values
+        var k0 = Math.ceil(min / step - 1e-9), k1 = Math.floor(max / step + 1e-9);
+        if (!(Math.abs(k0) < 1e12 && Math.abs(k1) < 1e12)) return [min, max];
         var out = [];
-        for (var v = Math.ceil(min / step - 1e-9) * step; v <= max + step * 1e-9; v += step) out.push(parseFloat(v.toPrecision(12)));
+        for (var k = k0; k <= k1 && out.length < 1000; k++) out.push(k === 0 ? 0 : parseFloat((k * step).toPrecision(12)));
         return out;
     }
     function logTicks(min, max) {
@@ -47,6 +52,7 @@
     var SUP = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
     function tickLabel(v, log) {
         if (v === 0) return '0';
+        if (!isFinite(v)) return '';
         var a = Math.abs(v);
         var e = Math.round(Math.log10(a));
         if (log && Math.abs(a - Math.pow(10, e)) / a < 1e-9 && (e < -2 || e > 3)) {
@@ -55,6 +61,22 @@
         if (a >= 1e-3 && a < 1e5) return String(parseFloat(v.toPrecision(6))).replace('-', '−');
         var s = v.toExponential(1).split('e');
         return s[0].replace(/\.0$/, '').replace('-', '−') + 'e' + s[1].replace('+', '');
+    }
+    // a linear-axis tick label with the digits the tick step needs, so neighbouring ticks never read the same
+    // (1063.996 | 1063.998 | 1064 rather than 1064 | 1064 | 1064)
+    function stepLabel(v, step) {
+        var ls = Math.floor(Math.log10(step) + 1e-9);
+        if (v === 0 || !isFinite(v) || !isFinite(ls)) return tickLabel(v);
+        var a = Math.abs(v);
+        if (a >= 1e-3 && a < 1e5) return String(parseFloat(v.toFixed(Math.max(0, Math.min(20, -ls))))).replace('-', '−');
+        var s = v.toExponential(Math.max(1, Math.min(20, Math.floor(Math.log10(a) + 1e-9) - ls))).split('e');
+        return s[0].replace(/\.?0+$/, '').replace('-', '−') + 'e' + s[1].replace('+', '');
+    }
+    function axisFormat(ax, log, min, max, count) {
+        if (ax.format) return ax.format;
+        if (log) return function (v) { return tickLabel(v, true); };
+        var step = niceStep(max - min, count);
+        return function (v) { return stepLabel(v, step); };
     }
 
     function extent(arrs, log) {
@@ -68,6 +90,9 @@
         });
         return [lo, hi];
     }
+
+    // true for a single value, or a range so narrow (relative width below 1e-12) that it is only rounding
+    function flat(lo, hi) { return !(Math.abs(hi - lo) > 1e-12 * Math.max(Math.abs(lo), Math.abs(hi))); }
 
     function scale(min, max, a, b, log) {
         if (log) {
@@ -90,43 +115,63 @@
         if (parent) parent.appendChild(n);
         return n;
     }
+    function drawable(x, y, log) { return isFinite(x) && isFinite(y) && !(log.x && x <= 0) && !(log.y && y <= 0); }
     function pathFrom(xs, ys, sx, sy, log) {
         var d = '', pen = false;
         for (var i = 0; i < xs.length; i++) {
             var x = xs[i], y = ys[i];
-            var ok = isFinite(x) && isFinite(y) && !(log.x && x <= 0) && !(log.y && y <= 0);
-            if (!ok) { pen = false; continue; }
+            if (!drawable(x, y, log)) { pen = false; continue; }
             d += (pen ? 'L' : 'M') + sx(x).toFixed(2) + ',' + sy(y).toFixed(2);
             pen = true;
         }
         return d;
     }
-    function nearestIndex(xs, x) {
-        var lo = 0, hi = xs.length - 1;
+    // indices of the points that have a position on the x axis, sorted by x (points need not be in order)
+    function xOrder(xs, log) {
+        var idx = [];
+        for (var i = 0; i < xs.length; i++) if (isFinite(xs[i]) && !(log.x && xs[i] <= 0)) idx.push(i);
+        return idx.sort(function (a, b) { return xs[a] - xs[b] || a - b; });
+    }
+    // index of the point nearest to pixel px, measured on screen (so log axes are fair); -1 if none
+    function nearestIndex(order, xs, xv, sx, px) {
+        var lo = 0, hi = order.length - 1;
         if (hi < 0) return -1;
-        var asc = xs[hi] >= xs[0];
         while (hi - lo > 1) {
             var mid = (lo + hi) >> 1;
-            if ((xs[mid] < x) === asc) lo = mid; else hi = mid;
+            if (xs[order[mid]] < xv) lo = mid; else hi = mid;
         }
-        return Math.abs(xs[lo] - x) <= Math.abs(xs[hi] - x) ? lo : hi;
+        var a = order[lo], b = order[hi];
+        return Math.abs(sx(xs[a]) - px) <= Math.abs(sx(xs[b]) - px) ? a : b;
     }
+
+    function plotWidth(w) { return Math.round(Math.max(300, Math.min(1100, w))); }
+    // a chart that is still on screen: not one the page has since cleared (for example on an input error)
+    function live(c) { return !!(c._plot && c._plot.svg && c._plot.svg.parentNode === c); }
 
     // Redraw at the new width when a plot's container is resized (charts are drawn at true pixel size).
     var ro = 'ResizeObserver' in window ? new ResizeObserver(function (entries) {
         entries.forEach(function (en) {
             var c = en.target, w = Math.round(en.contentRect.width);
-            if (c._plot && Math.abs(w - c._plot.w) > 24) {
+            if (w > 0 && live(c) && Math.abs(plotWidth(w) - c._plot.w) > 24) {   // width 0: hidden, keep the chart as it is
                 clearTimeout(c._plotT);
-                c._plotT = setTimeout(function () { draw(c, c._plot.o); }, 80);
+                c._plotT = setTimeout(function () { if (live(c)) draw(c, c._plot.o); }, 80);
             }
         });
     }) : null;
 
+    // Remove a chart (for example when the inputs are invalid) so that a later resize cannot bring it back.
+    function clear(container) {
+        if (typeof container === 'string') container = document.querySelector(container);
+        if (!container) return;
+        clearTimeout(container._plotT);
+        container._plot = null;
+        container.innerHTML = '';
+    }
+
     function draw(container, o) {
         if (typeof container === 'string') container = document.querySelector(container);
         // width = container's pixel width (so 11 px labels render at 11 px), within sensible bounds
-        var W = Math.round(Math.max(300, Math.min(1100, container.clientWidth || 640)));
+        var W = plotWidth(container.clientWidth || 640);
         var H = Math.round(Math.min((o.height || 300) * 1.3, Math.max(230, W * 0.42)));
         if (!container._plot && ro) ro.observe(container);
         container._plot = { o: o, w: W };
@@ -149,35 +194,73 @@
         var xe = extent(xs, log.x), ye = extent(ys, log.y);
         var xmin = xo.min !== undefined ? xo.min : xe[0], xmax = xo.max !== undefined ? xo.max : xe[1];
         var ymin = yo.min !== undefined ? yo.min : ye[0], ymax = yo.max !== undefined ? yo.max : ye[1];
-        if (!isFinite(xmin) || !isFinite(xmax)) { xmin = 0; xmax = 1; }
-        if (!isFinite(ymin) || !isFinite(ymax)) { ymin = 0; ymax = 1; }
-        if (xmin === xmax) { xmin -= 0.5 || 1; xmax += 0.5 || 1; }
-        if (ymin === ymax) { var pad0 = Math.abs(ymin) * 0.1 || 1; ymin -= pad0; ymax += pad0; }
-        if (!log.y && yo.max === undefined) { ymax += (ymax - ymin) * 0.06; }
-        if (!log.y && yo.min === undefined && ymin !== 0) { ymin -= (ymax - ymin) * 0.04; }
+        // no drawable data: a unit range (a log axis needs positive bounds, or every coordinate is NaN)
+        if (!isFinite(xmin) || !isFinite(xmax) || (log.x && !(xmin > 0 && xmax > 0))) { xmin = log.x ? 1 : 0; xmax = log.x ? 10 : 1; }
+        if (!isFinite(ymin) || !isFinite(ymax) || (log.y && !(ymin > 0 && ymax > 0))) { ymin = log.y ? 1 : 0; ymax = log.y ? 10 : 1; }
+        // a single value, or values equal to within rounding (a flat curve), gets a margin around it
+        if (flat(xmin, xmax)) { if (log.x) { xmin /= 2; xmax *= 2; } else { xmin -= 0.5; xmax += 0.5; } }
+        if (flat(ymin, ymax)) { var pad0 = Math.abs(ymin) * 0.1 || 1; ymin -= pad0; ymax += pad0; }
+        // headroom, unless it would overflow (values near ±1e308)
+        if (!log.y && yo.max === undefined) { var hi = ymax + (ymax - ymin) * 0.06; if (isFinite(hi)) ymax = hi; }
+        if (!log.y && yo.min === undefined && ymin !== 0) { var lo = ymin - (ymax - ymin) * 0.04; if (isFinite(lo)) ymin = lo; }
         if (log.y && yo.min === undefined) ymin = Math.pow(10, Math.floor(Math.log10(ymin) * 4) / 4);
         if (log.y && yo.max === undefined) ymax = Math.pow(10, Math.ceil(Math.log10(ymax) * 4) / 4);
 
-        var x0 = M.l, x1 = W - M.r, y0 = H - M.b, y1 = M.t;
-        var sx = scale(xmin, xmax, x0, x1, log.x), sy = scale(ymin, ymax, y0, y1, log.y);
-        var ix = invScale(xmin, xmax, x0, x1, log.x);
+        var yt = log.y ? logTicks(ymin, ymax) : linTicks(ymin, ymax, yo.ticks || 5);
+        var fy = axisFormat(yo, log.y, ymin, ymax, yo.ticks || 5);
 
         container.innerHTML = '';
         var svg = h('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'plot', role: 'img', 'aria-label': o.ariaLabel || ((yo.label || '') + ' versus ' + (xo.label || '')) }, container);
+        container._plot.svg = svg;
+
+        // label widths, measured when rendered (otherwise about 7.5 px per character)
+        var probe = h('text', {}, svg);
+        var widthOf = function (s) {
+            probe.textContent = s;
+            var w = 0;
+            try { w = probe.getComputedTextLength(); } catch (e) { /* not rendered */ }
+            return w || 7.5 * probe.textContent.length;
+        };
+        // long y tick labels widen the left margin so they clear the rotated axis title
+        var yw = 0;
+        yt.forEach(function (v) { yw = Math.max(yw, widthOf(fy(v))); });
+        var x0 = Math.max(M.l, Math.ceil(32 + yw)), x1 = W - M.r, y0 = H - M.b, y1 = M.t;
+        var sx = scale(xmin, xmax, x0, x1, log.x), sy = scale(ymin, ymax, y0, y1, log.y);
+        var ix = invScale(xmin, xmax, x0, x1, log.x);
+        // x ticks: when default labels would run into each other (long, precise ones on a phone), use fewer ticks
+        // while at least three stay labelled, then label only every 2nd (3rd, …) one
+        var xcount = xo.ticks || 6, xt, fx, xstride = 1;
+        var inside = function (ticks) { return ticks.filter(function (v) { var p = sx(v); return p >= x0 - 0.5 && p <= x1 + 0.5; }); };
+        var xFits = function (stride) {
+            var end = -Infinity;
+            return inside(xt).every(function (v, i) {
+                if (i % stride) return true;
+                var p = sx(v), w = widthOf(fx(v)), ok = p - w / 2 >= end + 6;
+                end = p + w / 2;
+                return ok;
+            });
+        };
+        for (;;) {
+            xt = log.x ? logTicks(xmin, xmax) : linTicks(xmin, xmax, xcount);
+            fx = axisFormat(xo, log.x, xmin, xmax, xcount);
+            if (xo.format || log.x || xFits(1)) break;
+            if (xcount <= 2 || inside(linTicks(xmin, xmax, xcount - 1)).length < 3) {
+                while (xstride < xt.length && !xFits(xstride)) xstride++;
+                break;
+            }
+            xcount--;
+        }
+        svg.removeChild(probe);
         var clipId = 'pc' + (++uid);
         var defs = h('defs', {}, svg);
         h('rect', { x: x0, y: y1, width: x1 - x0, height: y0 - y1 }, h('clipPath', { id: clipId }, defs));
 
         // grid + ticks
-        var gGrid = h('g', { class: 'grid' }, svg), gAxis = h('g', { class: 'axis' }, svg);
-        var xt = log.x ? logTicks(xmin, xmax) : linTicks(xmin, xmax, xo.ticks || 6);
-        var yt = log.y ? logTicks(ymin, ymax) : linTicks(ymin, ymax, yo.ticks || 5);
-        var fx = xo.format || function (v) { return tickLabel(v, log.x); };
-        var fy = yo.format || function (v) { return tickLabel(v, log.y); };
+        var gGrid = h('g', { class: 'grid' }, svg), gAxis = h('g', { class: 'axis' }, svg), xi = 0;
         xt.forEach(function (v) {
             var p = sx(v); if (p < x0 - 0.5 || p > x1 + 0.5) return;
             h('line', { x1: p, x2: p, y1: y1, y2: y0 }, gGrid);
-            h('text', { x: p, y: y0 + 16, 'text-anchor': 'middle' }, gAxis).textContent = fx(v);
+            if (xi++ % xstride === 0) h('text', { x: p, y: y0 + 16, 'text-anchor': 'middle' }, gAxis).textContent = fx(v);
         });
         yt.forEach(function (v) {
             var p = sy(v); if (p < y1 - 0.5 || p > y0 + 0.5) return;
@@ -208,7 +291,8 @@
             }
             var d = pathFrom(s.x, s.y, sx, sy, log);
             if (s.fill && d) {
-                var first = s.x.find(function (v) { return isFinite(v); }), last = s.x[s.x.length - 1];
+                var first = null, last = null;   // the ends of the drawn curve (not a trailing gap)
+                for (var q = 0; q < s.x.length; q++) if (drawable(s.x[q], s.y[q], log)) { if (first === null) first = s.x[q]; last = s.x[q]; }
                 h('path', { d: d + 'L' + sx(last).toFixed(2) + ',' + baseY + 'L' + sx(first).toFixed(2) + ',' + baseY + 'Z', class: 'area', fill: color }, gData);
             }
             if (s.type !== 'points' || s.line) {
@@ -216,17 +300,30 @@
             }
             if (s.type === 'points') {
                 for (var k = 0; k < s.x.length; k++) {
-                    if (!isFinite(s.x[k]) || !isFinite(s.y[k])) continue;
+                    if (!drawable(s.x[k], s.y[k], log)) continue;
                     h('circle', { cx: sx(s.x[k]), cy: sy(s.y[k]), r: s.r || 3.5, class: 'marker', fill: (s.colors && s.colors[k]) || color }, gData);
                 }
             }
         });
 
+        // line labels: one that would overprint another (two vlines close together) moves down a line
+        var placed = [];
+        var place = function (t, move) {
+            var b = null;
+            try { b = t.getBBox(); } catch (e) { /* not rendered */ }
+            if (!b || !b.width) return;
+            var hits = function () { return placed.some(function (q) { return b.x < q.x + q.width + 3 && q.x < b.x + b.width + 3 && b.y < q.y + q.height && q.y < b.y + b.height; }); };
+            for (var n = 0; move && n < 5 && hits(); n++) { t.setAttribute('y', +t.getAttribute('y') + Math.ceil(b.height)); b = t.getBBox(); }
+            placed.push(b);
+        };
         (o.hlines || []).forEach(function (l) {
             if (!(l.y >= ymin && l.y <= ymax)) return;
             var p = sy(l.y), c = l.color || 'var(--muted)';
             h('line', { x1: x0, x2: x1, y1: p, y2: p, class: 'vline', stroke: c }, svg);
-            if (l.label) h('text', { x: x1 - 4, y: p - 5, 'text-anchor': 'end', class: 'vlabel', fill: c }, svg).textContent = l.label;
+            if (l.label) {
+                var t = h('text', { x: x1 - 4, y: p - 5, 'text-anchor': 'end', class: 'vlabel', fill: c }, svg);
+                t.textContent = l.label; place(t, false);
+            }
         });
         (o.vlines || []).forEach(function (l) {
             if (!(l.x >= xmin && l.x <= xmax)) return;
@@ -234,7 +331,8 @@
             h('line', { x1: p, x2: p, y1: y1, y2: y0, class: 'vline', stroke: c }, svg);
             if (l.label) {
                 var right = p > (x0 + x1) / 2;
-                h('text', { x: p + (right ? -5 : 5), y: y1 + 12, 'text-anchor': right ? 'end' : 'start', class: 'vlabel', fill: c }, svg).textContent = l.label;
+                var t = h('text', { x: p + (right ? -5 : 5), y: y1 + 12, 'text-anchor': right ? 'end' : 'start', class: 'vlabel', fill: c }, svg);
+                t.textContent = l.label; place(t, true);
             }
         });
 
@@ -251,41 +349,60 @@
             container.appendChild(lg);
         }
 
-        // hover readout
+        // hover readout: pointer (move or tap) and keyboard (focus the chart, then ← → or Home / End)
         if (o.hover) {
             var lines = series.filter(function (s) { return s.type === 'line' || s.type === 'points'; });
+            var orders = lines.map(function (s) { return xOrder(s.x, log); });
             var readout = document.createElement('div'); readout.className = 'plot-readout'; readout.setAttribute('aria-live', 'polite');
-            readout.textContent = o.hover.hint || 'Hover over the chart to read values.';
+            readout.id = 'pr' + uid;
+            readout.textContent = o.hover.hint || 'Hover over or tap the chart to read values.';
             container.appendChild(readout);
             var hl = h('line', { y1: y1, y2: y0, class: 'hover-line', visibility: 'hidden' }, svg);
             var dots = lines.map(function (s, i) { return h('circle', { r: 4, fill: s.color || 'var(--c' + ((series.indexOf(s) % 6) + 1) + ')', class: 'marker', visibility: 'hidden' }, svg); });
             var hit = h('rect', { x: x0, y: y1, width: x1 - x0, height: y0 - y1, fill: 'transparent', style: 'cursor:crosshair' }, svg);
-            var move = function (ev) {
-                var pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
-                var loc = pt.matrixTransform(svg.getScreenCTM().inverse());
-                var xv = ix(Math.max(x0, Math.min(x1, loc.x)));
+            var at = (x0 + x1) / 2;   // cursor position in pixels
+            var show = function (px) {
+                at = px = Math.max(x0, Math.min(x1, px));
+                var xv = ix(px);
                 var hits = [];
                 lines.forEach(function (s, i) {
-                    var k = nearestIndex(s.x, xv);
-                    if (k < 0 || !isFinite(s.y[k])) { dots[i].setAttribute('visibility', 'hidden'); return; }
+                    var k = nearestIndex(orders[i], s.x, xv, sx, px);
+                    if (k < 0 || !drawable(s.x[k], s.y[k], log)) { dots[i].setAttribute('visibility', 'hidden'); return; }   // a gap in the curve
                     hits.push({ series: s, x: s.x[k], y: s.y[k], i: k });
                     dots[i].setAttribute('cx', sx(s.x[k])); dots[i].setAttribute('cy', sy(s.y[k]));
                     dots[i].setAttribute('visibility', 'visible');
                 });
-                var px = hits.length ? sx(hits[0].x) : sx(xv);
-                hl.setAttribute('x1', px); hl.setAttribute('x2', px); hl.setAttribute('visibility', 'visible');
+                var hx = hits.length ? sx(hits[0].x) : px;
+                hl.setAttribute('x1', hx); hl.setAttribute('x2', hx); hl.setAttribute('visibility', 'visible');
                 readout.textContent = o.hover.format ? o.hover.format(hits.length ? hits[0].x : xv, hits)
                     : (xo.label || 'x') + ' = ' + tickLabel(hits.length ? hits[0].x : xv) + hits.map(function (hh) { return ' · ' + (hh.series.label || 'y') + ' = ' + tickLabel(hh.y); }).join('');
             };
-            hit.addEventListener('pointermove', move);
-            hit.addEventListener('pointerdown', move);
-            hit.addEventListener('pointerleave', function () {
+            var hide = function () {
                 hl.setAttribute('visibility', 'hidden');
                 dots.forEach(function (d) { d.setAttribute('visibility', 'hidden'); });
+            };
+            var move = function (ev) {
+                var pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+                show(pt.matrixTransform(svg.getScreenCTM().inverse()).x);
+            };
+            hit.addEventListener('pointermove', move);
+            hit.addEventListener('pointerdown', move);
+            hit.addEventListener('pointerleave', hide);
+            svg.setAttribute('tabindex', '0');
+            svg.setAttribute('aria-describedby', readout.id);
+            svg.addEventListener('focus', function () { show(at); });
+            svg.addEventListener('blur', hide);
+            svg.addEventListener('keydown', function (ev) {
+                var w = x1 - x0, step = ev.shiftKey ? w / 10 : w / 50;
+                var to = { ArrowLeft: at - step, ArrowDown: at - step, ArrowRight: at + step, ArrowUp: at + step,
+                    PageDown: at - w / 10, PageUp: at + w / 10, Home: x0, End: x1 }[ev.key];
+                if (to === undefined || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+                ev.preventDefault();
+                show(to);
             });
         }
         return { svg: svg, sx: sx, sy: sy };
     }
 
-    window.Plot = { draw: draw, ticks: linTicks, logTicks: logTicks };
+    window.Plot = { draw: draw, clear: clear, ticks: linTicks, logTicks: logTicks };
 })();
