@@ -180,8 +180,8 @@
         <h2>Effective pulse number for a Gaussian beam</h2>
         <p>“Pulses per spot” counts circles, but a Gaussian beam delivers most of its fluence near the center. Summing the Gaussian fluence of every pulse that passes a point on the scan line gives the accumulated dose in units of the peak fluence \(F_0\):</p>
         <div class="formula">\[ \sum_n e^{-2(x - n\Delta x)^2/w_0^2} \;\approx\; \frac{1}{\Delta x}\int_{-\infty}^{\infty} e^{-2x^2/w_0^2}\,dx \;=\; \sqrt{\frac{\pi}{2}}\,\frac{w_0}{\Delta x} \equiv N_\text{eff,1D}. \]</div>
-        <p>For a hatched area the same integral runs in two dimensions: \(N_\text{eff,2D} = \dfrac{\pi}{2}\dfrac{w_0^2}{\Delta x\,h}\). Summing the discrete pulses numerically confirms both expressions. When \(\Delta x \le w_0\), the point-to-point ripple in the sum stays within about ±1.5 %. At larger pitch the dose varies along the line and \(N_\text{eff}\) is only an average.</p>
-        <p>\(N_\text{eff}\) is the right pulse count to use with incubation models (\(F_\text{th}(N) = F_\text{th}(1)N^{S-1}\)). The accumulated fluence \(N_\text{eff}F_0\) is a useful dose metric for comparing scan strategies.</p>
+        <p>For a hatched area the same integral runs in two dimensions: \(N_\text{eff,2D} = \dfrac{\pi}{2}\dfrac{w_0^2}{\Delta x\,h}\). Summing the discrete pulses numerically confirms both expressions. When \(\Delta x \le w_0\), the point-to-point ripple in the line sum stays within about ±1.5 %. With \(h \le w_0\) as well, the area sum stays within about ±3 %. At larger pitch or hatch the dose varies from point to point and \(N_\text{eff}\) is only an average.</p>
+        <p>\(N_\text{eff}\) is the pulse count commonly used with incubation models (\(F_\text{th}(N) = F_\text{th}(1)N^{S-1}\)). The accumulated fluence \(N_\text{eff}F_0\) is a useful dose metric for comparing scan strategies.</p>
 
         <h2>Worked example</h2>
         <p>A 30 µm spot scanned at 1 m/s with 100 kHz pulses and a 15 µm hatch:</p>
@@ -193,14 +193,14 @@
             <li><strong>Continuous scribes and cuts</strong> usually need 50–90 % pulse overlap so the trench has no unablated bridges. The edge ripple period equals Δx.</li>
             <li><strong>Very high overlap</strong> (&gt; 90–95 %) raises the pulse count per point and can cause heat accumulation at high repetition rates. Check the <a href="/tools/thermal-diffusion/">thermal diffusion</a> tool.</li>
             <li><strong>Polygon and fast-galvo systems</strong> often run at low or zero overlap and build depth with multiple passes. This spreads the heat input over time.</li>
-            <li><strong>Galvo acceleration</strong> raises the effective overlap at line ends unless the controller skips pulses (“skywriting”) or uses position-synchronized firing.</li>
+            <li><strong>Galvo acceleration</strong> raises the effective overlap at line ends unless the controller accelerates outside the marked region with the laser off (“skywriting”) or uses position-synchronized firing.</li>
         </ul>
 
         <h2>Assumptions and limits</h2>
         <ul>
             <li>Constant scan speed and repetition rate, straight parallel lines, and one pulse per trigger (no burst mode).</li>
             <li>Overlap is geometric, measured against the 1/e² diameter. Some groups define overlap against the ablated crater diameter instead, which depends on fluence.</li>
-            <li>\(N_\text{eff}\) assumes a TEM₀₀ Gaussian focal spot. For top-hat beams, pulses per spot and \(N_\text{eff}\) coincide.</li>
+            <li>\(N_\text{eff}\) assumes a TEM₀₀ Gaussian focal spot. For a top-hat beam, each point on the scan line receives the full fluence from \(d/\Delta x\) pulses, so pulses per spot is already the effective count along the line.</li>
         </ul>
 
         <h2>References</h2>
@@ -284,9 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
             else { badge.textContent = 'High overlap'; badge.className = 'badge badge-warn'; }
 
             const msgs = [];
-            if (dx > w) msgs.push('Pitch exceeds the beam radius, so N_eff,1D is an average. The dose varies noticeably along the line.');
-            if (v.h > w) msgs.push('Hatch exceeds the beam radius, so N_eff,2D is an average with stripes between lines.');
-            note.textContent = msgs.join(' ');
+            if (dx > w) msgs.push('Pitch exceeds the beam radius, so N<sub>eff,1D</sub> is an average. The dose varies noticeably along the line.');
+            if (v.h > w) msgs.push('Hatch exceeds the beam radius, so N<sub>eff,2D</sub> is an average with stripes between lines.');
+            note.innerHTML = msgs.join(' ');   // fixed strings only
             noteRow.hidden = !msgs.length;
 
             const t = isFinite(v.area) ? v.area / rate : NaN;

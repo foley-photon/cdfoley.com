@@ -221,7 +221,7 @@
             <li><strong>Opportunity counts are a judgment call.</strong> Counting more opportunities per unit lowers DPMO and raises the sigma level without any change to the product. Define opportunities once, document the definition, and keep it fixed when comparing over time.</li>
             <li><strong>Normal tails.</strong> Converting a defect rate to a z-value assumes normally distributed variation. For attribute defects (missing features, contamination) the sigma level is only a common scale, not a physical distance to a limit.</li>
             <li><strong>One-sided convention.</strong> Every defect is assigned to one tail. For a centered process with two-sided limits, use the two-sided column in the table or the <a href="/tools/process-capability/">capability calculator</a>.</li>
-            <li><strong>Independent steps.</strong> RTY assumes step yields are independent. Upstream defects that make downstream failures more likely make the true RTY lower.</li>
+            <li><strong>Independent steps.</strong> RTY assumes step yields are independent. When the units that fail one step are also more likely to fail later ones (a weak part, a marginal setup), failures pile up on the same units and the true RTY is higher than the product. When failures at different steps tend to exclude each other, it is lower. Track units through the line to measure RTY directly when the difference matters.</li>
         </ul>
 
         <h2>References</h2>
@@ -243,11 +243,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     const { fmt } = Calc;
     const { normCdf, normInv } = Calc.math;
-    const shiftInputs = document.querySelectorAll('input[name="shift"]');
     const shift = () => parseFloat(document.querySelector('input[name="shift"]:checked').value);
     const conv = document.getElementById('conv');
-    const errBox = conv.querySelector('.calc-error');
     const equiv = document.getElementById('equiv');
+    const yldInput = conv.querySelector('input[name="yld"]');
+    let dpo = null;
 
     // base quantity: defect fraction p (per opportunity)
     const fields = {
@@ -257,38 +257,52 @@ document.addEventListener('DOMContentLoaded', () => {
         sig:  { to: s => normCdf(shift() - s), from: p => shift() - normInv(p) }
     };
 
-    let lastField = 'dpmo';
+    let lastField = 'sig';
     conv.addEventListener('input', e => { if (e.target.name in fields) lastField = e.target.name; });
+
+    // the convention is part of the link, so a shared link shows the same sigma levels; changing it
+    // re-runs both calculators, keeping the converter's highlighted (last entered) value fixed
+    Calc.create({
+        form: '#conv .sl-shift',
+        outputs: '#conv .sl-shift',
+        compute() { return {}; },
+        after() {
+            if (!dpo) return;   // first run, before the other calculators exist
+            dpo.run();
+            const inp = conv.querySelector('input[name="' + lastField + '"]');
+            if (inp) inp.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    });
 
     Calc.converter({
         root: '#conv',
         fields,
         sig: 7,
+        positive: false,   // a sigma level can be zero or negative; the defect-rate check below covers the rest
         initial: { field: 'sig', value: 6 },
-        after(p) {
-            if (!(p > 0 && p < 1)) {
-                errBox.textContent = 'The defect rate must be between 0 and 100 % (yield between 0 and 100 %).';
-                errBox.classList.add('show');
-                equiv.textContent = '';
-                return;
+        validate(p, n) {
+            if (p > 0 && p < 1) return null;
+            if (n === 'sig') return 'That sigma level is too ' + (p <= 0 ? 'high' : 'low') + ' to convert: the defect rate rounds to ' + (p <= 0 ? '0' : '100 %') + '.';
+            return 'The defect rate must be greater than 0 and less than 100 % (DPMO between 0 and 1,000,000, yield between 0 and 100 %).';
+        },
+        after(p, n) {
+            lastField = n;
+            // keep enough yield digits to show the defect rate (99.9999999 %, not a rounded 100)
+            if (n !== 'yld' && p < 1e-5) {
+                const dec = Math.min(13, Math.ceil(-Math.log10(p * 100)) + 2);
+                yldInput.value = ((1 - p) * 100).toFixed(dec).replace(/0+$/, '').replace(/\.$/, '');
             }
-            const zlt = -normInv(p);
+            // a typed sigma level is used as entered, so 1.5σ with the shift reads as z = 0, not a rounding residue
+            const zlt = n === 'sig' ? Calc.parseNum(conv.querySelector('input[name="sig"]').value) - shift() : -normInv(p);
             const s = zlt + shift();
             const zst = zlt + 1.5;
             equiv.innerHTML = 'Long-term z = <strong>' + fmt.num(zlt, 4) + '</strong> (Ppk ≈ ' + fmt.num(zlt / 3, 3) + ')' +
                 ' · short-term sigma level with the 1.5σ shift = <strong>' + fmt.num(zst, 4) + '</strong>' +
-                ' · two-sided centered process at ±' + fmt.num(s, 3) + 'σ: <strong>' + fmt.num(2 * normCdf(-s) * 1e6, 3) + '</strong> PPM';
+                (s > 0 ? ' · two-sided centered process at ±' + fmt.num(s, 3) + 'σ: <strong>' + fmt.num(2 * normCdf(-s) * 1e6, 3) + '</strong> PPM' : '');
         }
     });
 
-    // re-run both calculators when the convention changes
-    shiftInputs.forEach(r => r.addEventListener('change', () => {
-        dpo.run();
-        const inp = conv.querySelector('input[name="' + lastField + '"]');
-        if (inp) inp.dispatchEvent(new Event('input', { bubbles: true }));
-    }));
-
-    const dpo = Calc.create({
+    dpo = Calc.create({
         form: '#dpo-calc',
         outputs: '#dpo-results',
         id: 'd',
@@ -296,17 +310,24 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!Number.isInteger(v.defects)) throw Calc.fail('Defects must be a whole number.', 'defects');
             if (!Number.isInteger(v.units)) throw Calc.fail('Units inspected must be a whole number.', 'units');
             const D = v.defects, U = v.units, O = v.opp;
+            if (!isFinite(U * O)) throw Calc.fail('Units × opportunities is too large to evaluate.', 'units');
             const dpuV = D / U, dpoV = D / (U * O);
-            if (dpoV >= 1) throw Calc.fail('Defects exceed the number of opportunities (D ≥ U × O).', 'defects');
+            if (dpoV >= 1) throw Calc.fail('Defects must be fewer than the total opportunities (D < U × O).', 'defects');
             const sh = shift();
             let fpyObs = null, fpyNote = '';
             if (isFinite(v.pass)) {
+                if (!Number.isInteger(v.pass)) throw Calc.fail('Units passing first time must be a whole number.', 'pass');
                 if (v.pass > U) throw Calc.fail('Units passing cannot exceed units inspected.', 'pass');
                 fpyObs = fmt.pct(v.pass / U, 4);
-                const pois = Math.exp(-dpuV), obs = v.pass / U;
-                fpyNote = Math.abs(obs - pois) < 0.005 ? 'Close to the Poisson estimate: defects look randomly distributed.'
-                    : obs > pois ? 'Above the Poisson estimate: defects are clustering on fewer units.'
-                    : 'Below the Poisson estimate: check how passing units were counted.';
+                // With defects landing at random, the count of defect-free units has mean U·e^−DPU and variance
+                // U·e^−DPU·(1 − (1 + DPU)·e^−DPU) (the occupancy problem): within 2 standard deviations reads as random.
+                const pois = Math.exp(-dpuV), failed = U - v.pass;
+                const g = dpuV < 1e-4 ? dpuV * dpuV * (0.5 - dpuV / 3) : -Math.expm1(-dpuV) - dpuV * pois;
+                const sd = Math.sqrt(U * pois * g), z = sd > 0 ? (v.pass - U * pois) / sd : 0;
+                fpyNote = failed > D || failed * O < D ? 'Does not fit the defect count: check that both counts cover the same units.'
+                    : Math.abs(z) < 2 ? 'Close to the Poisson estimate: defects look randomly distributed.'
+                    : z > 0 ? 'Above the Poisson estimate: defects are clustering on fewer units.'
+                    : 'Below the Poisson estimate: defects are spread more evenly than random, with few units carrying more than one.';
             }
             const steps = Calc.parseList(v.steps.replace(/%/g, ' '), 'steps');   // "98.5%", as copied from percent-formatted cells, reads as 98.5
             let rty = null, ny = null, td = null;

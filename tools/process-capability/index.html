@@ -191,7 +191,7 @@
                 </div>
                 <div class="field">
                     <label for="target">Target (optional) <span class="sym">T</span></label>
-                    <div class="input-unit"><input id="target" name="target" value="50" inputmode="decimal" data-optional placeholder="for Cpm"></div>
+                    <div class="input-unit"><input id="target" name="target" value="50" inputmode="decimal" data-optional data-label="target" placeholder="for Cpm"></div>
                 </div>
             </div>
         </form>
@@ -236,7 +236,9 @@
         <p>Pp and Ppk use the same expressions with the overall standard deviation \(\sigma_o\) in place of \(\sigma_w\). With a one-sided specification, only CPU (or CPL) exists, and Cpk equals it. Cp and Pp are undefined.</p>
         <p>The two standard deviations come from different estimators:</p>
         <div class="formula">\[ \sigma_w = \frac{\bar{R}}{d_2(n)} \ \text{(subgroups)}, \qquad \sigma_w = \frac{\overline{MR}}{1.128} \ \text{(individuals)}, \qquad \sigma_o = \sqrt{\frac{\sum (x_i - \bar{x})^2}{N-1}} \]</div>
-        <p>Here \(\bar R\) is the average subgroup range and \(\overline{MR}\) the average moving range of consecutive points. \(d_2\) is the bias-correction constant for the expected range of \(n\) normal values (2.326 for \(n = 5\)). The Taguchi index \(C_{pm} = (USL - LSL)/\bigl(6\sqrt{\sigma_o^2 + (\bar x - T)^2}\bigr)\) also penalizes distance from the target.</p>
+        <p>Here \(\bar R\) is the average subgroup range and \(\overline{MR}\) the average moving range of consecutive points. \(d_2\) is the bias-correction constant for the expected range of \(n\) normal values (2.326 for \(n = 5\)). The Taguchi index \(C_{pm}\) also penalizes distance from the target \(T\), which must lie within the limits:</p>
+        <div class="formula">\[ C_{pm} = \frac{\min(USL - T,\ T - LSL)}{3\sqrt{\sigma_o^2 + (\bar x - T)^2}} \]</div>
+        <p>With the target at the midpoint of the limits, the numerator is \((USL - LSL)/2\), the usual form of \(C_{pm}\). With a one-sided specification, only the given limit enters.</p>
         <p>Expected nonconforming parts per million come from the normal model, \(\text{PPM}_{&lt;LSL} = 10^6\,\Phi\!\left(\frac{LSL - \bar x}{\sigma}\right)\) and \(\text{PPM}_{&gt;USL} = 10^6\,\Phi\!\left(\frac{\bar x - USL}{\sigma}\right)\). Z.bench, \(Z_\text{bench} = -\Phi^{-1}(p_\text{total})\), is the one-sided z-value that would give the same total fraction out of specification.</p>
 
         <h2>Cpk versus Ppk</h2>
@@ -300,7 +302,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const badge = document.getElementById('cap-badge');
     let last = null;
 
-    const idx = x => (x === null || !isFinite(x)) ? null : (x < 0 ? '−' : '') + Math.abs(x).toFixed(2);
+    // two decimals; a value that rounds to zero shows as 0.00, not −0.00
+    const idx = x => {
+        if (x === null || !isFinite(x)) return null;
+        const s = Math.abs(x).toFixed(2);
+        return (x < 0 && s !== '0.00' ? '−' : '') + s;
+    };
     const ppm = x => x < 1e-3 ? (x === 0 ? '0' : '< 0.001') : fmt.num(x, 3);
 
     // expected PPM below LSL / above USL for a normal model
@@ -309,11 +316,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const above = isFinite(usl) ? normCdf((mu - usl) / s) * 1e6 : 0;
         return { below, above, total: below + above };
     }
+    // two decimals, like the indices; beyond ±8 (a normal tail below 10⁻¹⁵) the value means nothing, so it shows as > 8 or < −8
     function zbench(total) {
         const p = total / 1e6;
-        if (p <= 0) return '> 8';
-        if (p >= 1) return '−∞';
-        return fmt.num(-normInv(p), 3);
+        const z = p <= 0 ? Infinity : p >= 1 ? -Infinity : -normInv(p);
+        if (z > 8) return '> 8';
+        if (z < -8) return '< −8';
+        return idx(z);
     }
     function indices(mu, s, lsl, usl) {
         const hasL = isFinite(lsl), hasU = isFinite(usl);
@@ -333,6 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const lsl = v.lsl, usl = v.usl, T = v.target;
             if (!isFinite(lsl) && !isFinite(usl)) throw Calc.fail('Enter at least one specification limit (LSL or USL).', 'usl');
             if (isFinite(lsl) && isFinite(usl) && usl <= lsl) throw Calc.fail('The upper spec limit must be greater than the lower spec limit.', 'usl');
+            // a comparison with a blank (NaN) limit or target is false, so only a target outside a given limit is refused
+            if (T < lsl || T > usl) throw Calc.fail('The target must lie within the specification limits.', 'target');
 
             let mu, sw, so, N, data = null, swNote, obs = null, obsNote = null;
             if (raw) {
@@ -344,6 +355,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (N < Math.max(3, 2 * k)) throw Calc.fail(k === 1 ? 'Paste at least 3 measurements.' : 'Paste at least two complete subgroups of ' + k + ' values.', 'data');
                 mu = mean(data);
                 so = stdev(data);
+                if (!(so > 0)) throw Calc.fail('The data show no variation, so capability indices are undefined.', 'data');
+                if (!isFinite(so)) throw Calc.fail('The values are too large to process. Rescale them (for example, enter them in a larger unit).', 'data');
                 if (k === 1) {
                     let s = 0;
                     for (let i = 1; i < N; i++) s += Math.abs(data[i] - data[i - 1]);
@@ -358,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         rs += Math.max(...sub) - Math.min(...sub);
                     }
                     const rBar = rs / groups;
+                    if (!(rBar > 0)) throw Calc.fail('Every subgroup has a range of zero, so σ within is zero. Check the gauge resolution and the subgroup size.', 'data');
                     sw = rBar / D2[k];
                     const left = N - groups * k;
                     swNote = 'R̄ = ' + fmt.num(rBar, 4) + ', d₂ = ' + D2[k] + ', ' + groups + ' subgroups' +
@@ -369,23 +383,26 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 mu = v.mu; sw = v.sw; so = isFinite(v.so) ? v.so : v.sw; N = v.n;
                 if (!isFinite(mu)) throw Calc.fail('Enter the process mean.', 'mu');
+                if (!isFinite(sw)) throw Calc.fail('Enter σ within. If you have only one standard deviation, enter it in both fields.', 'sw');
                 if (!(sw > 0)) throw Calc.fail('σ within must be greater than zero.', 'sw');
                 if (!(so > 0)) throw Calc.fail('σ overall must be greater than zero.', 'so');
-                if (isFinite(N) && !(N >= 2)) throw Calc.fail('Sample size must be at least 2.', 'n');
+                if (isFinite(N) && !(Number.isInteger(N) && N >= 2)) throw Calc.fail('Sample size must be a whole number, at least 2.', 'n');
                 swNote = 'Entered directly';
             }
             if (!(sw > 0) || !(so > 0)) throw Calc.fail('The data show no variation, so capability indices are undefined.', 'data');
 
             const W = indices(mu, sw, lsl, usl), O = indices(mu, so, lsl, usl);
             const tw = tails(mu, sw, lsl, usl), to = tails(mu, so, lsl, usl);
-            const cpm = (isFinite(T) && isFinite(lsl) && isFinite(usl)) ? (usl - lsl) / (6 * Math.sqrt(so * so + (mu - T) ** 2)) : null;
+            // Cpm = min(USL − T, T − LSL) / (3τ), which is (USL − LSL) / (6τ) for a centered target; a missing limit drops out
+            const cpm = isFinite(T) ? Math.min(isFinite(usl) ? usl - T : Infinity, isFinite(lsl) ? T - lsl : Infinity) / (3 * Math.sqrt(so * so + (mu - T) ** 2)) : null;
             let ci = null;
             if (isFinite(N) && N >= 2) {
                 const se = Math.sqrt(1 / (9 * N) + O.k * O.k / (2 * (N - 1)));
                 ci = idx(O.k - 1.96 * se) + ' – ' + idx(O.k + 1.96 * se);
             }
 
-            const c = W.k;
+            const shown = idx(W.k);   // judge the value as displayed, so a Cpk shown as 1.33 never gets the "Marginal" badge
+            const c = shown === null ? W.k : parseFloat(shown.replace('−', '-'));
             if (c >= 1.67) { badge.textContent = 'Cpk ≥ 1.67'; badge.className = 'badge badge-ok'; }
             else if (c >= 1.33) { badge.textContent = 'Cpk ≥ 1.33'; badge.className = 'badge badge-ok'; }
             else if (c >= 1.0) { badge.textContent = 'Marginal (1.00–1.33)'; badge.className = 'badge badge-warn'; }
@@ -414,14 +431,16 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         after() {
             const s = last;
-            const specs = [s.lsl, s.usl].filter(isFinite);
+            const specs = [s.lsl, s.usl, s.T].filter(isFinite);
             let lo = Math.min(s.mu - 4 * s.so, s.mu - 4 * s.sw, ...specs);
             let hi = Math.max(s.mu + 4 * s.so, s.mu + 4 * s.sw, ...specs);
             const series = [];
             let scale = 1, yLabel = 'Probability density';
             if (s.raw) {
-                lo = Math.min(lo, ...s.data); hi = Math.max(hi, ...s.data);
-                const dmin = Math.min(...s.data), dmax = Math.max(...s.data);
+                // a loop, not Math.min(...data): spreading 150 000 or more values overflows the call stack
+                let dmin = Infinity, dmax = -Infinity;
+                for (const x of s.data) { if (x < dmin) dmin = x; if (x > dmax) dmax = x; }
+                lo = Math.min(lo, dmin); hi = Math.max(hi, dmax);
                 const raw = (dmax - dmin) / Math.max(6, Math.min(25, Math.round(Math.sqrt(s.data.length)))) || s.so;
                 const mag = Math.pow(10, Math.floor(Math.log10(raw)));
                 const w = [1, 2, 2.5, 5, 10].map(m => m * mag).find(x => x >= raw * 0.999);

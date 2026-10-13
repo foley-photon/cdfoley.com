@@ -128,7 +128,7 @@
                 </div>
                 <div class="field">
                     <label for="tau">Pulse duration (FWHM) <span class="sym">τ</span></label>
-                    <div class="input-unit"><input id="tau" name="tau" value="10" inputmode="decimal" data-positive><select data-dim="time" data-units="fs,ps,ns,µs,ms" data-default="ns"></select></div>
+                    <div class="input-unit"><input id="tau" name="tau" value="10" inputmode="decimal" data-positive data-label="pulse duration"><select data-dim="time" data-units="fs,ps,ns,µs,ms" data-default="ns"></select></div>
                 </div>
                 <div class="field">
                     <label for="shape">Temporal pulse shape</label>
@@ -172,7 +172,7 @@
         <table>
             <thead><tr><th>Shape</th><th class="num">k = P<sub>peak</sub>τ/E<sub>p</sub></th><th class="num">∫P dt / (P<sub>peak</sub>τ)</th><th class="num">Autocorrelation FWHM / τ</th></tr></thead>
             <tbody>
-                <tr><td>Rectangular</td><td class="num">1</td><td class="num">1</td><td class="num">—</td></tr>
+                <tr><td>Rectangular</td><td class="num">1</td><td class="num">1</td><td class="num">1</td></tr>
                 <tr><td>Gaussian</td><td class="num">0.9394</td><td class="num">1.0645</td><td class="num">1.414</td></tr>
                 <tr><td>sech²</td><td class="num">0.8814</td><td class="num">1.1346</td><td class="num">1.543</td></tr>
             </tbody>
@@ -190,6 +190,7 @@
             <li><strong>τ is the FWHM of the power envelope.</strong> Some datasheets quote 1/e or 10–90 % widths. Convert those before entering them.</li>
             <li><strong>Real pulses are not symmetric.</strong> Q-switched pulses rise fast and decay slowly, and MOPA fiber lasers can be programmed to arbitrary shapes. If you have a measured waveform, integrate it and use \(k = P_\text{peak}\tau/E_p\).</li>
             <li><strong>Pedestals and satellite pulses</strong> count toward the measured average power but contribute little to the peak. Amplified ultrafast systems can have percent-level ASE or pre-pulse content.</li>
+            <li><strong>Pulses are separate.</strong> The wings of smooth pulses overlap well before τ·f<sub>rep</sub> reaches 1. The calculator stops when the neighboring pulses would add more than 1 % to the peak: above τ·f<sub>rep</sub> ≈ 0.72 for Gaussian pulses and 0.53 for sech² (1 for rectangular).</li>
             <li><strong>Burst mode</strong> (groups of closely spaced pulses) is not modeled. Use the energy per sub-pulse and the burst envelope separately.</li>
         </ul>
 
@@ -213,8 +214,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const { fmt } = Calc;
     const K_SHAPE = { rect: 1, gauss: 2 * Math.sqrt(Math.LN2 / Math.PI), sech2: Math.log(1 + Math.SQRT2) };
     const SHAPE_NAME = { rect: 'Rectangular', gauss: 'Gaussian', sech2: 'sech²' };
+    // normalized power envelope with FWHM 1, for the overlap of neighboring pulses
+    const SHAPE_FN = { gauss: x => Math.exp(-4 * Math.LN2 * x * x), sech2: x => Math.pow(Math.cosh(2 * K_SHAPE.sech2 * x), -2) };
+    const RANGE = 'A result is out of range. Check the input values and units.';
     const badge = document.getElementById('shape-badge');
+    const modeSel = document.getElementById('mode'), shapeSel = document.getElementById('shape');
     const showFields = mode => document.querySelectorAll('[data-show]').forEach(f => { f.hidden = !f.dataset.show.split(' ').includes(mode); });
+    const syncBadge = () => { badge.textContent = SHAPE_NAME[shapeSel.value] + ' · k = ' + fmt.num(K_SHAPE[shapeSel.value], 4); };
+
+    // Show the chosen mode's inputs before calc.js validates them, so a field of another mode never blocks:
+    // at once when the mode changes, and on load for the mode a link asks for (calc.js applies the link afterwards).
+    modeSel.addEventListener('change', () => showFields(modeSel.value));
+    shapeSel.addEventListener('change', syncBadge);
+    const linked = new URLSearchParams(location.hash.slice(1)).get('mode');
+    showFields(Array.from(modeSel.options).some(o => o.value === linked) ? linked : modeSel.value);
+
+    // fraction of the peak that the wings of the neighboring pulses add, at duty cycle tau * f (0 for a rectangular pulse)
+    function wings(shape, duty) {
+        let sum = 0;
+        if (SHAPE_FN[shape]) for (let n = 1; n <= 20; n++) sum += 2 * SHAPE_FN[shape](n / duty);
+        return sum;
+    }
 
     function need(x, name, label) {
         if (!isFinite(x)) throw Calc.fail('Enter a value for ' + label + '.', name);
@@ -226,16 +246,19 @@ document.addEventListener('DOMContentLoaded', () => {
         form: '#calc',
         compute(v) {
             showFields(v.mode);
+            syncBadge();
             let P, f, E;
             if (v.mode === 'pf') { P = need(v.pavg, 'pavg', 'average power'); f = need(v.frep, 'frep', 'repetition rate'); E = P / f; }
             else if (v.mode === 'ef') { E = need(v.ep, 'ep', 'pulse energy'); f = need(v.frep, 'frep', 'repetition rate'); P = E * f; }
             else { P = need(v.pavg, 'pavg', 'average power'); E = need(v.ep, 'ep', 'pulse energy'); f = P / E; }
 
             const duty = v.tau * f;
-            if (duty >= 1) throw Calc.fail('Pulse duration × repetition rate is ' + fmt.num(duty, 3) + ' (≥ 1), so the pulses would overlap. Check the units.', 'tau');
             const k = K_SHAPE[v.shape];
             const Ppk = k * E / v.tau;
-            badge.textContent = SHAPE_NAME[v.shape] + ' · k = ' + fmt.num(k, 4);
+            if (![P, f, 1 / f, E, duty, Ppk].every(x => isFinite(x) && x > 0)) throw Calc.fail(RANGE);
+            if (duty >= 1) throw Calc.fail('Pulse duration × repetition rate is ' + fmt.num(duty, 3) + ' (≥ 1), so the pulses would overlap. Check the units.', 'tau');
+            const w = wings(v.shape, duty);
+            if (w > 0.01) throw Calc.fail('Pulse duration × repetition rate is ' + fmt.num(duty, 3) + ', so the wings of neighboring ' + SHAPE_NAME[v.shape] + ' pulses overlap and would add ' + fmt.num(w * 100, 2) + ' % to the peak. This calculator assumes separate pulses. Check the units.', 'tau');
 
             return {
                 ppeak: fmt.si(Ppk, 'W', 4),
@@ -249,6 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
     });
+    syncBadge();   // the shape a link asks for, even when an invalid input stopped the first calculation
 });
 </script>
 </body>

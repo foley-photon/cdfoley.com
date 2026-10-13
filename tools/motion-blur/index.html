@@ -211,7 +211,7 @@
         <ol class="refs">
             <li>C. Steger, M. Ulrich, and C. Wiedemann, <em>Machine Vision Algorithms and Applications</em>, 2nd ed., Wiley-VCH (2018), ch. 2 (image acquisition).</li>
             <li>B. Jähne, <em>Digital Image Processing</em>, 6th ed., Springer (2005).</li>
-            <li>E. Hecht, <em>Optics</em>, 5th ed., Pearson (2017).</li>
+            <li>E. Hecht, <em>Optics</em>, 5th ed., Pearson (2017), §6.3 (aberrations) and ch. 10 (diffraction).</li>
         </ol>
     </article>
 
@@ -229,7 +229,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const status = document.getElementById('status');
     const rate = hz => hz >= 1000 ? fmt.si(hz, 'Hz', 4) : fmt.num(hz, 4) + ' Hz';
     // durations: SI prefixes below a minute, then minutes and hours (not "2.88 ks")
-    const dur = s => s >= 3600 ? fmt.num(s / 3600, 3) + ' h' : s >= 60 ? fmt.num(s / 60, 3) + ' min' : fmt.si(s, 's', 3);
+    const dur = (s, sig = 3) => s >= 3600 ? fmt.num(s / 3600, sig) + ' h' : s >= 60 ? fmt.num(s / 60, sig) + ' min' : fmt.si(s, 's', sig);
+    const durValue = (s, sig) => s >= 3600 ? Calc.roundSig(s / 3600, sig) * 3600 : s >= 60 ? Calc.roundSig(s / 60, sig) * 60 : Calc.roundSig(s, sig);   // the number dur() shows, in s
+    // fewest significant figures (3 to 10) at which a rounded number still agrees with the verdict
+    const sigFor = agrees => { for (let s = 3; s < 10; s++) if (agrees(s)) return s; return 10; };
+    const TOL = 1e-9;                           // relative: an exposure typed equal to t_max is within the limit
 
     Calc.create({
         form: '#calc',
@@ -246,18 +250,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const all = [po, tmax, b, v.v * v.te, fps, 1 / fps, ratio].concat(hasLine ? [lpx, v.v / lpx, lpx / v.v] : []);
             if (!all.every(x => x > 0 && isFinite(x))) throw Calc.fail('An input is too large or too small to compute. Check the values and units.');
 
-            // judged at the 3 significant figures shown, so an exposure equal to the displayed t_max is within the limit
-            const ok = Calc.roundSig(ratio, 3) <= 1;
+            // judged exactly; t_max, the blur, and the light factor get extra digits near the limit so that the numbers
+            // shown never contradict the verdict (an exposure 0.3 % over t_max shows t_max = 117.6 µs, not 118 µs)
+            const ok = ratio <= 1 + TOL;
+            const tSig = sigFor(s => (v.te <= durValue(tmax, s) * (1 + TOL)) === ok);
+            const bSig = sigFor(s => (Calc.roundSig(b, s) <= v.blur * (1 + TOL)) === ok);
+            const rSig = ok ? 3 : sigFor(s => Calc.roundSig(ratio, s) > 1 + TOL);
             const verdict = ok ? 'Within blur limit' : 'Too much blur';
             if (status.textContent !== verdict) status.textContent = verdict;   // live region: announce only a change
             status.className = ok ? 'badge badge-ok' : 'badge badge-bad';
             status.hidden = false;
 
             return {
-                tmax: dur(tmax),
+                tmax: dur(tmax, tSig),
                 po: fmt.si(po, 'm', 4) + '/px',
-                blurAt: fmt.num(b, 3) + ' px (' + fmt.si(v.v * v.te, 'm', 3) + ')',
-                light: ok ? 'no change needed' : '× ' + fmt.num(ratio, 3),
+                blurAt: fmt.num(b, bSig) + ' px (' + fmt.si(v.v * v.te, 'm', 3) + ')',
+                light: ok ? 'no change needed' : '× ' + fmt.num(ratio, rSig),
                 fps: fmt.num(fps, 4) + ' fps',
                 dt: dur(1 / fps),
                 lpx: hasLine ? fmt.si(lpx, 'm', 4) + '/px' : null,

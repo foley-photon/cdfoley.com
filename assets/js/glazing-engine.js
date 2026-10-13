@@ -10,10 +10,11 @@
    absorptance of each pane.
 
    Thermal: one-dimensional ISO 15099 center-of-glass model. Gap convection
-   uses the ISO 15099 vertical-cavity Nusselt correlations, radiation uses the
-   surface emissivities, and a vacuum gap conducts only through its support
-   pillars (Collins & Simko). U-factor at NFRC 100 winter conditions; SHGC at
-   NFRC 200 summer conditions.
+   uses the ISO 15099 vertical-cavity Nusselt correlations with the ISO 15099
+   gas-mixture rules, indoor convection the ISO 15099 free-convection
+   correlation, radiation the surface emissivities, and a vacuum gap conducts
+   only through its support pillars (Collins & Simko). U-factor at NFRC 100
+   winter conditions; SHGC at NFRC 200 summer conditions.
    ========================================================================== */
 (function (root) {
     'use strict';
@@ -158,16 +159,31 @@
         xenon:     { label: 'Xenon (90 %, air)',   mix: [['xenon', 0.9], ['air', 0.1]] },
         vacuum:    { label: 'Vacuum (VIG)',        vacuum: true }
     };
-    // Mole-fraction mixing (adequate for the 90/10 fills used here)
+    // Mixtures by the ISO 15099 rules: molar heat capacity by mole fraction, viscosity by Wilke's rule, and
+    // conductivity split into a monatomic part λ′ = (15/4)(R/M)μ (Mason–Saxena, with the Hirschfelder correction)
+    // and the rest λ″ (as LBNL WINDOW does). A plain mole-fraction average would overstate the conductivity of the
+    // 90 % krypton and xenon fills by about 5 % and 13 %.
     function gasProps(fill, T, p) {
-        var k = 0, mu = 0, M = 0, cpm = 0;
-        FILLS[fill].mix.forEach(function (m) {
-            var g = GAS[m[0]], x = m[1];
-            k += x * (g.k[0] + g.k[1] * T); mu += x * (g.mu[0] + g.mu[1] * T);
-            M += x * g.M; cpm += x * g.M * (g.cp[0] + g.cp[1] * T);
+        var c = FILLS[fill].mix.map(function (m) {
+            var g = GAS[m[0]], mu = g.mu[0] + g.mu[1] * T, k = g.k[0] + g.k[1] * T;
+            var k1 = 15 / 4 * RG * 1000 / g.M * mu;              // R/M in J/(kg·K) with M in g/mol
+            return { x: m[1], M: g.M, mu: mu, k1: k1, k2: k - k1, cp: g.cp[0] + g.cp[1] * T };
         });
-        var cp = cpm / M, rho = p * M / 1000 / (RG * T);
-        return { k: k, mu: mu, cp: cp, rho: rho };
+        var M = 0, cpm = 0, mu = 0, k1 = 0, k2 = 0;
+        c.forEach(function (a) { M += a.x * a.M; cpm += a.x * a.M * a.cp; });
+        c.forEach(function (a) {
+            var sMu = 1, sK1 = 1, sK2 = 1;
+            c.forEach(function (b) {
+                if (b === a) return;
+                var r = b.x / a.x, den = Math.sqrt(8 * (1 + a.M / b.M));
+                var phiMu = Math.pow(1 + Math.sqrt(a.mu / b.mu) * Math.pow(b.M / a.M, 0.25), 2) / den;
+                var phiK = Math.pow(1 + Math.sqrt(a.k1 / b.k1) * Math.pow(a.M / b.M, 0.25), 2) / den;
+                var psi = phiK * (1 + 2.41 * (a.M - b.M) * (a.M - 0.142 * b.M) / Math.pow(a.M + b.M, 2));
+                sMu += phiMu * r; sK1 += psi * r; sK2 += phiK * r;
+            });
+            mu += a.mu / sMu; k1 += a.k1 / sK1; k2 += a.k2 / sK2;
+        });
+        return { k: k1 + k2, mu: mu, cp: cpm / M, rho: p * M / 1000 / (RG * T) };
     }
     // ISO 15099 vertical cavity Nusselt number
     function nusseltGap(Ra, A) {
@@ -175,13 +191,15 @@
         var nu2 = 0.242 * Math.pow(Ra / A, 0.272);
         return Math.max(nu1, nu2);
     }
-    // Free convection on the indoor surface, ISO 15099 laminar form for a vertical window of height H: Nu = 0.56 Ra^¼
+    // Free convection on the indoor surface of a vertical window of height H (ISO 15099): film temperature
+    // Ti + (Ts − Ti)/4; Nu = 0.56 Ra^¼ up to Ra_cv = 2.5×10⁵ (e^(0.72·90°))^⅕ ≈ 1.1×10¹¹, turbulent above it
+    var RA_CV = 2.5e5 * Math.exp(0.72 * 90 / 5);
     function hcIndoor(Ts, Ti, H) {
-        var Tf = (Ts + Ti) / 2, a = gasProps('air', Tf, 101325);
+        var Tf = Ti + (Ts - Ti) / 4, a = gasProps('air', Tf, 101325);
         var dT = Math.abs(Ts - Ti); if (dT < 1e-3) dT = 1e-3;
-        var nu = a.mu / a.rho, al = a.k / (a.rho * a.cp), Pr = nu / al;
+        var nu = a.mu / a.rho, al = a.k / (a.rho * a.cp);
         var Ra = G * dT * H * H * H / (Tf * nu * al);
-        var Nu = 0.56 * Math.pow(Ra, 0.25);
+        var Nu = Ra <= RA_CV ? 0.56 * Math.pow(Ra, 0.25) : 0.13 * (Math.cbrt(Ra) - Math.cbrt(RA_CV)) + 0.56 * Math.pow(RA_CV, 0.25);
         return Nu * a.k / H;
     }
 
@@ -216,11 +234,12 @@
                     hin = hcIndoor(Tb, cond.Ti, H) + hri;
                     a[bk] = cond_k; b[bk] = -(cond_k + hin); d[bk] = -(hin * cond.Ti + s2);
                 } else {
-                    var g = gaps[k], T1 = T[bk], T2 = T[bk + 2], Tm = (T1 + T2) / 2;
+                    var g = gaps[k], T1 = T[bk], T2 = T[bk + 1], Tm = (T1 + T2) / 2;   // the two faces of gap k
                     var hr = SIG * (T1 * T1 + T2 * T2) * (T1 + T2) / (1 / layers[k].eb + 1 / layers[k + 1].ef - 1);
                     var hcv = 0;
                     if (FILLS[g.fill].vacuum) {
-                        hcv = 2 * K_GLASS * g.pillarRadius / (g.pillarSpacing * g.pillarSpacing);   // pillar conduction
+                        // pillar conduction: spreading resistance 1/(4ka) into each pane, so 2ka/λ² for equal panes
+                        hcv = 4 * g.pillarRadius / (g.pillarSpacing * g.pillarSpacing * (1 / layers[k].k + 1 / layers[k + 1].k));
                     } else {
                         var gp = gasProps(g.fill, Tm, 101325), dT = Math.max(Math.abs(T1 - T2), 1e-3);
                         var Ra = gp.rho * gp.rho * Math.pow(g.width, 3) * G * gp.cp * dT / (gp.mu * gp.k * Tm);

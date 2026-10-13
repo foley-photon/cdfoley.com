@@ -29,12 +29,12 @@
         ['imx542', 'Sony', 'Pregius S', 'IMX542', 5328, 3040, 2.74, 'global', '1.1″'],
         ['imx541', 'Sony', 'Pregius S', 'IMX541', 4512, 4512, 2.74, 'global', '1.1″'],
         ['imx540', 'Sony', 'Pregius S', 'IMX540', 5328, 4608, 2.74, 'global', '1.2″'],
-        // Sony STARVIS and other rolling-shutter sensors
+        // Sony STARVIS, Exmor R, and Exmor RS (rolling shutter)
         ['imx290', 'Sony', 'STARVIS', 'IMX290', 1920, 1080, 2.9, 'rolling', '1/2.8″'],
         ['imx178', 'Sony', 'STARVIS', 'IMX178', 3072, 2048, 2.4, 'rolling', '1/1.8″'],
         ['imx334', 'Sony', 'STARVIS', 'IMX334', 3840, 2160, 2.0, 'rolling', '1/1.8″'],
         ['imx226', 'Sony', 'Exmor R', 'IMX226', 4024, 3036, 1.85, 'rolling', '1/1.7″'],
-        ['imx477', 'Sony', 'Exmor R', 'IMX477', 4056, 3040, 1.55, 'rolling', '1/2.3″'],
+        ['imx477', 'Sony', 'Exmor RS', 'IMX477', 4056, 3040, 1.55, 'rolling', '1/2.3″'],
         ['imx183', 'Sony', 'Exmor R', 'IMX183', 5472, 3648, 2.4, 'rolling', '1″'],
         // onsemi
         ['python300', 'onsemi', 'PYTHON', 'PYTHON 300', 640, 480, 4.8, 'global', '1/4″'],
@@ -47,8 +47,8 @@
         ['xgs16000', 'onsemi', 'XGS', 'XGS 16000', 4000, 4000, 3.2, 'global', '1.1″'],
         ['xgs45000', 'onsemi', 'XGS', 'XGS 45000', 8192, 5460, 3.2, 'global', null],
         // Gpixel
-        ['gmax0505', 'Gpixel', 'GMAX', 'GMAX0505', 2448, 2048, 2.5, 'global', null],
-        ['gmax2505', 'Gpixel', 'GMAX', 'GMAX2505', 5120, 5120, 2.5, 'global', null],
+        ['gmax2505', 'Gpixel', 'GMAX', 'GMAX2505', 2600, 2160, 2.5, 'global', '1/2″'],
+        ['gmax0505', 'Gpixel', 'GMAX', 'GMAX0505', 5120, 5120, 2.5, 'global', '1.1″'],
         ['gmax3265', 'Gpixel', 'GMAX', 'GMAX3265', 9344, 7000, 3.2, 'global', null],
         ['gsense2020', 'Gpixel', 'GSENSE', 'GSENSE2020BSI', 2048, 2048, 6.5, 'rolling', null],
         // ams OSRAM (CMOSIS)

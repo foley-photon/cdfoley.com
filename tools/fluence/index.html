@@ -218,6 +218,7 @@
             <li>The spot diameter is the 1/e² diameter at the work surface. Defocus increases it: see <a href="/tools/gaussian-beam/">Gaussian beam propagation</a>. For a Gaussian spot measured as a FWHM diameter, multiply by 1.699 to get the 1/e² diameter.</li>
             <li>Fluence is incident fluence. Absorbed fluence is lower by the surface reflectance, which for metals in the near-IR is roughly 60–98 %.</li>
             <li>A real top-hat has soft edges, and a real Gaussian may have M² &gt; 1 or ellipticity. Measure the profile (ISO 11146) when accuracy matters.</li>
+            <li>Pulses are separate in time. In average-power mode the calculator stops when the wings of neighboring pulses would add more than 1 % to the peak irradiance: above τ·f<sub>rep</sub> ≈ 0.72 for Gaussian pulses and 0.53 for sech² (1 for rectangular).</li>
             <li>At high irradiance, plasma shielding and nonlinear absorption change how much energy reaches the surface. Those effects are not modeled.</li>
             <li>The threshold diameter applies to the pulse count the threshold was measured for. With overlapping pulses, incubation lowers the threshold, so enter \(F_\text{th}\) measured for the same number of pulses per spot (see <a href="/tools/ablation-depth/">ablation threshold &amp; depth</a>).</li>
         </ul>
@@ -242,6 +243,9 @@
 document.addEventListener('DOMContentLoaded', () => {
     const { fmt, fromSI } = Calc;
     const K_SHAPE = { rect: 1, gauss: 2 * Math.sqrt(Math.LN2 / Math.PI), sech2: Math.log(1 + Math.SQRT2) };
+    // normalized power envelope with FWHM 1, for the overlap of neighboring pulses
+    const SHAPE_FN = { gauss: x => Math.exp(-4 * Math.LN2 * x * x), sech2: x => Math.pow(Math.cosh(2 * K_SHAPE.sech2 * x), -2) };
+    const SHAPE_NAME = { rect: 'Rectangular', gauss: 'Gaussian', sech2: 'sech²' };
     const badge = document.getElementById('th-badge');
     const dLabel = document.getElementById('d-label');
     const emodeSel = document.getElementById('emode'), profSel = document.getElementById('profile');
@@ -266,13 +270,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return x;
     }
 
+    // fraction of the peak that the wings of the neighboring pulses add, at duty cycle tau * f (0 for a rectangular pulse)
+    function wings(shape, duty) {
+        let sum = 0;
+        if (SHAPE_FN[shape]) for (let n = 1; n <= 20; n++) sum += 2 * SHAPE_FN[shape](n / duty);
+        return sum;
+    }
+
     Calc.create({
         form: '#calc',
         compute(v) {
             syncUI();
             const gauss = v.profile === 'gauss';
             const E = v.emode === 'e' ? need(v.ep, 'ep', 'pulse energy') : need(v.pavg, 'pavg', 'average power') / need(v.frep, 'frep', 'repetition rate');
-            if (v.emode === 'p' && v.tau * v.frep >= 1) throw Calc.fail('Pulse duration × repetition rate is ' + fmt.num(v.tau * v.frep, 3) + ' (≥ 1), so the pulses would overlap. Check the units.', 'tau');
+            if (v.emode === 'p') {
+                const duty = v.tau * v.frep;
+                if (duty >= 1) throw Calc.fail('Pulse duration × repetition rate is ' + fmt.num(duty, 3) + ' (≥ 1), so the pulses would overlap. Check the units.', 'tau');
+                const ov = wings(v.shape, duty);
+                if (ov > 0.01) throw Calc.fail('Pulse duration × repetition rate is ' + fmt.num(duty, 3) + ', so the wings of neighboring ' + SHAPE_NAME[v.shape] + ' pulses overlap and would add ' + fmt.num(ov * 100, 2) + ' % to the peak. This calculator assumes separate pulses. Check the units.', 'tau');
+            }
             const w = v.d / 2;
             const F0 = gauss ? 2 * E / (Math.PI * w * w) : E / (Math.PI * w * w);
             const Ppk = K_SHAPE[v.shape] * E / v.tau;

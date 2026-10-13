@@ -141,7 +141,7 @@
             <div class="panel-head"><h2 id="results-h">Results</h2><span id="regime" class="badge"></span></div>
             <div class="panel-body">
                 <div class="results">
-                    <div class="result primary"><span class="result-label">Focused spot diameter (1/e²)<span class="sym">d<sub>F</sub></span></span><output class="result-value" data-out="dF">—</output></div>
+                    <div class="result primary"><span class="result-label">Focused spot diameter (1/e²)<span class="sym">d<sub>F</sub></span></span><output class="result-value" data-out="dF">—</output><span class="result-note" id="coll-note" hidden></span></div>
                     <div class="result"><span class="result-label">Waist radius<span class="sym">w₀</span></span><output class="result-value" data-out="w0">—</output></div>
                     <div class="result"><span class="result-label">Truncation ratio<span class="sym">T = D<sub>b</sub>/D<sub>t</sub></span></span><output class="result-value" data-out="T">—</output></div>
                     <div class="result"><span class="result-label">Apodization factor<span class="sym">APO</span></span><output class="result-value" data-out="apo">—</output></div>
@@ -158,19 +158,19 @@
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="apo-h">
         <div class="panel-head"><h2 id="apo-h">APO factor vs. truncation ratio</h2></div>
-        <div class="panel-body"><div id="apo-plot"></div></div>
+        <div class="panel-body"><div id="apo-plot"></div><p class="hint">The curve is for the M² entered above: for M² &gt; 1, APO is evaluated at T/M (M = √M²). The table below is for M² = 1.</p></div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
         <h2>How the focused spot size is calculated</h2>
         <p>For a beam with 1/e² diameter \(D_b\) at a lens of focal length \(f'\), the focused 1/e² spot diameter is</p>
         <div class="formula">\[ d_F = \mathrm{APO}\cdot\frac{\lambda\, f'\, M^2}{D_b} \]</div>
-        <p>The apodization factor <strong>APO</strong> depends only on the truncation ratio \(T = D_b/D_t\), where \(D_t\) is the smallest clear aperture the beam passes through. For an untruncated Gaussian (\(T \lesssim 0.4\)), \(\mathrm{APO} = 4/\pi \approx 1.273\) and the formula reduces to the textbook result \(d_F = 4\lambda f' M^2/(\pi D_b)\), or \(w_0 = M^2\lambda f'/(\pi w_L)\) in radius form.</p>
+        <p>The apodization factor <strong>APO</strong> depends on the truncation ratio \(T = D_b/D_t\), where \(D_t\) is the smallest clear aperture the beam passes through (for \(M^2 > 1\), on \(T/M\); see below). For an untruncated Gaussian (\(T \lesssim 0.4\)), \(\mathrm{APO} = 4/\pi \approx 1.273\) and the formula reduces to the textbook result \(d_F = 4\lambda f' M^2/(\pi D_b)\), or \(w_0 = M^2\lambda f'/(\pi w_L)\) in radius form, with \(w_L = D_b/2\).</p>
 
         <h2>Truncation and the APO factor</h2>
         <p>A larger input beam gives a smaller spot, but only until the aperture starts to clip it. Clipping diffracts light out of the central lobe. The focal profile then moves away from a Gaussian toward an Airy pattern, and the spot stops shrinking in proportion to \(1/D_b\). This calculator does not use a lookup table. It evaluates the Fraunhofer diffraction integral of a truncated Gaussian,</p>
         <div class="formula">\[ U(r) \propto \int_0^{D_t/2} e^{-\rho^2/w_L^2}\, J_0\!\left(\frac{2\pi \rho r}{\lambda f'}\right)\rho\, d\rho , \]</div>
-        <p>and finds the radius at which \(|U|^2\) falls to \(e^{-2}\) of its peak.</p>
+        <p>and finds the radius at which \(|U|^2\) falls to \(e^{-2}\) of its peak. The table gives the result for a TEM00 beam (\(M^2 = 1\)).</p>
         <table>
             <thead><tr><th class="num">T = D<sub>b</sub>/D<sub>t</sub></th><th class="num">APO</th><th class="num">Power transmitted</th><th>Comment</th></tr></thead>
             <tbody>
@@ -181,24 +181,25 @@
                 <tr><td class="num">→ ∞</td><td class="num">1.645·T</td><td class="num">→ 0</td><td>Uniform illumination (Airy disk); \(d_F \to 1.645\,\lambda f'/D_t\)</td></tr>
             </tbody>
         </table>
-        <p>In practice, T ≈ 0.6–0.8 is a reasonable design point for galvo scanners and focusing heads. Past that, enlarging the beam gives little reduction in spot size and costs throughput and pointing sensitivity.</p>
+        <p>In practice, T ≈ 0.6–0.8 is a reasonable design point for galvo scanners and focusing heads. Past that, enlarging the beam gives little reduction in spot size, costs throughput, and makes the setup more sensitive to beam pointing.</p>
+        <p>A multimode beam (\(M^2 > 1\)) is only partially coherent across the aperture, so clipping broadens its focus less than it would a TEM00 beam of the same diameter. The calculator therefore evaluates APO at \(T/M\), with \(M = \sqrt{M^2}\): the truncation ratio of the embedded TEM00 beam of diameter \(D_b/M\). Taking APO at \(T\) instead would overstate the spot at \(T = 1\) by 5.5 %, 14 %, and 40 % for \(M^2 = 1.1\), 1.3, and 5.</p>
 
         <h2>Depth of focus</h2>
         <p>The Rayleigh range \(z_R = \pi w_0^2/(M^2\lambda)\) is the distance over which the beam radius grows by \(\sqrt{2}\) (the area doubles and the peak fluence halves). Most processes tolerate much less than that. For a maximum allowed spot growth \(\varepsilon\) (e.g. 5 %), the usable depth of focus is</p>
         <div class="formula">\[ \mathrm{DOF} = 2\,z_R\sqrt{(1+\varepsilon)^2 - 1}. \]</div>
-        <p>This is the total range, half on each side of the waist. Because \(z_R \propto w_0^2\), halving the spot size cuts the depth of focus by four. Tight-focus ablation and scribing processes therefore need height sensing or tracking optics.</p>
+        <p>This is the total range, half on each side of the waist. Because \(z_R \propto w_0^2\), halving the spot size cuts the depth of focus to a quarter. Tight-focus ablation and scribing processes therefore need height sensing or tracking optics.</p>
 
         <h2>Worked example</h2>
-        <p>A fiber laser at 1064 nm with M² = 1.1 and an 8 mm beam, focused by a 100 mm lens with a 12 mm clear aperture: T = 0.667, so APO = 1.412 and</p>
-        <div class="formula">\[ d_F = 1.412 \times \frac{1.064\,\mu\text{m}\times 100\,\text{mm}\times 1.1}{8\,\text{mm}} \approx 20.7\,\mu\text{m}. \]</div>
-        <p>That gives \(z_R \approx 0.29\) mm, and with a 5 % growth tolerance the depth of focus is only about 0.18 mm in total (±0.09 mm about the waist). Without the aperture the spot would be 18.6 µm. The 12 mm aperture costs about 11 % in spot size and 1.1 % in power.</p>
+        <p>A fiber laser at 1064 nm with M² = 1.1 and an 8 mm beam, focused by a 100 mm lens with a 12 mm clear aperture: T = 0.667 and T/M = 0.636, so APO = 1.383 and</p>
+        <div class="formula">\[ d_F = 1.383 \times \frac{1.064\,\mu\text{m}\times 100\,\text{mm}\times 1.1}{8\,\text{mm}} \approx 20.2\,\mu\text{m}. \]</div>
+        <p>That gives \(z_R \approx 0.27\) mm, and with a 5 % growth tolerance the depth of focus is only about 0.18 mm in total (±0.09 mm about the waist). Without the aperture the spot would be 18.6 µm. The 12 mm aperture costs about 9 % in spot size and 1.1 % in power.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
             <li><strong>Paraxial, aberration-free lens.</strong> Real lenses add spherical aberration, which matters at low f-numbers (roughly f/# &lt; 5 for singlets). Use a ray-trace or the lens vendor's spot data when θ is large.</li>
-            <li><strong>Collimated input with the waist near the lens.</strong> The focus then lies close to \(f'\). A diverging or converging input shifts the focus. See the <a href="/tools/gaussian-beam/">Gaussian beam propagation</a> tool.</li>
-            <li><strong>M² is applied as a multiplier.</strong> This is the embedded-Gaussian model. It is exact for untruncated beams and a good approximation with truncation.</li>
-            <li><strong>Truncated beams are no longer Gaussian.</strong> When T &gt; ~0.8, \(z_R\) and DOF from the 1/e² radius are approximate, and side lobes carry a few percent of the energy.</li>
+            <li><strong>Collimated input with the waist near the lens.</strong> The focus then lies close to \(f'\), provided \(f'\) is much shorter than the input beam's Rayleigh range \(z_{R,\mathrm{in}} = \pi D_b^2/(4M^2\lambda)\). Otherwise \(d_F\) is the spot size at \(f'\), but the true waist is smaller by \(1/\sqrt{1+(f'/z_{R,\mathrm{in}})^2}\) and forms closer to the lens, at \(f'/[1+(f'/z_{R,\mathrm{in}})^2]\); the calculator flags this when the difference exceeds 1 %. A diverging or converging input shifts the focus. See the <a href="/tools/gaussian-beam/">Gaussian beam propagation</a> tool.</li>
+            <li><strong>M² enters through the embedded Gaussian.</strong> The spot is \(M\) times that of the embedded TEM00 beam (diameter \(D_b/M\)) clipped by the same aperture. This is exact for untruncated beams. With clipping, it agrees with an exact calculation for a partially coherent (Gaussian Schell-model) beam to within about 4 % for \(T \le 1\). It overstates the spot by up to about 26 % for \(T \le 2\), and by up to a factor \(M\) when the aperture is much smaller than the beam, where any beam gives the Airy spot \(1.645\,\lambda f'/D_t\).</li>
+            <li><strong>Truncated beams are no longer Gaussian.</strong> When T &gt; ~0.8, \(z_R\) and DOF from the 1/e² radius are approximate, and side lobes outside the first dark ring carry a growing share of the transmitted power (for M² = 1: about 2 % at T = 0.8, 4.5 % at T = 1, 12 % at T = 2, and 16 % for uniform illumination).</li>
         </ul>
 
         <h2>References</h2>
@@ -262,24 +263,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const curveT = Calc.math.linspace(0.2, 2, 46);
-    const curveA = curveT.map(apo);
     const regime = document.getElementById('regime');
     const dofLabel = document.getElementById('dof-label');
+    const collNote = document.getElementById('coll-note');
 
     Calc.create({
         form: '#calc',
         compute(v) {
             const truncated = isFinite(v.dt);
             const T = truncated ? v.db / v.dt : 0;
-            const A = truncated ? apo(T) : 4 / Math.PI;
+            // M² enters through the embedded Gaussian (diameter D_b/M): APO at its truncation ratio T/M, spot × M²
+            const TM = T / Math.sqrt(v.m2);
+            const A = truncated ? apo(TM) : 4 / Math.PI;
             const dF = A * v.wl * v.f * v.m2 / v.db;
             const dF0 = 4 / Math.PI * v.wl * v.f * v.m2 / v.db;
             const w0 = dF / 2;
             const zR = Math.PI * w0 * w0 / (v.m2 * v.wl);
             const eps = v.tol / 100;
-            const dof = 2 * zR * Math.sqrt((1 + eps) ** 2 - 1);
+            const dof = 2 * zR * Math.sqrt(eps * (2 + eps));   // √((1+ε)² − 1), without cancellation for a tiny ε
             // geometric convergence half-angle of the 1/e² beam (or of the aperture, if it clips harder)
             const theta = Math.min(v.db, truncated ? v.dt : Infinity) / (2 * v.f);
+            // the waist forms at f′ only while f′ ≪ the input beam's Rayleigh range (thin-lens result for a waist at the lens)
+            const zRin = Math.PI * v.db * v.db / (4 * v.m2 * v.wl), x2 = (v.f / zRin) ** 2;
+            collNote.hidden = !(Math.sqrt(1 + x2) - 1 >= 0.01);
+            collNote.innerHTML = collNote.hidden ? '' : 'f′ is ' + fmt.num(v.f / zRin, 3) + ' times the Rayleigh range of the input beam (' + fmt.si(zRin, 'm', 3) +
+                '), so the input is not collimated on this scale and the spot above is the one at f′. The true waist is about ' +
+                fmt.num(100 * (1 - 1 / Math.sqrt(1 + x2)), 2) + ' % smaller and forms ' + fmt.si(v.f / (1 + 1 / x2), 'm', 3) +
+                ' closer to the lens, with z<sub>R</sub> and the depth of focus about ' + fmt.num(100 / (1 + 1 / x2), 2) + ' % shorter.';
 
             dofLabel.textContent = 'Depth of focus, total (' + fmt.num(v.tol, 3) + ' % spot growth)';
             if (!truncated) { regime.textContent = 'Untruncated'; regime.className = 'badge'; }
@@ -292,8 +302,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 dF: fmt.si(dF, 'm', 4),
                 w0: fmt.si(w0, 'm', 4),
                 T: truncated ? fmt.num(T, 4) : 'none',
-                apo: fmt.num(A, 4),
-                trans: truncated ? fmt.pct(1 - Math.exp(-2 / (T * T)), 4) : '100 %',
+                apo: fmt.num(A, 4) + (truncated && v.m2 !== 1 ? '  (at T/M = ' + fmt.num(TM, 4) + ')' : ''),
+                trans: truncated ? fmt.pct(-Math.expm1(-2 / (T * T)), 4) : '100 %',
                 dF0: truncated ? fmt.si(dF0, 'm', 4) : null,
                 zR: fmt.si(zR, 'm', 4),
                 dof: fmt.si(dof, 'm', 3) + '  (±' + fmt.si(dof / 2, 'm', 3) + ')',
@@ -301,14 +311,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 fno: 'f/' + fmt.num(v.f / v.db, 3)
             };
         },
+        onError() {                             // no valid result: clear the chart (its curve and marker follow the inputs) and the note
+            Plot.clear('#apo-plot');
+            collNote.hidden = true;
+            regime.textContent = ''; regime.className = 'badge';
+        },
         after(v) {
-            const T = isFinite(v.dt) ? v.db / v.dt : null;
+            const T = isFinite(v.dt) ? v.db / v.dt : null, M = Math.sqrt(v.m2);
             Plot.draw('#apo-plot', {
                 height: 260,
                 x: { label: 'Truncation ratio T = Db / Dt', min: 0.2, max: 2 },
                 y: { label: 'APO factor', min: 1.2 },
-                series: [{ type: 'line', x: curveT, y: curveA, label: 'APO(T)', color: 'var(--c1)' }]
-                    .concat(T && T >= 0.2 && T <= 2 ? [{ type: 'points', x: [T], y: [apo(T)], color: 'var(--c2)', r: 5 }] : []),
+                series: [{ type: 'line', x: curveT, y: curveT.map(t => apo(t / M)), label: 'APO(T)', color: 'var(--c1)' }]
+                    .concat(T && T >= 0.2 && T <= 2 ? [{ type: 'points', x: [T], y: [apo(T / M)], color: 'var(--c2)', r: 5 }] : []),
                 hlines: [{ y: 4 / Math.PI, label: '4/π (untruncated)', color: 'var(--muted)' }],
                 hover: { format: (x, hits) => hits.length ? `T = ${fmt.num(hits[0].x, 3)} · APO = ${fmt.num(hits[0].y, 4)} · transmitted ${fmt.pct(1 - Math.exp(-2 / hits[0].x ** 2), 3)}` : '' }
             });

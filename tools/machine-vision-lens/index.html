@@ -217,7 +217,7 @@
                     <div class="result"><span class="result-label">Shorter standard lens (wider view)</span><output class="result-value" data-out="below">—</output></div>
                     <div class="result"><span class="result-label">Longer standard lens (needs more distance)</span><output class="result-value" data-out="above">—</output></div>
                 </div>
-                <p class="hint" style="margin-top:.8rem">Standard machine vision focal lengths: 4, 6, 8, 12, 16, 25, 35, 50, 75, and 100 mm.</p>
+                <p class="hint" style="margin-top:.8rem">Standard machine vision focal lengths: 4, 5, 6, 8, 12, 16, 25, 35, 50, 75, and 100 mm.</p>
             </div>
         </section>
     </div>
@@ -225,12 +225,12 @@
     <article class="prose" style="margin-top:3rem">
         <h2>How the calculation works</h2>
         <p>The lens is modeled as a thin lens. For an object at distance \(s\) from a lens of focal length \(f\), the magnification and field of view are</p>
-        <div class="formula">\[ m = \frac{f}{s - f}, \qquad \text{FOV} = \frac{\text{sensor size}}{m}, \qquad \text{pixel on object} = \frac{p}{m}, \]</div>
+        <div class="formula">\[ \begin{gathered} m = \frac{f}{s - f}, \quad \text{FOV} = \frac{\text{sensor size}}{m}, \\[6pt] \text{pixel on object} = \frac{p}{m}, \end{gathered} \]</div>
         <p>where \(p\) is the pixel pitch. To resolve a defect reliably it should span several pixels (typically 3–5), so the smallest detectable defect is that many object-side pixels.</p>
 
         <h2>Depth of field</h2>
         <p>The depth of field is the range of object distances over which the blur stays under the acceptable circle of confusion \(c\) at the sensor. Here \(c\) is set as a number of pixels. The calculator uses the exact thin-lens limits with hyperfocal distance \(H = f^2/(Nc) + f\):</p>
-        <div class="formula">\[ s_\text{near} = \frac{s(H - f)}{H + s - 2f}, \qquad s_\text{far} = \frac{s(H - f)}{H - s}, \qquad \text{DOF} = s_\text{far} - s_\text{near}. \]</div>
+        <div class="formula">\[ \begin{gathered} s_\text{near} = \frac{s(H - f)}{H + s - 2f}, \\[8pt] s_\text{far} = \frac{s(H - f)}{H - s}, \\[8pt] \text{DOF} = s_\text{far} - s_\text{near}. \end{gathered} \]</div>
         <p>For close-up work (\(s \ll H\)) this reduces to the familiar approximation</p>
         <div class="formula">\[ \mathrm{DOF} \approx \frac{2\,N\,c\,(1 + m)}{m^2}. \]</div>
         <div class="callout"><p><strong>A common mistake.</strong> The expression \(2Nc(1+m)\) is the <em>image-side</em> depth of focus: how far the sensor can move. Object-side depth of field carries the extra factor \(1/m^2\). At m = 0.14 the two differ by a factor of about 50. Using the wrong one makes a lens look far less forgiving than it is.</p></div>
@@ -239,7 +239,7 @@
         <h2>Diffraction vs. pixel size</h2>
         <p>At the sensor, light from a point forms an Airy disk of diameter \(2.44\,\lambda N_w\), where \(N_w = N(1+m)\) is the working f-number. A diffraction-limited lens transmits no detail finer than the cutoff frequency \(1/(\lambda N_w)\) cycles/mm. The sensor can only represent detail up to its Nyquist frequency \(1/(2p)\).</p>
         <p>The ratio alone is not the whole story. An ideal lens's MTF falls continuously to zero at the cutoff,</p>
-        <div class="formula">\[ \mathrm{MTF}(\nu) = \frac{2}{\pi}\left[\arccos\nu - \nu\sqrt{1-\nu^2}\right], \qquad \nu = \frac{f_\text{Nyquist}}{f_\text{cutoff}}, \]</div>
+        <div class="formula">\[ \begin{gathered} \mathrm{MTF}(\nu) = \tfrac{2}{\pi}\bigl[\arccos\nu - \nu\sqrt{1-\nu^2}\bigr] \\[6pt] \nu = \frac{f_\text{Nyquist}}{f_\text{cutoff}}, \end{gathered} \]</div>
         <p>so a ratio of exactly 1 still means zero contrast at Nyquist. A ratio of 1.2 gives about 8 %, and 1.5 gives about 22 %.</p>
         <ul>
             <li><strong>Cutoff ÷ Nyquist ≥ 2: sensor-limited.</strong> The optics keep useful contrast (above about 40 %) at the pixel Nyquist frequency. Smaller pixels or more magnification would help, and fine periodic patterns can alias.</li>
@@ -262,6 +262,8 @@
             <li>Thin-lens, paraxial model with a pupil magnification of 1. Real multi-element lenses have separated principal planes and asymmetric pupils, so treat distances as approximate and confirm with the lens vendor's calculator or a test image.</li>
             <li>Lenses have a minimum object distance. A 25 mm lens may not focus closer than 100–200 mm without extension tubes. The "extension" result is the extra lens-to-sensor distance needed beyond infinity focus.</li>
             <li>Telecentric lenses do not follow \(m = f/(s-f)\). Their magnification is fixed and their depth of field is set by the object-side NA.</li>
+            <li>Depth of field is geometric and ignores diffraction. When the Airy disk is comparable to \(c\) or larger, the usable depth is smaller than shown.</li>
+            <li>Pixel figures assume a monochrome sensor. A color camera's Bayer filter resolves fine detail at roughly half the monochrome resolution, so allow about twice as many pixels across a defect.</li>
             <li>Detectability also depends on contrast, lighting, noise, and the algorithm. The pixel-count rule is a starting point, not a guarantee.</li>
         </ul>
 
@@ -295,12 +297,15 @@ document.addEventListener('DOMContentLoaded', () => {
         pitchIn.value = fmt.plain(Calc.fromSI('length', pitchUnit.value, s.pitch * 1e-6), 5);
         nxIn.value = s.nx; nyIn.value = s.ny;
     });
-    [pitchIn, nxIn, nyIn].forEach(inp => inp.addEventListener('input', () => {
+    // a preset whose numbers no longer match the fields reads as Custom: after an edit, and on load for a link whose
+    // values differ from the preset's (an edited link, or one made before a correction to the sensor data)
+    const syncPreset = () => {
         const s = SENSORS[sel.value];
         if (!s) return;
         const p = Calc.toSI('length', pitchUnit.value, Calc.parseNum(pitchIn.value)) * 1e6;
         if (Math.abs(p - s.pitch) > 1e-9 || Calc.parseNum(nxIn.value) !== s.nx || Calc.parseNum(nyIn.value) !== s.ny) sel.value = 'custom';
-    }));
+    };
+    [pitchIn, nxIn, nyIn].forEach(inp => inp.addEventListener('input', syncPreset));
 
     const len = (x, sig) => fmt.si(x, 'm', sig || 4, { max: 0 });
     const limit = document.getElementById('limit');
@@ -318,7 +323,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const c = v.blur * v.pitch;
             const H = v.f * v.f / (v.N * c) + v.f;
             const near = v.wd * (H - v.f) / (H + v.wd - 2 * v.f);
-            const far = v.wd < H ? v.wd * (H - v.f) / (H - v.wd) : Infinity;
+            // at the hyperfocal distance the far limit is infinite (the margin absorbs rounding when s is typed equal to H)
+            const far = v.wd < H * (1 - 1e-9) ? v.wd * (H - v.f) / (H - v.wd) : Infinity;
             const dof = far - near;
             const Nw = v.N * (1 + m);
             const airy = 2.44 * v.wl * Nw;
@@ -330,9 +336,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (ratio >= 2) { limit.textContent = 'Sensor-limited'; limit.className = 'badge badge-ok'; }
             else if (ratio >= 1) { limit.textContent = 'Balanced optics and pixels'; limit.className = 'badge badge-ok'; }
             else { limit.textContent = 'Diffraction-limited'; limit.className = 'badge badge-warn'; }
+            // enough digits that the last one is at most a tenth of the depth of field, so the two limits differ in print
+            // (at 1:1 with a 100 mm lens the depth is 77 µm at 200 mm, which four digits round away)
+            const sigNF = Math.min(9, Math.max(4, Math.ceil(Math.floor(Math.log10(far)) + 1 - Math.log10(dof / 10))));
             dofNote.textContent = isFinite(far)
-                ? 'In focus from ' + len(near) + ' to ' + len(far) + ' (c = ' + fmt.si(c, 'm', 3) + ').'
-                : 'Beyond the hyperfocal distance: in focus from ' + len(near) + ' to infinity.';
+                ? 'In focus from ' + len(near, sigNF) + ' to ' + len(far, sigNF) + ' (c = ' + fmt.si(c, 'm', 3) + ').'
+                : 'At or beyond the hyperfocal distance: in focus from ' + len(near) + ' to infinity.';
 
             return {
                 fov: len(sw / m, 4) + ' × ' + len(sh / m, 4),
@@ -348,10 +357,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 mtf: fmt.pct(mtf, 2),
                 ext: len(m * v.f, 3)
             };
-        }
+        },
+        onError() { limit.textContent = ''; limit.className = 'badge'; dofNote.textContent = ''; }   // no stale verdict or focus range beside blank results
     });
+    syncPreset();   // the fields now hold the link's values
 
-    const STD = [4, 6, 8, 12, 16, 25, 35, 50, 75, 100].map(x => x * 1e-3);
+    const STD = VisionData.focalLengths.map(x => x * 1e-3);   // the same series the vision system configurator picks from
     Calc.create({
         id: 'inv',
         form: '#inv',
@@ -365,8 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return {
                 freq: len(f, 3),
                 mreq: fmt.num(m, 4) + '×',
-                below: below && below < v.wd ? len(below, 3) + ' lens → FOV ' + len(fovWith(below), 3) : 'none shorter than 4 mm',
-                above: above ? len(above, 3) + ' lens → needs ' + len(above * (1 + 1 / m), 3) + ' distance' : 'none longer than 100 mm'
+                below: below && below < v.wd ? len(below, 3) + ' lens → FOV ' + len(fovWith(below), 3) : 'none shorter than ' + len(STD[0], 3),
+                above: above ? len(above, 3) + ' lens → needs ' + len(above * (1 + 1 / m), 3) + ' distance' : 'none longer than ' + len(STD[STD.length - 1], 3)
             };
         }
     });

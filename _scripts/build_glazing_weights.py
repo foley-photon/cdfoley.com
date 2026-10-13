@@ -1,4 +1,4 @@
-"""Build the spectral weighting tables in assets/js/glazing-data.js.
+"""Build the spectral weighting tables in assets/js/glazing-weights.js.
 
     python _scripts/build_glazing_weights.py <folder with source CSVs>
 
@@ -7,8 +7,8 @@ Sources (download into the folder first):
                              = direct + circumsolar AM1.5, the solar weighting used for glazing (ISO 9050 / NFRC 300 style)
   CIE_std_illum_D65.csv      CIE standard illuminant D65, 1 nm (doi:10.25039/CIE.DS.hjfjmt59)
   CIE_sle_photopic.csv       CIE photopic luminous efficiency V(λ), 1 nm
-  CIE_xyz_1931_2deg.csv      CIE 1931 2° colour-matching functions, 1 nm
-Each table is integrated into 5 nm bins centred on 300, 305, …, 2500 nm and normalized.
+  CIE_xyz_1931_2deg.csv      CIE 1931 2° color-matching functions, 1 nm
+Each table is integrated into 5 nm bins centered on 300, 305, …, 2500 nm and normalized.
 """
 import csv, json, os, sys
 

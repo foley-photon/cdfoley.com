@@ -23,8 +23,10 @@
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
-    .oee-bar svg { width: 100%; height: auto; display: block; }
-    .oee-bar text { font-family: var(--font); font-size: 12px; font-weight: 600; fill: var(--on-accent); }
+    .oee-bar .bar { display: flex; height: 44px; border-radius: 6px; overflow: hidden; }
+    .oee-bar .bar > span { flex: none; display: flex; align-items: center; justify-content: center; container-type: inline-size; overflow: hidden; white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--on-accent); }
+    .oee-bar b { font-weight: inherit; }
+    @container (max-width: 46px) { .oee-bar b { display: none; } }   /* a segment too narrow for its label shows none rather than a clipped one */
     .oee-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.5rem 1.2rem; margin-top: 0.9rem; font-size: 0.86rem; color: var(--text-2); }
     .oee-legend div { display: flex; gap: 0.5rem; align-items: baseline; }
     .oee-legend i { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; transform: translateY(1px); }
@@ -130,7 +132,7 @@
                 <div class="field">
                     <label for="ict">Ideal cycle time per part</label>
                     <div class="input-unit"><input id="ict" name="ict" value="30" inputmode="decimal" data-positive><select data-dim="time" data-units="s,min" data-default="s"></select></div>
-                    <p class="hint">The fastest sustainable design rate, such as nameplate or validated rate, not the average.</p>
+                    <p class="hint">The cycle time at the fastest sustainable rate, such as the nameplate or validated rate, not the average.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
@@ -239,7 +241,7 @@
         <p>Takt time is the pace of demand. It is set by the customer, not by the equipment. Cycle time is how long a station actually takes. Every station must run at or below takt, or the line cannot meet demand without overtime. The slowest station, \(t_\text{max}\), sets the line's real output. Balance efficiency measures how evenly the work is spread across stations, and its complement, the balance delay, is idle time built into the line.</p>
 
         <h2>Worked examples</h2>
-        <p><strong>OEE.</strong> A 450-minute planned shift loses 45 minutes to unplanned stops, leaving 405 minutes of run time (A = 90.0 %). At an ideal 30 s per part, 740 parts should take 370 minutes, so P = 370/405 = 91.4 %. 715 of those parts are good (Q = 96.6 %). OEE = 0.900 × 0.914 × 0.966 = 79.4 %, the same as 715 good parts out of a theoretical 900. The loss bar shows that the 45 minutes of downtime is the largest loss, ahead of 35 minutes of speed loss and 12.5 minutes making parts that were later rejected.</p>
+        <p><strong>OEE.</strong> A 450-minute planned shift loses 45 minutes to unplanned stops, leaving 405 minutes of run time (A = 90.0 %). At an ideal 30 s per part, 740 parts should take 370 minutes, so P = 370/405 = 91.4 %. 715 of those parts are good (Q = 96.6 %). OEE = 0.900 × 0.9136 × 0.9662 = 79.4 %, the same as 715 good parts out of a theoretical 900. The loss bar shows that the 45 minutes of downtime is the largest loss, ahead of 35 minutes of speed loss and 12.5 minutes making parts that were later rejected.</p>
         <p><strong>Takt.</strong> Demand of 840 units in 450 available minutes gives a takt of 32.1 s. Six stations with 173.5 s of total work need at least ⌈173.5/32.1⌉ = 6 stations, so the station count is right. But station 4, at 33.5 s, is 1.4 s over takt and limits the line to about 806 units per shift. Moving about 1.5 s of work from station 4 to station 3 (24.0 s) brings every station under takt without adding labor.</p>
 
         <h2>Assumptions and limits</h2>
@@ -286,7 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const oee = A * P * Q;
             const theo = v.planned / v.ict;
             const badge = document.getElementById('oee-badge');
-            if (oee >= 0.85) { badge.textContent = '≥ 85 % benchmark'; badge.className = 'badge badge-ok'; }
+            if (P > 1) { badge.textContent = 'Performance above 100 %'; badge.className = 'badge badge-warn'; }   // the OEE is not a valid score to rate
+            else if (oee >= 0.85) { badge.textContent = '≥ 85 % benchmark'; badge.className = 'badge badge-ok'; }
             else { badge.textContent = 'Below 85 % benchmark'; badge.className = 'badge'; }
             lastOee = {
                 planned: v.planned, avail: v.down, speed: Math.max(0, run - v.total * v.ict),
@@ -296,12 +299,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 oee: pct(oee),
                 a: pct(A),
                 p: pct(P),
-                'p-note': P > 1 ? 'Above 100 %: the ideal cycle time is probably longer than the true design rate, or the count is wrong.' : '',
+                'p-note': P > 1 ? 'Above 100 %: the ideal cycle time is probably longer than the true design cycle time, or the total count is wrong.' : '',
                 q: pct(Q),
                 run: mins(run),
                 parts: fmt.num(v.good, 6) + ' of ' + fmt.num(theo, 4),
                 lost: fmt.num(Math.max(0, theo - v.good), 4) + ' parts'
             };
+        },
+        onError() {                             // no valid result: clear the loss bar and legend left from the last one
+            document.getElementById('oee-bar').innerHTML = '';
+            document.getElementById('oee-legend').innerHTML = '';
+            document.getElementById('oee-scale-max').textContent = 'planned time';
         },
         after() {
             const s = lastOee;
@@ -312,18 +320,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 { key: 'avail', label: 'Availability loss (downtime)', color: 'var(--c5)' }
             ];
             const total = segs.reduce((a, g) => a + s[g.key], 0) || 1;
-            const W = 640, H = 44;
-            let x = 0, rects = '';
-            segs.forEach(g => {
-                const w = s[g.key] / total * W;
-                if (w <= 0) return;
-                rects += '<rect x="' + x.toFixed(2) + '" y="0" width="' + w.toFixed(2) + '" height="' + H + '" style="fill:' + g.color + '"/>';
-                if (w > 52) rects += '<text x="' + (x + w / 2).toFixed(2) + '" y="' + (H / 2 + 4) + '" text-anchor="middle">' + fmt.num(s[g.key] / s.planned * 100, 3) + ' %</text>';
-                x += w;
-            });
+            // HTML segments keep their labels at 12 px on any screen (a scaled SVG shrank them to about 6 px on a phone)
+            const segHtml = segs.filter(g => s[g.key] > 0).map(g => '<span style="width:' + (s[g.key] / total * 100).toFixed(3) + '%;background:' + g.color + '"><b>'
+                + fmt.num(s[g.key] / s.planned * 100, 3) + ' %</b></span>').join('');
             document.getElementById('oee-bar').innerHTML =
-                '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Breakdown of planned production time into productive time and losses" preserveAspectRatio="none" style="border-radius:6px">' + rects + '</svg>';
-            document.getElementById('oee-scale-max').textContent = fmt.num(s.planned / 60, 4) + ' min planned';
+                '<div class="bar" role="img" aria-label="Breakdown of planned production time into productive time and losses">' + segHtml + '</div>';
+            document.getElementById('oee-scale-max').textContent = s.over   // the bar then spans more than the planned time
+                ? fmt.num(total / 60, 4) + ' min accounted for (' + fmt.num(s.planned / 60, 4) + ' planned)'
+                : fmt.num(s.planned / 60, 4) + ' min planned';
             document.getElementById('oee-legend').innerHTML = segs.map(g =>
                 '<div><i style="background:' + g.color + '"></i><span>' + g.label + '</span><b>' + fmt.num(s[g.key] / 60, 4) + ' min</b></div>').join('') +
                 (s.over ? '<div style="grid-column:1/-1;color:var(--warn)">Performance is above 100 %, so speed loss is shown as zero and the bar is scaled to the time accounted for.</div>' : '');
@@ -339,6 +343,9 @@ document.addEventListener('DOMContentLoaded', () => {
         compute(v) {
             const takt = v.avail / v.demand;                       // seconds per unit
             const st = Calc.parseList(v.stations, 'stations');
+            // parseList reads text before the first number as a header, so a time typed with its unit ("28.5s") would vanish
+            const odd = v.stations.split(/[\s,;]+/).find(t => /^[-+−]?\.?\d/.test(t) && !isFinite(Calc.parseNum(t)));
+            if (odd) throw Calc.fail('“' + odd + '” is not a number. Enter each station time in seconds, without a unit.', 'stations');
             if (st.some(t => !(t > 0))) throw Calc.fail('Station cycle times must be greater than zero.', 'stations');
             const badge = document.getElementById('takt-badge');
             lastTakt = { takt, st };
@@ -348,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             if (!st.length) {
                 badge.textContent = ''; badge.className = 'badge';
-                return Object.assign(out, { bneck: null, wc: null, nmin: null, efft: null, effb: null, cap: null, 'bneck-note': '' });
+                return Object.assign(out, { bneck: null, wc: null, nmin: null, efft: null, effb: null, cap: null, 'bneck-note': null });   // a '' note would unhide the bottleneck row
             }
             const wc = st.reduce((a, t) => a + t, 0), N = st.length;
             const tmax = Math.max(...st), iMax = st.indexOf(tmax);
@@ -366,6 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 cap: fmt.num(v.avail / tmax, 4) + ' units vs. ' + fmt.num(v.demand, 6) + ' demanded'
             });
         },
+        onError() { Plot.clear('#station-plot'); },   // no valid result: remove the chart left from the last one
         after() {
             const { takt, st } = lastTakt;
             stPanel.hidden = !st.length;
@@ -373,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const bins = (pred) => st.map((t, i) => ({ x0: i + 0.6, x1: i + 1.4, y: pred(t) ? t : 0 }));
             Plot.draw('#station-plot', {
                 height: 260,
-                x: { label: 'Station', min: 0.4, max: st.length + 0.6, ticks: Math.min(st.length, 12), format: v => Number.isInteger(v) && v >= 1 && v <= st.length ? 'S' + v : '' },
+                x: { label: 'Station', min: 0.4, max: st.length + 0.6, ticks: Math.min(st.length, 12) },   // whole-number ticks; plot.js labels fewer when they would collide
                 y: { label: 'Cycle time (s)', min: 0 },
                 series: [
                     { type: 'bars', bins: bins(t => t <= takt), color: 'var(--c1)', label: 'Within takt', opacity: 0.75 },

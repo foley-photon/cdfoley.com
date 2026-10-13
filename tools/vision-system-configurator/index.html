@@ -348,12 +348,12 @@
         <p>In automatic mode it picks the longest standard focal length at or below \(f_\text{ideal}\) (4, 5, 6, 8, 12, 16, 25, 35, 50, 75, or 100 mm), so the field is always covered. The actual magnification is then \(m = f/(s - f)\), each pixel of pitch \(p\) covers \(p/m\) on the part, and the smallest feature spans \(d\,m/p\) pixels.</p>
 
         <h2>Depth of field, diffraction, and motion</h2>
-        <p>Depth of field uses the exact thin-lens limits with the acceptable blur \(c\) (in pixels) and hyperfocal distance \(H = f^2/(Nc) + f\), the same model as the <a href="/tools/machine-vision-lens/">lens selection calculator</a>. The Airy disk at the sensor is \(2.44\,\lambda N(1+m)\), and the ideal-lens MTF at the sensor Nyquist frequency \(1/(2p)\) shows whether the optics or the pixels limit resolution.</p>
+        <p>Depth of field uses the exact thin-lens limits with the acceptable blur \(c\) (in pixels) and hyperfocal distance \(H = f^2/(Nc) + f\), the same model as the <a href="/tools/machine-vision-lens/">lens selection calculator</a>. The Airy disk diameter at the sensor is \(2.44\,\lambda N(1+m)\), and the ideal-lens MTF at the sensor Nyquist frequency \(1/(2p)\) shows whether the optics or the pixels limit resolution.</p>
         <p>Motion blur in pixels is the distance the part moves during the exposure divided by the pixel size on the part, \(v\,t_\text{exp}\,m/p\). Keep it under one pixel for measurement and under about two for detection. Rolling-shutter sensors also skew moving parts, because rows expose at different times.</p>
 
         <h2>Bandwidth and lens format</h2>
         <p>The data rate is pixels per frame × bytes per pixel × frame rate. The interface limits are practical sustained payloads after protocol overhead: about 115 MB/s for GigE, 380 MB/s for USB3, 1.15 GB/s for 10GigE, and 1.2 GB/s per CXP-12 link. The sensor's own maximum frame rate is not modeled, so check the camera datasheet as well.</p>
-        <p>A lens must project an image circle at least as large as the sensor diagonal. The configurator suggests the smallest standard lens format that covers the sensor and the usual mount for that format. C-mount covers sensors up to about 1.1″ (17.6 mm diagonal) with lenses rated for it; larger sensors need TFL-II, M42, F-mount, or M58 lenses.</p>
+        <p>A lens must project an image circle at least as large as the sensor diagonal. The configurator suggests the smallest standard lens format that covers the sensor and the usual mount for that format. C-mount covers sensors up to about 1.1″ (17.6 mm diagonal), or 1.2″ (19.3 mm) with lenses rated for it; larger sensors need TFL-II, M42, F-mount, M58, or M72 lenses.</p>
 
         <h2>Lighting</h2>
         <p>Lighting decides contrast, and contrast decides whether a feature that spans enough pixels is actually detectable. The suggestions follow standard practice: backlights for silhouettes and gauging, coaxial light for flat reflective parts, dome light for curved shiny parts, low-angle dark field for scratches and particles, and patterned backgrounds for transparent parts. The <a href="/learn/machine-vision-optics/">machine vision optics article</a> covers the geometry in more depth.</p>
@@ -437,9 +437,10 @@ document.addEventListener('DOMContentLoaded', () => {
         g += '<rect class="depth" x="' + (xo - dep / 2) + '" y="' + (cy - Math.min(reqHalf, half) - 4) + '" width="' + dep + '" height="' + (2 * Math.min(reqHalf, half) + 8) + '"/>';
         g += '<line class="plane" x1="' + xo + '" y1="' + (cy - half - 6) + '" x2="' + xo + '" y2="' + (cy + half + 6) + '"/>';
         g += '<line class="req' + (covered ? '' : ' bad') + '" x1="' + (xo + 6) + '" y1="' + (cy - reqHalf) + '" x2="' + (xo + 6) + '" y2="' + (cy + reqHalf) + '"/>';
-        g += '<text class="lbl" x="' + (xo + 14) + '" y="' + (cy - half + 20) + '">FOV ' + esc(L(o.fovA)) + '</text>';
-        g += '<text class="lbl" x="' + (xo + 14) + '" y="' + (cy + 4) + '" style="fill:var(--c3)">need ' + esc(L(v.fovw)) + '</text>';
-        g += '<text class="lbl" x="' + ((dN + dF) / 2) + '" y="' + (cy - half - 15) + '" text-anchor="middle" style="fill:var(--c3)">DOF ' + esc(isFinite(o.dof) ? L(o.dof) : '∞') + '</text>';
+        const yFov = Math.min(cy - half + 20, cy - 10);          // a narrow cone must not stack the three labels on top of each other
+        g += '<text class="lbl" x="' + (xo + 14) + '" y="' + yFov + '">FOV ' + esc(L(o.fovA)) + '</text>';
+        g += '<text class="lbl" x="' + (xo + 14) + '" y="' + Math.max(cy + 4, yFov + 18) + '" style="fill:var(--c3)">need ' + esc(L(v.fovw)) + '</text>';
+        g += '<text class="lbl" x="' + ((dN + dF) / 2) + '" y="' + Math.min(cy - half - 15, yFov - 20) + '" text-anchor="middle" style="fill:var(--c3)">DOF ' + esc(isFinite(o.dof) ? L(o.dof) : '∞') + '</text>';
         g += '<path class="dim" d="M' + xl + ' ' + (yDim - 5) + 'V' + (yDim + 5) + 'M' + xo + ' ' + (yDim - 5) + 'V' + (yDim + 5) + 'M' + xl + ' ' + yDim + 'H' + xo + '"/>';
         g += '<text class="lbl" x="' + ((xl + xo) / 2) + '" y="' + (yDim + 16) + '" text-anchor="middle">working distance ' + esc(L(v.wd)) + '</text>';
         g += '<text class="lbl-s" x="14" y="' + (H - 6) + '">Angles to scale. Green: depth of field. Orange: height range.</text>';
@@ -539,17 +540,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (s.shutter === 'rolling') ck.push(item('warn', 'Shutter', s.name + ' is a rolling-shutter sensor, which skews moving parts. Use a global-shutter sensor or a short strobe in a dark enclosure.'));
             }
             ck.push(bwOK
-                ? item('ok', 'Bandwidth', fmt.num(rate, 3) + ' MB/s of about ' + iface.mbps + ' MB/s on ' + iface.name + ' (up to ' + fmt.num(maxFps, 3) + ' fps).')
-                : item('bad', 'Bandwidth', fmt.num(rate, 3) + ' MB/s exceeds ' + iface.name + ' (about ' + iface.mbps + ' MB/s, ' + fmt.num(maxFps, 3) + ' fps max). Use a faster interface, a region of interest, or fewer bits per pixel.'));
+                ? item('ok', 'Bandwidth', fmt.num(rate, 3) + ' MB/s of about ' + iface.mbps + ' MB/s on ' + iface.name + ', so up to ' + fmt.num(maxFps, 3) + ' fps.')
+                : item('bad', 'Bandwidth', fmt.num(rate, 3) + ' MB/s exceeds the roughly ' + iface.mbps + ' MB/s of ' + iface.name + ', which allows at most ' + fmt.num(maxFps, 3) + ' fps. Use a faster interface, a region of interest, or fewer bits per pixel.'));
             ck.push(item('ok', 'Lens format', 'Use a lens rated for ' + lf.name + ' (Ø ' + lf.circle + ' mm) or larger to cover the ' + n1(s.diag) + ' mm sensor diagonal; ' + lf.mount + '.'));
             if (v.app === 'measure' && v.depth > 0 && persp > 0.5) ck.push(item('warn', 'Perspective', 'A ' + L(v.depth) + ' height change shifts edges at the field edge by ' + fmt.num(persp, 2) + ' px. A telecentric lens removes this error.'));
             if (v.app === 'color') ck.push(item('warn', 'Color', 'Pick the color version of the camera. A Bayer filter halves the effective resolution for fine detail.'));
 
-            const bad = (covered ? 0 : 1) + (resOK ? 0 : 1) + (dofOK ? 0 : 1) + (bwOK ? 0 : 1);
+            const bad = ck.filter(x => x.indexOf('<li class="bad"') === 0).length;   // every ✕ check, including diffraction and motion blur
             const verdict = $('verdict');
-            verdict.className = 'badge ' + (bad ? 'badge-bad' : (ck.some(x => x.indexOf('class="warn"') >= 0) ? 'badge-warn' : 'badge-ok'));
+            verdict.className = 'badge ' + (bad ? 'badge-bad' : (ck.some(x => x.indexOf('<li class="warn"') === 0) ? 'badge-warn' : 'badge-ok'));
 
             const fLabel = Math.round(o.f * 1e4) / 10 + ' mm';
+            const limSig = clamp(Math.ceil(Math.log10(o.far / o.dof)) + 2, 4, 7) || 4;   // enough digits that a shallow depth of field still shows two distinct limits
+            const used = 100 * v.fovw * v.fovh / (o.fovA * o.fovB);
             summaryText = [
                 'Sensor: ' + s.maker + ' ' + s.name + ' (' + V.formatLabel(s) + ', ' + s.nx + ' × ' + s.ny + ', ' + s.pitch + ' µm, ' + s.shutter + ' shutter)',
                 'Lens: ' + fLabel + ', f/' + v.N + ', ' + lf.name + ' or larger, ' + lf.mount,
@@ -590,7 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fovsvg: { html: fovSVG(o, v) },
                 pixsvg: { html: pixSVG(o) },
                 circsvg: { html: circSVG(s, lf) },
-                fovcap: L(o.fovA) + ' × ' + L(o.fovB) + (covered ? ' · ' + Math.round(100 * v.fovw * v.fovh / (o.fovA * o.fovB)) + '% used' : ' · too small'),
+                fovcap: L(o.fovA) + ' × ' + L(o.fovB) + (covered ? ' · ' + (used < 0.5 ? '< 1' : Math.round(used)) + '% used' : ' · too small'),
                 pixcap: fmt.num(o.ppf, 2) + ' px across · 1 px = ' + fmt.si(o.pobj, 'm', 3),
                 circcap: lf.name + ' lens, Ø ' + lf.circle + ' mm · sensor Ø ' + n1(s.diag) + ' mm',
                 checks: { html: '<ul class="checks">' + ck.join('') + '</ul>' },
@@ -599,7 +602,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 m: fmt.num(o.m, 4) + '×',
                 pobj: fmt.si(o.pobj, 'm', 4) + '/px',
                 ppfout: fmt.num(o.ppf, 3) + ' px',
-                dof: isFinite(o.dof) ? L(o.dof) + '  (' + L(o.near, 4) + ' to ' + L(o.far, 4) + ')' : '∞',
+                dof: isFinite(o.dof) ? L(o.dof) + '  (' + L(o.near, limSig) + ' to ' + L(o.far, limSig) + ')' : '∞',
                 nw: 'f/' + fmt.num(Nw, 3),
                 airy: fmt.si(airy, 'm', 3) + '  (' + fmt.num(airy / o.p, 3) + ' px)',
                 mtf: fmt.pct(mtf, 2),

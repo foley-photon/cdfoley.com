@@ -175,7 +175,7 @@
         <h2>How it is calculated</h2>
         <p>Heat released at a surface spreads with the diffusion equation. After a time \(t\), the temperature profile from an instantaneous planar source falls as \(\exp(-x^2/4Dt)\), so it drops to 1/e at</p>
         <div class="formula">\[ L_\text{th} = 2\sqrt{D\tau}, \qquad D = \frac{k}{\rho\, c_p}, \]</div>
-        <p>where \(k\) is the thermal conductivity, \(\rho\) the density, and \(c_p\) the specific heat. Authors differ on the prefactor: \(\sqrt{D\tau}\), \(\sqrt{2D\tau}\), and \(2\sqrt{D\tau}\) all appear. Both common conventions are shown, so check which one a source uses before comparing numbers. Diffusion length scales only with \(\sqrt{\tau}\). Going from 10 ns to 10 ps shrinks it by a factor of about 32, not 1000.</p>
+        <p>where \(k\) is the thermal conductivity, \(\rho\) the density, and \(c_p\) the specific heat. Authors differ on the prefactor: \(\sqrt{D\tau}\), \(\sqrt{2D\tau}\), and \(2\sqrt{D\tau}\) all appear. The calculator shows two of them, \(2\sqrt{D\tau}\) and \(\sqrt{D\tau}\), so check which one a source uses before comparing numbers. Diffusion length scales only with \(\sqrt{\tau}\). Going from 10 ns to 10 ps shrinks it by a factor of about 32, not 1000.</p>
 
         <h2>Thermal confinement</h2>
         <p>If \(L_\text{th} \lesssim \delta\), the optical penetration depth, heat stays in the volume where it was absorbed during the pulse. The pulse is <em>thermally confined</em>. Energy density then builds up efficiently and ablation is relatively clean, with a small heat-affected zone. If \(L_\text{th} \gg \delta\), heat leaks into the bulk during the pulse. More energy is needed to reach ablation, and melt and recast appear. For metals, with \(\delta \approx\) 10–30 nm, confinement requires picosecond or shorter pulses.</p>
@@ -204,7 +204,7 @@
         <p>These are typical room-temperature values. Alloys, glasses, and polymers vary with composition and supplier, and every material's diffusivity changes with temperature. Most metals' diffusivity falls as they heat toward melting. Use measured data for your material when accuracy matters.</p>
 
         <h2>Worked example</h2>
-        <p>Stainless steel 304 (D = 3.95 mm²/s) with 10 ns pulses: \(L_\text{th} = 2\sqrt{3.95\ \text{mm}^2/\text{s}\times 10\ \text{ns}} \approx 0.40\ \mu\text{m}\). That is about 20× the optical penetration depth, so the process is not thermally confined. The same steel with 10 ps pulses gives 12.6 nm, which is comparable to δ. For a 30 µm spot, \(t_w = (15\ \mu\text{m})^2/(4D) = 14\ \mu\text{s}\), so heat accumulation sets in around 70 kHz. At 100 kHz with significant overlap, expect accumulation. In fused silica the same spot accumulates heat from about 15 kHz. In copper the onset is about 2 MHz.</p>
+        <p>Stainless steel 304 (D = 3.95 mm²/s) with 10 ns pulses: \(L_\text{th} = 2\sqrt{3.95\ \text{mm}^2/\text{s}\times 10\ \text{ns}} \approx 0.40\ \mu\text{m}\). That is about 20× the optical penetration depth of a metal in the near-IR (δ ≈ 20 nm), so the process is not thermally confined. The same steel with 10 ps pulses gives 12.6 nm, which is comparable to δ. For a 30 µm spot, \(t_w = (15\ \mu\text{m})^2/(4D) = 14\ \mu\text{s}\), so heat accumulation sets in around 70 kHz. At 100 kHz with significant overlap, expect accumulation. In fused silica the same spot accumulates heat from about 15 kHz. In copper the onset is about 2 MHz.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isFinite(v.f)) {
                 if (!(v.f > 0)) throw Calc.fail('Repetition rate must be greater than zero.', 'f');
                 const T = 1 / v.f, r = T / tw;
-                per = fmt.si(T, 's', 3) + ' = ' + fmt.num(r, 3) + ' × t_w';
+                per = { html: fmt.si(T, 's', 3) + ' = ' + fmt.num(r, 3) + ' × t<sub>w</sub>' };
                 if (r < 1) { badge.textContent = 'Heat accumulation likely'; badge.className = 'badge badge-bad'; }
                 else if (r < 4) { badge.textContent = 'Borderline accumulation'; badge.className = 'badge badge-warn'; }
                 else { badge.textContent = 'Heat dissipates between pulses'; badge.className = 'badge badge-ok'; }
@@ -280,7 +280,8 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         },
         after(v) {
-            const taus = Calc.math.logspace(1e-14, 1e-3, 120);
+            const tLo = Math.min(1e-14, v.tau / 10), tHi = Math.max(1e-3, v.tau * 10);   // keep the selected pulse on the chart
+            const taus = Calc.math.logspace(tLo, tHi, 120);
             const Lum = D => taus.map(t => 2 * Math.sqrt(D * t) * 1e6);
             const series = [{ type: 'line', x: taus, y: Lum(v.D), label: 'Selected D = ' + fmt.num(v.D * 1e6, 3) + ' mm²/s', color: 'var(--c1)' }];
             if (Math.abs(v.D - 117e-6) / 117e-6 > 0.01) series.push({ type: 'line', x: taus, y: Lum(117e-6), label: 'Copper', color: 'var(--c2)', dash: true });
@@ -290,11 +291,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isFinite(v.delta) && v.delta > 0) hl.push({ y: v.delta * 1e6, label: 'optical depth δ', color: 'var(--c5)' });
             Plot.draw('#L-plot', {
                 height: 300,
-                x: { label: 'Pulse duration τ (s)', log: true, min: 1e-14, max: 1e-3 },
+                x: { label: 'Pulse duration τ (s)', log: true, min: tLo, max: tHi },
                 y: { label: 'L = 2√(Dτ) (µm)', log: true },
                 series, hlines: hl, includeLines: false,
                 hover: { format: (x, hits) => 'τ = ' + fmt.si(x, 's', 3) + hits.filter(h => h.series.label).map(h => ' · ' + h.series.label.replace(/ = .*/, '') + ': ' + fmt.si(h.y * 1e-6, 'm', 3)).join('') }
             });
+        },
+        onError() {
+            badge.textContent = ''; badge.className = 'badge';
+            Plot.clear('#L-plot');
         }
     });
 });

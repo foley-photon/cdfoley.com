@@ -62,7 +62,7 @@
         energy:      { 'fJ': 1e-15, 'pJ': 1e-12, 'nJ': 1e-9, 'µJ': 1e-6, 'mJ': 1e-3, 'J': 1 },
         angle:       { 'µrad': 1e-6, 'mrad': 1e-3, 'rad': 1, 'deg': Math.PI / 180, 'arcmin': Math.PI / 10800, 'arcsec': Math.PI / 648000 },
         speed:       { 'µm/s': 1e-6, 'mm/s': 1e-3, 'cm/s': 1e-2, 'm/s': 1, 'mm/min': 1e-3 / 60, 'm/min': 1 / 60, 'in/s': 0.0254, 'ft/min': 0.3048 / 60 },
-        pressure:    { 'Pa': 1, 'kPa': 1e3, 'MPa': 1e6, 'mbar': 100, 'bar': 1e5, 'µbar': 0.1, 'Torr': K.torr, 'mTorr': K.torr / 1000, 'atm': K.atm, 'psi': 6894.757293168, 'inHg': 3386.389 },
+        pressure:    { 'Pa': 1, 'kPa': 1e3, 'MPa': 1e6, 'mbar': 100, 'bar': 1e5, 'µbar': 0.1, 'Torr': K.torr, 'mTorr': K.torr / 1000, 'atm': K.atm, 'psi': 6894.757293168, 'inHg': 25.4 * 133.322387415 },
         fluence:     { 'J/m²': 1, 'mJ/cm²': 10, 'J/cm²': 1e4 },
         irradiance:  { 'W/m²': 1, 'W/cm²': 1e4, 'kW/cm²': 1e7, 'MW/cm²': 1e10, 'GW/cm²': 1e13, 'TW/cm²': 1e16 },
         throughput:  { 'L/s': 1e-3, 'm³/h': 1 / 3600, 'm³/s': 1, 'L/min': 1e-3 / 60, 'cfm': 4.719474432e-4 },

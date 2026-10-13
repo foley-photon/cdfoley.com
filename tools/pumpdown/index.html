@@ -206,9 +206,10 @@
                     <div class="result"><span class="result-label">Line conductance at p₁<span class="sym">C</span></span><output class="result-value" data-out="c1">—</output></div>
                     <div class="result"><span class="result-label">Molecular-flow conductance<span class="sym">C<sub>mol</sub></span></span><output class="result-value" data-out="cmol">—</output></div>
                     <div class="result"><span class="result-label">Knudsen number in the line at p₁</span><output class="result-value" data-out="kn">—</output></div>
+                    <div class="result"><span class="result-label">Reynolds number in the line at p₀</span><output class="result-value" data-out="re">—</output></div>
                     <div class="result"><span class="result-label">Time constant at p₁<span class="sym">V/S<sub>eff</sub></span></span><output class="result-value" data-out="tau">—</output></div>
                     <div class="result"><span class="result-label">Outgassing load<span class="sym">Q = qA</span></span><output class="result-value" data-out="Q">—</output></div>
-                    <div class="result"><span class="result-label">Outgassing-limited pressure<span class="sym">Q/S<sub>eff,mol</sub></span></span><output class="result-value" data-out="pult">—</output></div>
+                    <div class="result"><span class="result-label">Outgassing-limited pressure<span class="sym">Q/S<sub>eff</sub></span></span><output class="result-value" data-out="pult">—</output></div>
                 </div>
             </div>
         </section>
@@ -223,23 +224,30 @@
         <h2>How the calculation works</h2>
         <p>A chamber of volume \(V\) pumped with effective speed \(S_\text{eff}\) against a gas load \(Q\) obeys</p>
         <div class="formula">\[ V\frac{dp}{dt} = -S_\text{eff}(p)\,p + Q \quad\Rightarrow\quad t = \int_{p_1}^{p_0} \frac{V\,dp}{S_\text{eff}(p)\,p - Q}. \]</div>
-        <p>With constant \(S_\text{eff}\) and no gas load this reduces to the familiar \(t = (V/S_\text{eff})\ln(p_0/p_1)\). The calculator integrates the full expression numerically, because the line conductance changes with pressure by orders of magnitude. The pump and the line act in series, like resistors in parallel:</p>
+        <p>With constant \(S_\text{eff}\) and no gas load this reduces to the familiar \(t = (V/S_\text{eff})\ln(p_0/p_1)\). The calculator integrates the full expression numerically, because the line conductance changes with pressure by orders of magnitude. The pump and the line act in series, so their reciprocals add (the same rule as for resistors in parallel):</p>
         <div class="formula">\[ \frac{1}{S_\text{eff}} = \frac{1}{S} + \frac{1}{C}, \qquad \frac{1}{C} = \frac{1}{C_\text{line}} + \frac{1}{C_\text{other}}. \]</div>
 
         <h2>Conductance of a round tube</h2>
         <p><strong>Molecular flow</strong> (mean free path larger than the tube). For a long tube and for a thin orifice of the same diameter,</p>
         <div class="formula">\[ C_\text{tube} = \frac{\pi}{12}\,\bar v\,\frac{d^3}{L}, \qquad C_\text{orifice} = \frac{\bar v}{4}\cdot\frac{\pi d^2}{4}, \qquad \bar v = \sqrt{\frac{8RT}{\pi M}}. \]</div>
-        <p>For air at 20 °C (\(\bar v\) = 463 m/s) these become the well-known rules of thumb \(C \approx 12.1\,d^3/L\) L/s (with d and L in cm) and 11.6 L/s per cm² of orifice area. Real tubes have an entrance as well as a length. The calculator combines the two in series (Dushman's approximation), \(C_\text{mol} = C_\text{orifice}/(1 + 3L/4d)\). This is exact for very short and very long tubes and overestimates the exact Clausing value by up to about 12 % when L is one to two diameters.</p>
+        <p>For air at 20 °C (\(\bar v\) = 463 m/s) these become the well-known rules of thumb \(C \approx 12.1\,d^3/L\) L/s (with d and L in cm) and 11.6 L/s per cm² of orifice area. Real tubes have an entrance as well as a length. The calculator multiplies the orifice conductance by the tube's transmission probability \(\alpha\) (Clausing's problem), using Berman's closed form (rearranged here to avoid round-off), which agrees with exact numerical solutions to better than 0.1 % at every length:</p>
+        <div class="formula">\[ \begin{gathered} C_\text{mol} = \alpha\,C_\text{orifice}, \quad y = \frac{L}{d}, \\ \alpha = \frac{s}{s + y} - \frac{N^2}{4.5\,(y s - \operatorname{arsinh} y)}, \\ N = \frac{y^2\,(s + 2y - 1)}{(s + 1)(s + y)}, \quad s = \sqrt{1 + y^2}. \end{gathered} \]</div>
+        <p>It runs from \(\alpha = 1\) for a thin orifice to \(\alpha \to 4d/3L\) for a long tube. The popular series approximation \(\alpha \approx 1/(1 + 3L/4d)\) (Dushman) is up to about 12 % high when L is one to two diameters.</p>
         <p><strong>Viscous flow</strong> (mean free path much smaller than the tube). Laminar Poiseuille flow gives</p>
         <div class="formula">\[ C_\text{visc} = \frac{\pi d^4}{128\,\eta L}\,\bar p , \]</div>
-        <p>where \(\bar p\) is the mean pressure in the line. For air at 20 °C this is about \(136\,d^4\bar p/L\) L/s with d and L in cm and \(\bar p\) in mbar. Conductance in this regime is proportional to pressure, so a line that is wide open at 100 mbar can choke the pump at 0.1 mbar. The calculator finds \(\bar p\) self-consistently from the chamber pressure and the pump-inlet pressure \(p\,S_\text{eff}/S\).</p>
-        <p><strong>Transitional flow.</strong> Between the two limits the calculator uses \(C_\text{line} = C_\text{visc} + C_\text{mol}\). This simple interpolation has the correct limits on both sides. For precise work in the transition range, use Knudsen's semi-empirical formula or measured data.</p>
+        <p>where \(\bar p\) is the mean pressure in the line. For air at 20 °C this is about \(136\,d^4\bar p/L\) L/s with d and L in cm and \(\bar p\) in mbar. Conductance in this regime is proportional to pressure, so a line that is wide open at 100 mbar can throttle the pump at 0.1 mbar. The calculator finds \(\bar p\) self-consistently from the chamber pressure and the pump-inlet pressure \(p\,S_\text{eff}/S\).</p>
+        <p><strong>Transitional flow.</strong> Between the two limits the calculator uses Knudsen's semi-empirical formula,</p>
+        <div class="formula">\[ \begin{gathered} C_\text{line} = C_\text{visc} + C_\text{mol}\,\frac{1 + a}{1 + 1.235\,a}, \\ a = \frac{d\,\bar p}{\eta}\sqrt{\frac{M}{RT}}. \end{gathered} \]</div>
+        <p>For air at 20 °C, \(a \approx 190\,d\bar p\) (d in cm, \(\bar p\) in mbar), which gives the familiar long-tube form, in L/s:</p>
+        <div class="formula">\[ C \approx 136\,\frac{d^4\bar p}{L} + 12.1\,\frac{d^3}{L}\cdot\frac{1 + 190\,d\bar p}{1 + 235\,d\bar p}. \]</div>
+        <p>It has the correct limits on both sides and follows kinetic-theory results for long tubes to within about 5 %, including the shallow Knudsen minimum, where the plain sum \(C_\text{visc} + C_\text{mol}\) is up to about 15 % high. The formula was derived for long tubes (L at least about 10 d). For shorter tubes in this range treat the result as an estimate.</p>
 
         <h2>Worked example</h2>
         <p>A 50 L chamber pumped by a 35 m³/h (9.72 L/s) rotary-vane pump through 1 m of 25 mm bore line (KF25), down to 0.1 mbar with air at 20 °C:</p>
         <ul>
             <li>Without the line, \(t = (50/9.72)\ln(1013/0.1) = 47\) s.</li>
-            <li>With the line, the conductance is over 500 L/s near atmosphere but only 5.4 L/s at 0.1 mbar. There \(S_\text{eff}\) falls to 3.5 L/s, 36 % of the pump's speed, and the pump-down takes about 57 s.</li>
+            <li>With the line, the laminar conductance is about 50 000 L/s near atmosphere but only 5.0 L/s at 0.1 mbar. There \(S_\text{eff}\) falls to 3.3 L/s, 34 % of the pump's speed, and the pump-down takes about 58 s.</li>
+            <li>Near atmosphere the flow in the line is turbulent (Re ≈ 3 × 10⁴), so the line actually conducts roughly ten times less than the laminar value. That is still hundreds of times the pump's speed, so the result is unaffected.</li>
             <li>In molecular flow the same line conducts only 1.8 L/s. A turbo pump behind this line would lose most of its speed. High vacuum pumps are mounted directly on the chamber for this reason.</li>
             <li>An unbaked chamber with 5000 cm² of internal surface outgassing at 10⁻⁸ mbar·L/(s·cm²) adds Q = 5 × 10⁻⁵ mbar·L/s. Through this line, that limits the base pressure to about 3 × 10⁻⁵ mbar regardless of pump size.</li>
         </ul>
@@ -248,7 +256,8 @@
         <ul>
             <li><strong>Constant pump speed.</strong> Real pump curves fall off at both ends of their range. Use the speed near the pressure that dominates the pump-down time, or run the calculation in segments.</li>
             <li><strong>Outgassing is time-dependent.</strong> Desorption of water from metal surfaces typically falls roughly as \(1/t\). A constant \(q\) is a snapshot that sets a floor on pressure, but it does not model the slow tail. Below about 10⁻² to 10⁻³ mbar, outgassing, not volume, usually sets the pump-down time. Use measured or vendor data for your materials and surface condition.</li>
-            <li><strong>Isothermal, quasi-static flow.</strong> Fast roughing from atmosphere cools the gas and can condense water. Chokes and sonic flow in very short, high-throughput lines are not modeled.</li>
+            <li><strong>Isothermal, quasi-static flow.</strong> Fast roughing from atmosphere cools the gas and can condense water.</li>
+            <li><strong>Laminar, subsonic flow in the line.</strong> Near atmosphere the flow in a roughing line is often turbulent (the calculator reports the Reynolds number at p₀; turbulent above about 2000 to 4000), and a turbulent line conducts less than the Poiseuille value. A large pump on a narrow line can also choke it: the gas cannot enter faster than about the speed of sound, which caps the throughput near \(0.68\,p\,\pi d^2/4 \cdot \sqrt{RT/M}\) for air and other diatomic gases (0.73 for helium and argon). The calculator flags both but does not model them, so in those cases the real pump-down near atmosphere is slower than calculated.</li>
             <li>Straight round tubes only. Bends, flexible bellows, and rectangular or annular ducts conduct less. Use vendor data or a Monte Carlo model for them.</li>
         </ul>
 
@@ -257,6 +266,7 @@
             <li>J. F. O'Hanlon, <em>A User's Guide to Vacuum Technology</em>, 3rd ed., Wiley (2003), ch. 3 (gas flow and conductance) and ch. 4 (gas release from solids).</li>
             <li>K. Jousten (ed.), <em>Handbook of Vacuum Technology</em>, 2nd ed., Wiley-VCH (2016).</li>
             <li>S. Dushman, <em>Scientific Foundations of Vacuum Technique</em>, 2nd ed. (rev. J. M. Lafferty), Wiley (1962).</li>
+            <li>A. S. Berman, “Free molecule transmission probabilities,” <em>J. Appl. Phys.</em> <strong>36</strong>, 3356 (1965).</li>
         </ol>
     </article>
 
@@ -299,18 +309,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const speed = s => fmt.num(s * 1000, 4) + ' L/s';
 
+    // Clausing transmission probability of a round tube, y = L/d: Berman's closed form (J. Appl. Phys. 36, 3356 (1965)),
+    // rearranged so that neither very short nor very long tubes lose precision to cancellation
+    function clausing(y) {
+        if (y < 1e-6) return 1 - y;
+        const s = Math.sqrt(y * y + 1);
+        const n = y * y * (s + 2 * y - 1) / ((s + 1) * (s + y));
+        const D = y < 0.01 ? 4.5 * (2 / 3 * y ** 3 - y ** 5 / 5) : 4.5 * (y * s - Math.asinh(y));
+        return s / (s + y) - n * n / D;
+    }
+
     function model(o) {
         const vbar = Math.sqrt(8 * K.R * o.T / (Math.PI * o.M));
         const hasLine = o.L > 0, hasX = isFinite(o.Cx);
         const Corif = vbar * Math.PI * o.d * o.d / 16;
-        const Cmol = hasLine ? Corif / (1 + 3 * o.L / (4 * o.d)) : Infinity;
+        const Cmol = hasLine ? Corif * clausing(o.L / o.d) : Infinity;
         const Cvisc = pb => Math.PI * o.d ** 4 * pb / (128 * o.eta * o.L);
+        // Knudsen's transitional-flow formula: the molecular term scales by (1 + a)/(1 + 1.2345 a), a = d·p̄·√(M/RT)/η
+        // (Knudsen's (1 + 2.507 r/λ)/(1 + 3.095 r/λ) with the viscosity-based mean free path)
+        const ka = o.d * Math.sqrt(o.M / (K.R * o.T)) / o.eta;
+        const Ctrans = pb => Cvisc(pb) + Cmol * (1 + ka * pb) / (1 + 1.2345 * ka * pb);
         // conductance and effective speed at chamber pressure p (mean line pressure solved iteratively)
         function at(p) {
             if (!hasLine && !hasX) return { C: Infinity, Cline: Infinity, Seff: o.S, pbar: p };
             let pbar = p, C = Infinity, Cline = Infinity, Seff = o.S;
             for (let i = 0; i < 60; i++) {
-                Cline = hasLine ? Cvisc(pbar) + Cmol : Infinity;
+                Cline = hasLine ? Ctrans(pbar) : Infinity;
                 C = 1 / ((hasLine ? 1 / Cline : 0) + (hasX ? 1 / o.Cx : 0));
                 Seff = 1 / (1 / o.S + 1 / C);
                 const next = (p + p * Seff / o.S) / 2;
@@ -319,23 +343,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return { C, Cline, Seff, pbar };
         }
-        const SeffMol = 1 / (1 / o.S + (hasLine ? 1 / Cmol : 0) + (hasX ? 1 / o.Cx : 0));
-        const pult = o.Q > 0 ? o.Q / SeffMol : 0;
+        // outgassing-limited pressure: where the throughput S_eff(p)·p, which rises with p, equals the gas load Q
+        let pult = 0;
+        if (o.Q > 0) {
+            const flow = u => at(Math.exp(u)).Seff * Math.exp(u);
+            let lo = Math.log(o.Q / o.S), hi = lo;     // S_eff ≤ S, so p_ult ≥ Q/S
+            while (flow(hi) < o.Q && hi < lo + 230) hi += 2;
+            for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (flow(mid) < o.Q) lo = mid; else hi = mid; }
+            pult = Math.exp(hi);
+        }
         function curve(p1, N = 600) {
             const reached = p1 > pult * 1.02;
-            const pend = reached ? p1 : pult * 1.02;
-            const a = Math.log(o.p0), b = Math.log(pend), du = Math.abs(b - a) / N;
+            // otherwise stop just short of p_ult: approached from above, or from below when the gas load holds it above p₀
+            const pend = reached ? p1 : pult < o.p0 ? Math.min(pult * 1.02, o.p0) : Math.max(pult * 0.98, o.p0);
+            if (pend === o.p0) return { ts: [0], ps: [o.p0], t: 0, reached };
+            const a = Math.log(o.p0), b = Math.log(pend), du = (b - a) / N;
             const ts = [0], ps = [o.p0];
             let t = 0, prev = null;
             for (let i = 0; i <= N; i++) {
                 const p = Math.exp(a + (b - a) * i / N);
-                const g = o.V * p / (at(p).Seff * p - o.Q);
+                const g = o.V * p / (o.Q - at(p).Seff * p);     // dt/d(ln p)
                 if (prev !== null) { t += (prev + g) / 2 * du; ts.push(t); ps.push(p); }
                 prev = g;
             }
             return { ts, ps, t, reached };
         }
-        return { vbar, Cmol, at, SeffMol, pult, curve };
+        return { vbar, Cmol, at, pult, curve };
     }
 
     const limit = document.getElementById('limit');
@@ -359,6 +392,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const kn = lam / v.d;
             const regime = kn < 0.01 ? 'viscous' : kn <= 0.5 ? 'transitional' : 'molecular';
             const frac = r1.Seff / v.S;
+            // Reynolds number in the line at p₀, where the mass flow is largest: Re = 4ṁ/(π d η), ṁ = S_eff·p·M/(RT).
+            // Choked: a reservoir at p₀ can push at most C*·p₀·A·√(RT/M) into the line (C* = 0.685 for γ = 1.4),
+            // and the gas leaving at the pump end (velocity S/A, the fastest point) cannot exceed √(RT/M).
+            const S0 = m.at(v.p0).Seff;
+            const re = 4 * S0 * v.p0 * o.M / (K.R * v.T) / (Math.PI * v.d * o.eta);
+            const area = Math.PI * v.d * v.d / 4, cIso = Math.sqrt(K.R * v.T / o.M);
+            const choked = S0 / area > 0.685 * cIso || v.S / area > cIso;
+            const flow = (re < 2000 ? 'laminar' : re < 4000 ? 'laminar–turbulent transition' : 'turbulent') + (choked ? ', choked' : '');
             if (!c.reached) { limit.textContent = 'Below ultimate pressure'; limit.className = 'badge badge-bad'; }
             else if (frac < 0.5) { limit.textContent = 'Line-limited at p₁'; limit.className = 'badge badge-warn'; }
             else { limit.textContent = 'Pump-limited at p₁'; limit.className = 'badge badge-ok'; }
@@ -371,6 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 c1: isFinite(r1.C) ? speed(r1.C) : 'no restriction',
                 cmol: isFinite(m.Cmol) ? speed(m.Cmol) : 'no line',
                 kn: v.L > 0 ? fmt.num(kn, 3) + ' (' + regime + ')' : null,
+                re: v.L > 0 ? fmt.num(re, 2) + ' (' + flow + ')' : null,
                 tau: fmtTime(v.V / r1.Seff),
                 Q: hasQ ? fmt.sci(Q * 10, 3) + ' mbar·L/s' : null,
                 pult: hasQ ? pFmt(m.pult) : null
@@ -391,7 +433,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 y: { label: 'Chamber pressure (' + unit + ')', log: true },
                 series: [
                     { type: 'line', x: c.ts.map(t => t * k), y: c.ps.map(toU), label: 'With line' + (m.pult > 0 ? ' and outgassing' : ''), color: 'var(--c1)' },
-                    { type: 'line', x: tIdeal, y: c.ps.map(toU), label: 'Ideal (pump only)', color: 'var(--muted)', dash: true }
+                    // when the gas load holds the pressure above p₀ the curve rises, and an ideal pump-down has no meaning there
+                    ...(c.ps[c.ps.length - 1] < v.p0 ? [{ type: 'line', x: tIdeal, y: c.ps.map(toU), label: 'Ideal (pump only)', color: 'var(--muted)', dash: true }] : [])
                 ],
                 hlines: hl,
                 hover: { format: (x, hits) => hits.length ? `t = ${fmt.num(hits[0].x, 3)} ${useMin ? 'min' : 's'} · p = ${fmt.num(hits[0].y, 3)} ${unit}` : '' }

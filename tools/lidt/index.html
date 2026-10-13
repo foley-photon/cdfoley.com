@@ -123,9 +123,9 @@
                     <label for="spec">Specified LIDT <span class="sym">F<sub>spec</sub></span></label>
                     <div class="input-unit"><input id="spec" name="spec" value="10" inputmode="decimal" data-optional data-label="specified LIDT"><select data-dim="fluence" data-units="mJ/cm²,J/cm²" data-default="J/cm²"></select></div>
                 </div>
-                <div class="field" data-show="cw">
+                <div class="field" data-show="cw" hidden>
                     <label for="slpd">Specified LIDT <span class="sym">LPD<sub>spec</sub></span></label>
-                    <div class="input-unit"><input id="slpd" name="slpd" value="10" inputmode="decimal" data-optional data-label="specified LIDT"><select name="lu" aria-label="Unit"><option value="1">W/cm</option><option value="1e3" selected>kW/cm</option><option value="1e6">MW/cm</option></select></div>
+                    <div class="input-unit"><input id="slpd" name="slpd" value="10" inputmode="decimal" data-optional data-label="specified LIDT"><select name="lu" aria-label="Specified LIDT unit"><option value="1">W/cm</option><option value="1e3" selected>kW/cm</option><option value="1e6">MW/cm</option></select></div>
                 </div>
                 <div class="field-row">
                     <div class="field" data-show="pulsed">
@@ -156,7 +156,7 @@
                     <label for="ep">Pulse energy at the optic <span class="sym">E<sub>p</sub></span></label>
                     <div class="input-unit"><input id="ep" name="ep" value="5" inputmode="decimal" data-optional data-label="pulse energy"><select data-dim="energy" data-units="nJ,µJ,mJ,J" data-default="mJ"></select></div>
                 </div>
-                <div class="field" data-show="cw">
+                <div class="field" data-show="cw" hidden>
                     <label for="p">Power at the optic <span class="sym">P</span></label>
                     <div class="input-unit"><input id="p" name="p" value="200" inputmode="decimal" data-optional data-label="power"><select data-dim="power" data-units="mW,W,kW" data-default="W"></select></div>
                 </div>
@@ -206,7 +206,7 @@
                     <div class="result"><span class="result-label">Operating average fluence<span class="sym">E<sub>p</sub>/πw²</span></span><output class="result-value" data-out="favg">—</output></div>
                     <div class="result"><span class="result-label">Peak irradiance on axis<span class="sym">2P/πw²</span></span><output class="result-value" data-out="ipk">—</output></div>
                     <div class="result"><span class="result-label">Beam area vs. test beam</span><output class="result-value" data-out="aratio">—</output></div>
-                    <div class="result" id="note-row"><span class="result-note" id="note"></span></div>
+                    <div class="result" id="note-row" hidden><span class="result-note" id="note"></span></div>
                 </div>
             </div>
         </section>
@@ -225,8 +225,8 @@
         <p>Shorter wavelengths damage optics more easily: photon energies are higher, defect absorption is stronger, and the standing-wave field in coatings changes. Vendors use different rules of thumb. Thorlabs scales pulsed thresholds with \(\sqrt{\lambda}\). Sill Optics states that halving the wavelength halves the LIDT, which is linear scaling. Moving to a shorter wavelength, the linear rule predicts the lower threshold. Moving to a longer one, the square-root rule does. The <em>conservative</em> option uses whichever is lower. Coatings are designed for specific wavelengths, so measured data at your wavelength always beats scaling.</p>
 
         <h2>CW lasers: linear power density</h2>
-        <p>For CW and long-pulse lasers, damage is thermal and set by the steady-state temperature rise. For an absorbed Gaussian beam on a thick substrate, that rise scales as \(P_\text{abs}/(k\,w)\), with power divided by beam <em>size</em>, not area. CW thresholds are therefore quoted as a linear power density (Thorlabs convention):</p>
-        <div class="formula">\[ \text{LPD} = \frac{P}{d_{1/e^2}}\quad[\text{W/cm}], \qquad \text{LPD}_\text{LIDT}(\lambda) \approx \text{LPD}_\text{spec}\,\frac{\lambda}{\lambda_\text{spec}}. \]</div>
+        <p>For CW and long-pulse lasers, damage is thermal and set by the steady-state temperature rise. For an absorbed Gaussian beam on a thick substrate, that rise scales as \(P_\text{abs}/(k\,w)\), with power divided by beam <em>size</em>, not area. CW thresholds are therefore quoted as a linear power density: the power divided by the 1/e² beam diameter (Thorlabs convention). Thorlabs compares the specification with the beam's <em>maximum</em> linear power density, which for a Gaussian beam is about twice \(P/d\). The calculator does the same:</p>
+        <div class="formula">\[ \text{LPD}_\text{max} \approx \frac{2P}{d_{1/e^2}}\quad[\text{W/cm}], \qquad \text{LPD}_\text{LIDT}(\lambda) \approx \text{LPD}_\text{spec}\,\frac{\lambda}{\lambda_\text{spec}}. \]</div>
         <p>So a beam twice as large tolerates twice the power, not four times as much. Peak irradiance (W/cm²) is shown for reference only. It is not the right figure of merit for CW damage.</p>
 
         <h2>Beam size, safety factors, and S-on-1</h2>
@@ -243,6 +243,7 @@
         <h2>Assumptions and limits</h2>
         <ul>
             <li>The scaling laws are empirical. They estimate thresholds for comparing options and for specifying optics, and they do not guarantee survival.</li>
+            <li>Each pulse is treated on its own. Pulses of 100 ns or longer can also cause CW-like thermal damage, so check the CW rating as well. At high repetition rates, heat from successive pulses builds up, so compare both the peak and the average power with the CW rating (Thorlabs).</li>
             <li>Normal incidence is assumed. At oblique incidence, the fluence on the surface falls by cos θ, but coating damage also depends on polarization and the field distribution.</li>
             <li>The beam diameter is the 1/e² diameter <em>at the optic</em>, not at focus. Hot spots, diffraction rings, and M² &gt; 1 can raise local fluence above the Gaussian estimate.</li>
         </ul>
@@ -270,9 +271,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const note = document.getElementById('note');
     const noteRow = document.getElementById('note-row');
     const opLabel = document.getElementById('op-label');
+    const modeSel = document.getElementById('mode');
+    const luSel = document.querySelector('select[name="lu"]'), slpdIn = document.getElementById('slpd');
     const showFields = mode => document.querySelectorAll('[data-show]').forEach(f => { f.hidden = f.dataset.show !== mode; });
     const fl = F => fmt.num(fromSI('fluence', 'J/cm²', F), 4) + ' J/cm²';
     const lpd = L => fmt.si(L / 100, 'W/cm', 4);                     // L in W/m → W/cm
+    const RANGE = 'A result is out of range. Check the input values and units.';
+
+    // Show the chosen mode's inputs before calc.js validates them, so a field of the other mode never blocks:
+    // at once when the mode changes, and on load for the mode a link asks for (calc.js applies the link afterwards).
+    modeSel.addEventListener('change', () => showFields(modeSel.value));
+    const linked = new URLSearchParams(location.hash.slice(1)).get('mode');
+    showFields(Array.from(modeSel.options).some(o => o.value === linked) ? linked : modeSel.value);
+    // Keep the specified CW threshold when its unit changes, as the other unit lists do (powers of ten, so nothing is rounded).
+    luSel.addEventListener('change', () => {
+        const x = Calc.parseNum(slpdIn.value), from = parseFloat(luSel.dataset.prev);
+        if (isFinite(x) && from) slpdIn.value = fmt.plain(x * from / parseFloat(luSel.value), 12);
+        luSel.dataset.prev = luSel.value;
+    });
 
     function need(x, name, label) {
         if (!isFinite(x)) throw Calc.fail('Enter a value for ' + label + '.', name);
@@ -281,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function setVerdict(margin, sf) {
         if (margin >= sf) { verdict.textContent = 'Within design limit'; verdict.className = 'badge badge-ok'; }
-        else if (margin >= 1) { verdict.textContent = 'Below LIDT, inside safety margin'; verdict.className = 'badge badge-warn'; }
+        else if (margin >= 1) { verdict.textContent = 'Below LIDT, above design limit'; verdict.className = 'badge badge-warn'; }
         else { verdict.textContent = 'Exceeds scaled LIDT'; verdict.className = 'badge badge-bad'; }
     }
 
@@ -289,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         form: '#calc',
         compute(v) {
             showFields(v.mode);
+            luSel.dataset.prev = v.lu;
             const w = v.d / 2;
             const rwl = v.wl / v.swl;
             const notes = [];
@@ -297,10 +314,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const spec = need(v.slpd, 'slpd', 'specified LIDT') * parseFloat(v.lu) * 100;   // W/cm → W/m
                 const P = need(v.p, 'p', 'power');
                 const scaled = spec * rwl;
-                const op = P / v.d;                                                         // W/m
-                const margin = scaled / op;
+                const op = 2 * P / v.d;     // W/m: the maximum linear power density, about twice P/d for a Gaussian beam (Thorlabs)
+                const margin = scaled / op, ipk = 2 * P / (Math.PI * w * w);
+                if (!(margin > 0 && isFinite(margin) && isFinite(ipk))) throw Calc.fail(RANGE);
                 setVerdict(margin, v.sf);
-                opLabel.textContent = 'Operating linear power density P/d';
+                opLabel.textContent = 'Operating linear power density (Gaussian maximum, 2P/d)';
                 if (rwl < 0.5 || rwl > 2) notes.push('Scaling across more than a factor of two in wavelength is a rough estimate. Ask for data at your wavelength.');
                 note.textContent = notes.join(' '); noteRow.hidden = !notes.length;
                 return {
@@ -311,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ftau: null,
                     fwl: fmt.num(rwl, 4) + ' (linear, CW)',
                     fpk: null, favg: null,
-                    ipk: fmt.sci(2 * P / (Math.PI * w * w) / 1e4, 3) + ' W/cm²',
+                    ipk: fmt.sci(ipk / 1e4, 3) + ' W/cm²',
                     aratio: null
                 };
             }
@@ -326,15 +344,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (v.wlrule === 'sqrt') { fwl = fs; rule = '√λ'; }
             else if (v.wlrule === 'lin') { fwl = fl1; rule = 'linear'; }
             else if (v.wlrule === 'none') { fwl = 1; rule = 'none'; }
-            else { fwl = Math.min(fs, fl1); rule = rwl === 1 ? 'same λ' : (fl1 < fs ? 'conservative: linear' : 'conservative: √λ'); }
+            else { fwl = Math.min(fs, fl1); rule = Math.abs(rwl - 1) < 1e-9 ? 'same λ' : (fl1 < fs ? 'conservative: linear' : 'conservative: √λ'); }   // 355 nm ÷ 0.355 µm is 1 + 2×10⁻¹⁶
             const scaled = spec * ftau * fwl;
             const Fpk = 2 * E / (Math.PI * w * w), Favg = Fpk / 2;
             const op = v.sconv === 'avg' ? Favg : Fpk;
             const margin = scaled / op;
+            const Ppk = E / tau, ipk = 2 * Ppk / (Math.PI * w * w);    // rectangular-pulse estimate for display
+            if (!(margin > 0 && isFinite(margin) && isFinite(ipk))) throw Calc.fail(RANGE);
             setVerdict(margin, v.sf);
             opLabel.textContent = 'Operating fluence (' + (v.sconv === 'avg' ? 'average' : 'peak') + ', same convention as spec)';
 
             if (tau < 10e-12 || stau < 10e-12) notes.push('√τ scaling is not valid below about 10 ps. Use damage data measured at your pulse duration.');
+            if (tau >= 100e-9) notes.push('Pulses of 100 ns or longer can also cause CW-like thermal damage. Check the CW rating too, in CW mode.');
             const decades = Math.abs(Math.log10(tau / stau));
             if (decades > 3) notes.push('Extrapolating over ' + fmt.num(decades, 2) + ' decades in pulse duration gives low confidence.');
             if (rwl < 0.5 || rwl > 2) notes.push('Large wavelength extrapolation: coatings are wavelength-specific, so request data at your wavelength.');
@@ -347,7 +368,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             note.textContent = notes.join(' '); noteRow.hidden = !notes.length;
 
-            const Ppk = E / tau;    // rectangular-pulse estimate for display
             return {
                 margin: fmt.num(margin, 3) + ' ×',
                 scaled: fl(scaled),
@@ -357,9 +377,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 fwl: fmt.num(fwl, 4) + ' (' + rule + ')',
                 fpk: fl(Fpk),
                 favg: fl(Favg),
-                ipk: fmt.sci(2 * Ppk / (Math.PI * w * w) / 1e4, 3) + ' W/cm² (E/τ)',
+                ipk: fmt.sci(ipk / 1e4, 3) + ' W/cm² (E/τ)',
                 aratio
             };
+        },
+        onError() {                             // no notes beside blank results
+            noteRow.hidden = true;
+            verdict.textContent = ''; verdict.className = 'badge';
+            luSel.dataset.prev = luSel.value;
         }
     });
 });
