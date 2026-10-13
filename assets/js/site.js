@@ -80,7 +80,7 @@
     var ARTICLES = [
         { slug: 'gaussian-beam-optics',     title: 'Gaussian Beam Optics for Engineers',          desc: 'Waist, Rayleigh range, M², and how to choose optics for the spot size you need.', topic: 'Optics', mins: 8 },
         { slug: 'laser-ablation-process-windows', title: 'Laser Ablation Process Windows',       desc: 'Fluence, threshold, incubation, and overlap—how to build a robust ablation process.', topic: 'Laser processing', mins: 10 },
-        { slug: 'vacuum-fundamentals',      title: 'Vacuum Fundamentals',                          desc: 'Pressure regimes, gas loads, conductance, and why the pump is rarely the bottleneck.', topic: 'Vacuum', mins: 9 },
+        { slug: 'vacuum-fundamentals',      title: 'Vacuum Fundamentals',                          desc: 'Pressure regimes, gas loads, conductance, and why a bigger pump rarely fixes a slow pump-down.', topic: 'Vacuum', mins: 9 },
         { slug: 'spc-for-laser-processes',  title: 'SPC and Process Capability in Production',     desc: 'Control charts, Cpk, and measurement systems for a high-yield laser process.', topic: 'Quality', mins: 9 },
         { slug: 'machine-vision-optics',    title: 'Machine Vision Optics for Inspection',         desc: 'Resolution, contrast, depth of field, and lighting for detecting small defects.', topic: 'Imaging', mins: 8 },
         { slug: 'spectroscopic-units',      title: 'Energy Units in Spectroscopy',                 desc: 'Why spectroscopists use wavenumbers, and how to convert between eV, cm⁻¹, and nm.', topic: 'Spectroscopy', mins: 6 }
