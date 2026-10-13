@@ -22,13 +22,13 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <style>
     .mb-group { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-    .mb-group:first-of-type { margin-top: 0; padding-top: 0; border-top: 0; }
+    .calc-error + .mb-group { margin-top: 0; padding-top: 0; border-top: 0; }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -130,18 +130,18 @@
                     <div class="field">
                         <label for="blur">Allowed blur</label>
                         <div class="input-unit"><input id="blur" name="blur" value="1" inputmode="decimal" data-positive data-label="allowed blur"><span class="unit">px</span></div>
-                        <p class="hint">≤ 1 px for measurement, up to ~2 px for presence checks.</p>
+                        <p class="hint">≤ 0.5 px for sub-pixel gauging, ≤ 1 px for general measurement, up to ~2 px for presence checks.</p>
                     </div>
                     <div class="field">
                         <label for="te">Exposure or strobe time</label>
-                        <div class="input-unit"><input id="te" name="te" value="100" inputmode="decimal" data-positive data-label="exposure time"><select data-dim="time" data-units="µs,ms,ns,s" data-default="µs"></select></div>
-                        <p class="hint">With strobed lighting, enter the light pulse width.</p>
+                        <div class="input-unit"><input id="te" name="te" value="100" inputmode="decimal" data-positive data-label="exposure time"><select data-dim="time" data-units="ns,µs,ms,s" data-default="µs"></select></div>
+                        <p class="hint">With strobed lighting, enter the light pulse width (valid when ambient light is shielded or much dimmer than the strobe).</p>
                     </div>
                 </div>
                 <div class="field">
                     <label for="ov">Overlap between frames</label>
-                    <div class="input-unit"><input id="ov" name="ov" value="20" inputmode="decimal" data-nonneg data-max="95" data-label="frame overlap"><span class="unit">%</span></div>
-                    <p class="hint">Extra margin so features crossing a frame edge appear whole in at least one frame.</p>
+                    <div class="input-unit"><input id="ov" name="ov" value="20" inputmode="decimal" data-nonneg data-label="frame overlap"><span class="unit">%</span></div>
+                    <p class="hint">At least the largest feature length as a % of the FOV along the motion, plus a margin for trigger jitter, so every feature appears whole in at least one frame.</p>
                 </div>
 
                 <div class="mb-group">Line-scan camera (optional)</div>
@@ -159,17 +159,18 @@
         </form>
 
         <section class="panel sticky-panel" aria-labelledby="results-h">
-            <div class="panel-head"><h2 id="results-h">Results</h2><span id="status" class="badge"></span></div>
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="status" class="badge" role="status" hidden></span></div>
             <div class="panel-body">
                 <div class="results">
                     <div class="result primary"><span class="result-label">Maximum exposure for the allowed blur<span class="sym">t<sub>max</sub></span></span><output class="result-value" data-out="tmax">—</output></div>
                     <div class="result"><span class="result-label">Pixel size on the part (along motion)</span><output class="result-value" data-out="po">—</output></div>
                     <div class="result"><span class="result-label">Blur at the entered exposure</span><output class="result-value" data-out="blurAt">—</output></div>
                     <div class="result"><span class="result-label">Light needed vs. now (same signal at t<sub>max</sub>)</span><output class="result-value" data-out="light">—</output></div>
-                    <div class="result"><span class="result-label">Frame rate for full coverage</span><output class="result-value" data-out="fps">—</output></div>
+                    <div class="result"><span class="result-label">Minimum frame rate for full coverage</span><output class="result-value" data-out="fps">—</output></div>
                     <div class="result"><span class="result-label">Maximum time between frames</span><output class="result-value" data-out="dt">—</output></div>
                     <div class="result"><span class="result-label">Line-scan pixel size (across)</span><output class="result-value" data-out="lpx">—</output></div>
                     <div class="result"><span class="result-label">Line rate for square pixels</span><output class="result-value" data-out="lrate">—</output></div>
+                    <div class="result"><span class="result-label">Line period (longest exposure per line)</span><output class="result-value" data-out="lper">—</output></div>
                 </div>
             </div>
         </section>
@@ -179,10 +180,12 @@
         <h2>How the calculation works</h2>
         <p>While the shutter is open (or the strobe is on), the part moves \(v\,t\). Expressed in object-side pixels of size \(p_o = \text{FOV}/N_\text{px}\), the blur and the maximum exposure are</p>
         <div class="formula">\[ b = \frac{v\,t_\text{exp}}{p_o}\ \text{pixels}, \qquad t_\text{max} = \frac{b_\text{allowed}\,p_o}{v}. \]</div>
-        <p>To image every part of a moving stream with an area camera, a new frame must be taken before the part travels one field of view, less the chosen overlap \(o\):</p>
+        <p>To image every part of a moving stream with an area camera, a new frame must be taken before the part travels one field of view, less the chosen overlap \(o\) (as a fraction, 20 % = 0.2):</p>
         <div class="formula">\[ f_\text{frame} \ge \frac{v}{\text{FOV}\,(1 - o)}. \]</div>
-        <p>A line-scan camera builds the image one row at a time. To get square pixels, the line rate must match the time the web takes to move one cross-web pixel:</p>
+        <p>At this rate, a feature of length \(L\) appears whole in at least one frame when \(o\,\text{FOV} \ge L\).</p>
+        <p>A line-scan camera builds the image one row at a time. To get square pixels, the line period must equal the time the web takes to move one cross-web pixel, so the line rate is</p>
         <div class="formula">\[ f_\text{line} = \frac{v}{p_\text{across}}, \qquad p_\text{across} = \frac{\text{FOV}_\text{across}}{N_\text{px, line}}. \]</div>
+        <p>The line period, \(1/f_\text{line} = p_\text{across}/v\), is also the longest exposure each line can use.</p>
 
         <h2>The light budget</h2>
         <p>Signal is proportional to irradiance × exposure time. If blur forces a shorter exposure, the lighting must be brighter by the same factor to keep the same image brightness and signal-to-noise ratio. That is why fast lines use high-intensity LED strobes, overdriven for microseconds, rather than continuous lighting. Raising the gain instead amplifies noise along with the signal.</p>
@@ -190,21 +193,23 @@
         <h2>Worked example</h2>
         <p>Parts move at 500 mm/s under a camera with 2048 pixels across a 60 mm field along the motion:</p>
         <ul>
-            <li>\(p_o = 60/2048 = 29.3\) µm per pixel, so for ≤ 1 px of blur the exposure must be ≤ 29.3 µm ÷ 500 mm/s = 58.6 µs.</li>
+            <li>\(p_o = 60\ \text{mm}/2048 = 29.3\ \mu\text{m}\) per pixel, so for ≤ 1 px of blur the exposure must be ≤ 29.3 µm ÷ 500 mm/s = 58.6 µs.</li>
             <li>A 100 µs exposure smears features over 1.7 pixels. Holding the image brightness at 58.6 µs needs 1.7× more light.</li>
             <li>With 20 % overlap, the camera must capture at least 500/(60 × 0.8) = 10.4 frames per second.</li>
-            <li>A 4096-pixel line-scan camera covering 300 mm across the web has 73.2 µm pixels and needs a 6.83 kHz line rate for square pixels at this speed.</li>
+            <li>A 4096-pixel line-scan camera covering 300 mm across the web has 73.2 µm pixels and needs a 6.83 kHz line rate (a 146 µs line period) for square pixels at this speed.</li>
         </ul>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li>Constant speed and a global-shutter camera. Rolling-shutter sensors read rows at different times, which skews moving parts even with a short exposure. Either fire the strobe only while all rows are integrating (global-reset or global-release mode) or use a global-shutter sensor.</li>
+            <li>Constant speed and a global-shutter camera. Rolling-shutter sensors expose rows at different times, which skews moving parts even with a short exposure. Either use a global-shutter sensor, or fire a short strobe while all rows are integrating at once, with ambient light kept low. That common window exists in global reset release mode (also called global start), which starts every row at the same moment, or whenever the exposure is longer than the frame readout time.</li>
+            <li>With a strobe, the pulse width sets the blur only if the ambient light collected while the shutter is open is negligible. Otherwise ambient light adds a faint smear \(v\,t_\text{shutter}\) long. Shield the station or shorten the shutter to just cover the pulse.</li>
             <li>Motion blur adds to optical blur (defocus, diffraction, aberrations). The total is roughly the root-sum-square of the individual blur widths.</li>
             <li>Speed variation and vibration matter for line-scan cameras. Use an encoder to trigger lines rather than a fixed rate when the speed is not tightly controlled.</li>
         </ul>
 
         <h2>References</h2>
         <ol class="refs">
+            <li>C. Steger, M. Ulrich, and C. Wiedemann, <em>Machine Vision Algorithms and Applications</em>, 2nd ed., Wiley-VCH (2018), ch. 2 (image acquisition).</li>
             <li>B. Jähne, <em>Digital Image Processing</em>, 6th ed., Springer (2005).</li>
             <li>E. Hecht, <em>Optics</em>, 5th ed., Pearson (2017).</li>
         </ol>
@@ -222,34 +227,46 @@
 document.addEventListener('DOMContentLoaded', () => {
     const { fmt } = Calc;
     const status = document.getElementById('status');
-    const rate = hz => hz >= 1000 ? fmt.num(hz / 1000, 4) + ' kHz' : fmt.num(hz, 4) + ' Hz';
+    const rate = hz => hz >= 1000 ? fmt.si(hz, 'Hz', 4) : fmt.num(hz, 4) + ' Hz';
+    // durations: SI prefixes below a minute, then minutes and hours (not "2.88 ks")
+    const dur = s => s >= 3600 ? fmt.num(s / 3600, 3) + ' h' : s >= 60 ? fmt.num(s / 60, 3) + ' min' : fmt.si(s, 's', 3);
 
     Calc.create({
         form: '#calc',
         compute(v) {
-            if (v.ov >= 100) throw Calc.fail('Overlap must be below 100 %.', 'ov');
+            if (v.ov > 95) throw Calc.fail('Frame overlap must be at most 95 %.', 'ov');
             const po = v.fov / v.npx;
             const tmax = v.blur * po / v.v;
             const b = v.v * v.te / po;
+            const ratio = v.te / tmax;                  // = b / allowed blur, the light factor
             const fps = v.v / (v.fov * (1 - v.ov / 100));
             const hasLine = isFinite(v.lw) && isFinite(v.ln);
             if ((isFinite(v.lw) || isFinite(v.ln)) && !hasLine) throw Calc.fail('Enter both the line-scan field of view and the pixels per line, or leave both blank.', isFinite(v.lw) ? 'ln' : 'lw');
             const lpx = hasLine ? v.lw / v.ln : NaN;
+            const all = [po, tmax, b, v.v * v.te, fps, 1 / fps, ratio].concat(hasLine ? [lpx, v.v / lpx, lpx / v.v] : []);
+            if (!all.every(x => x > 0 && isFinite(x))) throw Calc.fail('An input is too large or too small to compute. Check the values and units.');
 
-            const ok = b <= v.blur * (1 + 1e-9);
-            status.textContent = ok ? 'Within blur limit' : 'Too much blur';
+            // judged at the 3 significant figures shown, so an exposure equal to the displayed t_max is within the limit
+            const ok = Calc.roundSig(ratio, 3) <= 1;
+            const verdict = ok ? 'Within blur limit' : 'Too much blur';
+            if (status.textContent !== verdict) status.textContent = verdict;   // live region: announce only a change
             status.className = ok ? 'badge badge-ok' : 'badge badge-bad';
+            status.hidden = false;
 
             return {
-                tmax: fmt.si(tmax, 's', 3),
+                tmax: dur(tmax),
                 po: fmt.si(po, 'm', 4) + '/px',
-                blurAt: fmt.num(b, 3) + ' px  (' + fmt.si(v.v * v.te, 'm', 3) + ')',
-                light: ok ? 'no change needed' : '× ' + fmt.num(v.te / tmax, 3),
+                blurAt: fmt.num(b, 3) + ' px (' + fmt.si(v.v * v.te, 'm', 3) + ')',
+                light: ok ? 'no change needed' : '× ' + fmt.num(ratio, 3),
                 fps: fmt.num(fps, 4) + ' fps',
-                dt: fmt.si(1 / fps, 's', 3),
+                dt: dur(1 / fps),
                 lpx: hasLine ? fmt.si(lpx, 'm', 4) + '/px' : null,
-                lrate: hasLine ? rate(v.v / lpx) + '  (' + fmt.si(lpx / v.v, 's', 3) + ' per line)' : null
+                lrate: hasLine ? rate(v.v / lpx) : null,
+                lper: hasLine ? dur(lpx / v.v) : null
             };
+        },
+        onError() {                             // no valid result: hide the verdict instead of leaving the last one on screen
+            status.hidden = true; status.textContent = ''; status.className = 'badge';
         }
     });
 });

@@ -8,7 +8,7 @@
 <link rel="canonical" href="https://cdfoley.com/tools/aperture-transmission/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
-<meta property="og:title" content="Gaussian Beam Clipping Calculator">
+<meta property="og:title" content="Gaussian Beam Aperture Transmission Calculator">
 <meta property="og:description" content="Power a Gaussian laser beam transmits through a circular aperture, iris, slit, or knife edge, and the aperture size needed for a target throughput.">
 <meta property="og:url" content="https://cdfoley.com/tools/aperture-transmission/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-aperture-transmission.jpg">
@@ -22,9 +22,9 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<style>.ap-geo { margin-bottom: 1.1rem; }</style>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>.ap-geo { margin-bottom: 1.1rem; } .prose td.num { white-space: nowrap; }</style>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -46,7 +46,7 @@
     "price": "0",
     "priceCurrency": "USD"
    },
-   "keywords": "aperture iris clipping truncation transmission pinhole gaussian beam slit knife edge profile spatial filter",
+   "keywords": "aperture iris clipping truncation transmission pinhole gaussian beam slit knife edge profile spatial filter laser",
    "author": {
     "@type": "Person",
     "@id": "https://cdfoley.com/#person",
@@ -118,16 +118,17 @@
                 <div class="field">
                     <label for="d">Beam diameter (1/e²) <span class="sym">D<sub>b</sub> = 2w</span></label>
                     <div class="input-unit"><input id="d" name="d" value="8" inputmode="decimal" data-positive><select data-dim="length" data-units="µm,mm,cm,in" data-default="mm"></select></div>
+                    <p class="hint">1/e² diameter at the aperture plane (for a spatial-filter pinhole, the focused spot diameter).</p>
                 </div>
                 <div class="field">
                     <label for="a" id="a-label">Aperture diameter <span class="sym" id="a-sym">D<sub>t</sub></span></label>
-                    <div class="input-unit"><input id="a" name="a" value="12" inputmode="decimal" data-label="aperture size"><select data-dim="length" data-units="µm,mm,cm,in" data-default="mm"></select></div>
+                    <div class="input-unit"><input id="a" name="a" value="12" inputmode="decimal" data-label="aperture diameter"><select data-dim="length" data-units="µm,mm,cm,in" data-default="mm"></select></div>
                     <p class="hint" id="a-hint">Centered on the beam.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
                         <label for="tgt">Target transmission</label>
-                        <div class="input-unit"><input id="tgt" name="tgt" value="99" inputmode="decimal" data-positive data-max="99.99999" data-label="target transmission"><span class="unit">%</span></div>
+                        <div class="input-unit"><input id="tgt" name="tgt" value="99" inputmode="decimal" data-optional placeholder="optional" data-label="target transmission"><span class="unit">%</span></div>
                     </div>
                     <div class="field">
                         <label for="p">Input power</label>
@@ -138,16 +139,16 @@
         </form>
 
         <section class="panel sticky-panel" aria-labelledby="results-h">
-            <div class="panel-head"><h2 id="results-h">Results</h2><span id="grade" class="badge"></span></div>
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="grade" class="badge" hidden></span></div>
             <div class="panel-body">
                 <div class="results">
                     <div class="result primary"><span class="result-label">Transmitted fraction</span><output class="result-value" data-out="t">—</output></div>
                     <div class="result"><span class="result-label">Clipped (blocked) fraction</span><output class="result-value" data-out="loss">—</output></div>
                     <div class="result"><span class="result-label" id="ratio-label">Aperture / beam diameter</span><output class="result-value" data-out="ratio">—</output></div>
                     <div class="result"><span class="result-label">Irradiance at the edge, relative to peak</span><output class="result-value" data-out="edge">—</output></div>
-                    <div class="result"><span class="result-label" id="need-label">Aperture for target transmission</span><output class="result-value" data-out="need">—</output></div>
+                    <div class="result"><span class="result-label" id="need-label">Aperture diameter for target</span><output class="result-value" data-out="need">—</output></div>
                     <div class="result"><span class="result-label">Transmitted power</span><output class="result-value" data-out="pt">—</output></div>
-                    <div class="result"><span class="result-label">Power on the aperture</span><output class="result-value" data-out="pc">—</output></div>
+                    <div class="result"><span class="result-label">Clipped power</span><output class="result-value" data-out="pc">—</output></div>
                 </div>
             </div>
         </section>
@@ -161,14 +162,14 @@
     <article class="prose" style="margin-top:3rem">
         <h2>How it is calculated</h2>
         <p>A TEM₀₀ beam has irradiance \(I(r) = I_0\,e^{-2r^2/w^2}\), where \(w = D_b/2\) is the 1/e² radius. Integrating over the open area gives closed-form results:</p>
-        <div class="formula">\[ T_\text{circle} = 1 - \exp\!\left(-\frac{2a^2}{w^2}\right) = 1 - \exp\!\left[-2\left(\frac{D_t}{D_b}\right)^{2}\right] \]</div>
-        <div class="formula">\[ T_\text{slit} = \operatorname{erf}\!\left(\frac{\sqrt{2}\,s/2}{w}\right), \qquad T_\text{edge}(x_0) = \tfrac12\left[1 + \operatorname{erf}\!\left(\frac{\sqrt{2}\,x_0}{w}\right)\right] \]</div>
-        <p>Here \(a\) is the aperture radius, \(s\) the full slit width, and \(x_0\) the distance from the beam center to the blade edge (positive while the blade has not yet reached the center). The inverse relations give the aperture needed for a target transmission \(T\):</p>
-        <div class="formula">\[ \frac{D_t}{D_b} = \sqrt{\frac{-\ln(1-T)}{2}}, \qquad \frac{s}{D_b} = \frac{\operatorname{erf}^{-1}(T)}{\sqrt{2}}. \]</div>
+        <div class="formula">\[ \begin{gathered} T_\text{circle} = 1 - \exp\!\left(-\frac{2a^2}{w^2}\right) \\[4pt] T_\text{circle} = 1 - \exp\!\left[-2\left(\frac{D_t}{D_b}\right)^{2}\right] \end{gathered} \]</div>
+        <div class="formula">\[ \begin{gathered} T_\text{slit} = \operatorname{erf}\!\left(\frac{\sqrt{2}\,s/2}{w}\right) \\[4pt] T_\text{edge}(x_0) = \tfrac12\left[1 + \operatorname{erf}\!\left(\frac{\sqrt{2}\,x_0}{w}\right)\right] \end{gathered} \]</div>
+        <p>Here \(a\) is the aperture radius, \(s\) the full slit width, and \(x_0\) the distance from the beam center to the blade edge (positive while the blade has not yet reached the center). The inverse relations give the aperture (or blade position) needed for a target transmission \(T\):</p>
+        <div class="formula">\[ \begin{gathered} \frac{D_t}{D_b} = \sqrt{\frac{-\ln(1-T)}{2}} \\[8pt] \frac{s}{D_b} = \frac{\operatorname{erf}^{-1}(T)}{\sqrt{2}} \\[8pt] \frac{x_0}{w} = \frac{\operatorname{erf}^{-1}(2T-1)}{\sqrt{2}} \end{gathered} \]</div>
 
         <h2>Common clipping ratios</h2>
         <table>
-            <thead><tr><th class="num">D<sub>t</sub> / D<sub>b</sub></th><th class="num">Circular aperture</th><th class="num">Slit (width / D<sub>b</sub>)</th><th class="num">Edge irradiance / peak</th></tr></thead>
+            <thead><tr><th class="num">D<sub>t</sub>/D<sub>b</sub> or s/D<sub>b</sub></th><th class="num">Circular aperture T</th><th class="num">Slit T</th><th class="num">Edge irradiance / peak</th></tr></thead>
             <tbody>
                 <tr><td class="num">0.5</td><td class="num">39.35 %</td><td class="num">68.27 %</td><td class="num">60.7 %</td></tr>
                 <tr><td class="num">1.0</td><td class="num">86.47 %</td><td class="num">95.45 %</td><td class="num">13.5 %</td></tr>
@@ -182,7 +183,7 @@
         <p>For a circular aperture: 99 % throughput needs \(D_t \ge 1.52\,D_b\), 99.9 % needs \(1.86\,D_b\), and 99.99 % needs \(2.15\,D_b\). A common design rule is to make every aperture at least \(\pi w \approx 1.57\,D_b\) across.</p>
 
         <h2>Clipping is more than lost power</h2>
-        <p>A hard edge diffracts. Even 1 % clipping produces Fresnel ripples in the near field downstream and side lobes in the focal plane. Those can cause hot spots on optics, raise the measured M², and spread energy outside the processing spot. High-power and imaging systems therefore usually clear apertures at 2× the beam diameter or more. A deliberately truncated beam (scanner pupils) also changes the focused spot. See the <a href="/tools/focused-spot/">focused spot</a> tool for the APO factor. The power that is clipped is absorbed or scattered by the mount, which matters at kilowatt levels.</p>
+        <p>A hard edge diffracts. Even 1 % clipping produces Fresnel ripples in the near field downstream and side lobes in the focal plane. Those can cause hot spots on optics, raise the measured M², and spread energy outside the processing spot. High-power and imaging systems therefore usually use clear apertures of at least 2× the beam diameter. A deliberately truncated beam (scanner pupils) also changes the focused spot. See the <a href="/tools/focused-spot/">focused spot</a> tool for the apodization (APO) factor. The power that is clipped is absorbed or scattered by the mount, which matters at kilowatt levels.</p>
 
         <h2>Knife-edge beam profiling</h2>
         <p>Translating a blade through the beam while recording transmitted power traces out \(T_\text{edge}(x_0)\), the error-function profile. For a Gaussian beam:</p>
@@ -193,11 +194,12 @@
         <p>These clip-level conversions assume a Gaussian profile. For non-Gaussian beams, ISO 11146 specifies second-moment (D4σ) widths, which a knife edge can only approximate.</p>
 
         <h2>Worked example</h2>
-        <p>An 8 mm beam passing a 12 mm iris (\(D_t/D_b = 1.5\)) transmits \(1 - e^{-4.5} = 98.89\) %. With 500 W in the beam, about 5.6 W lands on the iris. Getting to 99.9 % needs an aperture of \(1.858 \times 8 = 14.9\) mm.</p>
+        <p>An 8 mm beam passing a 12 mm iris \((D_t/D_b = 1.5)\) transmits \(1 - e^{-4.5} = 98.89\,\%\). With 500 W in the beam, about 5.6 W lands on the iris. Getting to 99.9 % needs an aperture of \(1.858 \times 8 = 14.9\) mm.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
             <li>Ideal TEM₀₀ profile, centered on the aperture. Pointing offsets reduce transmission.</li>
+            <li>Round (stigmatic) beam. For an elliptical beam, the slit and knife-edge results apply with the 1/e² diameter across the slit or along the blade travel. The circular-aperture formula does not apply.</li>
             <li>Transmission is evaluated at the aperture plane (power accounting only). It does not describe the diffracted field downstream.</li>
             <li>Multimode and top-hat beams have heavier or sharper edges. Use measured profiles for those.</li>
         </ul>
@@ -220,13 +222,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const { fmt, fail } = Calc;
-    const { erf, normInv, linspace } = Calc.math;
+    const { erf, erfc, normInv, linspace } = Calc.math;
     const erfinv = y => normInv((y + 1) / 2) / Math.SQRT2;
     const grade = document.getElementById('grade');
     const LABELS = {
         circle: ['Aperture diameter', 'Centered on the beam.', 'Aperture / beam diameter', 'Aperture diameter for target'],
         slit:   ['Slit width', 'Centered, and much longer than the beam.', 'Slit width / beam diameter', 'Slit width for target'],
-        edge:   ['Blade position from beam center', 'Positive = blade edge not yet at the center (more than half transmitted).', 'Blade position / w', 'Blade position for target']
+        edge:   ['Blade position from beam center', 'Positive = blade edge not yet at the center (more than half transmitted).', 'Blade position x₀ / w', 'Blade position for target']
     };
     const curves = {
         x: linspace(0, 2.5, 126),
@@ -243,49 +245,78 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('a-hint').textContent = L[1];
         document.getElementById('ratio-label').textContent = L[2];
         document.getElementById('need-label').textContent = L[3];
+        const a = document.getElementById('a');
+        a.dataset.label = { circle: 'aperture diameter', slit: 'slit width', edge: 'blade position' }[geo];
+        a.inputMode = geo === 'edge' ? 'text' : 'decimal';      // the iPhone decimal keypad has no minus key
     }
+    // the checked geometry; a link with an unknown geo value falls back to the circular aperture
+    function curGeo() {
+        const c = document.querySelector('input[name=geo]:checked');
+        if (c && LABELS[c.value]) return c.value;
+        document.getElementById('g-c').checked = true;
+        return 'circle';
+    }
+    // keep labels in step with the geometry even when an input error stops compute()
+    document.querySelectorAll('input[name=geo]').forEach(r => r.addEventListener('change', () => setLabels(curGeo())));
+    const linkGeo = new URLSearchParams(location.hash.slice(1)).get('geo');
+    setLabels(linkGeo === 'slit' || linkGeo === 'edge' ? linkGeo : 'circle');
+    // tiny powers in plain W rather than a scientific mantissa on fW
+    const watts = x => x > 0 && x < 1e-15 ? fmt.sci(x, 4) + ' W' : fmt.si(x, 'W', 4);
 
     Calc.create({
         form: '#calc',
         compute(v) {
+            if (!LABELS[v.geo]) v.geo = curGeo();
             setLabels(v.geo);
             const w = v.d / 2;
+            const hasTgt = isFinite(v.tgt);
+            if (hasTgt && !(v.tgt > 0 && v.tgt <= 99.99999)) throw fail('Target transmission must be greater than 0 and at most 99.99999 %.', 'tgt');
             const tgt = v.tgt / 100;
-            if (!(tgt < 1)) throw fail('Target transmission must be below 100 %.', 'tgt');
-            let T, ratio, rel, need;
+            let T, loss, ratio, rel, need = null;
             if (v.geo === 'edge') {
                 const u = v.a / w;                                   // blade position in units of w
-                T = 0.5 * (1 + erf(Math.SQRT2 * u));
-                ratio = fmt.num(u, 4) + ' w';
+                T = 0.5 * erfc(-Math.SQRT2 * u);
+                loss = 0.5 * erfc(Math.SQRT2 * u);
+                ratio = fmt.num(u, 4);
                 rel = Math.exp(-2 * u * u);
-                need = fmt.si(w * erfinv(2 * tgt - 1) / Math.SQRT2, 'm', 4);
+                if (hasTgt) {
+                    const x0 = w * erfinv(2 * tgt - 1) / Math.SQRT2;
+                    need = fmt.si(x0, 'm', 4) + ' (' + fmt.num(x0 / w, 4) + ' w)';
+                }
             } else {
-                if (!(v.a > 0)) throw fail('The aperture size must be greater than zero.', 'a');
+                if (!(v.a > 0)) throw fail((v.geo === 'slit' ? 'The slit width' : 'The aperture diameter') + ' must be greater than zero.', 'a');
                 const r = v.a / v.d;
-                T = v.geo === 'circle' ? 1 - Math.exp(-2 * r * r) : erf(Math.SQRT2 * r);
+                if (v.geo === 'circle') { T = -Math.expm1(-2 * r * r); loss = Math.exp(-2 * r * r); }
+                else { T = erf(Math.SQRT2 * r); loss = erfc(Math.SQRT2 * r); }
                 ratio = fmt.num(r, 4);
                 rel = Math.exp(-2 * r * r);
-                const rn = v.geo === 'circle' ? Math.sqrt(-Math.log(1 - tgt) / 2) : erfinv(tgt) / Math.SQRT2;
-                need = fmt.si(rn * v.d, 'm', 4) + '  (' + fmt.num(rn, 4) + ' × D_b)';
+                if (hasTgt) {
+                    const rn = v.geo === 'circle' ? Math.sqrt(-Math.log(1 - tgt) / 2) : erfinv(tgt) / Math.SQRT2;
+                    need = { html: fmt.si(rn * v.d, 'm', 4) + ' (' + fmt.num(rn, 4) + ' D<sub>b</sub>)' };
+                }
             }
-            const loss = 1 - T;
             if (loss < 1e-3) { grade.textContent = 'Negligible clipping'; grade.className = 'badge badge-ok'; }
-            else if (loss < 0.02) { grade.textContent = 'Light clipping'; grade.className = 'badge badge-ok'; }
+            else if (loss < 0.01) { grade.textContent = 'Light clipping'; grade.className = 'badge badge-ok'; }
             else if (loss < 0.1) { grade.textContent = 'Significant clipping'; grade.className = 'badge badge-warn'; }
             else { grade.textContent = 'Heavy clipping'; grade.className = 'badge badge-bad'; }
+            grade.hidden = false;
 
             const hasP = isFinite(v.p);
             return {
-                t: T > 0.9999 ? fmt.num(T * 100, 7) + ' %' : fmt.pct(T, 4),
-                loss: loss < 1e-3 ? fmt.sci(loss * 100, 3) + ' %' : fmt.pct(loss, 4),
+                t: loss < 5e-8 ? '> 99.99999 %' : T > 0.9999 ? fmt.num(T * 100, 7) + ' %' : fmt.pct(T, 4),
+                loss: fmt.num(loss * 100, loss < 1e-3 ? 3 : 4) + ' %',
                 ratio,
                 edge: fmt.pct(rel, 3),
                 need,
-                pt: hasP ? fmt.si(T * v.p, 'W', 4) : null,
-                pc: hasP ? fmt.si(loss * v.p, 'W', 4) : null
+                pt: hasP ? watts(T * v.p) : null,
+                pc: hasP ? watts(loss * v.p) : null
             };
         },
-        onError() { document.getElementById('t-plot').innerHTML = ''; },
+        onError() {
+            document.getElementById('t-plot').innerHTML = '';
+            grade.hidden = true;
+            setLabels(curGeo());
+        },
         after(v) {
             const edge = v.geo === 'edge';
             const w = v.d / 2;
@@ -303,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 y: { label: 'Transmitted (%)', min: 0, max: 100 },
                 series,
                 hlines: [{ y: 99, label: '99 %', color: 'var(--muted)' }],
-                hover: { format: (x, hits) => hits.map(h => (h.series.label || '') + ': ' + fmt.num(h.y, 5) + ' %').join(' · ') + ' at ' + fmt.num(x, 3) }
+                hover: { format: (x, hits) => hits.filter(h => h.series.label).map(h => h.series.label + ': ' + fmt.num(h.y, 5) + ' %').join(' · ') + ' at ' + (edge ? 'x₀/w = ' : 'size/beam diameter = ') + fmt.num(x, 3) }
             });
         }
     });

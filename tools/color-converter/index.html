@@ -22,8 +22,8 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -51,6 +51,19 @@
     .ref-row input { font: 500 0.92rem var(--mono); padding: 0.4rem 0.5rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); width: 9rem; }
     .ref-row .mini { width: 34px; height: 34px; border-radius: 6px; border: 1px solid var(--border-strong); }
     table.cs { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .cgrid input[aria-invalid="true"], .ref-row input[aria-invalid="true"] { border-color: var(--danger); color: var(--danger); }
+    .spec-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; margin-top: 0.7rem; font-size: 0.88rem; color: var(--text-2); }
+    .spec-opts select.input { width: auto; max-width: 100%; padding: 0.35rem 0.6rem; font-size: 0.88rem; }
+    .imp-msg.bad { color: var(--danger); }
+    @media (max-width: 600px) {
+        table.cs thead { display: none; }
+        table.cs, table.cs tbody, table.cs tr, table.cs td { display: block; width: auto; }
+        table.cs tr { padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+        table.cs td { border: 0; padding: 0.1rem 0; }
+        table.cs td:first-child { font-weight: 650; color: var(--text); }
+        table.cs td:nth-child(3)::before { content: 'Device-independent: '; color: var(--muted); }
+        table.cs td:nth-child(4)::before { content: 'Typical use: '; color: var(--muted); }
+    }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -70,7 +83,7 @@
     "price": "0",
     "priceCurrency": "USD"
    },
-   "keywords": "color colour hex rgb hsv hsl cmyk cielab lab lch xyz xyy delta e ciede2000 chromaticity spectrophotometer camera low-e coating color measurement to difference calculator",
+   "keywords": "color colour hex rgb srgb hsv hsl cmyk cielab lab lch xyz xyy delta e 2000 ΔE2000 ciede2000 de2000 de00 chromaticity spectrophotometer camera low-e coating color measurement color difference calculator",
    "author": {
     "@type": "Person",
     "@id": "https://cdfoley.com/#person",
@@ -117,7 +130,7 @@
 
 <main id="main" class="wrap page">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
-        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#vision">Vision, Imaging &amp; Color</a></li><li aria-current="page">Color Converter</li></ol>
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#vision">Vision, Imaging &amp; Color</a></li><li aria-current="page">Color Converter &amp; Color Measurement</li></ol>
     </nav>
 
     <header class="page-head">
@@ -134,11 +147,11 @@
                 <div class="cgrid" id="fields">
                     <span>HEX</span><div class="row"><div><input data-g="hex" data-i="0" value="#3366CC" spellcheck="false" aria-label="Hex code"></div></div>
                     <span>RGB</span><div class="row"><div><input data-g="rgb" data-i="0" aria-label="Red"><small>R 0–255</small></div><div><input data-g="rgb" data-i="1" aria-label="Green"><small>G</small></div><div><input data-g="rgb" data-i="2" aria-label="Blue"><small>B</small></div></div>
-                    <span>HSV</span><div class="row"><div><input data-g="hsv" data-i="0" aria-label="Hue"><small>H °</small></div><div><input data-g="hsv" data-i="1" aria-label="Saturation"><small>S %</small></div><div><input data-g="hsv" data-i="2" aria-label="Value"><small>V %</small></div></div>
-                    <span>HSL</span><div class="row"><div><input data-g="hsl" data-i="0" aria-label="Hue"><small>H °</small></div><div><input data-g="hsl" data-i="1" aria-label="Saturation"><small>S %</small></div><div><input data-g="hsl" data-i="2" aria-label="Lightness"><small>L %</small></div></div>
+                    <span>HSV</span><div class="row"><div><input data-g="hsv" data-i="0" aria-label="HSV hue"><small>H °</small></div><div><input data-g="hsv" data-i="1" aria-label="HSV saturation"><small>S %</small></div><div><input data-g="hsv" data-i="2" aria-label="HSV value"><small>V %</small></div></div>
+                    <span>HSL</span><div class="row"><div><input data-g="hsl" data-i="0" aria-label="HSL hue"><small>H °</small></div><div><input data-g="hsl" data-i="1" aria-label="HSL saturation"><small>S %</small></div><div><input data-g="hsl" data-i="2" aria-label="HSL lightness"><small>L %</small></div></div>
                     <span>CMYK</span><div class="row"><div><input data-g="cmyk" data-i="0" aria-label="Cyan"><small>C %</small></div><div><input data-g="cmyk" data-i="1" aria-label="Magenta"><small>M %</small></div><div><input data-g="cmyk" data-i="2" aria-label="Yellow"><small>Y %</small></div><div><input data-g="cmyk" data-i="3" aria-label="Black"><small>K %</small></div></div>
-                    <span>CIELAB</span><div class="row"><div><input data-g="lab" data-i="0" aria-label="L star"><small>L*</small></div><div><input data-g="lab" data-i="1" aria-label="a star"><small>a*</small></div><div><input data-g="lab" data-i="2" aria-label="b star"><small>b*</small></div></div>
-                    <span>LCh</span><div class="row"><div><input data-g="lch" data-i="0" aria-label="L star"><small>L*</small></div><div><input data-g="lch" data-i="1" aria-label="Chroma"><small>C*</small></div><div><input data-g="lch" data-i="2" aria-label="Hue angle"><small>h °</small></div></div>
+                    <span>CIELAB</span><div class="row"><div><input data-g="lab" data-i="0" aria-label="CIELAB L*"><small>L*</small></div><div><input data-g="lab" data-i="1" aria-label="CIELAB a*"><small>a*</small></div><div><input data-g="lab" data-i="2" aria-label="CIELAB b*"><small>b*</small></div></div>
+                    <span>LCh</span><div class="row"><div><input data-g="lch" data-i="0" aria-label="LCh L*"><small>L*</small></div><div><input data-g="lch" data-i="1" aria-label="LCh chroma"><small>C*</small></div><div><input data-g="lch" data-i="2" aria-label="LCh hue angle"><small>h °</small></div></div>
                     <span>XYZ</span><div class="row"><div><input data-g="xyz" data-i="0" aria-label="X"><small>X</small></div><div><input data-g="xyz" data-i="1" aria-label="Y"><small>Y</small></div><div><input data-g="xyz" data-i="2" aria-label="Z"><small>Z</small></div></div>
                     <span>xyY</span><div class="row"><div><input data-g="xyY" data-i="0" aria-label="x"><small>x</small></div><div><input data-g="xyY" data-i="1" aria-label="y"><small>y</small></div><div><input data-g="xyY" data-i="2" aria-label="Y"><small>Y</small></div></div>
                 </div>
@@ -149,8 +162,8 @@
         <section class="panel" aria-labelledby="p-h">
             <div class="panel-head"><h2 id="p-h">Pick and adjust</h2></div>
             <div class="panel-body picker">
-                <canvas id="sv" class="canv" width="300" height="220" aria-label="Saturation and value picker"></canvas>
-                <canvas id="hue" class="canv" width="300" height="18" aria-label="Hue picker"></canvas>
+                <canvas id="sv" class="canv" width="300" height="220" role="img" aria-label="Saturation and value picker"></canvas>
+                <canvas id="hue" class="canv" width="300" height="18" role="img" aria-label="Hue picker"></canvas>
                 <div class="slider"><span>R</span><input type="range" min="0" max="255" id="sr" aria-label="Red"><output id="srv"></output></div>
                 <div class="slider"><span>G</span><input type="range" min="0" max="255" id="sg" aria-label="Green"><output id="sgv"></output></div>
                 <div class="slider"><span>B</span><input type="range" min="0" max="255" id="sb" aria-label="Blue"><output id="sbv"></output></div>
@@ -162,13 +175,13 @@
     <div class="viz2">
         <section class="panel" aria-labelledby="xy-h">
             <div class="panel-head"><h2 id="xy-h">CIE 1931 chromaticity diagram</h2></div>
-            <div class="panel-body"><canvas id="xy" class="canv" width="340" height="360" aria-label="Chromaticity diagram with the sRGB gamut and the current color"></canvas>
+            <div class="panel-body"><canvas id="xy" class="canv" width="340" height="360" role="img" aria-label="Chromaticity diagram with the sRGB gamut and the current color"></canvas>
                 <p class="hint" style="margin:.5rem 0 0">The horseshoe is every color the eye can see, with pure spectral colors on its edge (wavelengths in nm). The triangle is the sRGB gamut that screens and hex codes can show. White (D65) sits near the middle. ● current color, ○ reference.</p></div>
         </section>
         <section class="panel" aria-labelledby="ab-h">
             <div class="panel-head"><h2 id="ab-h">CIELAB a*b* plane</h2><span class="badge" id="ab-L">L* —</span></div>
-            <div class="panel-body"><canvas id="ab" class="canv" width="340" height="340" aria-label="CIELAB a star b star plane at the current lightness"></canvas>
-                <p class="hint" style="margin:.5rem 0 0">A slice through color space at the current lightness L*. +a* is red, −a* green, +b* yellow, −b* blue; distance from the center is chroma. Faded areas fall outside sRGB. The line joins the current color to the reference, and its length is ΔE*ab.</p></div>
+            <div class="panel-body"><canvas id="ab" class="canv" width="340" height="340" role="img" aria-label="CIELAB a star b star plane at the current lightness"></canvas>
+                <p class="hint" style="margin:.5rem 0 0">A slice through color space at the current lightness L*. +a* is red, −a* green, +b* yellow, −b* blue; distance from the center is chroma. Faded areas fall outside sRGB. The line joins the current color to the reference; its length is the a*b* part of ΔE*ab (the ΔL* part is not shown).</p></div>
         </section>
     </div>
 
@@ -180,7 +193,8 @@
                 <label for="ref">Reference</label>
                 <input id="ref" value="#3A66C4" spellcheck="false" aria-label="Reference color as hex or L*, a*, b*">
                 <button type="button" class="btn btn-secondary btn-sm" id="ref-set">Use current color as reference</button>
-                <span class="hint" style="margin:0">Hex code, or L*, a*, b* separated by commas.</span>
+                <span class="hint" style="margin:0">Hex code, or L*, a*, b* separated by commas or semicolons.</span>
+                <span class="hint" id="ref-msg" role="status" style="margin:0;color:var(--danger)"></span>
             </div>
             <div class="results">
                 <div class="result primary"><span class="result-label">ΔE00 (CIEDE2000)</span><output class="result-value" id="de00">—</output><span class="result-note" id="de-note"></span></div>
@@ -188,6 +202,7 @@
                 <div class="result"><span class="result-label">ΔL* · Δa* · Δb* <span class="sym">sample − reference</span></span><output class="result-value" id="dlab">—</output></div>
                 <div class="result"><span class="result-label">ΔC* · ΔH* <span class="sym">chroma, hue</span></span><output class="result-value" id="dch">—</output></div>
             </div>
+            <p class="hint" style="margin:.8rem 0 0">ΔE00 uses k<sub>L</sub> = k<sub>C</sub> = k<sub>H</sub> = 1. Compare only colors with the same illuminant and observer: colors converted here from HEX, RGB, or a spectrum are D65/2°, so compare them with Lab measured in D65/2°. Two readings taken with the same instrument settings (for example, both D65/10°) can be compared directly.</p>
         </div>
     </section>
 
@@ -195,8 +210,10 @@
         <div class="panel-head"><h2 id="sp-h">Color from a measured spectrum</h2></div>
         <div class="panel-body">
             <p style="margin:0 0 .7rem;color:var(--text-2);font-size:.94rem">Paste wavelength and reflectance or transmittance from a spectrophotometer, one pair per line (nm or µm; fraction or %). The color is computed the way a spectrophotometer does it: the spectrum is weighted by the D65 illuminant and the CIE 1931 2° color-matching functions from 380 to 780 nm.</p>
-            <textarea id="spec" class="input" rows="6" placeholder="380, 4.1&#10;390, 4.3&#10;…&#10;780, 36.0"></textarea>
-            <div class="btn-row" style="margin-top:.7rem"><button type="button" class="btn btn-primary btn-sm" id="spec-go">Compute color</button><button type="button" class="btn btn-secondary btn-sm" id="spec-ex">Load example (double-silver low-e, film side)</button><button type="button" class="btn btn-ghost btn-sm" id="spec-use" disabled>Use as current color</button></div>
+            <textarea id="spec" class="input" rows="6" aria-label="Spectrum: wavelength and value, one pair per line" placeholder="380, 4.1&#10;390, 4.3&#10;…&#10;780, 36.0"></textarea>
+            <div class="spec-opts"><label for="spec-unit">Values in</label><select id="spec-unit" class="input"><option value="auto">auto (percent if any value exceeds 1.5)</option><option value="pct">percent</option><option value="frac">fraction (0–1)</option></select></div>
+            <p class="hint" style="margin:.4rem 0 0">Separate the numbers with commas, spaces, tabs, or semicolons; with decimal commas, use tabs, semicolons, or spaces. Only the first two numbers on each line are used. Data that stop short of 380 or 780 nm are extended with their end values (the ASTM E308 practice). Choose percent for very dark or anti-reflection samples whose values all stay at or below 1.5 %.</p>
+            <div class="btn-row" style="margin-top:.7rem"><button type="button" class="btn btn-primary btn-sm" id="spec-go">Compute color</button><button type="button" class="btn btn-secondary btn-sm" id="spec-ex" style="white-space:normal">Load example (double-silver low-e, film side)</button><button type="button" class="btn btn-ghost btn-sm" id="spec-use" disabled>Use as current color</button></div>
             <div class="imp-msg" id="spec-msg" role="status" style="font-size:.88rem;margin-top:.6rem"></div>
             <div id="spec-plot" style="margin-top:.6rem"></div>
         </div>
@@ -209,7 +226,7 @@
             <thead><tr><th>Code</th><th>What it encodes</th><th>Device-independent?</th><th>Typical use</th></tr></thead>
             <tbody>
                 <tr><td>HEX</td><td>The three sRGB channel values (0–255) written in base 16: #RRGGBB.</td><td>Only through sRGB</td><td>Web and software colors</td></tr>
-                <tr><td>RGB</td><td>Red, green, and blue drive levels, gamma-encoded. #3366CC is R 51, G 102, B 204.</td><td>Only when the space is named (sRGB, Adobe RGB, camera RGB)</td><td>Displays, cameras, image files</td></tr>
+                <tr><td>RGB</td><td>Red, green, and blue drive levels, gamma-encoded. #3366CC is R 51, G 102, B 204.</td><td>Only when the space is named (sRGB, Adobe RGB, Display P3); camera RGB depends on the sensor</td><td>Displays, cameras, image files</td></tr>
                 <tr><td>HSV / HSB</td><td>RGB rearranged as a cylinder: hue angle, saturation, and value (the largest channel).</td><td>No, inherits RGB</td><td>Color pickers, simple machine-vision thresholds</td></tr>
                 <tr><td>HSL</td><td>Like HSV, but lightness is the average of the largest and smallest channels, so full saturation sits at L = 50 %.</td><td>No</td><td>CSS, design tools</td></tr>
                 <tr><td>CMYK</td><td>Cyan, magenta, yellow, and black ink coverage. The formula here is the naive conversion; real printing needs an ICC profile.</td><td>No, depends on inks and paper</td><td>Print</td></tr>
@@ -222,7 +239,7 @@
         <p>sRGB values are gamma-encoded, so channel value 128 is only about 22 % of full light. Conversions to XYZ first linearize each channel,</p>
         <div class="formula">\[ C_\text{lin} = \begin{cases} C/12.92 & C \le 0.04045 \\ \left(\dfrac{C + 0.055}{1.055}\right)^{2.4} & C > 0.04045 \end{cases} \]</div>
         <p>then apply the sRGB-to-XYZ matrix. CIELAB follows from XYZ and the white point \((X_n, Y_n, Z_n)\):</p>
-        <div class="formula">\[ L^* = 116 f\!\left(\tfrac{Y}{Y_n}\right) - 16, \quad a^* = 500\left[f\!\left(\tfrac{X}{X_n}\right) - f\!\left(\tfrac{Y}{Y_n}\right)\right], \quad b^* = 200\left[f\!\left(\tfrac{Y}{Y_n}\right) - f\!\left(\tfrac{Z}{Z_n}\right)\right], \]</div>
+        <div class="formula">\[ \begin{aligned} L^* &= 116 f\!\left(\tfrac{Y}{Y_n}\right) - 16, \\ a^* &= 500\left[f\!\left(\tfrac{X}{X_n}\right) - f\!\left(\tfrac{Y}{Y_n}\right)\right], \\ b^* &= 200\left[f\!\left(\tfrac{Y}{Y_n}\right) - f\!\left(\tfrac{Z}{Z_n}\right)\right], \end{aligned} \]</div>
         <p>where \(f(t) = t^{1/3}\) above a small threshold and linear below it. Many CIELAB colors, especially saturated cyans and greens, fall outside sRGB. They cannot be shown exactly on a typical screen or written as a hex code, which is why the converter flags out-of-gamut colors.</p>
 
         <h2>Hue in HSV is not hue in CIELAB</h2>
@@ -233,16 +250,16 @@
 
         <h2>How instruments measure color</h2>
         <p><strong>Spectrophotometers</strong> measure the reflectance or transmittance spectrum, typically every 10 nm from 360 or 400 to 700 or 780 nm, and compute XYZ by weighting it with a standard illuminant and observer (the method of ASTM E308 and CIE 15). Because they measure the spectrum, any illuminant and observer can be computed afterward, and readings from different instruments agree to within a few tenths of a ΔE when geometry and calibration match. Measurement geometry matters: d/8° integrating-sphere instruments can include (SCI) or exclude (SCE) the specular reflection, while 45°/0° instruments mimic visual viewing and exclude gloss. Always report the illuminant, the observer (2° or 10°), and the geometry with the numbers.</p>
-        <p><strong>Handheld spectrophotometers</strong> are the lab and QC reference. They press against the sample with a fixed aperture and their own calibrated light source. <strong>Inline (non-contact) spectrophotometers</strong> measure on a moving line from a fixed standoff. They need a stable distance and tilt, a defined geometry, and regular checks against reference tiles, but they give the same device-independent CIELAB as a handheld instrument, continuously.</p>
+        <p><strong>Handheld spectrophotometers</strong> are the lab and QC reference. They press against the sample with a fixed aperture and their own calibrated light source. <strong>Inline (non-contact) spectrophotometers</strong> measure on a moving line from a fixed standoff. They need a stable distance and tilt, a defined geometry, and regular checks against reference tiles, but once their geometry and calibration are matched to a handheld instrument's, they report the same device-independent CIELAB, continuously.</p>
         <p><strong>Cameras</strong> report device RGB, not CIE values. A camera's red, green, and blue filters do not match the CIE color-matching functions, and auto exposure, auto white balance, gamma, and changes in lighting all move the numbers. As a result, HSV or RGB values from a camera often have no simple, let alone linear, relationship to CIELAB from a spectrophotometer, even when both track the same physical change. Cameras work well for relative color control: lock exposure, gain, and white balance, use a stable enclosed light source, read linear (raw) values, and compare each part to reference samples in the same image. For absolute color, characterize the camera against a color target to build a correction matrix, and verify it against a spectrophotometer over the range of colors you produce.</p>
 
         <h2>Measuring the color of low-e coated glass</h2>
-        <p>A low-e coating is a stack of thin silver and dielectric layers, and its color comes from thin-film interference. A few nanometers of change in a dielectric layer moves a* and b* by a unit or more, so color is one of the most sensitive production checks of coating thickness and uniformity. Silver thickness also sets the sheet resistance and emissivity (see the <a href="/tools/low-e-sheet-resistance/">sheet resistance tool</a>), so color and sheet resistance together track most of what can drift in a coater.</p>
+        <p>A sputtered (soft-coat) low-e coating is a stack of thin silver and dielectric layers, and its color comes from thin-film interference; pyrolytic (hard-coat) low-e uses a doped tin-oxide layer instead. A few nanometers of change in a dielectric layer moves a* and b* by a unit or more, so color is one of the most sensitive production checks of coating thickness and uniformity. Silver thickness also sets the sheet resistance and emissivity (see the <a href="/tools/low-e-sheet-resistance/">sheet resistance tool</a>), so color and sheet resistance together track most of what can drift in a coater.</p>
         <ul>
             <li><strong>Measure three things:</strong> transmitted color, reflected color from the glass side (what you see from outside when the coating is on surface #2), and reflected color from the film side. They differ, and specifications usually name each one.</li>
             <li><strong>Use specular geometry.</strong> Coated glass is mirror-like, so the reflected color lives in the specular component. Use a specular-included (SCI) sphere or a dedicated specular-reflectance geometry. A 45°/0° instrument largely misses it.</li>
             <li><strong>Control the back surface.</strong> The second glass surface adds its own reflection. Back the sample with a light trap or black velvet, never a white tile, and state whether the measurement is on monolithic glass or the finished insulating unit, since the second lite and gap change reflected color.</li>
-            <li><strong>Watch the angle.</strong> Interference colors shift toward blue as viewing angle increases. Measure at the specified angle, usually near-normal, and check off-angle appearance separately if the façade will be seen obliquely.</li>
+            <li><strong>Watch the angle.</strong> The interference spectrum shifts to shorter wavelengths as the viewing angle increases, so reflected color changes with angle; the direction of the change depends on the coating design. Measure at the specified angle, usually near-normal, and check off-angle appearance separately if the façade will be seen obliquely.</li>
             <li><strong>Substrate matters.</strong> The iron in clear glass tints transmission and glass-side reflection green, so the same coating looks different on clear and low-iron glass and at different thicknesses.</li>
             <li><strong>Map uniformity.</strong> Measure several points across the lite and report the spread as ΔE to the center or to a master. Edge and end effects in the coater show up here first.</li>
             <li><strong>Cameras and handhelds together.</strong> A camera system under fixed lighting can flag streaks and gradients over the whole lite, while spot measurements with a spectrophotometer anchor the absolute values. Expect to correlate them empirically; the relationship is usually not linear and can differ between coatings.</li>
@@ -274,35 +291,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const LOCUS = [[0.1741,0.005],[0.174,0.005],[0.1738,0.0049],[0.1736,0.0049],[0.1733,0.0048],[0.173,0.0048],[0.1726,0.0048],[0.1721,0.0048],[0.1714,0.0051],[0.1703,0.0058],[0.1689,0.0069],[0.1669,0.0086],[0.1644,0.0109],[0.1611,0.0138],[0.1566,0.0177],[0.151,0.0227],[0.144,0.0297],[0.1355,0.0399],[0.1241,0.0578],[0.1096,0.0868],[0.0913,0.1327],[0.0687,0.2007],[0.0454,0.295],[0.0235,0.4127],[0.0082,0.5384],[0.0039,0.6548],[0.0139,0.7502],[0.0389,0.812],[0.0743,0.8338],[0.1142,0.8262],[0.1547,0.8059],[0.1929,0.7816],[0.2296,0.7543],[0.2658,0.7243],[0.3016,0.6923],[0.3374,0.6588],[0.3731,0.6245],[0.4087,0.5896],[0.4441,0.5547],[0.4788,0.5202],[0.5125,0.4866],[0.5448,0.4544],[0.5752,0.4242],[0.6029,0.3965],[0.627,0.3725],[0.6482,0.3514],[0.6658,0.334],[0.6801,0.3197],[0.6915,0.3083],[0.7006,0.2993],[0.7079,0.292],[0.714,0.2859],[0.719,0.2809],[0.723,0.2769],[0.726,0.274],[0.7283,0.2717],[0.73,0.27],[0.7311,0.2689],[0.732,0.268],[0.7327,0.2673],[0.7334,0.2666],[0.734,0.266],[0.7344,0.2656],[0.7346,0.2654],[0.7347,0.2653]];
     const LOCUS_NM = i => 380 + 5 * i;
     const DEFAULT = '#3366CC', DEFAULT_REF = '#3A66C4';
+    // zero the tiny a*, b* that floating-point rounding leaves on neutral grays, so they read 0 with hue 0°
+    const tidy = lab => lab.map((x, i) => i && Math.abs(x) < 5e-5 ? 0 : x);
+    const hexLab = h => tidy(C.xyzToLab(C.rgbToXyz(C.hexToRgb(h))));
 
     let xyz = C.rgbToXyz(C.hexToRgb(DEFAULT));
     let hueMemo = 220;
-    let ref = C.xyzToLab(C.rgbToXyz(C.hexToRgb(DEFAULT_REF)));
+    let ref = hexLab(DEFAULT_REF);
 
     const inputs = Array.from(document.querySelectorAll('#fields input'));
     const groupVals = g => inputs.filter(i => i.dataset.g === g).map(i => i.value);
     const num = s => Calc.parseNum(s);
     const r1 = (x, d) => (Math.round(x * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d).replace(/^-0(\.0+)?$/, '0$1');
+    // signed difference, with no sign on a value that rounds to zero
+    const sgn = (x, d) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? '' : x > 0 ? '+' : '−') + r1(Math.abs(x), d);
+    // sRGB channels rounded to 1e-12, so floating-point noise cannot tip an 8-bit value or tint a gray
+    const toRgb = X => C.xyzToRgb(X).map(c => Math.round(c * 1e12) / 1e12);
+    // true when the channels are exactly an 8-bit sRGB color (a HEX, RGB, or picker entry)
+    const is8bit = raw => raw.every(c => c >= 0 && c <= 1 && Math.abs(c * 255 - Math.round(c * 255)) < 1e-6);
+    const f4 = x => String(+x.toFixed(4));
+    const enc = s => encodeURIComponent(s).replace(/%2C/g, ',');
+    // the reference as a hex code when it is exactly one, otherwise as L*, a*, b* to 4 decimals
+    const refCode = () => { const raw = toRgb(C.labToXyz(ref)); return is8bit(raw) ? C.rgbToHex(raw).slice(1) : ref.map(f4).join(','); };
+    const refShown = () => { const s = refCode(); return s.indexOf(',') < 0 ? '#' + s : s.split(',').join(', '); };
 
     function fromGroup(g) {
+        if (g === 'hex') { const rgb = C.hexToRgb(groupVals('hex')[0]); return rgb ? C.rgbToXyz(rgb) : null; }
         const v = groupVals(g).map(num);
-        let X = null;
-        if (g === 'hex') { const rgb = C.hexToRgb(groupVals('hex')[0]); if (rgb) X = C.rgbToXyz(rgb); }
-        else if (v.some(x => !isFinite(x))) return null;
-        else if (g === 'rgb') X = C.rgbToXyz(v.map(x => Math.min(255, Math.max(0, x)) / 255));
-        else if (g === 'hsv') { hueMemo = v[0]; X = C.rgbToXyz(C.hsvToRgb([v[0], v[1] / 100, v[2] / 100])); }
-        else if (g === 'hsl') { hueMemo = v[0]; X = C.rgbToXyz(C.hslToRgb([v[0], v[1] / 100, v[2] / 100])); }
-        else if (g === 'cmyk') X = C.rgbToXyz(C.cmykToRgb(v.map(x => x / 100)));
-        else if (g === 'lab') X = C.labToXyz(v);
-        else if (g === 'lch') X = C.labToXyz(C.lchToLab(v));
-        else if (g === 'xyz') X = v.map(x => x / 100);
-        else if (g === 'xyY') X = C.xyYToXyz([v[0], v[1], v[2] / 100]);
-        return X;
+        if (v.some(x => !isFinite(x))) return null;
+        // percentages are clamped to 0–100 the way RGB is clamped to 0–255; physically impossible entries are rejected
+        const pc = x => Math.min(100, Math.max(0, x)) / 100;
+        if (g === 'rgb') return C.rgbToXyz(v.map(x => Math.min(255, Math.max(0, x)) / 255));
+        if (g === 'hsv' || g === 'hsl') { hueMemo = (v[0] % 360 + 360) % 360; return C.rgbToXyz((g === 'hsv' ? C.hsvToRgb : C.hslToRgb)([v[0], pc(v[1]), pc(v[2])])); }
+        if (g === 'cmyk') return C.rgbToXyz(C.cmykToRgb(v.map(pc)));
+        if (g === 'lab') return v[0] >= 0 ? C.labToXyz(v) : null;
+        if (g === 'lch') return v[0] >= 0 && v[1] >= 0 ? C.labToXyz(C.lchToLab(v)) : null;
+        if (g === 'xyz') return v.every(x => x >= 0) ? v.map(x => x / 100) : null;
+        if (g === 'xyY') return v[0] >= 0 && v[1] > 0 && v[0] + v[1] <= 1 && v[2] >= 0 ? C.xyYToXyz([v[0], v[1], v[2] / 100]) : null;
+        return null;
     }
 
+    let shownHash = '';   // the fragment render() last wrote: the color shown
     function render(skip) {
-        const rgbRaw = C.xyzToRgb(xyz), ok = C.inGamut(rgbRaw), rgb = C.clip(rgbRaw), hex = C.rgbToHex(rgb);
-        const lab = C.xyzToLab(xyz), lch = C.labToLch(lab), xyY = C.xyzToXyY(xyz);
+        const rgbRaw = toRgb(xyz), ok = C.inGamut(rgbRaw), rgb = C.clip(rgbRaw), hex = C.rgbToHex(rgb);
+        const lab = tidy(C.xyzToLab(xyz)), lch = C.labToLch(lab), xyY = C.xyzToXyY(xyz);
         let hsv = C.rgbToHsv(rgb), hsl = C.rgbToHsl(rgb);
         if (hsv[1] < 1e-6) { hsv[0] = hueMemo; hsl[0] = hueMemo; } else hueMemo = hsv[0];
         const cmyk = C.rgbToCmyk(rgb);
@@ -312,35 +344,51 @@ document.addEventListener('DOMContentLoaded', () => {
             lab: lab.map(x => r1(x, 2)), lch: [r1(lch[0], 2), r1(lch[1], 2), r1(lch[2], 1)],
             xyz: xyz.map(x => r1(x * 100, 3)), xyY: [r1(xyY[0], 4), r1(xyY[1], 4), r1(xyY[2] * 100, 3)]
         };
-        inputs.forEach(i => { if (i.dataset.g !== skip) i.value = vals[i.dataset.g][+i.dataset.i]; });
+        inputs.forEach(i => { if (i.dataset.g !== skip) { i.value = vals[i.dataset.g][+i.dataset.i]; i.removeAttribute('aria-invalid'); } });
         $('swatch').style.background = hex;
         $('swatch-tag').textContent = hex;
         const g = $('gamut');
         g.className = 'gamut ' + (ok ? 'ok' : 'bad');
-        g.textContent = ok ? 'Inside the sRGB gamut: the swatch and hex code are exact.' : 'Outside the sRGB gamut: the swatch and hex code show the nearest displayable color (channels clipped).';
+        g.textContent = ok ? 'Inside the sRGB gamut: the swatch and hex code show this color to within 8-bit rounding.' : 'Outside the sRGB gamut: the RGB channels are clipped to 0–255, so the swatch and the HEX, RGB, HSV, HSL, and CMYK values only approximate this color. CIELAB, LCh, XYZ, and xyY are exact.';
         ['r', 'g', 'b'].forEach((ch, k) => {
             const s = $('s' + ch); s.value = Math.round(rgb[k] * 255); $('s' + ch + 'v').textContent = s.value;
             const lo = rgb.map(c => Math.round(c * 255)), hi = lo.slice(); lo[k] = 0; hi[k] = 255;
             s.style.background = 'linear-gradient(90deg, rgb(' + lo + '), rgb(' + hi + '))';
         });
         drawSV(hsv); drawHue(hsv[0]); drawXY(xyY); drawAB(lab); deltaE(lab);
-        try { history.replaceState(null, '', '#c=' + hex.slice(1) + '&ref=' + encodeURIComponent(ref.map(x => r1(x, 2)).join(','))); } catch (e) { /* ignore */ }
+        // the share link keeps the exact color: its hex code when that is exact, otherwise CIELAB to 4 decimals
+        try { history.replaceState(null, '', '#' + (is8bit(rgbRaw) ? 'c=' + hex.slice(1) : 'lab=' + enc(lab.map(f4).join(','))) + '&ref=' + enc(refCode())); shownHash = location.hash; } catch (e) { /* ignore */ }
     }
 
     inputs.forEach(i => i.addEventListener('input', () => {
-        const X = fromGroup(i.dataset.g);
-        if (X && X.every(isFinite)) { xyz = X; render(i.dataset.g); }
+        const g = i.dataset.g, X = fromGroup(g), bad = !(X && X.every(isFinite));
+        inputs.forEach(j => { if (j.dataset.g === g) { if (bad) j.setAttribute('aria-invalid', 'true'); else j.removeAttribute('aria-invalid'); } });
+        if (!bad) { xyz = X; render(g); }
     }));
     inputs.forEach(i => i.addEventListener('change', () => render(null)));
     ['r', 'g', 'b'].forEach(ch => $('s' + ch).addEventListener('input', () => {
         xyz = C.rgbToXyz(['r', 'g', 'b'].map(c => +$('s' + c).value / 255)); render(null);
     }));
 
+    // Canvases get a backing store at the screen's pixel density, so lines and labels stay sharp on phones;
+    // the drawing code works in CSS pixels (the size returned here).
+    function hiDPI(c) {
+        const d = Math.min(3, window.devicePixelRatio || 1), w = c.width, h = c.height;
+        if (d > 1) { c.width = Math.round(w * d); c.height = Math.round(h * d); c.getContext('2d').setTransform(c.width / w, 0, 0, c.height / h, 0, 0); }
+        return [w, h];
+    }
+    // reference marker: a white ring with a dark outline, larger than the current-color dot so it shows on any background
+    function ring(x, cx, cy) {
+        x.beginPath(); x.arc(cx, cy, 9, 0, 2 * Math.PI);
+        x.lineWidth = 4; x.strokeStyle = '#111'; x.stroke(); x.lineWidth = 2; x.strokeStyle = '#fff'; x.stroke();
+    }
+
     // ── HSV picker ──
     const sv = $('sv'), svx = sv.getContext('2d'), hu = $('hue'), hux = hu.getContext('2d');
+    const [SW, SH] = hiDPI(sv), [HW, HH] = hiDPI(hu);
     let svHue = null;
     function drawSV(hsv) {
-        const W = sv.width, H = sv.height;
+        const W = SW, H = SH;
         svx.fillStyle = C.rgbToHex(C.hsvToRgb([hsv[0], 1, 1])); svx.fillRect(0, 0, W, H);
         let gw = svx.createLinearGradient(0, 0, W, 0); gw.addColorStop(0, '#fff'); gw.addColorStop(1, 'rgba(255,255,255,0)');
         svx.fillStyle = gw; svx.fillRect(0, 0, W, H);
@@ -352,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
         svHue = hsv[0];
     }
     function drawHue(h) {
-        const W = hu.width, H = hu.height, g = hux.createLinearGradient(0, 0, W, 0);
+        const W = HW, H = HH, g = hux.createLinearGradient(0, 0, W, 0);
         for (let i = 0; i <= 6; i++) g.addColorStop(i / 6, C.rgbToHex(C.hsvToRgb([i * 60, 1, 1])));
         hux.fillStyle = g; hux.fillRect(0, 0, W, H);
         const x = h / 360 * W; hux.fillStyle = '#fff'; hux.strokeStyle = '#111'; hux.lineWidth = 1.5;
@@ -371,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Chromaticity diagram ──
     const xy = $('xy'), xyx = xy.getContext('2d');
-    const XW = xy.width, XH = xy.height, PX = x => 34 + x / 0.8 * (XW - 46), PY = y => XH - 30 - y / 0.9 * (XH - 42);
+    const [XW, XH] = hiDPI(xy), PX = x => 34 + x / 0.8 * (XW - 46), PY = y => XH - 30 - y / 0.9 * (XH - 42);
     const bg = document.createElement('canvas'); bg.width = XW; bg.height = XH;
     (function () {
         const b = bg.getContext('2d'), img = b.createImageData(XW, XH), poly = LOCUS.map(p => [PX(p[0]), PY(p[1])]);
@@ -388,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
     })();
     function drawXY(xyY) {
         const css = getComputedStyle(document.body), ink = css.getPropertyValue('--text-2').trim() || '#333', muted = css.getPropertyValue('--muted').trim() || '#777';
-        xyx.clearRect(0, 0, XW, XH); xyx.drawImage(bg, 0, 0);
+        xyx.clearRect(0, 0, XW, XH); xyx.drawImage(bg, 0, 0, XW, XH);
         xyx.strokeStyle = muted; xyx.lineWidth = 1; xyx.fillStyle = muted; xyx.font = '11px ' + css.getPropertyValue('--font');
         xyx.beginPath(); xyx.moveTo(PX(0), PY(0.9)); xyx.lineTo(PX(0), PY(0)); xyx.lineTo(PX(0.8), PY(0)); xyx.stroke();
         for (let t = 0; t <= 0.8001; t += 0.2) { xyx.fillText(t.toFixed(1), PX(t) - 8, XH - 14); }
@@ -397,15 +445,15 @@ document.addEventListener('DOMContentLoaded', () => {
         xyx.beginPath(); LOCUS.forEach((p, i) => i ? xyx.lineTo(PX(p[0]), PY(p[1])) : xyx.moveTo(PX(p[0]), PY(p[1]))); xyx.closePath(); xyx.strokeStyle = ink; xyx.stroke();
         [460, 480, 500, 520, 540, 560, 580, 600, 620].forEach(nm => { const p = LOCUS[(nm - 380) / 5]; xyx.fillStyle = ink; xyx.fillText(nm, PX(p[0]) + (nm < 510 ? -26 : 5), PY(p[1]) + (nm < 510 ? 4 : 2)); });
         xyx.beginPath(); [[0.64, 0.33], [0.30, 0.60], [0.15, 0.06]].forEach((p, i) => i ? xyx.lineTo(PX(p[0]), PY(p[1])) : xyx.moveTo(PX(p[0]), PY(p[1]))); xyx.closePath();
-        xyx.strokeStyle = '#111'; xyx.lineWidth = 1.5; xyx.stroke(); xyx.fillStyle = '#111'; xyx.fillText('sRGB', PX(0.43), PY(0.46));
+        xyx.strokeStyle = '#111'; xyx.lineWidth = 1.5; xyx.stroke(); xyx.fillStyle = '#111'; xyx.fillText('sRGB', PX(0.40), PY(0.40));
         xyx.beginPath(); xyx.arc(PX(0.3127), PY(0.3290), 3, 0, 2 * Math.PI); xyx.fillStyle = '#fff'; xyx.fill(); xyx.strokeStyle = '#111'; xyx.stroke();
         const rxy = C.xyzToXyY(C.labToXyz(ref));
-        xyx.beginPath(); xyx.arc(PX(rxy[0]), PY(rxy[1]), 6, 0, 2 * Math.PI); xyx.lineWidth = 2; xyx.strokeStyle = '#fff'; xyx.stroke();
+        ring(xyx, PX(rxy[0]), PY(rxy[1]));
         xyx.beginPath(); xyx.arc(PX(xyY[0]), PY(xyY[1]), 6, 0, 2 * Math.PI); xyx.fillStyle = C.rgbToHex(C.clip(C.xyzToRgb(xyz))); xyx.fill(); xyx.lineWidth = 2; xyx.strokeStyle = '#111'; xyx.stroke();
     }
 
     // ── a*b* plane ──
-    const ab = $('ab'), abx = ab.getContext('2d'), AW = ab.width, AH = ab.height, AR = 128;
+    const ab = $('ab'), abx = ab.getContext('2d'), [AW, AH] = hiDPI(ab), AR = 128;
     const AX = a => (a + AR) / (2 * AR) * AW, AY = b => AH - (b + AR) / (2 * AR) * AH;
     const abBg = document.createElement('canvas'); abBg.width = AW; abBg.height = AH;
     let abL = null;
@@ -420,45 +468,62 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function drawAB(lab) {
         if (abL === null || Math.abs(lab[0] - abL) > 0.75) paintAB(lab[0]);
-        const css = getComputedStyle(document.body), muted = css.getPropertyValue('--muted').trim() || '#777';
-        abx.clearRect(0, 0, AW, AH); abx.drawImage(abBg, 0, 0);
-        abx.strokeStyle = 'rgba(0,0,0,.45)'; abx.lineWidth = 1;
+        // axes, labels, and the reference line use the theme's text color over a halo of the panel color, so they read in both themes
+        const css = getComputedStyle(document.body), ink = css.getPropertyValue('--text').trim() || '#111', halo = css.getPropertyValue('--surface').trim() || '#fff';
+        abx.clearRect(0, 0, AW, AH); abx.drawImage(abBg, 0, 0, AW, AH);
+        abx.strokeStyle = ink; abx.globalAlpha = 0.5; abx.lineWidth = 1;
         abx.beginPath(); abx.moveTo(AX(0), 0); abx.lineTo(AX(0), AH); abx.moveTo(0, AY(0)); abx.lineTo(AW, AY(0)); abx.stroke();
-        abx.fillStyle = '#111'; abx.font = '600 11px ' + css.getPropertyValue('--font');
-        abx.fillText('+a* red', AW - 50, AY(0) - 6); abx.fillText('−a* green', 6, AY(0) - 6); abx.fillText('+b* yellow', AX(0) + 6, 14); abx.fillText('−b* blue', AX(0) + 6, AH - 8);
-        abx.beginPath(); abx.moveTo(AX(ref[1]), AY(ref[2])); abx.lineTo(AX(lab[1]), AY(lab[2])); abx.strokeStyle = '#111'; abx.lineWidth = 1.5; abx.stroke();
-        abx.beginPath(); abx.arc(AX(ref[1]), AY(ref[2]), 6, 0, 2 * Math.PI); abx.strokeStyle = '#fff'; abx.lineWidth = 2; abx.stroke();
-        abx.beginPath(); abx.arc(AX(lab[1]), AY(lab[2]), 6, 0, 2 * Math.PI); abx.fillStyle = C.rgbToHex(C.clip(C.xyzToRgb(xyz))); abx.fill(); abx.strokeStyle = '#111'; abx.stroke();
+        abx.globalAlpha = 1; abx.font = '600 11px ' + css.getPropertyValue('--font'); abx.lineJoin = 'round'; abx.lineWidth = 3; abx.strokeStyle = halo; abx.fillStyle = ink;
+        [['+a* red', AW - 50, AY(0) - 6], ['−a* green', 6, AY(0) - 6], ['+b* yellow', AX(0) + 6, 14], ['−b* blue', AX(0) + 6, AH - 8]].forEach(([t, x, y]) => { abx.strokeText(t, x, y); abx.fillText(t, x, y); });
+        abx.beginPath(); abx.moveTo(AX(ref[1]), AY(ref[2])); abx.lineTo(AX(lab[1]), AY(lab[2]));
+        abx.strokeStyle = halo; abx.lineWidth = 3.5; abx.stroke(); abx.strokeStyle = ink; abx.lineWidth = 1.5; abx.stroke();
+        ring(abx, AX(ref[1]), AY(ref[2]));
+        abx.beginPath(); abx.arc(AX(lab[1]), AY(lab[2]), 6, 0, 2 * Math.PI); abx.fillStyle = C.rgbToHex(C.clip(C.xyzToRgb(xyz))); abx.fill(); abx.strokeStyle = '#111'; abx.lineWidth = 2; abx.stroke();
         $('ab-L').textContent = 'L* ' + r1(lab[0], 1);
     }
 
     // ── ΔE ──
     function parseRef(s) {
-        const rgb = C.hexToRgb(s); if (rgb) return C.xyzToLab(C.rgbToXyz(rgb));
-        const v = String(s).split(/[\s,;]+/).map(num).filter(isFinite);
-        return v.length === 3 ? v : null;
+        const rgb = C.hexToRgb(s); if (rgb) return tidy(C.xyzToLab(C.rgbToXyz(rgb)));
+        // semicolons separate the numbers when present, so decimal commas work: 50,5; 20; 30
+        const v = String(s).split(/;/.test(s) ? /;/ : /[\s,]+/).map(num).filter(isFinite);
+        return v.length === 3 && v[0] >= 0 ? v : null;
     }
     function deltaE(lab) {
         const d00 = C.deltaE00(ref, lab), d76 = C.deltaE76(ref, lab);
-        const c1 = Math.hypot(ref[1], ref[2]), c2 = Math.hypot(lab[1], lab[2]), dC = c2 - c1;
-        const dH = Math.sqrt(Math.max(0, Math.pow(lab[1] - ref[1], 2) + Math.pow(lab[2] - ref[2], 2) - dC * dC));
+        const c1 = Math.hypot(ref[1], ref[2]), c2 = Math.hypot(lab[1], lab[2]);
+        let dh = Math.atan2(lab[2], lab[1]) - Math.atan2(ref[2], ref[1]);
+        if (dh > Math.PI) dh -= 2 * Math.PI; else if (dh < -Math.PI) dh += 2 * Math.PI;
+        const dH = 2 * Math.sqrt(c1 * c2) * Math.sin(dh / 2);   // signed ΔH*ab (CIE 15)
         $('de00').textContent = r1(d00, 2); $('de76').textContent = r1(d76, 2);
-        $('dlab').textContent = [lab[0] - ref[0], lab[1] - ref[1], lab[2] - ref[2]].map(x => (x >= 0 ? '+' : '−') + r1(Math.abs(x), 2)).join(' · ');
-        $('dch').textContent = (dC >= 0 ? '+' : '−') + r1(Math.abs(dC), 2) + ' · ' + r1(dH, 2);
+        $('dlab').textContent = [lab[0] - ref[0], lab[1] - ref[1], lab[2] - ref[2]].map(x => sgn(x, 2)).join(' · ');
+        $('dch').textContent = sgn(c2 - c1, 2) + ' · ' + sgn(dH, 2);
         $('de-note').textContent = d00 < 1 ? 'Not perceptible to most observers.' : d00 < 2 ? 'Visible on close side-by-side inspection.' : d00 < 3.5 ? 'Visible at a glance to a trained eye.' : d00 < 5 ? 'A clear difference.' : 'Different colors.';
         $('ref-sw').style.background = C.rgbToHex(C.clip(C.xyzToRgb(C.labToXyz(ref))));
     }
-    $('ref').addEventListener('input', () => { const r = parseRef($('ref').value); if (r) { ref = r; render(null); } });
-    $('ref-set').addEventListener('click', () => { ref = C.xyzToLab(xyz); $('ref').value = ref.map(x => r1(x, 2)).join(', '); render(null); });
+    function refError(m) { const el = $('ref'); if (m) el.setAttribute('aria-invalid', 'true'); else el.removeAttribute('aria-invalid'); $('ref-msg').textContent = m; }
+    $('ref').addEventListener('input', () => {
+        const r = parseRef($('ref').value);
+        if (r) { refError(''); ref = r; render(null); } else refError('Enter a hex code, or L*, a*, b* as three numbers (L* ≥ 0).');
+    });
+    $('ref-set').addEventListener('click', () => { ref = tidy(C.xyzToLab(xyz)); $('ref').value = refShown(); refError(''); render(null); });
 
     // ── Spectrum to color ──
     let specXyz = null;
     function spectrumColor(text) {
-        const pts = [];
-        text.split(/\r?\n/).forEach(l => { const n = l.trim().split(/[\s,;\t]+/).map(Number); if (n.length >= 2 && isFinite(n[0]) && isFinite(n[1])) pts.push([n[0], n[1]]); });
+        const pts = []; let cols = 0;
+        text.split(/\r\n?|\n/).forEach(l => {
+            const s = l.trim(); if (!s) return;
+            // tab-, semicolon-, and space-separated exports may use decimal commas ("380 4,1"); otherwise commas and spaces separate the numbers
+            const ws = s.split(/\s+/), dec = /[;\t]/.test(s) || (ws.length > 1 && /\d,\d/.test(s) && ws.every(x => /^(%|[-+]?(\d+(,\d*)?|,\d+)%?)$/.test(x)));
+            const cells = (dec ? s.split(/[;\t]+|\s+/).map(x => x.replace(',', '.')) : s.split(/[\s,]+/)).filter(x => x && x !== '%');
+            const n = cells.map(x => Number(x.replace(/%$/, '')));
+            if (n.length >= 2 && isFinite(n[0]) && isFinite(n[1])) { pts.push([n[0], n[1]]); cols = Math.max(cols, n.length); }
+        });
         if (pts.length < 5) throw new Error('need at least 5 wavelength, value pairs');
         pts.sort((a, b) => a[0] - b[0]);
-        const micron = pts[pts.length - 1][0] < 50, pct = pts.some(p => p[1] > 1.5);
+        const mode = $('spec-unit').value, micron = pts[pts.length - 1][0] < 50;
+        const pct = mode === 'pct' || (mode === 'auto' && pts.some(p => p[1] > 1.5));
         const wl = pts.map(p => micron ? p[0] * 1000 : p[0]), val = pts.map(p => pct ? p[1] / 100 : p[1]);
         if (wl[0] > 400 || wl[wl.length - 1] < 700) throw new Error('the spectrum should cover at least 400–700 nm (found ' + Math.round(wl[0]) + '–' + Math.round(wl[wl.length - 1]) + ' nm)');
         const at = nm => { if (nm <= wl[0]) return val[0]; if (nm >= wl[wl.length - 1]) return val[val.length - 1]; let i = 1; while (wl[i] < nm) i++; const f = (nm - wl[i - 1]) / (wl[i] - wl[i - 1]); return val[i - 1] + f * (val[i] - val[i - 1]); };
@@ -467,41 +532,53 @@ document.addEventListener('DOMContentLoaded', () => {
             const nm = Wt.grid.start + i * Wt.grid.step; if (nm < 380 || nm > 780) continue;
             const s = at(nm); X += s * Wt.X[i]; Y += s * Wt.Y[i]; Z += s * Wt.Z[i]; Xn += Wt.X[i]; Zn += Wt.Z[i];
         }
+        if (X < 0 || Y < 0 || Z < 0) throw new Error('the values give a negative X, Y, or Z; check for negative readings');
         // rescale so the white point matches the converter's D65 white (X 95.047, Z 108.883)
-        return { xyz: [X / Xn * C.WHITE[0], Y, Z / Zn * C.WHITE[2]], wl, val };
+        return { xyz: [X / Xn * C.WHITE[0], Y, Z / Zn * C.WHITE[2]], wl, val, pct, micron, cols, auto: mode === 'auto', extended: wl[0] > 380 || wl[wl.length - 1] < 780 };
     }
     $('spec-go').addEventListener('click', () => {
         const msg = $('spec-msg');
         try {
             const r = spectrumColor($('spec').value); specXyz = r.xyz;
             const lab = C.xyzToLab(r.xyz), rgb = C.xyzToRgb(r.xyz);
+            const how = ['Values read as ' + (r.pct ? 'percent' : 'fractions (0–1)') + (r.auto && !r.pct ? ' because none exceeds 1.5 (choose percent if they are %)' : ''),
+                'wavelengths in ' + (r.micron ? 'µm' : 'nm')].concat(r.extended ? ['extended with the end values to cover 380–780 nm'] : [], r.cols > 2 ? ['columns after the second ignored'] : []).join('; ') + '.';
             msg.className = 'imp-msg ok';
             msg.innerHTML = '<span style="display:inline-block;width:18px;height:18px;border-radius:4px;vertical-align:-4px;border:1px solid var(--border-strong);background:' + C.rgbToHex(C.clip(rgb)) + '"></span> ' +
-                'L* ' + r1(lab[0], 2) + ', a* ' + r1(lab[1], 2) + ', b* ' + r1(lab[2], 2) + ' · Y ' + r1(r.xyz[1] * 100, 2) + ' % · ' + C.rgbToHex(C.clip(rgb)) + (C.inGamut(rgb) ? '' : ' (outside sRGB)');
+                'L* ' + r1(lab[0], 2) + ', a* ' + r1(lab[1], 2) + ', b* ' + r1(lab[2], 2) + ' · Y ' + r1(r.xyz[1] * 100, 2) + ' % · ' + C.rgbToHex(C.clip(rgb)) + (C.inGamut(rgb) ? '' : ' (outside sRGB)') +
+                '<span class="hint" style="display:block;margin-top:.2rem">' + how + '</span>';
             $('spec-use').disabled = false;
-            if (window.Plot) Plot.draw('#spec-plot', { height: 220, x: { label: 'Wavelength (nm)', min: Math.min(380, r.wl[0]), max: Math.max(780, r.wl[r.wl.length - 1]) }, y: { label: 'Percent', min: 0 },
-                series: [{ type: 'line', x: r.wl, y: r.val.map(v => 100 * v), label: 'Spectrum', color: 'var(--c1)' }], vlines: [{ x: 380, color: 'var(--muted)' }, { x: 780, color: 'var(--muted)' }] });
+            if (window.Plot) Plot.draw('#spec-plot', { height: 220, x: { label: 'Wavelength (nm)', min: Math.min(380, r.wl[0]), max: Math.max(780, r.wl[r.wl.length - 1]) }, y: { label: 'R or T (%)', min: 0 },
+                series: [{ type: 'line', x: r.wl, y: r.val.map(v => 100 * v), label: 'Measured spectrum', color: 'var(--c1)' }], vlines: [{ x: 380, label: '380 nm', color: 'var(--muted)' }, { x: 780, label: '780 nm', color: 'var(--muted)' }],
+                ariaLabel: 'Measured reflectance or transmittance (%) versus wavelength (nm)' });
         } catch (e) { msg.className = 'imp-msg bad'; msg.textContent = 'Could not read the spectrum: ' + e.message + '.'; $('spec-use').disabled = true; }
     });
+    $('spec-unit').addEventListener('change', () => { if ($('spec-msg').textContent) $('spec-go').click(); });
     $('spec-use').addEventListener('click', () => { if (specXyz) { xyz = specXyz; render(null); window.scrollTo({ top: 0, behavior: 'smooth' }); } });
     $('spec-ex').addEventListener('click', () => {
         // Illustrative film-side reflectance of a generic double-silver low-e coating, 380–780 nm in 20 nm steps (%)
         const R = [12.0, 10.5, 8.6, 6.9, 5.4, 4.3, 3.6, 3.3, 3.3, 3.6, 4.4, 5.8, 8.0, 11.2, 15.6, 21.0, 27.4, 34.2, 41.0, 47.2, 52.6];
         $('spec').value = R.map((r, i) => (380 + 20 * i) + ', ' + r.toFixed(1)).join('\n');
+        $('spec-unit').value = 'auto';
         $('spec-go').click();
     });
 
-    $('c-reset').addEventListener('click', () => { xyz = C.rgbToXyz(C.hexToRgb(DEFAULT)); ref = C.xyzToLab(C.rgbToXyz(C.hexToRgb(DEFAULT_REF))); $('ref').value = DEFAULT_REF; render(null); });
+    $('c-reset').addEventListener('click', () => { xyz = C.rgbToXyz(C.hexToRgb(DEFAULT)); ref = hexLab(DEFAULT_REF); $('ref').value = DEFAULT_REF; refError(''); render(null); });
 
-    // Restore from the URL
+    // Restore from the URL: c = hex code, or lab = L*,a*,b* for a color that is not an exact hex code; ref = hex code or L*,a*,b*
     try {
         const p = new URLSearchParams(location.hash.slice(1));
-        const c = p.get('c'), rf = p.get('ref');
-        if (c && C.hexToRgb(c)) xyz = C.rgbToXyz(C.hexToRgb(c));
-        if (rf) { const r = parseRef(rf); if (r) { ref = r; $('ref').value = rf; } }
+        const c = p.get('c'), lb = p.get('lab'), rf = p.get('ref');
+        const lv = lb ? lb.split(',').map(num) : null;
+        if (lv && lv.length === 3 && lv.every(isFinite) && lv[0] >= 0) xyz = C.labToXyz(lv);
+        else if (c && C.hexToRgb(c)) xyz = C.rgbToXyz(C.hexToRgb(c));
+        if (rf) { const r = parseRef(rf); if (r) { ref = r; $('ref').value = C.hexToRgb(rf) ? '#' + rf.trim().replace(/^#/, '').toUpperCase() : /;/.test(rf) ? rf : rf.split(/\s*,\s*/).join(', '); } }
     } catch (e) { /* ignore */ }
     render(null);
     document.addEventListener('themechange', () => render(null));
+    // A color link opened in the tab that already shows the converter changes only the fragment, which does not reload
+    // the page: reload when it describes another color (not for an in-page #anchor, or Back to the color shown).
+    window.addEventListener('hashchange', () => { if (/(^#|&)(c|lab|ref)=/.test(location.hash) && location.hash !== shownHash) location.reload(); });
 });
 </script>
 </body>

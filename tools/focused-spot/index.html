@@ -22,8 +22,8 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -45,7 +45,7 @@
     "price": "0",
     "priceCurrency": "USD"
    },
-   "keywords": "beam waist spot diameter focus gaussian m2 truncation apodization laser size focused calculator diffraction limited",
+   "keywords": "beam waist spot diameter focus gaussian m2 beam quality truncation apodization laser size focused calculator diffraction limited",
    "author": {
     "@type": "Person",
     "@id": "https://cdfoley.com/#person",
@@ -148,7 +148,7 @@
                     <div class="result"><span class="result-label">Power through aperture</span><output class="result-value" data-out="trans">—</output></div>
                     <div class="result"><span class="result-label">Untruncated spot (APO = 4/π)</span><output class="result-value" data-out="dF0">—</output></div>
                     <div class="result"><span class="result-label">Rayleigh range<span class="sym">z<sub>R</sub></span></span><output class="result-value" data-out="zR">—</output></div>
-                    <div class="result"><span class="result-label" id="dof-label">Depth of focus</span><output class="result-value" data-out="dof">—</output></div>
+                    <div class="result"><span class="result-label" id="dof-label">Depth of focus, total</span><output class="result-value" data-out="dof">—</output></div>
                     <div class="result"><span class="result-label">Convergence half-angle<span class="sym">θ</span></span><output class="result-value" data-out="theta">—</output></div>
                     <div class="result"><span class="result-label">Beam f-number<span class="sym">f′/D<sub>b</sub></span></span><output class="result-value" data-out="fno">—</output></div>
                 </div>
@@ -165,7 +165,7 @@
         <h2>How the focused spot size is calculated</h2>
         <p>For a beam with 1/e² diameter \(D_b\) at a lens of focal length \(f'\), the focused 1/e² spot diameter is</p>
         <div class="formula">\[ d_F = \mathrm{APO}\cdot\frac{\lambda\, f'\, M^2}{D_b} \]</div>
-        <p>The apodization factor <strong>APO</strong> depends only on the truncation ratio \(T = D_b/D_t\), where \(D_t\) is the smallest clear aperture the beam passes through. For an untruncated Gaussian (\(T \lesssim 0.5\)), \(\mathrm{APO} = 4/\pi \approx 1.273\) and the formula reduces to the textbook result \(d_F = 4\lambda f' M^2/(\pi D_b)\), or \(w_0 = M^2\lambda f'/(\pi w_L)\) in radius form.</p>
+        <p>The apodization factor <strong>APO</strong> depends only on the truncation ratio \(T = D_b/D_t\), where \(D_t\) is the smallest clear aperture the beam passes through. For an untruncated Gaussian (\(T \lesssim 0.4\)), \(\mathrm{APO} = 4/\pi \approx 1.273\) and the formula reduces to the textbook result \(d_F = 4\lambda f' M^2/(\pi D_b)\), or \(w_0 = M^2\lambda f'/(\pi w_L)\) in radius form.</p>
 
         <h2>Truncation and the APO factor</h2>
         <p>A larger input beam gives a smaller spot, but only until the aperture starts to clip it. Clipping diffracts light out of the central lobe. The focal profile then moves away from a Gaussian toward an Airy pattern, and the spot stops shrinking in proportion to \(1/D_b\). This calculator does not use a lookup table. It evaluates the Fraunhofer diffraction integral of a truncated Gaussian,</p>
@@ -186,12 +186,12 @@
         <h2>Depth of focus</h2>
         <p>The Rayleigh range \(z_R = \pi w_0^2/(M^2\lambda)\) is the distance over which the beam radius grows by \(\sqrt{2}\) (the area doubles and the peak fluence halves). Most processes tolerate much less than that. For a maximum allowed spot growth \(\varepsilon\) (e.g. 5 %), the usable depth of focus is</p>
         <div class="formula">\[ \mathrm{DOF} = 2\,z_R\sqrt{(1+\varepsilon)^2 - 1}. \]</div>
-        <p>Because \(z_R \propto w_0^2\), halving the spot size cuts the depth of focus by four. Tight-focus ablation and scribing processes therefore need height sensing or tracking optics.</p>
+        <p>This is the total range, half on each side of the waist. Because \(z_R \propto w_0^2\), halving the spot size cuts the depth of focus by four. Tight-focus ablation and scribing processes therefore need height sensing or tracking optics.</p>
 
         <h2>Worked example</h2>
         <p>A fiber laser at 1064 nm with M² = 1.1 and an 8 mm beam, focused by a 100 mm lens with a 12 mm clear aperture: T = 0.667, so APO = 1.412 and</p>
         <div class="formula">\[ d_F = 1.412 \times \frac{1.064\,\mu\text{m}\times 100\,\text{mm}\times 1.1}{8\,\text{mm}} \approx 20.7\,\mu\text{m}. \]</div>
-        <p>That gives \(z_R \approx 0.29\) mm, and the ±5 % depth of focus is only about 0.18 mm in total. Without the aperture the spot would be 18.6 µm. The 12 mm aperture costs about 11 % in spot size and 1.1 % in power.</p>
+        <p>That gives \(z_R \approx 0.29\) mm, and with a 5 % growth tolerance the depth of focus is only about 0.18 mm in total (±0.09 mm about the waist). Without the aperture the spot would be 18.6 µm. The 12 mm aperture costs about 11 % in spot size and 1.1 % in power.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // geometric convergence half-angle of the 1/e² beam (or of the aperture, if it clips harder)
             const theta = Math.min(v.db, truncated ? v.dt : Infinity) / (2 * v.f);
 
-            dofLabel.innerHTML = 'Depth of focus (±' + fmt.num(v.tol, 3) + ' % spot growth)';
+            dofLabel.textContent = 'Depth of focus, total (' + fmt.num(v.tol, 3) + ' % spot growth)';
             if (!truncated) { regime.textContent = 'Untruncated'; regime.className = 'badge'; }
             else if (T <= 0.5) { regime.textContent = 'Negligible clipping'; regime.className = 'badge badge-ok'; }
             else if (T <= 0.85) { regime.textContent = 'Moderate truncation'; regime.className = 'badge badge-ok'; }
@@ -296,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 trans: truncated ? fmt.pct(1 - Math.exp(-2 / (T * T)), 4) : '100 %',
                 dF0: truncated ? fmt.si(dF0, 'm', 4) : null,
                 zR: fmt.si(zR, 'm', 4),
-                dof: fmt.si(dof, 'm', 3),
+                dof: fmt.si(dof, 'm', 3) + '  (±' + fmt.si(dof / 2, 'm', 3) + ')',
                 theta: fmt.si(theta, 'rad', 4) + (theta > 0.15 ? '  (non-paraxial)' : ''),
                 fno: 'f/' + fmt.num(v.f / v.db, 3)
             };

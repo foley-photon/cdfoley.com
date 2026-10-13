@@ -8,7 +8,7 @@
 <link rel="canonical" href="https://cdfoley.com/tools/doppler-broadening/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
-<meta property="og:title" content="Spectral Line Broadening Calculator">
+<meta property="og:title" content="Doppler Broadening &amp; Linewidth Calculator">
 <meta property="og:description" content="Doppler (Gaussian) and natural (Lorentzian) linewidths from temperature, mass, and lifetime, combined into the Voigt FWHM, in pm, GHz, and cm-1.">
 <meta property="og:url" content="https://cdfoley.com/tools/doppler-broadening/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-doppler-broadening.jpg">
@@ -22,8 +22,8 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -45,7 +45,7 @@
     "price": "0",
     "priceCurrency": "USD"
    },
-   "keywords": "doppler natural linewidth voigt temperature lifetime plasma spectroscopy broadening fwhm lorentzian gaussian profile",
+   "keywords": "doppler natural linewidth line width voigt temperature lifetime plasma spectroscopy broadening fwhm lorentzian gaussian profile",
    "author": {
     "@type": "Person",
     "@id": "https://cdfoley.com/#person",
@@ -97,7 +97,7 @@
 
     <header class="page-head">
         <h1>Doppler Broadening &amp; Linewidth Calculator</h1>
-        <p class="lede">Compute the Doppler (Gaussian) width of an emission or absorption line from gas temperature and particle mass, the natural (Lorentzian) width from the upper-state lifetime, and the combined Voigt width. Results are shown in wavelength, frequency, and wavenumber.</p>
+        <p class="lede">Compute the Doppler (Gaussian) width of an emission or absorption line from gas temperature and particle mass, the natural (Lorentzian) width from the upper-state lifetime, and the combined Voigt width with optional pressure, Stark, and instrument broadening. Results are shown in wavelength, frequency, and wavenumber.</p>
     </header>
 
     <div class="tool-layout">
@@ -120,13 +120,17 @@
                         <label for="species">Emitting species</label>
                         <select id="species" name="species" class="input">
                             <option value="1.008" selected>H (1.008 u)</option>
+                            <option value="2.014">D (2.014 u)</option>
                             <option value="4.0026">He (4.0026 u)</option>
                             <option value="20.180">Ne (20.180 u)</option>
                             <option value="22.990">Na (22.990 u)</option>
                             <option value="28.014">N₂ (28.014 u)</option>
+                            <option value="39.098">K (39.098 u)</option>
                             <option value="39.948">Ar (39.948 u)</option>
                             <option value="83.798">Kr (83.798 u)</option>
+                            <option value="85.468">Rb (85.468 u)</option>
                             <option value="131.29">Xe (131.29 u)</option>
+                            <option value="132.91">Cs (132.91 u)</option>
                             <option value="200.59">Hg (200.59 u)</option>
                             <option value="custom">Custom…</option>
                         </select>
@@ -139,26 +143,32 @@
                 <div class="field">
                     <label for="tau">Upper-state radiative lifetime <span class="sym">τ</span></label>
                     <div class="input-unit"><input id="tau" name="tau" value="10" inputmode="decimal" data-optional data-positive placeholder="optional"><select data-dim="time" data-units="ps,ns,µs,ms" data-default="ns"></select></div>
-                    <p class="hint">Strong allowed transitions are typically 1–100 ns. Leave blank to ignore natural broadening.</p>
+                    <p class="hint">Strong allowed transitions are typically 1–100 ns. If the lower level also decays, enter the effective lifetime 1/(1/τ<sub>u</sub> + 1/τ<sub>l</sub>). Leave blank to ignore natural broadening.</p>
                 </div>
                 <div class="field">
-                    <label for="extra">Additional Lorentzian FWHM (pressure, Stark, instrument) <span class="sym">Δλ<sub>L,extra</sub></span></label>
-                    <div class="input-unit"><input id="extra" name="extra" value="" inputmode="decimal" data-optional data-nonneg placeholder="optional"><select data-dim="length" data-units="pm,nm" data-default="pm"></select></div>
+                    <label for="extra">Additional Lorentzian FWHM (pressure, Stark) <span class="sym">Δλ<sub>L,extra</sub></span></label>
+                    <div class="input-unit"><input id="extra" name="extra" value="" inputmode="decimal" data-optional data-nonneg data-label="additional Lorentzian FWHM" placeholder="optional"><select data-dim="length" data-units="pm,nm" data-default="pm"></select></div>
+                </div>
+                <div class="field">
+                    <label for="instr">Instrument FWHM (Gaussian) <span class="sym">Δλ<sub>inst</sub></span></label>
+                    <div class="input-unit"><input id="instr" name="instr" value="" inputmode="decimal" data-optional data-nonneg data-label="instrument FWHM" placeholder="optional"><select data-dim="length" data-units="pm,nm" data-default="pm"></select></div>
+                    <p class="hint">Spectrometer slit functions are usually closer to Gaussian than Lorentzian. This width is added in quadrature with the Doppler width.</p>
                 </div>
             </div>
         </form>
 
         <section class="panel sticky-panel" aria-labelledby="results-h">
-            <div class="panel-head"><h2 id="results-h">Results</h2><span id="regime" class="badge"></span></div>
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="regime" class="badge" hidden></span></div>
             <div class="panel-body">
                 <div class="results">
                     <div class="result primary"><span class="result-label">Doppler FWHM (wavelength)<span class="sym">Δλ<sub>D</sub></span></span><output class="result-value" data-out="dlD">—</output></div>
                     <div class="result"><span class="result-label">Doppler FWHM (frequency)<span class="sym">Δν<sub>D</sub></span></span><output class="result-value" data-out="dnuD">—</output></div>
-                    <div class="result"><span class="result-label">Doppler FWHM (wavenumber)<span class="sym">Δν̃<sub>D</sub></span></span><output class="result-value" data-out="dwnD">—</output></div>
+                    <div class="result"><span class="result-label">Doppler FWHM (wavenumber)<span class="sym">\(\Delta\tilde\nu_D\)</span></span><output class="result-value" data-out="dwnD">—</output></div>
                     <div class="result"><span class="result-label">Fractional width<span class="sym">Δλ<sub>D</sub>/λ₀</span></span><output class="result-value" data-out="frac">—</output></div>
                     <div class="result"><span class="result-label">Line-of-sight rms speed<span class="sym">√(k<sub>B</sub>T/m)</span></span><output class="result-value" data-out="sigv">—</output></div>
                     <div class="result"><span class="result-label">Natural FWHM<span class="sym">1/(2πτ)</span></span><output class="result-value" data-out="nat">—</output></div>
                     <div class="result"><span class="result-label">Total Lorentzian FWHM<span class="sym">f<sub>L</sub></span></span><output class="result-value" data-out="fL">—</output></div>
+                    <div class="result" hidden><span class="result-label">Total Gaussian FWHM<span class="sym">f<sub>G</sub></span></span><output class="result-value" data-out="fG">—</output></div>
                     <div class="result"><span class="result-label">Voigt FWHM (Olivero–Longbothum)<span class="sym">f<sub>V</sub></span></span><output class="result-value" data-out="fV">—</output></div>
                     <div class="result"><span class="result-label">Voigt FWHM (numerical convolution)</span><output class="result-value" data-out="fVnum">—</output></div>
                     <div class="result"><span class="result-label">Lorentzian / Gaussian width ratio</span><output class="result-value" data-out="ratio">—</output></div>
@@ -175,21 +185,22 @@
     <article class="prose" style="margin-top:3rem">
         <h2>How it is calculated</h2>
         <p><strong>Doppler broadening.</strong> Thermal motion along the line of sight shifts each emitter's frequency by \(\nu_0 v_z/c\). A Maxwell–Boltzmann velocity distribution turns this into a Gaussian line shape with full width at half maximum</p>
-        <div class="formula">\[ \Delta\nu_D = \nu_0\sqrt{\frac{8 k_B T \ln 2}{m c^2}}, \qquad \frac{\Delta\lambda_D}{\lambda_0} = \frac{\Delta\nu_D}{\nu_0} \approx 7.162\times10^{-7}\sqrt{\frac{T\,[\text{K}]}{M\,[\text{u}]}} . \]</div>
-        <p><strong>Natural broadening.</strong> A state that decays with lifetime \(\tau\) has an energy uncertainty that gives a Lorentzian line with \(\Delta\nu_N = 1/(2\pi\tau)\). If the lower level also decays, the rates add: \(\Delta\nu_N = (1/\tau_u + 1/\tau_l)/2\pi\). Pressure (collisional) and Stark broadening are also mainly Lorentzian. Enter those as the additional FWHM, and the Lorentzian widths add linearly.</p>
-        <p><strong>Voigt profile.</strong> When both mechanisms act, the line is the convolution of the Gaussian and the Lorentzian. Its FWHM is well approximated by Olivero and Longbothum's fit, which is accurate to about 0.02 %:</p>
+        <div class="formula">\[ \begin{gathered} \Delta\nu_D = \nu_0\sqrt{\frac{8 k_B T \ln 2}{m c^2}} \\[4pt] \frac{\Delta\lambda_D}{\lambda_0} = \frac{\Delta\nu_D}{\nu_0} \approx 7.162\times10^{-7}\sqrt{\frac{T\,[\text{K}]}{M\,[\text{u}]}} \end{gathered} \]</div>
+        <p><strong>Natural broadening.</strong> A state that decays with lifetime \(\tau\) has an energy uncertainty that gives a Lorentzian line with \(\Delta\nu_N = 1/(2\pi\tau)\). If the lower level also decays, the rates add: \(\Delta\nu_N = (1/\tau_u + 1/\tau_l)/(2\pi)\). Pressure (collisional) and Stark broadening are also mainly Lorentzian. Enter those as the additional FWHM, and the Lorentzian widths add linearly.</p>
+        <p><strong>Voigt profile.</strong> When both mechanisms act, the line is the convolution of the Gaussian and the Lorentzian. Gaussian widths add in quadrature, so an instrument width enters as \(f_G = \sqrt{\Delta\lambda_D^2 + \Delta\lambda_\text{inst}^2}\), and \(f_L\) is the sum of the Lorentzian widths. The Voigt FWHM is well approximated by Olivero and Longbothum's fit, which is accurate to about 0.02 %:</p>
         <div class="formula">\[ f_V \approx 0.5346\, f_L + \sqrt{0.2166\, f_L^2 + f_G^2} . \]</div>
-        <p>The calculator also computes the Voigt profile numerically and reports the FWHM it measures from that profile, as a cross-check. Widths convert between units with \(\Delta\lambda = \lambda_0^2\Delta\nu/c\) and \(\Delta\tilde\nu = \Delta\nu/c\).</p>
+        <p>The calculator also computes the Voigt profile numerically and reports the FWHM it measures from that profile, as a cross-check. Widths convert between units with \(\Delta\lambda = \lambda_0^2\Delta\nu/c\) and \(\Delta\tilde\nu = \Delta\nu/c\). These conversions take \(\lambda_0\) as the vacuum wavelength. With a tabulated air wavelength (Hα: 656.28 nm in air, 656.46 nm in vacuum), the frequency and wavenumber widths come out about 0.03 % high.</p>
 
         <h2>Worked example</h2>
-        <p>Hydrogen Balmer-α (656.28 nm) emitted from a 10 000 K gas: \(\Delta\lambda_D = 656.28\ \text{nm}\times 7.162\times10^{-7}\sqrt{10\,000/1.008} = 46.8\) pm, equal to 32.6 GHz or 1.087 cm⁻¹. A 10 ns lifetime adds only 15.9 MHz (0.023 pm) of natural width, so the line is almost purely Gaussian. Adding 10 pm of Stark broadening widens the Voigt FWHM to about 52.4 pm.</p>
+        <p>Hydrogen Balmer-α (656.28 nm) emitted from a 10 000 K gas: \(\Delta\lambda_D = 656.28\ \text{nm}\times 7.162\times10^{-7}\sqrt{10\,000/1.008} = 46.8\) pm, equal to 32.6 GHz or 1.087 cm⁻¹. A 10 ns lifetime adds only 15.9 MHz (0.023 pm) of natural width, so the line is almost purely Gaussian. (For Hα itself, the 1.6 ns lifetime of the 2p lower level dominates, so the natural width of its strongest components is about 110 MHz, still negligible.) Adding 10 pm of Stark broadening widens the Voigt FWHM to about 52.4 pm.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
             <li><strong>Thermal equilibrium.</strong> The emitters have a Maxwellian velocity distribution at a single temperature, with no bulk flow and no sight-line averaging over temperature gradients.</li>
             <li><strong>Inhomogeneous vs. homogeneous.</strong> Doppler broadening is inhomogeneous; natural, pressure, and Stark broadening are treated as homogeneous Lorentzians. Real Stark profiles can be asymmetric and shifted.</li>
-            <li><strong>No hyperfine or isotope structure.</strong> Unresolved components can make a line appear wider than its Doppler width.</li>
-            <li><strong>Instrument function.</strong> A spectrometer's slit function is often closer to Gaussian or triangular. For a quick estimate, add a Gaussian instrument width in quadrature with \(\Delta\lambda_D\).</li>
+            <li><strong>No fine, hyperfine, or isotope structure.</strong> Unresolved components can make a line appear wider than its Doppler width. In Hα, for example, the two main fine-structure components are about 0.33 cm⁻¹ (14 pm) apart, which widens the observed line by roughly 6 % at 10 000 K and by more than half at 1000 K.</li>
+            <li><strong>Instrument function.</strong> A spectrometer's slit function is often closer to Gaussian or triangular. Enter its FWHM as the instrument width: the calculator treats it as a Gaussian and adds it to \(\Delta\lambda_D\) in quadrature, which is exact for a Gaussian slit function and within about 5 % for a triangular one. If the instrument function is closer to Lorentzian, enter it in the additional Lorentzian FWHM instead.</li>
+            <li><strong>Narrow lines.</strong> The first-order Doppler shift and the linear conversions between wavelength, frequency, and wavenumber assume the width is a small fraction of \(\lambda_0\). Above about 10 % of \(\lambda_0\), the results are only approximate and the badge says so.</li>
         </ul>
 
         <h2>References</h2>
@@ -214,6 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mass = document.getElementById('mass');
     const regime = document.getElementById('regime');
     const note = document.getElementById('prof-note');
+    const plotBox = document.getElementById('prof-plot');
 
     species.addEventListener('change', () => { if (species.value !== 'custom') mass.value = species.value; });
     mass.addEventListener('input', () => {
@@ -221,34 +233,46 @@ document.addEventListener('DOMContentLoaded', () => {
         species.value = match ? match.value : 'custom';
     });
 
-    // Area-normalized Voigt profile at detuning x for Gaussian FWHM fG and Lorentzian FWHM fL (same units)
+    // Voigt profile at detuning x for Gaussian FWHM fG and Lorentzian FWHM fL (same units). It is computed in units
+    // of the larger width, so tiny or huge widths cannot underflow; callers only use ratios of the result.
     function voigt(x, fG, fL) {
-        const s = fG / (2 * Math.sqrt(2 * Math.LN2));
+        const w = Math.max(fG, fL);
+        const s = fG / w / (2 * Math.sqrt(2 * Math.LN2)), g = fL / w / 2;       // Gaussian σ and Lorentzian HWHM γ
         const G = t => Math.exp(-t * t / (2 * s * s)) / (s * Math.sqrt(2 * Math.PI));
-        const g = fL / 2;
-        if (!(fL > 0)) return G(x);
+        x /= w;
+        if (!(g > 0)) return G(x);
         let sum = 0;
-        if (fL >= fG) {                         // integrate over the Gaussian variable; Lorentzian analytic
-            const N = 400, a = -4 * fG, h = 8 * fG / N;
-            for (let i = 0; i < N; i++) { const t = a + (i + 0.5) * h; sum += G(t) * (g / Math.PI) / ((x - t) ** 2 + g * g); }
-            return sum * h;
+        if (fL >= fG) {                         // integrate over the Gaussian (t = σz, |z| ≤ 9.4); Lorentzian analytic
+            const N = 400, Z = 8 * Math.sqrt(2 * Math.LN2), h = 2 * Z / N;
+            for (let i = 0; i < N; i++) { const z = -Z + (i + 0.5) * h; sum += Math.exp(-z * z / 2) * (g / Math.PI) / ((x - s * z) ** 2 + g * g); }
+            return sum * h / Math.sqrt(2 * Math.PI);
         }
-        const N = 1200, h = Math.PI / N;        // substitute x' = γ·tanθ so the Lorentzian measure is uniform
-        for (let i = 0; i < N; i++) sum += G(x - g * Math.tan(-Math.PI / 2 + (i + 0.5) * h));
-        return sum * h / Math.PI;
+        // narrow Lorentzian: the Gaussian's value and curvature at x integrate analytically against the Lorentzian,
+        // and the smooth remainder is summed on a grid symmetric about u = 0, so the odd terms cancel
+        const U = Math.abs(x) + 12 * s, N = 2 * Math.ceil(20 * U / s), h = 2 * U / N;
+        const Gx = G(x), q = Gx * (x * x - s * s) / (2 * s ** 4);
+        for (let i = 0; i < N; i++) { const u = -U + (i + 0.5) * h; sum += (G(x - u) - Gx - q * u * u) * (g / Math.PI) / (u * u + g * g); }
+        return Gx * (2 / Math.PI) * Math.atan(U / g) + sum * h + q * (2 * g / Math.PI) * (U - g * Math.atan(U / g));
     }
     function voigtFwhm(fG, fL) {
         const p = voigt(0, fG, fL);
-        let lo = 0, hi = 2 * (fG + fL);
+        let lo = 0, hi = 2 * Math.max(fG, fL);  // the half width never exceeds (fG + fL)/2
         for (let k = 0; k < 50; k++) { const m = (lo + hi) / 2; if (voigt(m, fG, fL) > p / 2) lo = m; else hi = m; }
         return 2 * lo;
     }
 
-    const width = (dl, wl) => fmt.si(dl, 'm', 4) + '  (' + fmt.si(K.c * dl / (wl * wl), 'Hz', 4) + ')';
+    // widths in pm or larger (like the inputs and the plot), with frequency and wavenumber;
+    // no-break spaces keep each number with its unit when a narrow screen wraps the line
+    const wlw = x => fmt.si(x, 'm', 4, { min: -12 });
+    const nb = s => s.replace(/ /g, String.fromCharCode(160));
+    const width = (dl, wl) => { const dnu = K.c * dl / (wl * wl); return nb(wlw(dl)) + ' (' + nb(fmt.si(dnu, 'Hz', 4)) + ', ' + nb(fmt.num(dnu / (K.c * 100), 4) + ' cm⁻¹') + ')'; };
+    let widths;                                 // set by compute(), drawn by after()
 
     Calc.create({
         form: '#calc',
         compute(v) {
+            const rawMass = v.$raw.mass.replace(/\s+/g, '');
+            if (/^\+?[1-9]\d{0,2},\d{3}$/.test(rawMass)) throw Calc.fail('“' + rawMass + '” is ambiguous (particle mass). Type ' + rawMass.replace(',', '.') + ' or ' + rawMass.replace(',', '') + '.', 'mass');
             const m = v.mass * K.u;
             const rel = Math.sqrt(8 * K.kB * v.T * Math.LN2 / (m * K.c * K.c));
             const nu0 = K.c / v.wl;
@@ -256,44 +280,49 @@ document.addEventListener('DOMContentLoaded', () => {
             const nat = isFinite(v.tau) ? 1 / (2 * Math.PI * v.tau) : 0;               // Hz
             const natL = nat * v.wl * v.wl / K.c;                                       // m
             const extraL = isFinite(v.extra) ? v.extra : 0;
-            const fL = natL + extraL, fG = dlD;
+            const inst = isFinite(v.instr) ? v.instr : 0;
+            const fL = natL + extraL, fG = Math.hypot(dlD, inst);                       // Lorentzian widths add linearly, Gaussian in quadrature
             const fV = 0.5346 * fL + Math.sqrt(0.2166 * fL * fL + fG * fG);
+            if (!(dlD > 0 && dnuD > 0 && isFinite(dlD) && isFinite(dnuD) && isFinite(fV))) throw Calc.fail('An input is too large or too small to compute. Check the values and units.');
             const fVnum = voigtFwhm(fG, fL);
             const r = fL / fG;
+            widths = { fG, fL, fV, inst };
 
-            if (r < 0.1) { regime.textContent = 'Doppler-dominated'; regime.className = 'badge badge-ok'; }
+            if (fV > 0.1 * v.wl) { regime.textContent = 'Approximate: very broad line'; regime.className = 'badge badge-bad'; }
+            else if (r < 0.1) { regime.textContent = inst > 0 ? 'Gaussian-dominated' : 'Doppler-dominated'; regime.className = 'badge badge-ok'; }
             else if (r < 10) { regime.textContent = 'Mixed (Voigt)'; regime.className = 'badge badge-warn'; }
             else { regime.textContent = 'Lorentzian-dominated'; regime.className = 'badge'; }
+            regime.hidden = false;
 
             return {
-                dlD: fmt.si(dlD, 'm', 4),
+                dlD: wlw(dlD),
                 dnuD: fmt.si(dnuD, 'Hz', 4),
                 dwnD: fmt.num(dnuD / (K.c * 100), 4) + ' cm⁻¹',
                 frac: fmt.sci(rel, 4),
                 sigv: fmt.num(Math.sqrt(K.kB * v.T / m), 4) + ' m/s',
-                nat: isFinite(v.tau) ? fmt.si(nat, 'Hz', 4) + '  (' + fmt.si(natL, 'm', 3) + ')' : null,
-                fL: fL > 0 ? width(fL, v.wl) : '0',
+                nat: isFinite(v.tau) ? nb(fmt.si(nat, 'Hz', 4)) + ' (' + nb(wlw(natL)) + ')' : null,
+                fL: fL > 0 ? width(fL, v.wl) : '0 pm',
+                fG: inst > 0 ? width(fG, v.wl) : null,
                 fV: width(fV, v.wl),
-                fVnum: fmt.si(fVnum, 'm', 4),
+                fVnum: width(fVnum, v.wl),
                 ratio: fmt.num(r, 3)
             };
         },
-        after(v) {
-            const m = v.mass * K.u;
-            const fG = v.wl * Math.sqrt(8 * K.kB * v.T * Math.LN2 / (m * K.c * K.c));
-            const fL = (isFinite(v.tau) ? (1 / (2 * Math.PI * v.tau)) * v.wl * v.wl / K.c : 0) + (isFinite(v.extra) ? v.extra : 0);
-            const fV = 0.5346 * fL + Math.sqrt(0.2166 * fL * fL + fG * fG);
+        after() {
+            const { fG, fL, fV, inst } = widths;
             const unit = fV < 1e-9 ? { f: 1e-12, s: 'pm' } : { f: 1e-9, s: 'nm' };
             const span = 3 * fV;
             const xs = Calc.math.linspace(-span, span, 401);
-            const g = xs.map(x => Math.exp(-4 * Math.LN2 * x * x / (fG * fG)));
+            const g = xs.map(x => Math.exp(-4 * Math.LN2 * (x / fG) ** 2));
             const v0 = voigt(0, fG, fL);
             const vv = xs.map(x => voigt(x, fG, fL) / v0);
-            const series = [{ type: 'line', x: xs.map(x => x / unit.f), y: g, label: 'Doppler (Gaussian)', color: 'var(--c1)', dash: true }];
-            if (fL >= 0.05 * fG) series.push({ type: 'line', x: xs.map(x => x / unit.f), y: xs.map(x => 1 / (1 + 4 * x * x / (fL * fL))), label: 'Lorentzian', color: 'var(--c2)', dash: true });
+            const series = [{ type: 'line', x: xs.map(x => x / unit.f), y: g, label: inst > 0 ? 'Gaussian (Doppler + instrument)' : 'Doppler (Gaussian)', color: 'var(--c1)', dash: true }];
+            if (fL >= 0.05 * fG) series.push({ type: 'line', x: xs.map(x => x / unit.f), y: xs.map(x => 1 / (1 + 4 * (x / fL) ** 2)), label: 'Lorentzian', color: 'var(--c2)', dash: true });
             series.push({ type: 'line', x: xs.map(x => x / unit.f), y: vv, label: 'Voigt', color: 'var(--c3)', width: 2.5 });
-            note.textContent = fL > 0 && fL < 0.05 * fG
-                ? 'The Lorentzian width (' + fmt.si(fL, 'm', 3) + ') is under 5 % of the Doppler width, so it is not drawn and the Voigt profile is nearly Gaussian.'
+            note.textContent = !(fL > 0)
+                ? 'No Lorentzian width is entered, so the Voigt profile is the Gaussian itself.'
+                : fL < 0.05 * fG
+                ? 'The Lorentzian width (' + wlw(fL) + ') is under 5 % of the Gaussian width, so it is not drawn and the Voigt profile is nearly Gaussian.'
                 : 'Voigt profile computed by numerical convolution of the Gaussian and Lorentzian components.';
             Plot.draw('#prof-plot', {
                 height: 280,
@@ -302,6 +331,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 series,
                 hover: { format: (x, hits) => 'Δλ = ' + fmt.num(x, 4) + ' ' + unit.s + hits.map(h => ' · ' + h.series.label + ' ' + fmt.num(h.y, 3)).join('') }
             });
+        },
+        onError() {                             // clear the badge, note, and plot left from the last valid result
+            regime.textContent = ''; regime.hidden = true;
+            note.textContent = '';
+            clearTimeout(plotBox._plotT); plotBox._plot = null;   // stop plot.js redrawing the old chart on resize
+            plotBox.innerHTML = '';
         }
     });
 });

@@ -22,8 +22,17 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+    /* Spectral bar on narrow screens: hide band labels that no longer fit (the region name is printed above the bar) */
+    .spec-bar { container-type: inline-size; }
+    @container (max-width: 620px) { .spec-seg:nth-child(2) { font-size: 0; } }                     /* VUV */
+    @container (max-width: 480px) { .spec-seg:nth-child(6) { font-size: 0; } }                     /* SWIR */
+    @container (max-width: 425px) { .spec-seg:nth-child(4) { font-size: 0; } }                     /* VIS */
+    @container (max-width: 350px) { .spec-seg:nth-child(5) { font-size: 0; } }                     /* NIR */
+    @container (max-width: 300px) { .spec-seg:nth-child(3) { font-size: 0; } .spec-scale span:nth-child(2), .spec-scale span:nth-child(5) { display: none; } }
+</style>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script type="application/ld+json" id="ld-page">
@@ -44,7 +53,7 @@
     "price": "0",
     "priceCurrency": "USD"
    },
-   "keywords": "hartree wavenumber electronvolt rydberg frequency photon energy units spectroscopy nm to ev cm-1 wavelength kj/mol kcal/mol",
+   "keywords": "hartree wavenumber wave number electronvolt electron volt rydberg frequency photon energy units spectroscopy nm to ev cm-1 wavelength kj/mol kcal/mol joule kelvin",
    "author": {
     "@type": "Person",
     "@id": "https://cdfoley.com/#person",
@@ -96,7 +105,7 @@
 
     <header class="page-head">
         <h1>Energy &amp; Wavelength Converter</h1>
-        <p class="lede">Type in any field and all the others update. It converts photon wavelength, wavenumber, and frequency to energy per particle, molar energy, and temperature equivalent, using the CODATA 2018 constants. Use it for nm to eV, eV to nm, nm to wavenumber (cm-1), and kJ/mol to eV conversions.</p>
+        <p class="lede">Type in any field and all the others update. It converts photon wavelength, wavenumber, and frequency to energy per particle, molar energy, and temperature equivalent, using the CODATA 2022 constants. Use it for nm to eV, eV to nm, nm to wavenumber (cm⁻¹), and kJ/mol to eV conversions.</p>
     </header>
 
     <section class="panel" id="conv" aria-labelledby="conv-h">
@@ -108,11 +117,11 @@
 
             <h3 class="field-label" style="margin:0 0 .7rem;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em">Photon</h3>
             <div class="conv-grid">
-                <div class="field"><label for="c-nm">Wavelength (vacuum) <span class="sym">λ</span></label><div class="input-unit"><input id="c-nm" name="nm" inputmode="decimal"><span class="unit">nm</span></div></div>
-                <div class="field"><label for="c-um">Wavelength (vacuum) <span class="sym">λ</span></label><div class="input-unit"><input id="c-um" name="um" inputmode="decimal"><span class="unit">µm</span></div></div>
-                <div class="field"><label for="c-wn">Wavenumber <span class="sym">ν̃</span></label><div class="input-unit"><input id="c-wn" name="wn" inputmode="decimal"><span class="unit">cm⁻¹</span></div></div>
-                <div class="field"><label for="c-thz">Frequency <span class="sym">ν</span></label><div class="input-unit"><input id="c-thz" name="thz" inputmode="decimal"><span class="unit">THz</span></div></div>
-                <div class="field"><label for="c-hz">Frequency <span class="sym">ν</span></label><div class="input-unit"><input id="c-hz" name="hz" inputmode="decimal"><span class="unit">Hz</span></div></div>
+                <div class="field"><label for="c-nm">Wavelength (vacuum) <span class="sym">λ</span><span class="visually-hidden">, in nm</span></label><div class="input-unit"><input id="c-nm" name="nm" inputmode="decimal"><span class="unit">nm</span></div></div>
+                <div class="field"><label for="c-um">Wavelength (vacuum) <span class="sym">λ</span><span class="visually-hidden">, in µm</span></label><div class="input-unit"><input id="c-um" name="um" inputmode="decimal"><span class="unit">µm</span></div></div>
+                <div class="field"><label for="c-wn">Wavenumber <span class="sym">\(\tilde\nu\)</span><span class="visually-hidden">, in cm⁻¹</span></label><div class="input-unit"><input id="c-wn" name="wn" inputmode="decimal"><span class="unit">cm⁻¹</span></div></div>
+                <div class="field"><label for="c-thz">Frequency <span class="sym">ν</span><span class="visually-hidden">, in THz</span></label><div class="input-unit"><input id="c-thz" name="thz" inputmode="decimal"><span class="unit">THz</span></div></div>
+                <div class="field"><label for="c-hz">Frequency <span class="sym">ν</span><span class="visually-hidden">, in Hz</span></label><div class="input-unit"><input id="c-hz" name="hz" inputmode="text" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"><span class="unit">Hz</span></div></div>
             </div>
 
             <h3 class="field-label" style="margin:1.5rem 0 .7rem;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em">Energy per particle</h3>
@@ -120,19 +129,20 @@
                 <div class="field"><label for="c-ev">Electronvolts</label><div class="input-unit"><input id="c-ev" name="ev" inputmode="decimal"><span class="unit">eV</span></div></div>
                 <div class="field"><label for="c-mev">Millielectronvolts</label><div class="input-unit"><input id="c-mev" name="mev" inputmode="decimal"><span class="unit">meV</span></div></div>
                 <div class="field"><label for="c-eh">Hartree <span class="sym">E<sub>h</sub></span></label><div class="input-unit"><input id="c-eh" name="eh" inputmode="decimal"><span class="unit">E<sub>h</sub></span></div></div>
-                <div class="field"><label for="c-j">Joules</label><div class="input-unit"><input id="c-j" name="j" inputmode="decimal"><span class="unit">J</span></div></div>
+                <div class="field"><label for="c-ry">Rydberg <span class="sym">E<sub>h</sub>/2</span></label><div class="input-unit"><input id="c-ry" name="ry" inputmode="decimal"><span class="unit">Ry</span></div></div>
+                <div class="field"><label for="c-j">Joules</label><div class="input-unit"><input id="c-j" name="j" inputmode="text" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"><span class="unit">J</span></div></div>
             </div>
 
             <h3 class="field-label" style="margin:1.5rem 0 .7rem;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em">Molar &amp; thermal</h3>
             <div class="conv-grid">
-                <div class="field"><label for="c-kj">Molar energy</label><div class="input-unit"><input id="c-kj" name="kjmol" inputmode="decimal"><span class="unit">kJ/mol</span></div></div>
-                <div class="field"><label for="c-kcal">Molar energy</label><div class="input-unit"><input id="c-kcal" name="kcalmol" inputmode="decimal"><span class="unit">kcal/mol</span></div></div>
-                <div class="field"><label for="c-k">Temperature equivalent <span class="sym">E/k<sub>B</sub></span></label><div class="input-unit"><input id="c-k" name="k" inputmode="decimal"><span class="unit">K</span></div></div>
+                <div class="field"><label for="c-kj">Molar energy<span class="visually-hidden">, in kJ/mol</span></label><div class="input-unit"><input id="c-kj" name="kjmol" inputmode="decimal"><span class="unit">kJ/mol</span></div></div>
+                <div class="field"><label for="c-kcal">Molar energy<span class="visually-hidden">, in kcal/mol</span></label><div class="input-unit"><input id="c-kcal" name="kcalmol" inputmode="decimal"><span class="unit">kcal/mol</span></div></div>
+                <div class="field"><label for="c-k">Temperature equivalent <span class="sym">E/k<sub>B</sub></span><span class="visually-hidden">, in K</span></label><div class="input-unit"><input id="c-k" name="k" inputmode="decimal"><span class="unit">K</span></div></div>
             </div>
 
             <div style="margin-top:1.8rem">
                 <div class="field-label" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
-                    <span>Spectral region: <strong id="region" style="color:var(--text)">—</strong></span>
+                    <span aria-live="polite" aria-atomic="true">Spectral region: <strong id="region" style="color:var(--text)">—</strong></span>
                     <span id="airwl" style="color:var(--muted);font-weight:400"></span>
                 </div>
                 <div class="spec-bar" aria-hidden="true">
@@ -177,8 +187,8 @@
     <article class="prose" style="margin-top:3rem">
         <h2>How the conversions work</h2>
         <p>Each field is a different way of writing the same energy \(E\). For a photon,</p>
-        <div class="formula">\[ E = h\nu = \frac{hc}{\lambda} = hc\,\tilde{\nu}, \qquad \tilde{\nu}\,[\text{cm}^{-1}] = \frac{10^{7}}{\lambda\,[\text{nm}]} . \]</div>
-        <p>Molar energy multiplies by Avogadro's number, \(E_m = N_A E\). The temperature equivalent divides by Boltzmann's constant, \(T = E/k_B\): it is the temperature at which \(k_BT\) equals the energy. Wavelength and energy are inversely proportional, so the converter works through energy internally and is exact in both directions.</p>
+        <div class="formula">\[ \begin{gathered} E = h\nu = \frac{hc}{\lambda} = hc\,\tilde{\nu}, \\[4pt] \tilde{\nu}\,[\text{cm}^{-1}] = \frac{10^{7}}{\lambda\,[\text{nm}]} . \end{gathered} \]</div>
+        <p>Molar energy multiplies by Avogadro's number, \(E_m = N_A E\). The temperature equivalent divides by Boltzmann's constant, \(T = E/k_B\): it is the temperature at which \(k_BT\) equals the energy. Whichever field you type in is converted to an energy in joules, and every other field is computed from that energy. The SI defining constants \(h\), \(c\), \(e\), \(k_B\), and \(N_A\) are exact, as is the thermochemical calorie, so apart from the measured relative uncertainty of the Hartree energy (of order 10⁻¹²) the only error is floating-point rounding; results are shown to 7 significant figures.</p>
 
         <h2>Quick reference</h2>
         <table>
@@ -188,17 +198,17 @@
                 <tr><th>1 E<sub>h</sub></th><td class="num">27.21139</td><td class="num">219474.63</td><td class="num">2625.500</td><td class="num">627.5095</td><td class="num">315775.0</td></tr>
                 <tr><th>1 cm⁻¹</th><td class="num">1.239842 × 10⁻⁴</td><td class="num">1</td><td class="num">0.0119627</td><td class="num">0.00285914</td><td class="num">1.438777</td></tr>
                 <tr><th>1 kJ/mol</th><td class="num">0.0103643</td><td class="num">83.5935</td><td class="num">1</td><td class="num">0.239006</td><td class="num">120.272</td></tr>
-                <tr><th>1 kcal/mol</th><td class="num">0.0433641</td><td class="num">349.755</td><td class="num">4.184</td><td class="num">1</td><td class="num">503.217</td></tr>
+                <tr><th>1 kcal/mol</th><td class="num">0.0433641</td><td class="num">349.755</td><td class="num">4.184</td><td class="num">1</td><td class="num">503.2195</td></tr>
             </tbody>
         </table>
         <p>Useful anchors: \(hc = 1239.842\) eV·nm, so a 1240 nm photon carries about 1 eV. One wavenumber corresponds to 29.979 GHz. Thermal energy at room temperature (298.15 K) is \(k_BT \approx 207.2\) cm⁻¹ = 25.69 meV = 2.479 kJ/mol.</p>
 
         <h2>Why spectroscopists use wavenumbers</h2>
-        <p>The wavenumber \(\tilde\nu\) is proportional to energy, unlike wavelength, so spacings between levels add and subtract linearly. A vibrational fundamental at 3000 cm⁻¹ and its overtone near 6000 cm⁻¹ sit at proportional positions, while in wavelength they appear at 3.33 µm and 1.67 µm. Wavenumbers are also measured directly by interferometric (FTIR) and grating instruments, and they are easy to read for chemists: 1 kcal/mol ≈ 350 cm⁻¹.</p>
+        <p>The wavenumber \(\tilde\nu\) is proportional to energy, unlike wavelength, so spacings between levels add and subtract linearly. A vibrational fundamental at 3000 cm⁻¹ and its overtone near 6000 cm⁻¹ sit at proportional positions, while in wavelength they appear at 3.33 µm and 1.67 µm. Fourier-transform (FTIR) spectrometers measure in wavenumber directly, because the interferogram transforms into a spectrum evenly spaced in cm⁻¹; a grating, by contrast, disperses light by wavelength. Wavenumbers are also easy to read for chemists: 1 kcal/mol ≈ 350 cm⁻¹.</p>
 
         <h2>Vacuum versus air wavelengths</h2>
-        <p>The converter works with <em>vacuum</em> wavelengths. Visible and near-IR lines are often tabulated in standard air, where \(\lambda_\text{air} = \lambda_\text{vac}/n\) and \(n - 1 \approx 2.7\text{–}2.9 \times 10^{-4}\). The difference is about 0.18 nm at 633 nm, which matters for line identification and spectrometer calibration but not for most laser-process work. For 300–1690 nm the panel above shows the standard-air wavelength from Ciddor's dispersion equation (15 °C, 101.325 kPa, dry, 450 ppm CO₂).</p>
-        <div class="formula">\[ (n-1)\times10^{8} = \frac{5\,792\,105}{238.0185 - \sigma^2} + \frac{167\,917}{57.362 - \sigma^2}, \qquad \sigma = 1/\lambda_\text{vac}\ [\mu\text{m}^{-1}] \]</div>
+        <p>The converter works with <em>vacuum</em> wavelengths. Visible and near-IR lines are often tabulated in standard air, where \(\lambda_\text{air} = \lambda_\text{vac}/n\) and \(n - 1 \approx 2.7\text{–}2.9 \times 10^{-4}\). The difference is about 0.175 nm at 633 nm (632.991 nm in vacuum is 632.816 nm in standard air), which matters for line identification and spectrometer calibration but not for most laser-process work. For 300–1690 nm the panel above shows the standard-air wavelength from Ciddor's dispersion equation (15 °C, 101.325 kPa, dry, 450 ppm CO₂).</p>
+        <div class="formula">\[ \begin{aligned} (n-1)\times10^{8} &= \frac{5\,792\,105}{238.0185 - \sigma^2} \\ &\quad + \frac{167\,917}{57.362 - \sigma^2}, \\[4pt] \sigma &= 1/\lambda_\text{vac}\ [\mu\text{m}^{-1}] \end{aligned} \]</div>
 
         <h2>Constants used</h2>
         <table>
@@ -209,16 +219,16 @@
                 <tr><td>Elementary charge</td><td>e</td><td class="num">1.602 176 634 × 10⁻¹⁹ C (exact)</td></tr>
                 <tr><td>Boltzmann constant</td><td>k<sub>B</sub></td><td class="num">1.380 649 × 10⁻²³ J/K (exact)</td></tr>
                 <tr><td>Avogadro constant</td><td>N<sub>A</sub></td><td class="num">6.022 140 76 × 10²³ mol⁻¹ (exact)</td></tr>
-                <tr><td>Hartree energy</td><td>E<sub>h</sub></td><td class="num">4.359 744 722 2071 × 10⁻¹⁸ J</td></tr>
+                <tr><td>Hartree energy</td><td>E<sub>h</sub></td><td class="num">4.359 744 722 2060 × 10⁻¹⁸ J</td></tr>
                 <tr><td>Thermochemical calorie</td><td>cal</td><td class="num">4.184 J (exact)</td></tr>
             </tbody>
         </table>
 
         <h2>References</h2>
         <ol class="refs">
-            <li>E. Tiesinga, P. J. Mohr, D. B. Newell, B. N. Taylor, “CODATA recommended values of the fundamental physical constants: 2018,” <em>Rev. Mod. Phys.</em> <strong>93</strong>, 025010 (2021).</li>
+            <li>P. J. Mohr, D. B. Newell, B. N. Taylor, E. Tiesinga, “CODATA recommended values of the fundamental physical constants: 2022,” <em>Rev. Mod. Phys.</em> <strong>97</strong>, 025002 (2025).</li>
             <li>P. E. Ciddor, “Refractive index of air: new equations for the visible and near infrared,” <em>Appl. Opt.</em> <strong>35</strong>, 1566–1573 (1996).</li>
-            <li>ISO 21348:2007, Space environment — Process for determining solar irradiances (UV, VUV, and EUV category definitions). The infrared band labels on this page follow common photonics usage (NIR to 1.4 µm, SWIR to 3 µm, MWIR 3–8 µm, LWIR 8–15 µm) rather than ISO's IR-A/B/C.</li>
+            <li>ISO 21348:2007, Space environment (natural and artificial) — Process for determining solar irradiances. The EUV (10–121 nm), UV-B (280–315 nm), and UV-A (315–400 nm) bands on this page follow its definitions; because ISO's VUV (10–200 nm) and UV-C (100–280 nm) overlap EUV, this page labels 121–200 nm as VUV and 200–280 nm as UV-C. The visible (400–700 nm) and infrared band labels follow common photonics usage (NIR to 1.4 µm, SWIR to 3 µm, MWIR 3–8 µm, LWIR 8–15 µm) rather than ISO's 380–760 nm visible range and IR-A/B/C.</li>
         </ol>
     </article>
 
@@ -244,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ev:      { to: x => x * K.e,              from: E => E / K.e },
         mev:     { to: x => x * K.e / 1000,       from: E => E / K.e * 1000 },
         eh:      { to: x => x * K.Eh,             from: E => E / K.Eh },
+        ry:      { to: x => x * K.Eh / 2,         from: E => 2 * E / K.Eh },
         j:       { to: x => x,                    from: E => E },
         kjmol:   { to: x => x * 1000 / K.NA,      from: E => E * K.NA / 1000 },
         kcalmol: { to: x => x * 4184 / K.NA,      from: E => E * K.NA / 4184 },
@@ -271,9 +282,12 @@ document.addEventListener('DOMContentLoaded', () => {
         fields,
         sig: 7,
         initial: { field: 'nm', value: 1064 },
+        // keeps every field finite and out of the subnormal range, where doubles lose precision
+        validate: E => (E > 1e-250 && E < 1e250) ? null : 'That value is out of range.',
         after(E) {
-            const nm = hc / E * 1e9;
-            regionEl.textContent = REGIONS.find(r => nm < r[0])[1];
+            const nm = +(hc / E * 1e9).toPrecision(12);      // drop round-off so 1.69 µm and 1690 nm agree at band edges
+            const region = REGIONS.find(r => nm < r[0])[1];
+            if (regionEl.textContent !== region) regionEl.textContent = region;   // live region: announce real changes only
             airEl.textContent = (nm >= 300 && nm <= 1690)
                 ? 'Standard-air wavelength: ' + Calc.fmt.num(nm / ciddorN(nm), 7) + ' nm' : '';
             const pos = (Math.log10(nm) - 1) / 5;            // 10 nm … 1 mm

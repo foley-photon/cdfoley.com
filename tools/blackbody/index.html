@@ -22,8 +22,8 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -35,7 +35,7 @@
    "@type": "WebApplication",
    "name": "Blackbody Radiation",
    "url": "https://cdfoley.com/tools/blackbody/",
-   "description": "Planck&#x27;s law calculator: blackbody spectral radiance, Wien peak wavelength, Stefan-Boltzmann power, and the fraction of power in any wavelength band.",
+   "description": "Planck's law calculator: blackbody spectral radiance, Wien peak wavelength, Stefan-Boltzmann power, and the fraction of power in any wavelength band.",
    "applicationCategory": "UtilitiesApplication",
    "operatingSystem": "Any (web browser)",
    "browserRequirements": "Requires JavaScript",
@@ -124,7 +124,7 @@
                 </div>
                 <div class="field">
                     <label for="wl">Evaluate spectral radiance at <span class="sym">λ</span></label>
-                    <div class="input-unit"><input id="wl" name="wl" value="500" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <div class="input-unit"><input id="wl" name="wl" value="500" inputmode="decimal" data-positive data-label="evaluation wavelength"><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
                 </div>
                 <div class="field-row">
                     <div class="field">
@@ -151,10 +151,10 @@
                     <div class="result"><span class="result-label">Peak frequency (per unit ν)<span class="sym">ν<sub>max</sub></span></span><output class="result-value" data-out="peakNu">—</output></div>
                     <div class="result"><span class="result-label">Spectral radiance at λ<span class="sym">εB<sub>λ</sub></span></span><output class="result-value" data-out="Bl">—</output></div>
                     <div class="result"><span class="result-label">Spectral exitance at λ<span class="sym">πεB<sub>λ</sub></span></span><output class="result-value" data-out="Ml">—</output></div>
-                    <div class="result"><span class="result-label">Spectral radiance per wavenumber<span class="sym">εB<sub>ν̃</sub></span></span><output class="result-value" data-out="Bwn">—</output></div>
+                    <div class="result"><span class="result-label">Spectral radiance per wavenumber<span class="sym">\(\varepsilon B_{\tilde\nu}\)</span></span><output class="result-value" data-out="Bwn">—</output></div>
                     <div class="result"><span class="result-label">Total exitance<span class="sym">M = εσT⁴</span></span><output class="result-value" data-out="M">—</output></div>
                     <div class="result"><span class="result-label">Total radiance<span class="sym">L = M/π</span></span><output class="result-value" data-out="L">—</output></div>
-                    <div class="result"><span class="result-label">Total emitted power<span class="sym">MA</span></span><output class="result-value" data-out="P">—</output></div>
+                    <div class="result"><span class="result-label">Total emitted power<span class="sym">M·A</span></span><output class="result-value" data-out="P">—</output></div>
                     <div class="result"><span class="result-label" id="band-label">Fraction of power in band</span><output class="result-value" data-out="F">—</output></div>
                     <div class="result"><span class="result-label">In-band exitance</span><output class="result-value" data-out="Mband">—</output></div>
                     <div class="result"><span class="result-label">In-band power</span><output class="result-value" data-out="Pband">—</output></div>
@@ -173,17 +173,17 @@
 
     <article class="prose" style="margin-top:3rem">
         <h2>How it is calculated</h2>
-        <p>The spectral radiance of a blackbody at temperature \(T\) is given by Planck's law. A gray body scales it by a wavelength-independent emissivity \(\varepsilon\):</p>
-        <div class="formula">\[ B_\lambda(\lambda, T) = \frac{2hc^2}{\lambda^5}\,\frac{1}{e^{hc/\lambda k_B T} - 1} \quad [\text{W m}^{-2}\,\text{sr}^{-1}\,\text{m}^{-1}] . \]</div>
-        <p>The spectral exitance (power per area per wavelength into the hemisphere) of a Lambertian surface is \(\pi B_\lambda\). Integrating over all wavelengths gives the Stefan–Boltzmann law, \(M = \varepsilon\sigma T^4\), with \(\sigma = 5.670374\times10^{-8}\) W m⁻² K⁻⁴.</p>
+        <p>The spectral radiance of a blackbody at temperature \(T\) is given by Planck's law, in W&nbsp;m⁻²&nbsp;sr⁻¹ per meter of wavelength. A gray body scales it by a wavelength-independent emissivity \(\varepsilon\):</p>
+        <div class="formula">\[ B_\lambda(\lambda, T) = \frac{2hc^2}{\lambda^5}\,\frac{1}{e^{hc/\lambda k_B T} - 1} . \]</div>
+        <p>The spectral exitance (power per area per wavelength into the hemisphere) of a Lambertian surface is \(\pi B_\lambda\). Integrating over all wavelengths gives the Stefan–Boltzmann law, \(M = \varepsilon\sigma T^4\), with \(\sigma = 5.670374\times10^{-8}\) W&nbsp;m⁻²&nbsp;K⁻⁴.</p>
 
         <h3>Where is the peak?</h3>
-        <p>The answer depends on the variable. Per unit wavelength, \(B_\lambda\) peaks at Wien's displacement \(\lambda_\text{max} = b/T\), with \(b = 2.897772\times10^{-3}\) m·K. Per unit frequency (or wavenumber), \(B_\nu\) peaks at \(h\nu_\text{max} = 2.821439\,k_BT\). That corresponds to a wavelength about 1.76× longer than \(\lambda_\text{max}\). For the Sun's 5772 K effective temperature, the peaks are at 502 nm per unit wavelength and 339 THz (884 nm) per unit frequency. Neither one is "the" color of the source.</p>
+        <p>The answer depends on the variable. Per unit wavelength, \(B_\lambda\) peaks at Wien's displacement \(\lambda_\text{max} = b/T\), with \(b = 2.897772\times10^{-3}\) m·K. Per unit frequency (or wavenumber), \(B_\nu\) peaks at \(h\nu_\text{max} = 2.821439\,k_BT\). That corresponds to a wavelength about 1.76× longer than \(\lambda_\text{max}\). For the Sun's 5772 K effective temperature, the peaks are at 502 nm per unit wavelength and 339 THz (883 nm) per unit frequency. Neither one is "the" color of the source.</p>
 
         <h3>Band fraction</h3>
         <p>The fraction of total power emitted between 0 and \(\lambda\) depends only on the product \(\lambda T\). With \(x = hc/\lambda k_BT\), it can be summed exactly:</p>
-        <div class="formula">\[ F_{0\to\lambda} = \frac{15}{\pi^4}\int_x^\infty \frac{t^3}{e^t-1}\,dt = \frac{15}{\pi^4}\sum_{n=1}^{\infty}\frac{e^{-nx}}{n}\left(x^3 + \frac{3x^2}{n} + \frac{6x}{n^2} + \frac{6}{n^3}\right). \]</div>
-        <p>The in-band fraction is \(F_{0\to\lambda_2} - F_{0\to\lambda_1}\). The photon-number fraction uses the same idea with \(t^2\) in place of \(t^3\), normalized by \(2\zeta(3)\). The total photon exitance is \(M_p = 1.5205\times10^{15}\,\varepsilon T^3\) photons s⁻¹ m⁻² K⁻³.</p>
+        <div class="formula">\[ \begin{aligned} F_{0\to\lambda} &= \frac{15}{\pi^4}\int_x^\infty \frac{t^3}{e^t-1}\,dt \\ &= \frac{15}{\pi^4}\sum_{n=1}^{\infty}\frac{e^{-nx}}{n} \\ &\quad\times\left(x^3 + \frac{3x^2}{n} + \frac{6x}{n^2} + \frac{6}{n^3}\right). \end{aligned} \]</div>
+        <p>The in-band fraction is \(F_{0\to\lambda_2} - F_{0\to\lambda_1}\). At long wavelengths both terms approach 1, and subtracting them would lose precision, so for \(x \le 2\) the tool instead sums the complement \({1 - F_{0\to\lambda}}\) from the Bernoulli-number series of the same integral. The photon-number fraction uses the same idea with \(t^2\) in place of \(t^3\), normalized by \(2\zeta(3)\). The total photon exitance is \(M_p = 1.5205\times10^{15}\,\varepsilon T^3\) photons&nbsp;s⁻¹&nbsp;m⁻²&nbsp;K⁻³.</p>
         <table>
             <thead><tr><th class="num">λT (µm·K)</th><th class="num">F<sub>0→λ</sub></th></tr></thead>
             <tbody>
@@ -197,10 +197,10 @@
         </table>
 
         <h2>Worked example</h2>
-        <p>Take a 5772 K blackbody. \(M = \sigma T^4 = 6.294\times10^{7}\) W/m², or 6294 W/cm². The spectral radiance at 500 nm is \(2.624\times10^{4}\) W m⁻² sr⁻¹ nm⁻¹. The 200–400 nm band carries 12.0 % of the total power, and the 400–700 nm visible band carries 36.6 %. Raising the temperature to 15 000 K moves \(\lambda_\text{max}\) to 193 nm and puts most of the power in the ultraviolet.</p>
+        <p>Take a 5772&nbsp;K blackbody. \(M = \sigma T^4 = 6.294\times10^{7}\) W/m², or 6294&nbsp;W/cm². The spectral radiance at 500&nbsp;nm is \(2.624\times10^{4}\) W&nbsp;m⁻²&nbsp;sr⁻¹&nbsp;nm⁻¹. The 200–400&nbsp;nm band carries 12.0&nbsp;% of the total power, and the 400–700&nbsp;nm visible band carries 36.6&nbsp;%. Raising the temperature to 15&nbsp;000&nbsp;K moves \(\lambda_\text{max}\) to 193 nm and puts most of the power in the ultraviolet.</p>
 
         <h2>Plasmas, arcs, and lamps</h2>
-        <p>Hot plasmas and arc or discharge lamps are often described by an effective, brightness, or color temperature. In local thermodynamic equilibrium, Kirchhoff's law means no thermal source can exceed the blackbody spectral radiance at its own temperature. An optically thick region approaches that limit, while optically thin regions emit less. Real plasma spectra also contain atomic and ionic lines on top of a continuum, and their emissivity varies with wavelength. Treat the Planck curve as an upper bound and a scaling guide, not a prediction of a specific source.</p>
+        <p>Hot plasmas and arc or discharge lamps are often described by an effective, brightness, or color temperature. In local thermodynamic equilibrium (LTE), Kirchhoff's law means no thermal source can exceed the blackbody spectral radiance at its own temperature. An optically thick region approaches that limit, while optically thin regions emit less. Real plasma spectra also contain atomic and ionic lines on top of a continuum, and their emissivity varies with wavelength. For a source in LTE, treat the Planck curve at its actual temperature as an upper bound and a scaling guide, not a prediction of a specific source. A quoted color, brightness, or effective temperature does not set that bound: each matches the blackbody in only one respect (the spectral shape, the radiance at one wavelength, or the total exitance). Line emission from a non-LTE discharge (a low-pressure sodium lamp, for example) or from a laser can exceed the Planck curve at that temperature by orders of magnitude.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
@@ -213,7 +213,7 @@
         <h2>References</h2>
         <ol class="refs">
             <li>J. R. Howell, M. P. Mengüç, and R. Siegel, <em>Thermal Radiation Heat Transfer</em>, 6th ed., CRC Press (2016) — blackbody functions and band fractions.</li>
-            <li>E. Tiesinga, P. J. Mohr, D. B. Newell, B. N. Taylor, “CODATA recommended values of the fundamental physical constants: 2018,” <em>Rev. Mod. Phys.</em> <strong>93</strong>, 025010 (2021).</li>
+            <li>P. J. Mohr, D. B. Newell, B. N. Taylor, E. Tiesinga, “CODATA recommended values of the fundamental physical constants: 2022,” <em>Rev. Mod. Phys.</em> <strong>97</strong>, 025002 (2025).</li>
             <li>IAU 2015 Resolution B3 on nominal solar and planetary values (nominal solar effective temperature 5772 K).</li>
         </ol>
     </article>
@@ -237,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const planck = (l, T) => C1 / l ** 5 / Math.expm1(C2 / (l * T));         // W m⁻² sr⁻¹ m⁻¹
 
-    // fraction of power (p = 3) or photons (p = 2) emitted between λ = 0 and λ (x = C2/λT)
+    // fraction of power (p = 3) or photons (p = 2) emitted between λ = 0 and λ (x = C2/λT); used for x > 2
     function frac(x, p) {
         let s = 0;
         for (let n = 1; n <= 50000; n++) {
@@ -245,11 +245,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const t = p === 3 ? en * (x ** 3 + 3 * x * x / n + 6 * x / (n * n) + 6 / n ** 3)
                               : en * (x * x + 2 * x / n + 2 / (n * n));
             s += t;
-            if (n > 5 && t < 1e-15 * s) break;
+            if (en === 0 || (n > 5 && t < 1e-15 * s)) break;     // later terms are smaller still
         }
         return p === 3 ? 15 / Math.PI ** 4 * s : s / (2 * ZETA3);
     }
-    const F0 = (l, T, p) => frac(C2 / (l * T), p);
+    // fraction emitted at wavelengths longer than λ: ∫0^x t^p/(e^t − 1) dt = Σ B_k x^(k+p) / ((k+p) k!), used for x ≤ 2
+    const BERN = [1, -1 / 2, 1 / 6, 0, -1 / 30, 0, 1 / 42, 0, -1 / 30, 0, 5 / 66, 0, -691 / 2730, 0, 7 / 6, 0, -3617 / 510, 0, 43867 / 798, 0, -174611 / 330];
+    function fracLong(x, p) {
+        let s = 0, f = 1;
+        for (let k = 0; k < BERN.length; k++) { if (k) f *= k; s += BERN[k] * x ** (k + p) / ((k + p) * f); }
+        return p === 3 ? 15 / Math.PI ** 4 * s : s / (2 * ZETA3);
+    }
+    // fraction in the band λ1 < λ < λ2, taking each edge from the series that has no round-off there
+    // (differencing two fractions near 1 loses every digit in the Rayleigh–Jeans tail)
+    function bandFrac(l1, l2, T, p) {
+        const x1 = C2 / (l1 * T), x2 = C2 / (l2 * T);
+        const f = x1 <= 2 ? fracLong(x1, p) - fracLong(x2, p)
+                : x2 > 2 ? frac(x2, p) - frac(x1, p)
+                : 1 - frac(x1, p) - fracLong(x2, p);
+        return Math.max(0, f);
+    }
 
     const bandLabel = document.getElementById('band-label');
     const area = v => isFinite(v.area) ? v.area : NaN;
@@ -263,9 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const numax = 2.821439372122079 * K.kB * T / K.h;
             const B = e * planck(v.wl, T);                     // per m
             const M = e * K.sigma * T ** 4;
-            const F = F0(v.l2, T, 3) - F0(v.l1, T, 3);
+            const F = bandFrac(v.l1, v.l2, T, 3);
             const Mp = e * MP_COEF * T ** 3;
-            const Fp = F0(v.l2, T, 2) - F0(v.l1, T, 2);
+            const Fp = bandFrac(v.l1, v.l2, T, 2);
             const A = area(v);
 
             bandLabel.textContent = 'Fraction of power in ' + fmt.si(v.l1, 'm', 4) + '–' + fmt.si(v.l2, 'm', 4);
@@ -286,6 +301,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 Emean: fmt.num(M / Mp / K.e, 4) + ' eV'
             };
         },
+        onError() {
+            bandLabel.textContent = 'Fraction of power in band';
+            const p = document.getElementById('bb-plot'); p.innerHTML = ''; p._plot = null;
+        },
         after(v) {
             const T = v.T, e = v.eps;
             const lmax = K.wien / T;
@@ -293,20 +312,26 @@ document.addEventListener('DOMContentLoaded', () => {
             let hi = Math.max(lmax * 12, v.l2 * 1.4, v.wl * 1.4);
             if (hi / lo > 1e5) { lo = lmax / 20; hi = lmax * 50; }
             const unit = lmax < 2e-6 ? { f: 1e-9, s: 'nm' } : { f: 1e-6, s: 'µm' };
+            // plot in an SI-prefixed unit (kW, mW, …) so the y ticks stay plain numbers
+            let k = 3 * Math.floor(Math.log10(e * planck(lmax, T) * 1e-9) / 3);
+            if (!isFinite(k) || !isFinite(10 ** -k)) k = 0;
+            const s = 10 ** -k;
+            const PFX = { '-15': 'f', '-12': 'p', '-9': 'n', '-6': 'µ', '-3': 'm', '0': '', '3': 'k', '6': 'M', '9': 'G', '12': 'T', '15': 'P' };
+            const yUnit = (k in PFX ? PFX[k] : '10' + Calc.sup(k) + ' ') + 'W m⁻² sr⁻¹ nm⁻¹';
+            const rad = l => e * planck(l, T) * 1e-9 * s;      // plotted εBλ, in yUnit
             const xs = Calc.math.logspace(lo, hi, 500);
-            const ys = xs.map(l => e * planck(l, T) * 1e-9);
             const inBand = [v.l1].concat(xs.filter(l => l > v.l1 && l < v.l2), [v.l2]).filter(l => l >= lo && l <= hi);
             const series = [];
-            if (inBand.length > 1) series.push({ type: 'band', x: inBand.map(l => l / unit.f), y: inBand.map(l => e * planck(l, T) * 1e-9), y0: inBand.map(() => 0), color: 'var(--c2)', opacity: 0.25 });
-            series.push({ type: 'line', x: xs.map(l => l / unit.f), y: ys, label: 'εB_λ', color: 'var(--c1)' });
-            series.push({ type: 'points', x: [lmax / unit.f], y: [e * planck(lmax, T) * 1e-9], color: 'var(--c1)', r: 4.5 });
+            if (inBand.length > 1) series.push({ type: 'band', x: inBand.map(l => l / unit.f), y: inBand.map(rad), y0: inBand.map(() => 0), color: 'var(--c2)', opacity: 0.25 });
+            series.push({ type: 'line', x: xs.map(l => l / unit.f), y: xs.map(rad), label: 'εBλ', color: 'var(--c1)' });
+            series.push({ type: 'points', x: [lmax / unit.f], y: [rad(lmax)], color: 'var(--c1)', r: 4.5 });
             Plot.draw('#bb-plot', {
                 height: 300,
                 x: { label: 'Wavelength (' + unit.s + ')', log: true },
-                y: { label: 'Radiance (W m⁻² sr⁻¹ nm⁻¹)', min: 0 },
+                y: { label: 'εBλ (' + yUnit + ')', min: 0 },
                 series,
                 vlines: [{ x: v.wl / unit.f, label: 'λ = ' + fmt.si(v.wl, 'm', 4), color: 'var(--c3)' }],
-                hover: { format: (x, hits) => hits.length ? `λ = ${fmt.num(hits[0].x, 4)} ${unit.s} · εB_λ = ${fmt.sci(hits[0].y, 3)} W m⁻² sr⁻¹ nm⁻¹` : '' }
+                hover: { hint: 'Dot = peak (λmax). Hover over or tap the chart to read values.', format: (x, hits) => hits.length ? `λ = ${fmt.num(hits[0].x, 4)} ${unit.s} · εBλ = ${fmt.sci(hits[0].y / s, 3)} W m⁻² sr⁻¹ nm⁻¹` : '' }
             });
         }
     });

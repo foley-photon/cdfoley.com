@@ -22,8 +22,8 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -45,7 +45,7 @@
     "price": "0",
     "priceCurrency": "USD"
    },
-   "keywords": "grating equation spectrometer czerny turner dispersion resolution littrow blaze diffraction calculator linear resolving power bandpass free spectral range",
+   "keywords": "grating equation spectrometer monochromator czerny turner dispersion resolution littrow blaze diffraction calculator linear resolving power bandpass free spectral range",
    "author": {
     "@type": "Person",
     "@id": "https://cdfoley.com/#person",
@@ -118,11 +118,11 @@
                 <div class="field-row">
                     <div class="field">
                         <label for="G">Groove density <span class="sym">1/d</span></label>
-                        <div class="input-unit"><input id="G" name="G" value="1200" inputmode="decimal" data-positive data-label="groove density"><span class="unit">l/mm</span></div>
+                        <div class="input-unit"><input id="G" name="G" value="1200" inputmode="decimal" data-positive data-label="groove density"><span class="unit">lines/mm</span></div>
                     </div>
                     <div class="field">
                         <label for="m">Diffraction order <span class="sym">m</span></label>
-                        <div class="input-unit"><input id="m" name="m" value="1" inputmode="numeric" data-label="diffraction order"><span class="unit">—</span></div>
+                        <div class="input-unit"><input id="m" name="m" value="1" data-label="diffraction order"><span class="unit">—</span></div>
                     </div>
                 </div>
                 <div class="field">
@@ -131,11 +131,11 @@
                 </div>
                 <div class="field" id="f-alpha">
                     <label for="alpha">Angle of incidence <span class="sym">α</span></label>
-                    <div class="input-unit"><input id="alpha" name="alpha" value="30" inputmode="decimal" data-label="angle of incidence"><select data-dim="angle" data-units="deg,mrad,rad" data-default="deg"></select></div>
+                    <div class="input-unit"><input id="alpha" name="alpha" value="30" data-label="angle of incidence"><select data-dim="angle" data-units="deg,mrad,rad" data-default="deg"></select></div>
                 </div>
                 <div class="field" id="f-dev" hidden>
                     <label for="dev">Deviation (included) angle <span class="sym">D<sub>V</sub> = α − β</span></label>
-                    <div class="input-unit"><input id="dev" name="dev" value="30" inputmode="decimal" data-nonneg data-label="deviation angle"><select data-dim="angle" data-units="deg,mrad,rad" data-default="deg"></select></div>
+                    <div class="input-unit"><input id="dev" name="dev" value="30" inputmode="decimal" data-label="deviation angle"><select data-dim="angle" data-units="deg,mrad,rad" data-default="deg"></select></div>
                 </div>
                 <div class="field-row">
                     <div class="field">
@@ -145,6 +145,7 @@
                     <div class="field">
                         <label for="W">Illuminated grating width <span class="sym">W</span></label>
                         <div class="input-unit"><input id="W" name="W" value="50" inputmode="decimal" data-positive data-label="illuminated width"><select data-dim="length" data-units="mm,cm" data-default="mm"></select></div>
+                        <p class="hint">Measured across the grooves. A collimated beam of diameter D covers W = D/cos α.</p>
                     </div>
                 </div>
                 <div class="field">
@@ -176,7 +177,7 @@
     </div>
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="ang-h">
-        <div class="panel-head"><h2 id="ang-h">Diffraction angle vs. wavelength</h2><span class="badge" id="plot-mode"></span></div>
+        <div class="panel-head"><h2 id="ang-h">Diffraction angle vs. wavelength</h2><span class="badge" id="plot-mode" style="white-space:nowrap" hidden></span></div>
         <div class="panel-body"><div id="g-plot"></div></div>
     </section>
 
@@ -193,17 +194,18 @@
         </ul>
 
         <h3>Dispersion, resolution, and bandpass</h3>
-        <div class="formula">\[ \frac{d\beta}{d\lambda} = \frac{m}{d\cos\beta}, \qquad \frac{d\lambda}{dx} = \frac{d\cos\beta}{m\,L_B}, \qquad R = \frac{\lambda}{\Delta\lambda} = |m|N = \frac{W\,|\sin\alpha + \sin\beta|}{\lambda} . \]</div>
-        <p>The reciprocal linear dispersion \(d\lambda/dx\) (nm per mm at the focal plane) sets the bandpass: \(\text{BP} \approx w\cdot d\lambda/dx\) for a slit or pixel of width \(w\). This assumes the imaged entrance-slit width matches the exit slit or pixel. The resolving power \(R = |m|N\) is the theoretical limit set by the number of illuminated grooves. Practical spectrometers are usually slit- or pixel-limited well before reaching it. The free spectral range \(\lambda/|m|\) is the band before the next order overlaps, so order-sorting filters are needed when \(\lambda_\text{max} > 2\lambda_\text{min}\) in first order.</p>
+        <div class="formula">\[ \begin{gathered} \frac{d\beta}{d\lambda} = \frac{m}{d\cos\beta}, \\[4pt] \frac{d\lambda}{dx} = \frac{d\cos\beta}{m\,L_B}, \\[4pt] R = \frac{\lambda}{\Delta\lambda} = |m|N = \frac{W\,|\sin\alpha + \sin\beta|}{\lambda} . \end{gathered} \]</div>
+        <p>The reciprocal linear dispersion \(d\lambda/dx\) (nm per mm at the focal plane) sets the bandpass: \(\text{BP} \approx w\cdot d\lambda/dx\) for a slit or pixel of width \(w\). This assumes the imaged entrance-slit width matches the exit slit or pixel. The resolving power \(R = |m|N\) is the theoretical limit set by the number of illuminated grooves. Practical spectrometers are usually slit- or pixel-limited well before reaching it. The results give the bandpass and the diffraction-limited width \(\lambda/R\) in wavelength, frequency, and wavenumber: \(\Delta\nu = c\,\Delta\lambda/\lambda^2\) and \(\Delta\tilde\nu = \Delta\lambda/\lambda^2\). The free spectral range \(\lambda/|m|\) is the band before the next order overlaps, so order-sorting filters are needed when \(\lambda_\text{max} > 2\lambda_\text{min}\) in first order.</p>
 
         <h2>Worked example</h2>
-        <p>Take a 1200 l/mm grating (\(d = 833.3\) nm) at \(\alpha = 30^\circ\), first order, 500 nm. Then \(\sin\beta = 0.6 - 0.5 = 0.1\), so \(\beta = 5.74^\circ\). The angular dispersion is 1.206 mrad/nm. With a 300 mm focusing mirror the reciprocal linear dispersion is 2.76 nm/mm, so a 50 µm slit passes about 0.14 nm. Fifty millimetres of illuminated grating gives \(R = 60\,000\), or 8.3 pm at 500 nm. In a Czerny–Turner with \(D_V = 30^\circ\), the same wavelength needs \(\alpha = 33.09^\circ\) and \(\beta = 3.09^\circ\).</p>
+        <p>Take a 1200&nbsp;lines/mm grating (\(d = 833.3\)&nbsp;nm) at \(\alpha = 30^\circ\), first order, 500&nbsp;nm. Then \(\sin\beta = 0.6 - 0.5 = 0.1\), so \(\beta = 5.74^\circ\). The angular dispersion is 1.206&nbsp;mrad/nm. With a 300&nbsp;mm focusing mirror the reciprocal linear dispersion is 2.76&nbsp;nm/mm, so a 50&nbsp;µm slit passes about 0.14&nbsp;nm (5.5&nbsp;cm⁻¹). Fifty millimetres of illuminated grating gives \(R = 60\,000\), or 8.3&nbsp;pm (10&nbsp;GHz) at 500&nbsp;nm. In a Czerny–Turner with \(D_V = 30^\circ\), the same wavelength needs \(\alpha = 33.09^\circ\) and \(\beta = 3.09^\circ.\)</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
             <li><strong>Plane grating in the principal plane.</strong> No conical (off-plane) diffraction. Concave and holographic aberration-corrected gratings follow the same equation at their center, but their focal-plane properties differ.</li>
             <li><strong>Geometric bandpass.</strong> BP ≈ w·dλ/dx ignores aberrations, diffraction from the optics, and the anamorphic magnification \(\cos\alpha/\cos\beta\). That magnification makes the entrance-slit image differ in width from the slit itself when \(\alpha \ne \beta\).</li>
-            <li><strong>Efficiency is not modeled.</strong> Which orders are bright depends on blaze angle, groove profile, polarization, and coating. Use the manufacturer's efficiency curves.</li>
+            <li><strong>Detector normal to the diffracted beam.</strong> \(d\lambda/dx\) is for a focal plane perpendicular to the central diffracted ray. A detector tilted by \(\gamma\) from that plane spreads the spectrum by \(1/\cos\gamma\), so \(d\lambda/dx = d\cos\beta\cos\gamma/(m\,L_B)\).</li>
+            <li><strong>Efficiency is not modeled.</strong> Which orders are bright depends on blaze angle, groove profile, polarization, and coating. Use the manufacturer's efficiency curves. A blazed grating is brightest where its groove facets reflect the incident beam into the diffracted one, \(\alpha + \beta = 2\theta_B\). Catalogs quote the blaze wavelength for Littrow, \(m\lambda_B = 2d\sin\theta_B\), so a grating blazed at the Littrow angle in the results peaks at \(\lambda\) when used in Littrow. In a constant-deviation mount the peak moves to \(\lambda_B\cos(D_V/2)\).</li>
         </ul>
 
         <h2>References</h2>
@@ -223,16 +225,22 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const { fmt } = Calc;
+    const { fmt, K } = Calc;
     const DEG = 180 / Math.PI;
+    const modeSel = document.getElementById('mode');
     const fAlpha = document.getElementById('f-alpha');
     const fDev = document.getElementById('f-dev');
+    const plotBox = document.getElementById('g-plot');
     const plotMode = document.getElementById('plot-mode');
     const deg = r => fmt.num(r * DEG, 5) + '°';
+    const nb = s => s.replace(/ /g, String.fromCharCode(160));
+    // a spectral width Δλ at λ (in pm or larger, as in the line broadening calculator), also as a
+    // frequency (Δν = cΔλ/λ²) and a wavenumber (Δν̃ = Δλ/λ²)
+    const width = (dl, wl) => { const dnu = K.c * dl / (wl * wl); return nb(fmt.si(dl, 'm', 4, { min: -12 })) + ' (' + nb(fmt.si(dnu, 'Hz', 4)) + ', ' + nb(fmt.num(dnu / (K.c * 100), 4) + ' cm⁻¹') + ')'; };
 
-    // α and β (radians) for order m at wavelength λ; NaN when evanescent
+    // α and β (radians) for order m at wavelength λ; null when the order does not propagate (|α|, |β| < 90°)
     function solve(mode, m, lam, d, alpha, dev) {
-        if (mode === 'littrow') { const s = m * lam / (2 * d); return Math.abs(s) <= 1 ? { a: Math.asin(s), b: Math.asin(s) } : null; }
+        if (mode === 'littrow') { const s = m * lam / (2 * d); return Math.abs(s) < 1 ? { a: Math.asin(s), b: Math.asin(s) } : null; }
         if (mode === 'ct') {
             const s = m * lam / (2 * d * Math.cos(dev / 2));
             if (Math.abs(s) > 1) return null;
@@ -241,73 +249,130 @@ document.addEventListener('DOMContentLoaded', () => {
             return (Math.abs(a) < Math.PI / 2 && Math.abs(b) < Math.PI / 2) ? { a, b } : null;
         }
         const s = m * lam / d - Math.sin(alpha);
-        return Math.abs(s) <= 1 ? { a: alpha, b: Math.asin(s) } : null;
+        return Math.abs(s) < 1 ? { a: alpha, b: Math.asin(s) } : null;
     }
 
-    Calc.create({
+    // longest wavelength order m reaches (the grazing limit); solve() succeeds only below it
+    function lmaxOf(mode, m, d, alpha, dev) {
+        if (mode === 'fixed') return d * (1 + Math.sign(m) * Math.sin(alpha)) / Math.abs(m);
+        if (mode === 'ct') return 2 * d * Math.cos(dev / 2) ** 2 / Math.abs(m);   // |α|, |β| < 90° caps sin φ at cos(D_V/2)
+        return 2 * d / Math.abs(m);
+    }
+
+    // Show the angle input the geometry uses. This also runs on every geometry change, so it works
+    // while another input is invalid. A hidden angle that is blank or not a number goes back to its
+    // default, because it would otherwise block every result. A geometry the select doesn't offer
+    // (from an edited link) becomes 'fixed'. Returns true if it changed an input.
+    function syncMode() {
+        let changed = false;
+        if (modeSel.selectedIndex < 0) { modeSel.value = 'fixed'; changed = true; }
+        [[fAlpha, 'fixed'], [fDev, 'ct']].forEach(([field, mode]) => {
+            field.hidden = modeSel.value !== mode;
+            const inp = field.querySelector('input'), unit = field.querySelector('select');
+            if (field.hidden && isNaN(Calc.parseNum(inp.value))) {
+                inp.value = inp.defaultValue;
+                unit.value = unit.dataset.prev = unit.dataset.default;
+                changed = true;
+            }
+        });
+        return changed;
+    }
+
+    // β(λ) for orders ±1 and ±2 (or m and its neighbours when |m| > 2), with the current point.
+    // Returns false if no curve has a point in range.
+    function drawPlot(v) {
+        const d = 1e-3 / v.G;
+        const lo = v.wl * 0.05, hi = v.wl * 2.5;
+        const low = Math.abs(v.m) <= 2;
+        const orders = low ? [-2, -1, 1, 2] : [v.m - 1, v.m, v.m + 1];
+        const colors = low ? ['var(--c4)', 'var(--c2)', 'var(--c1)', 'var(--c3)'] : ['var(--c2)', 'var(--c1)', 'var(--c3)'];
+        // sample the current λ and each order's cutoff too, so the point sits on its curve and curves run to grazing
+        const extra = [v.wl].concat(orders.map(m => lmaxOf(v.mode, m, d, v.alpha, v.dev) * (1 - 1e-9))).filter(l => l > lo && l < hi);
+        const xs = Calc.math.linspace(lo, hi, 400).concat(extra).sort((p, q) => p - q);
+        const series = orders.map((m, i) => ({
+            type: 'line', x: xs.map(l => l * 1e9),
+            y: xs.map(l => { const s = solve(v.mode, m, l, d, v.alpha, v.dev); return s ? s.b * DEG : NaN; }),
+            label: 'm = ' + (m > 0 ? '+' : '−') + Math.abs(m), color: colors[i]
+        }));
+        const any = series.some(s => s.y.some(isFinite));
+        const cur = solve(v.mode, v.m, v.wl, d, v.alpha, v.dev);
+        if (cur) series.push({ type: 'points', x: [v.wl * 1e9], y: [cur.b * DEG], color: 'var(--text)', r: 5 });
+        plotMode.innerHTML = { fixed: 'α = ' + fmt.num(v.alpha * DEG, 4) + '°', littrow: 'Littrow', ct: 'D<sub>V</sub> = ' + fmt.num(v.dev * DEG, 4) + '°' }[v.mode];
+        plotMode.hidden = false;
+        Plot.draw(plotBox, {
+            height: 300,
+            x: { label: 'Wavelength (nm)', min: 0 },
+            y: { label: 'Diffraction angle β (deg)' },
+            series,
+            vlines: cur ? [] : [{ x: v.wl * 1e9, label: 'λ = ' + fmt.si(v.wl, 'm', 4), color: 'var(--danger)' }],
+            hover: { format: (x, hits) => {
+                const on = hits.filter(h => h.series.label);   // the unlabelled series is the current point
+                if (on.length) return 'λ = ' + fmt.num(x, 4) + ' nm' + on.map(h => ' · ' + h.series.label + ': β = ' + fmt.num(h.y, 4) + '°').join('');
+                return hits.length ? 'Current point: λ = ' + fmt.num(x, 4) + ' nm, β = ' + fmt.num(hits[0].y, 4) + '°' : 'No plotted order reaches λ = ' + fmt.num(x, 4) + ' nm';
+            } }
+        });
+        return any;
+    }
+
+    const calc = Calc.create({
         form: '#calc',
         compute(v) {
-            fAlpha.hidden = v.mode !== 'fixed';
-            fDev.hidden = v.mode !== 'ct';
+            syncMode();
+            v.mode = modeSel.value;                     // syncMode() replaces a geometry the select doesn't offer
             if (!Number.isInteger(v.m)) throw Calc.fail('The diffraction order must be an integer.', 'm');
             if (v.m === 0) throw Calc.fail('Zero order is specular reflection (β = −α) and has no dispersion. Choose m ≠ 0.', 'm');
             if (v.mode === 'fixed' && Math.abs(v.alpha) >= Math.PI / 2) throw Calc.fail('The angle of incidence must be between −90° and 90°.', 'alpha');
+            if (v.mode === 'ct' && v.dev < 0) throw Calc.fail('The deviation angle cannot be negative.', 'dev');
             if (v.mode === 'ct' && v.dev >= Math.PI) throw Calc.fail('The deviation angle must be less than 180°.', 'dev');
 
             const d = 1e-3 / v.G;                       // groove spacing, m
+            const N = v.W / d;
+            if (N < 2) throw Calc.fail('Only ' + fmt.num(N, 3) + ' grooves are illuminated (N = W/d), and a grating needs at least two. Check the groove density (lines per mm) and the illuminated width.', 'G');
+            const lmax = lmaxOf(v.mode, v.m, d, v.alpha, v.dev);
             const sol = solve(v.mode, v.m, v.wl, d, v.alpha, v.dev);
             if (!sol) {
-                const field = v.mode === 'fixed' ? 'alpha' : 'wl';
-                throw Calc.fail('Order m = ' + v.m + ' is evanescent here (|sin β| > 1): λ is too long for this groove density and geometry. Try a lower order, coarser grating, or different angle.', field);
+                const why = { fixed: '|sin β| would exceed 1, so the order is evanescent', littrow: 'the Littrow angle would pass 90°',
+                              ct: 'the grating would have to turn past grazing (|α| or |β| ≥ 90°)' }[v.mode];
+                const angleHelps = v.wl < 2 * d / Math.abs(v.m);   // no geometry gets past 2d/|m|, since sin α + sin β < 2
+                const tips = [Math.abs(v.m) > 1 && 'a lower order', 'a coarser grating',
+                              angleHelps && v.mode === 'fixed' && 'a different angle of incidence', angleHelps && v.mode === 'ct' && 'a smaller deviation angle'].filter(Boolean);
+                const err = Calc.fail('Order m = ' + String(v.m).replace('-', '−') + ' cannot reach ' + fmt.si(v.wl, 'm', 4) + ': ' + why + '. Here this order is limited to λ < ' + fmt.si(lmax, 'm', 4) +
+                    '. Try ' + tips.slice(0, -1).join(', ') + (tips.length > 2 ? ', or ' : tips.length > 1 ? ' or ' : '') + tips[tips.length - 1] + '.', 'wl');
+                err.plotted = drawPlot(v);              // the curves show where each order ends
+                throw err;
             }
             const { a, b } = sol;
             const cb = Math.cos(b);
             const angDisp = v.m / (d * cb);              // rad/m
             const rld = d * cb / (Math.abs(v.m) * v.LB); // m of λ per m of focal plane
-            const N = v.W / d;
             const R = Math.abs(v.m) * N;
             const sL = v.m * v.wl / (2 * d);
-            const lmax = v.mode === 'fixed' ? d * (1 + Math.sin(v.alpha * Math.sign(v.m))) / Math.abs(v.m)
-                       : v.mode === 'ct' ? 2 * d * Math.cos(v.dev / 2) ** 2 / Math.abs(v.m)   // |α| < 90° caps sin ψ at cos(D/2)
-                       : 2 * d / Math.abs(v.m);
 
             return {
                 beta: deg(b),
                 alpha: deg(a),
                 dev: deg(a - b),
-                littrow: Math.abs(sL) <= 1 ? deg(Math.asin(sL)) : 'not possible',
+                littrow: Math.abs(sL) < 1 ? deg(Math.asin(sL)) : 'not possible',
                 angDisp: fmt.num(Math.abs(angDisp) * 1e-9 * 1e3, 4) + ' mrad/nm  (' + fmt.num(Math.abs(angDisp) * 1e-9 * DEG, 4) + '°/nm)',
                 rld: fmt.num(rld * 1e9 / 1e3, 4) + ' nm/mm',
-                bp: fmt.si(v.slit * rld, 'm', 4),
+                bp: width(v.slit * rld, v.wl),
                 R: fmt.num(R, 5),
-                dl: fmt.si(v.wl / R, 'm', 4),
+                dl: width(v.wl / R, v.wl),
                 N: fmt.num(N, 5),
                 fsr: fmt.si(v.wl / Math.abs(v.m), 'm', 4),
                 lmax: fmt.si(lmax, 'm', 4)
             };
         },
-        after(v) {
-            const d = 1e-3 / v.G;
-            const xs = Calc.math.linspace(v.wl * 0.05, v.wl * 2.5, 400);
-            const orders = [-2, -1, 1, 2];
-            const colors = { '-2': 'var(--c4)', '-1': 'var(--c2)', '1': 'var(--c1)', '2': 'var(--c3)' };
-            const series = orders.map(m => ({
-                type: 'line', x: xs.map(l => l * 1e9),
-                y: xs.map(l => { const s = solve(v.mode, m, l, d, v.alpha, v.dev); return s ? s.b * DEG : NaN; }),
-                label: 'm = ' + (m > 0 ? '+' : '') + m, color: colors[m]
-            }));
-            const cur = solve(v.mode, v.m, v.wl, d, v.alpha, v.dev);
-            if (cur) series.push({ type: 'points', x: [v.wl * 1e9], y: [cur.b * DEG], color: 'var(--text)', r: 5 });
-            plotMode.textContent = { fixed: 'α = ' + fmt.num(v.alpha * DEG, 4) + '°', littrow: 'Littrow', ct: 'D_V = ' + fmt.num(v.dev * DEG, 4) + '°' }[v.mode];
-            Plot.draw('#g-plot', {
-                height: 300,
-                x: { label: 'Wavelength (nm)', min: 0 },
-                y: { label: 'Diffraction angle β (deg)' },
-                series,
-                hover: true
-            });
+        after: drawPlot,
+        onError(err) {
+            if (err.plotted) return;                    // the plot already shows the current inputs
+            plotMode.hidden = true; plotMode.textContent = '';
+            clearTimeout(plotBox._plotT); plotBox._plot = null;   // stop plot.js redrawing the old chart on resize
+            plotBox.innerHTML = '';
         }
     });
+    modeSel.addEventListener('change', syncMode);
+    if (syncMode()) calc.run();
 });
 </script>
 </body>

@@ -28,8 +28,8 @@
     .pc-sub { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 1.1rem 0 0.7rem; font-weight: 650; }
     .pc-sub:first-child { margin-top: 0; }
 </style>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -237,7 +237,7 @@
         <p>The two standard deviations come from different estimators:</p>
         <div class="formula">\[ \sigma_w = \frac{\bar{R}}{d_2(n)} \ \text{(subgroups)}, \qquad \sigma_w = \frac{\overline{MR}}{1.128} \ \text{(individuals)}, \qquad \sigma_o = \sqrt{\frac{\sum (x_i - \bar{x})^2}{N-1}} \]</div>
         <p>Here \(\bar R\) is the average subgroup range and \(\overline{MR}\) the average moving range of consecutive points. \(d_2\) is the bias-correction constant for the expected range of \(n\) normal values (2.326 for \(n = 5\)). The Taguchi index \(C_{pm} = (USL - LSL)/\bigl(6\sqrt{\sigma_o^2 + (\bar x - T)^2}\bigr)\) also penalizes distance from the target.</p>
-        <p>Expected nonconforming parts per million come from the normal model, \(\text{PPM}_{<LSL} = 10^6\,\Phi\!\left(\frac{LSL - \bar x}{\sigma}\right)\) and \(\text{PPM}_{>USL} = 10^6\,\Phi\!\left(\frac{\bar x - USL}{\sigma}\right)\). Z.bench, \(Z_\text{bench} = -\Phi^{-1}(p_\text{total})\), is the one-sided z-value that would give the same total fraction out of specification.</p>
+        <p>Expected nonconforming parts per million come from the normal model, \(\text{PPM}_{&lt;LSL} = 10^6\,\Phi\!\left(\frac{LSL - \bar x}{\sigma}\right)\) and \(\text{PPM}_{&gt;USL} = 10^6\,\Phi\!\left(\frac{\bar x - USL}{\sigma}\right)\). Z.bench, \(Z_\text{bench} = -\Phi^{-1}(p_\text{total})\), is the one-sided z-value that would give the same total fraction out of specification.</p>
 
         <h2>Cpk versus Ppk</h2>
         <p>The AIAG SPC manual separates <strong>inherent</strong> variation (within subgroups, collected over a short time) from <strong>total</strong> variation (every measurement, including drift and shifts between subgroups). Cpk uses within-subgroup variation and describes what the process <em>could</em> do if special causes were eliminated. Ppk uses total variation and describes what the customer actually received during the study.</p>
@@ -336,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let mu, sw, so, N, data = null, swNote, obs = null, obsNote = null;
             if (raw) {
-                data = Calc.parseList(v.data);
+                data = Calc.parseList(v.data, 'data');
                 const k = v.k;
                 if (!isFinite(k)) throw Calc.fail('Enter a subgroup size (1 for individual measurements).', 'k');
                 if (!Number.isInteger(k) || k < 1 || k > 25) throw Calc.fail('Subgroup size must be a whole number from 1 to 25.', 'k');
@@ -393,6 +393,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             last = { raw, data, mu, sw, so, N, lsl, usl, T };
             const split = t => (isFinite(lsl) ? ppm(t.below) + ' below LSL' : '') + (isFinite(lsl) && isFinite(usl) ? ' · ' : '') + (isFinite(usl) ? ppm(t.above) + ' above USL' : '');
+            // enough significant figures to resolve about σ within / 100 (at least 5), so an offset from target shows
+            const sigMu = isFinite(sw) && sw > 0 ? Math.min(12, Math.max(5, Math.ceil(Math.log10(Math.abs(mu) / sw)) + 2)) : 5;
             return {
                 cpk: idx(W.k),
                 cp: W.potential === null ? null : idx(W.potential),
@@ -405,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ppmo: ppm(to.total), 'ppmo-split': split(to),
                 ppmobs: obs === null ? null : ppm(obs), 'obs-note': obsNote || '',
                 zb: zbench(tw.total) + ' · ' + zbench(to.total),
-                mean: fmt.num(mu, 5) + (isFinite(N) ? ' · ' + N : ''),
+                mean: fmt.num(mu, sigMu) + (isFinite(N) ? ' · ' + N : ''),
                 sw: fmt.num(sw, 4), 'sw-note': swNote,
                 so: fmt.num(so, 4)
             };

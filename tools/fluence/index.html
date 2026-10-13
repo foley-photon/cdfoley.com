@@ -22,8 +22,8 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -97,7 +97,7 @@
 
     <header class="page-head">
         <h1>Laser Fluence &amp; Irradiance Calculator</h1>
-        <p class="lede">Fluence (J/cm²) and irradiance (W/cm²) control how a laser pulse interacts with a material. This calculator gives the peak (on-axis) and average values for Gaussian and top-hat beams. If you enter a threshold fluence, it also gives the diameter of the region that exceeds it.</p>
+        <p class="lede">Fluence (J/cm²) and irradiance (W/cm²) control how a laser pulse interacts with a material. This calculator gives the peak (on-axis) fluence and irradiance, and the average fluence, for Gaussian and top-hat beams. If you enter a threshold fluence, it also gives the diameter of the region that exceeds it.</p>
     </header>
 
     <div class="tool-layout">
@@ -118,7 +118,7 @@
                     <label for="ep">Pulse energy <span class="sym">E<sub>p</sub></span></label>
                     <div class="input-unit"><input id="ep" name="ep" value="20" inputmode="decimal" data-optional><select data-dim="energy" data-units="pJ,nJ,µJ,mJ,J" data-default="µJ"></select></div>
                 </div>
-                <div class="field-row" data-show="p">
+                <div class="field-row" data-show="p" hidden>
                     <div class="field">
                         <label for="pavg">Average power</label>
                         <div class="input-unit"><input id="pavg" name="pavg" value="2" inputmode="decimal" data-optional><select data-dim="power" data-units="mW,W,kW" data-default="W"></select></div>
@@ -144,7 +144,7 @@
                 <div class="field-row">
                     <div class="field">
                         <label for="tau">Pulse duration (FWHM) <span class="sym">τ</span></label>
-                        <div class="input-unit"><input id="tau" name="tau" value="10" inputmode="decimal" data-positive><select data-dim="time" data-units="fs,ps,ns,µs,ms" data-default="ns"></select></div>
+                        <div class="input-unit"><input id="tau" name="tau" value="10" inputmode="decimal" data-positive data-label="pulse duration"><select data-dim="time" data-units="fs,ps,ns,µs,ms" data-default="ns"></select></div>
                     </div>
                     <div class="field">
                         <label for="shape">Temporal shape</label>
@@ -157,18 +157,18 @@
                 </div>
                 <div class="field">
                     <label for="fth">Threshold fluence (optional) <span class="sym">F<sub>th</sub></span></label>
-                    <div class="input-unit"><input id="fth" name="fth" value="1" inputmode="decimal" data-optional placeholder="e.g. ablation threshold"><select data-dim="fluence" data-units="mJ/cm²,J/cm²" data-default="J/cm²"></select></div>
-                    <p class="hint">Enter it as a peak fluence, the convention used for most published thresholds.</p>
+                    <div class="input-unit"><input id="fth" name="fth" value="1" inputmode="decimal" data-optional data-label="threshold fluence" placeholder="e.g. ablation threshold"><select data-dim="fluence" data-units="mJ/cm²,J/cm²" data-default="J/cm²"></select></div>
+                    <p class="hint">Enter it as a peak fluence (the ISO 21254 and Liu-method convention). If your source quotes an average fluence (E<sub>p</sub>/πw₀²), multiply it by 2.</p>
                 </div>
             </div>
         </form>
 
         <section class="panel sticky-panel" aria-labelledby="results-h">
-            <div class="panel-head"><h2 id="results-h">Results</h2><span id="th-badge" class="badge"></span></div>
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="th-badge" class="badge" hidden></span></div>
             <div class="panel-body">
                 <div class="results">
                     <div class="result primary"><span class="result-label">Peak fluence (on axis)<span class="sym">F₀</span></span><output class="result-value" data-out="f0">—</output></div>
-                    <div class="result"><span class="result-label">Average fluence over 1/e² area<span class="sym">E<sub>p</sub>/πw₀²</span></span><output class="result-value" data-out="favg">—</output></div>
+                    <div class="result"><span class="result-label">Average fluence (energy ÷ 1/e² area)<span class="sym">E<sub>p</sub>/πw₀²</span></span><output class="result-value" data-out="favg">—</output></div>
                     <div class="result"><span class="result-label">Peak irradiance<span class="sym">I₀</span></span><output class="result-value" data-out="i0">—</output></div>
                     <div class="result"><span class="result-label">Peak power<span class="sym">P<sub>peak</sub></span></span><output class="result-value" data-out="ppk">—</output></div>
                     <div class="result"><span class="result-label">Pulse energy<span class="sym">E<sub>p</sub></span></span><output class="result-value" data-out="ep">—</output></div>
@@ -196,27 +196,30 @@
         <h2>Peak or average? The factor of two</h2>
         <p>Two conventions are in common use, and they differ by exactly a factor of two for a Gaussian beam:</p>
         <ul>
-            <li><strong>Peak (on-axis) fluence</strong> \(F_0 = 2E_p/(\pi w_0^2)\). This is the value at the center of the beam. Ablation thresholds, damage thresholds (ISO 21254 uses the effective area \(A_\text{eff} = \pi w_0^2/2\)), and most process literature use it.</li>
+            <li><strong>Peak (on-axis) fluence</strong> \(F_0 = 2E_p/(\pi w_0^2)\). This is the value at the center of the beam. Damage thresholds (ISO 21254 uses the effective area \(A_\text{eff} = \pi w_0^2/2\)), ablation thresholds from the Liu method, and most ultrafast-ablation papers use it.</li>
             <li><strong>Average fluence</strong> \(E_p/(\pi w_0^2)\): the energy divided by the area of the 1/e² circle. It is a common shortcut, but it equals \(F_0/2\), and only 86.5 % of the energy actually falls inside that circle.</li>
         </ul>
-        <p>Comparing an average fluence to a threshold quoted as a peak value overstates the process margin by a factor of two. Before comparing a process window against literature or a vendor specification, check which convention each source uses.</p>
+        <p>Comparing an average fluence with a threshold quoted as a peak value understates your fluence by a factor of two. Your fluence-to-threshold ratio then looks half as large as it really is: an ablation process seems closer to threshold than it is, and an optic seems to have twice its real margin below the damage threshold. Before comparing a process window against literature or a vendor specification, check which convention each source uses.</p>
 
         <h2>Threshold diameter</h2>
         <p>Where \(F(r)\) exceeds a threshold \(F_\text{th}\), the material is modified or ablated. Setting \(F(r) = F_\text{th}\) gives</p>
-        <div class="formula">\[ D_\text{th} = w_0\sqrt{2\ln\!\left(\frac{F_0}{F_\text{th}}\right)}, \qquad \frac{E_\text{inside}}{E_p} = 1 - \frac{F_\text{th}}{F_0}. \]</div>
-        <p>The feature grows only logarithmically with fluence. Doubling the pulse energy at \(F_0/F_\text{th} = 5\) widens it by only about 20 %. Fitting D² against ln E<sub>p</sub> is the Liu method for measuring \(w_0\) and \(F_\text{th}\), implemented in the <a href="/tools/ablation-depth/">ablation depth &amp; threshold</a> tool.</p>
+        <div class="formula">\[ D_\text{th} = w_0\sqrt{2\ln\!\left(\frac{F_0}{F_\text{th}}\right)}, \]</div>
+        <div class="formula">\[ \frac{E_\text{inside}}{E_p} = 1 - \frac{F_\text{th}}{F_0}. \]</div>
+        <p>The feature grows only slowly with fluence, because \(D_\text{th}^2\) is proportional to \(\ln(F_0/F_\text{th})\). Doubling the pulse energy at \(F_0/F_\text{th} = 5\) widens it by only about 20 %. Fitting D² against ln E<sub>p</sub> is the Liu method for measuring \(w_0\) and \(F_\text{th}\), implemented in the <a href="/tools/ablation-depth/">ablation threshold &amp; depth</a> tool.</p>
 
         <h2>Worked example</h2>
         <p>A 20 µJ, 10 ns Gaussian pulse focused to a 30 µm (1/e²) spot:</p>
-        <div class="formula">\[ F_0 = \frac{2 \times 20\ \mu\text{J}}{\pi\,(15\ \mu\text{m})^2} = 5.66\ \text{J/cm}^2, \qquad I_0 = \frac{0.9394\,F_0}{10\ \text{ns}} = 5.3\times10^{8}\ \text{W/cm}^2. \]</div>
-        <p>The average over the 1/e² circle is 2.83 J/cm². With a 1 J/cm² threshold, the modified diameter is 27.9 µm, and 82 % of the pulse energy lands inside it.</p>
+        <div class="formula">\[ F_0 = \frac{2 \times 20\ \mu\text{J}}{\pi\,(15\ \mu\text{m})^2} = 5.66\ \text{J/cm}^2, \]</div>
+        <div class="formula">\[ I_0 = \frac{0.9394\,F_0}{10\ \text{ns}} = 5.3\times10^{8}\ \text{W/cm}^2. \]</div>
+        <p>The average fluence \(E_p/(\pi w_0^2)\) is 2.83 J/cm². With a 1 J/cm² threshold, the modified diameter is 27.9 µm, and 82 % of the pulse energy lands inside it.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li>The spot diameter is the 1/e² diameter at the work surface. Defocus increases it: see <a href="/tools/gaussian-beam/">Gaussian beam propagation</a>.</li>
+            <li>The spot diameter is the 1/e² diameter at the work surface. Defocus increases it: see <a href="/tools/gaussian-beam/">Gaussian beam propagation</a>. For a Gaussian spot measured as a FWHM diameter, multiply by 1.699 to get the 1/e² diameter.</li>
             <li>Fluence is incident fluence. Absorbed fluence is lower by the surface reflectance, which for metals in the near-IR is roughly 60–98 %.</li>
             <li>A real top-hat has soft edges, and a real Gaussian may have M² &gt; 1 or ellipticity. Measure the profile (ISO 11146) when accuracy matters.</li>
             <li>At high irradiance, plasma shielding and nonlinear absorption change how much energy reaches the surface. Those effects are not modeled.</li>
+            <li>The threshold diameter applies to the pulse count the threshold was measured for. With overlapping pulses, incubation lowers the threshold, so enter \(F_\text{th}\) measured for the same number of pulses per spot (see <a href="/tools/ablation-depth/">ablation threshold &amp; depth</a>).</li>
         </ul>
 
         <h2>References</h2>
@@ -241,10 +244,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const K_SHAPE = { rect: 1, gauss: 2 * Math.sqrt(Math.LN2 / Math.PI), sech2: Math.log(1 + Math.SQRT2) };
     const badge = document.getElementById('th-badge');
     const dLabel = document.getElementById('d-label');
-    const showFields = mode => document.querySelectorAll('[data-show]').forEach(f => { f.hidden = f.dataset.show !== mode; });
+    const emodeSel = document.getElementById('emode'), profSel = document.getElementById('profile');
+    const plotBox = document.getElementById('prof-plot');
     const fl = F => fmt.num(fromSI('fluence', 'J/cm²', F), 4) + ' J/cm²';
     const irr = I => fmt.sci(I / 1e4, 3) + ' W/cm²';
-    const area = A => A < 1e-6 ? fmt.num(A * 1e12, 4) + ' µm²' : fmt.num(A * 1e6, 4) + ' mm²';
+    const area = A => A < 1e-7 ? fmt.num(A * 1e12, 4) + ' µm²' : A < 1e-4 ? fmt.num(A * 1e6, 4) + ' mm²' : fmt.num(A * 1e4, 4) + ' cm²';
+    const setBadge = (text, cls) => { badge.textContent = text; badge.className = cls ? 'badge ' + cls : 'badge'; badge.hidden = !text; };
+
+    // Show the inputs for the energy mode and label the diameter for the profile.
+    // Also runs on each select change, so it still works while another input is invalid.
+    function syncUI() {
+        document.querySelectorAll('[data-show]').forEach(f => { f.hidden = f.dataset.show !== emodeSel.value; });
+        const gauss = profSel.value === 'gauss';
+        dLabel.firstChild.textContent = gauss ? 'Spot diameter (1/e²) ' : 'Top-hat diameter ';
+        dLabel.querySelector('.sym').textContent = gauss ? '2w₀' : 'd';
+    }
 
     function need(x, name, label) {
         if (!isFinite(x)) throw Calc.fail('Enter a value for ' + label + '.', name);
@@ -255,10 +269,10 @@ document.addEventListener('DOMContentLoaded', () => {
     Calc.create({
         form: '#calc',
         compute(v) {
-            showFields(v.emode);
+            syncUI();
             const gauss = v.profile === 'gauss';
-            dLabel.firstChild.textContent = gauss ? 'Spot diameter (1/e²) ' : 'Top-hat diameter ';
             const E = v.emode === 'e' ? need(v.ep, 'ep', 'pulse energy') : need(v.pavg, 'pavg', 'average power') / need(v.frep, 'frep', 'repetition rate');
+            if (v.emode === 'p' && v.tau * v.frep >= 1) throw Calc.fail('Pulse duration × repetition rate is ' + fmt.num(v.tau * v.frep, 3) + ' (≥ 1), so the pulses would overlap. Check the units.', 'tau');
             const w = v.d / 2;
             const F0 = gauss ? 2 * E / (Math.PI * w * w) : E / (Math.PI * w * w);
             const Ppk = K_SHAPE[v.shape] * E / v.tau;
@@ -270,13 +284,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hasTh) {
                 const r = F0 / v.fth;
                 ratio = fmt.num(r, 4) + ' ×';
-                if (r <= 1) { dth = 'below threshold'; eth = '0 %'; badge.textContent = 'Below threshold'; badge.className = 'badge badge-warn'; }
+                if (r <= 1) { dth = 'below threshold'; eth = '0 %'; setBadge('Below threshold', 'badge-warn'); }
                 else {
                     dth = gauss ? fmt.si(w * Math.sqrt(2 * Math.log(r)), 'm', 4) : fmt.si(v.d, 'm', 4);
                     eth = gauss ? fmt.pct(1 - 1 / r, 4) : '100 %';
-                    badge.textContent = 'Above threshold'; badge.className = 'badge badge-ok';
+                    setBadge('Above threshold', 'badge-ok');
                 }
-            } else { badge.textContent = ''; badge.className = 'badge'; }
+            } else setBadge('');
 
             return {
                 f0: fl(F0),
@@ -285,32 +299,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 ppk: fmt.si(Ppk, 'W', 4),
                 ep: fmt.si(E, 'J', 4),
                 aeff: area(E / F0),
-                enc: gauss ? fmt.pct(1 - Math.exp(-2), 4) : '100 %',
+                enc: gauss ? fmt.pct(1 - Math.exp(-2), 4) : null,
                 ratio, dth, eth
             };
+        },
+        onError() {
+            setBadge('');
+            // clear the stale chart, and stop plot.js's resize observer from redrawing it
+            plotBox.innerHTML = ''; clearTimeout(plotBox._plotT); plotBox._plot = null;
         },
         after(v) {
             const gauss = v.profile === 'gauss';
             const E = v.emode === 'e' ? v.ep : v.pavg / v.frep;
-            const w = v.d / 2, um = 1e6;
+            const w = v.d / 2;
+            const mm = v.d >= 1e-3, scale = mm ? 1e3 : 1e6, xu = mm ? 'mm' : 'µm';   // axis in mm for spots of 1 mm and up
             const F0 = (gauss ? 2 : 1) * E / (Math.PI * w * w) / 1e4;   // J/cm²
-            const xs = Calc.math.linspace(-1.6 * v.d, 1.6 * v.d, 241);
+            const xs = Calc.math.linspace(-1, 1, 241).map(t => t * v.d);   // ±2w₀, where a Gaussian is down to 3×10⁻⁴ F₀; r = 0 exactly at the center
             const ys = xs.map(r => gauss ? F0 * Math.exp(-2 * r * r / (w * w)) : (Math.abs(r) <= w ? F0 : 0));
             const fth = isFinite(v.fth) ? v.fth / 1e4 : null;
+            // headroom keeps the line labels clear of the peak; a threshold up to 3F₀ stays in view
+            const ymax = 1.2 * Math.max(F0, fth && fth < 3 * F0 ? fth : 0);
             const hl = [];
-            if (gauss) hl.push({ y: F0 / 2, label: 'Eₚ/πw₀² (average)', color: 'var(--muted)' });
-            if (fth) hl.push({ y: fth, label: 'F_th', color: 'var(--c5)' });
-            const vl = [{ x: -w * um, label: '', color: 'var(--border-strong)' }, { x: w * um, label: gauss ? '1/e² radius' : 'edge', color: 'var(--border-strong)' }];
-            Plot.draw('#prof-plot', {
+            if (gauss) hl.push({ y: F0 / 2, label: fth && Math.abs(fth - F0 / 2) < 0.08 * ymax ? '' : 'average', color: 'var(--muted)' });
+            if (fth) hl.push({ y: fth, label: 'Fₜₕ', color: 'var(--c5)' });
+            const vl = [{ x: -w * scale, label: '', color: 'var(--border-strong)' }, { x: w * scale, label: gauss ? '1/e² radius' : 'edge', color: 'var(--border-strong)' }];
+            Plot.draw(plotBox, {
                 height: 260,
-                x: { label: 'Radial position r (µm)' },
-                y: { label: 'Fluence (J/cm²)', min: 0 },
-                series: [{ type: 'line', x: xs.map(x => x * um), y: ys, label: 'F(r)', color: 'var(--c1)', fill: true }],
+                x: { label: 'Radial position r (' + xu + ')' },
+                y: { label: 'Fluence (J/cm²)', min: 0, max: ymax },
+                series: [{ type: 'line', x: xs.map(x => x * scale), y: ys, label: 'F(r)', color: 'var(--c1)', fill: true }],
                 hlines: hl, vlines: vl, includeLines: false,
-                hover: { format: (x, hits) => hits.length ? `r = ${fmt.num(hits[0].x, 4)} µm · F = ${fmt.num(hits[0].y, 4)} J/cm²` : '' }
+                hover: { format: (x, hits) => hits.length ? `r = ${fmt.num(hits[0].x, 4)} ${xu} · F = ${fmt.num(hits[0].y, 4)} J/cm²` : '' }
             });
         }
     });
+    emodeSel.addEventListener('change', syncUI);
+    profSel.addEventListener('change', syncUI);
+    syncUI();
 });
 </script>
 </body>

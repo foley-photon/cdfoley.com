@@ -24,7 +24,7 @@
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
     .oee-bar svg { width: 100%; height: auto; display: block; }
-    .oee-bar text { font-family: var(--font); font-size: 12px; font-weight: 600; fill: #fff; }
+    .oee-bar text { font-family: var(--font); font-size: 12px; font-weight: 600; fill: var(--on-accent); }
     .oee-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.5rem 1.2rem; margin-top: 0.9rem; font-size: 0.86rem; color: var(--text-2); }
     .oee-legend div { display: flex; gap: 0.5rem; align-items: baseline; }
     .oee-legend i { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; transform: translateY(1px); }
@@ -32,8 +32,8 @@
     .panel-body > .hint { font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
     .oee-scale { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; }
 </style>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
         id: 'takt',
         compute(v) {
             const takt = v.avail / v.demand;                       // seconds per unit
-            const st = Calc.parseList(v.stations);
+            const st = Calc.parseList(v.stations, 'stations');
             if (st.some(t => !(t > 0))) throw Calc.fail('Station cycle times must be greater than zero.', 'stations');
             const badge = document.getElementById('takt-badge');
             lastTakt = { takt, st };

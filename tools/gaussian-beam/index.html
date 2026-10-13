@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gaussian Beam Calculator: Rayleigh Range, Divergence &amp; Beam Waist</title>
-<meta name="description" content="Gaussian beam calculator: Rayleigh range, beam radius w(z), divergence, wavefront curvature, Gouy phase, and depth of focus from waist, wavelength, and M².">
+<meta name="description" content="Calculate the Rayleigh range, beam radius w(z), divergence, wavefront curvature, Gouy phase, BPP, and depth of focus from waist size, wavelength, and M².">
 <link rel="canonical" href="https://cdfoley.com/tools/gaussian-beam/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Gaussian Beam Propagation Calculator">
-<meta property="og:description" content="Gaussian beam calculator: Rayleigh range, beam radius w(z), divergence, wavefront curvature, Gouy phase, and depth of focus from waist, wavelength, and M².">
+<meta property="og:description" content="Calculate the Rayleigh range, beam radius w(z), divergence, wavefront curvature, Gouy phase, BPP, and depth of focus from waist size, wavelength, and M².">
 <meta property="og:url" content="https://cdfoley.com/tools/gaussian-beam/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-gaussian-beam.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Gaussian Beam Propagation Calculator: Gaussian beam calculator: Rayleigh range, beam radius w(z), divergence, wavefront curvature, Gouy phase, and depth of focus from waist, wavelength, and M².">
+<meta property="og:image:alt" content="Gaussian Beam Propagation Calculator: Calculate the Rayleigh range, beam radius w(z), divergence, wavefront curvature, Gouy phase, BPP, and depth of focus from waist size, wavelength, and M².">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -22,8 +22,8 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -35,7 +35,7 @@
    "@type": "WebApplication",
    "name": "Gaussian Beam Propagation",
    "url": "https://cdfoley.com/tools/gaussian-beam/",
-   "description": "Gaussian beam calculator: Rayleigh range, beam radius w(z), divergence, wavefront curvature, Gouy phase, and depth of focus from waist, wavelength, and M².",
+   "description": "Calculate the Rayleigh range, beam radius w(z), divergence, wavefront curvature, Gouy phase, BPP, and depth of focus from waist size, wavelength, and M².",
    "applicationCategory": "UtilitiesApplication",
    "operatingSystem": "Any (web browser)",
    "browserRequirements": "Requires JavaScript",
@@ -45,7 +45,7 @@
     "price": "0",
     "priceCurrency": "USD"
    },
-   "keywords": "rayleigh range depth of focus divergence propagation w(z) gouy gaussian beam calculator waist radius",
+   "keywords": "rayleigh range depth of focus divergence propagation w(z) gouy gaussian beam calculator waist radius laser m2 beam quality bpp beam parameter product dof",
    "author": {
     "@type": "Person",
     "@id": "https://cdfoley.com/#person",
@@ -127,7 +127,7 @@
                 <div class="field">
                     <label for="z">Distance from the waist <span class="sym">z</span></label>
                     <div class="input-unit"><input id="z" name="z" value="5" inputmode="decimal"><select data-dim="length" data-units="µm,mm,cm,m" data-default="mm"></select></div>
-                    <p class="hint">Positive after the waist, negative before it. The beam is symmetric about z = 0.</p>
+                    <p class="hint">Positive after the waist, negative before it. The radius is symmetric about z = 0, but R(z) and ψ(z) change sign: R &lt; 0 means the wavefront is still converging.</p>
                 </div>
                 <div class="field">
                     <label for="tol">Depth-of-focus tolerance</label>
@@ -137,7 +137,7 @@
         </form>
 
         <section class="panel sticky-panel" aria-labelledby="results-h">
-            <div class="panel-head"><h2 id="results-h">Results</h2><span id="zone" class="badge"></span></div>
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="zone" class="badge" hidden></span></div>
             <div class="panel-body">
                 <div class="results">
                     <div class="result primary"><span class="result-label">Rayleigh range<span class="sym">z<sub>R</sub></span></span><output class="result-value" data-out="zR">—</output></div>
@@ -146,9 +146,9 @@
                     <div class="result"><span class="result-label">Peak intensity at z, relative to waist</span><output class="result-value" data-out="irel">—</output></div>
                     <div class="result"><span class="result-label">Wavefront radius of curvature<span class="sym">R(z)</span></span><output class="result-value" data-out="R">—</output></div>
                     <div class="result"><span class="result-label">Gouy phase<span class="sym">ψ(z)</span></span><output class="result-value" data-out="gouy">—</output></div>
-                    <div class="result"><span class="result-label">Far-field divergence, full angle<span class="sym">Θ = 2θ</span></span><output class="result-value" data-out="div">—</output></div>
+                    <div class="result"><span class="result-label">Far-field divergence, full angle<span class="sym">2θ</span></span><output class="result-value" data-out="div">—</output></div>
                     <div class="result"><span class="result-label">Beam parameter product<span class="sym">w₀θ</span></span><output class="result-value" data-out="bpp">—</output></div>
-                    <div class="result"><span class="result-label" id="dof-label">Depth of focus</span><output class="result-value" data-out="dof">—</output></div>
+                    <div class="result"><span class="result-label" id="dof-label">Depth of focus, total</span><output class="result-value" data-out="dof">—</output></div>
                     <div class="result"><span class="result-label">Confocal parameter<span class="sym">b = 2z<sub>R</sub></span></span><output class="result-value" data-out="b">—</output></div>
                 </div>
             </div>
@@ -156,21 +156,22 @@
     </div>
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
-        <div class="panel-head"><h2 id="plot-h">Beam envelope ±w(z)</h2></div>
+        <div class="panel-head"><h2 id="plot-h">Beam envelope <span style="text-transform:none">±w(z)</span></h2></div>
         <div class="panel-body"><div id="env-plot"></div></div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
         <h2>How it is calculated</h2>
         <p>A beam with 1/e² waist radius \(w_0\) and beam quality \(M^2\) keeps the hyperbolic profile of an ideal Gaussian, but spreads \(M^2\) times faster. Every quantity follows from the Rayleigh range:</p>
-        <div class="formula">\[ z_R = \frac{\pi w_0^2}{M^2 \lambda}, \qquad w(z) = w_0\sqrt{1 + \left(\frac{z}{z_R}\right)^2} \]</div>
-        <div class="formula">\[ R(z) = z\left[1 + \left(\frac{z_R}{z}\right)^2\right], \qquad \psi(z) = \arctan\frac{z}{z_R}, \qquad \theta = \frac{M^2\lambda}{\pi w_0} \]</div>
+        <div class="formula">\[ z_R = \frac{\pi w_0^2}{M^2 \lambda} \]\[ w(z) = w_0\sqrt{1 + \left(\frac{z}{z_R}\right)^2} \]</div>
+        <div class="formula">\[ R(z) = z\left[1 + \left(\frac{z_R}{z}\right)^2\right] \]\[ \psi(z) = \arctan\frac{z}{z_R} \]\[ \theta = \frac{M^2\lambda}{\pi w_0} \]</div>
         <p>\(\theta\) is the far-field <em>half</em>-angle divergence of the 1/e² radius. The full angle \(\Theta = 2\theta\) is what most laser datasheets quote. The beam parameter product \(\mathrm{BPP} = w_0\theta = M^2\lambda/\pi\) is invariant through ideal optics. A lens can trade waist size for divergence but cannot reduce their product, which makes BPP the natural figure of merit for fiber and multimode lasers.</p>
-        <p>At \(z = \pm z_R\) the radius has grown by \(\sqrt{2}\), the area has doubled, and the peak intensity has halved. The wavefront curvature is strongest there (\(R = 2z_R\)) and is flat both at the waist and in the far field. Over the whole focus the Gouy phase advances by π relative to a plane wave.</p>
+        <p>At \(z = \pm z_R\) the radius has grown by \(\sqrt{2}\), the area has doubled, and the peak intensity has halved. The wavefront curvature is strongest there (\(R = 2z_R\)). The wavefront is flat only at the waist. Far from it \(R \approx z\), so the beam looks like a spherical wave diverging from the waist. Over the whole focus the Gouy phase advances by π relative to a plane wave.</p>
+        <p>The badge above the results gives the regime at \(z\): within the Rayleigh range (\(|z| \le z_R\)), the transition region (\(z_R &lt; |z| \le 10\,z_R\)), or the far field (\(|z| &gt; 10\,z_R\), where \(w(z)\) is within 0.5 % of \(\theta|z|\)).</p>
 
         <h2>Depth of focus for a spot-size tolerance</h2>
         <p>The full Rayleigh range (\(\sqrt{2}\) growth) is too loose for most processes. If the spot radius may grow by at most a fraction \(\varepsilon\), the usable depth is</p>
-        <div class="formula">\[ \mathrm{DOF} = 2z_R\sqrt{(1+\varepsilon)^2 - 1} \;\approx\; 2z_R\sqrt{2\varepsilon}\quad(\varepsilon \ll 1). \]</div>
+        <div class="formula">\[ \mathrm{DOF} = 2z_R\sqrt{(1+\varepsilon)^2 - 1} \]\[ \mathrm{DOF} \approx 2z_R\sqrt{2\varepsilon}\quad(\varepsilon \ll 1). \]</div>
         <p>A 5 % tolerance gives only 0.64 \(z_R\) in total. Because \(z_R \propto w_0^2\), halving the spot cuts the depth of focus by a factor of four.</p>
 
         <h2>Worked example</h2>
@@ -179,22 +180,22 @@
             <li>\(z_R = \pi (25\,\mu\text{m})^2 / (1.1 \times 1.064\,\mu\text{m}) = 1.678\) mm.</li>
             <li>At z = 5 mm the radius is \(25\sqrt{1 + (5/1.678)^2} = 78.6\) µm. The peak intensity is 10.1 % of its value at the waist, and \(R = 5.56\) mm.</li>
             <li>The full-angle divergence is \(2 \times 1.1 \times 1.064 / (\pi \times 25) = 29.8\) mrad (1.708°). BPP = 0.373 mm·mrad.</li>
-            <li>The ±5 % depth of focus is 1.07 mm in total.</li>
+            <li>With a 5 % growth tolerance the depth of focus is 1.07 mm in total (±0.54 mm about the waist).</li>
         </ul>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>Paraxial propagation.</strong> The model assumes \(\theta \ll 1\). Above roughly 0.1–0.2 rad (NA ≳ 0.15), the 1/e² radius from these formulas becomes increasingly approximate.</li>
-            <li><strong>M² is an embedded-Gaussian model.</strong> For a multimode beam, \(w(z)\) and \(z_R\) describe the second-moment (D4σ) radius, as defined in ISO 11146. \(R(z)\) and the Gouy phase strictly apply to the embedded TEM₀₀ component.</li>
+            <li><strong>Paraxial propagation.</strong> The model assumes \(\theta \ll 1\). Above roughly 0.1–0.2 rad (NA ≳ 0.15), the 1/e² radius from these formulas becomes increasingly approximate. The badge warns when \(\theta\) exceeds 0.15 rad, and above 0.5 rad (a waist radius below about \(0.64\,M^2\lambda\)) the calculator shows an error instead of results.</li>
+            <li><strong>M² is an embedded-Gaussian model.</strong> For a multimode beam, \(w(z)\) and \(z_R\) describe the second-moment (D4σ) radius, as defined in ISO 11146. \(R(z)\) and the Gouy phase strictly apply to the embedded TEM₀₀ component. The relative peak intensity \((w_0/w)^2\) is exact for TEM₀₀. For a multimode beam, whose profile can change shape through focus, it is the change in average intensity over the second-moment area.</li>
             <li><strong>Uniform medium.</strong> In a medium of index \(n\), use \(\lambda/n\) for the wavelength. Thermal lensing and aberrations are not included.</li>
-            <li><strong>Symmetric, stigmatic beam.</strong> For astigmatic or elliptical beams (diode lasers, some fiber lasers), apply the calculation separately to each axis with its own waist position and M².</li>
+            <li><strong>Symmetric, stigmatic beam.</strong> For astigmatic or elliptical beams (diode, slab, and excimer lasers), apply the calculation separately to each axis with its own waist position and M².</li>
         </ul>
 
         <h2>References</h2>
         <ol class="refs">
             <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), ch. 17.</li>
             <li>H. Kogelnik and T. Li, “Laser beams and resonators,” <em>Appl. Opt.</em> <strong>5</strong>, 1550–1567 (1966).</li>
-            <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios.</li>
+            <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios — Part 1: Stigmatic and simple astigmatic beams.</li>
         </ol>
     </article>
 
@@ -231,13 +232,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const R = v.z === 0 ? Infinity : v.z * (1 + (zR / v.z) ** 2);
             const psi = Math.atan(v.z / zR);
             const eps = v.tol / 100;
-            const dof = 2 * zR * Math.sqrt((1 + eps) ** 2 - 1);
+            const dof = 2 * zR * Math.sqrt(eps * (2 + eps));   // (1 + ε)² − 1, written so tiny ε does not cancel to 0
             const az = Math.abs(v.z);
+            if (!(zR > 0 && isFinite(zR) && isFinite(wz) && isFinite(dof))) throw Calc.fail('A result is out of range. Check the input values and units.');
+            if (theta > 0.5) {
+                const dia = v.wmode === 'diameter';
+                const wmin = (dia ? 2 : 1) * v.m2 * v.wl / (0.5 * Math.PI);
+                const step = Math.pow(10, Math.floor(Math.log10(wmin)) - 3);
+                const quoted = Math.ceil(wmin / step) * step;   // rounded up at 4 significant figures, so the quoted size is accepted
+                throw Calc.fail('The divergence half-angle would exceed 0.5 rad, beyond the paraxial Gaussian-beam model. Use a waist '
+                    + (dia ? 'diameter' : 'radius') + ' of at least ' + fmt.si(quoted, 'm', 4) + '.', 'w');
+            }
 
-            if (az <= zR) { zone.textContent = 'Within the Rayleigh range'; zone.className = 'badge badge-ok'; }
+            if (theta > 0.15) { zone.textContent = 'Non-paraxial: approximate'; zone.className = 'badge badge-warn'; }
+            else if (az <= zR) { zone.textContent = 'Within the Rayleigh range'; zone.className = 'badge badge-ok'; }
             else if (az <= 10 * zR) { zone.textContent = 'Transition region'; zone.className = 'badge'; }
-            else { zone.textContent = 'Far field'; zone.className = 'badge badge-warn'; }
-            dofLabel.textContent = 'Depth of focus (±' + fmt.num(v.tol, 3) + ' % growth)';
+            else { zone.textContent = 'Far field'; zone.className = 'badge'; }
+            zone.hidden = false;
+            dofLabel.textContent = 'Depth of focus, total (' + fmt.num(v.tol, 3) + ' % spot growth)';
 
             return {
                 zR: fmt.si(zR, 'm', 4),
@@ -246,14 +258,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 irel: fmt.pct((w0 / wz) ** 2, 4),
                 R: isFinite(R) ? fmt.si(R, 'm', 4) : '∞ (flat)',
                 gouy: fmt.num(psi * 180 / Math.PI, 4) + '°  (' + fmt.num(psi, 4) + ' rad)',
-                div: fmt.si(2 * theta, 'rad', 4) + '  (' + fmt.num(2 * theta * 180 / Math.PI, 4) + '°)'
-                    + (theta > 0.15 ? '  non-paraxial' : ''),
+                div: fmt.si(2 * theta, 'rad', 4) + '  (' + fmt.num(2 * theta * 180 / Math.PI, 4) + '°)',
                 bpp: fmt.num(w0 * 1e3 * theta * 1e3, 4) + ' mm·mrad',
-                dof: fmt.si(dof, 'm', 4),
+                dof: fmt.si(dof, 'm', 4) + '  (±' + fmt.si(dof / 2, 'm', 4) + ')',
                 b: fmt.si(2 * zR, 'm', 4)
             };
         },
-        onError() { document.getElementById('env-plot').innerHTML = ''; },
+        onError() {                             // clear the plot, badge, and label left from the last valid result
+            document.getElementById('env-plot').innerHTML = '';
+            zone.textContent = ''; zone.hidden = true;
+            dofLabel.textContent = 'Depth of focus, total';
+        },
         after(v) {
             const w0 = v.wmode === 'diameter' ? v.w / 2 : v.w;
             const zR = Math.PI * w0 * w0 / (v.m2 * v.wl);
@@ -278,9 +293,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     { type: 'points', x: [v.z * zf, v.z * zf], y: [wAt * wf, -wAt * wf], color: 'var(--c2)', r: 5 }
                 ],
                 includeLines: false,
-                vlines: [
-                    { x: -zR * zf, label: '−z_R', color: 'var(--c3)' },
-                    { x: zR * zf, label: '+z_R', color: 'var(--c3)' }
+                vlines: [                       // one label for both lines, so the two cannot overlap or swap sides
+                    { x: -zR * zf, color: 'var(--c3)' },
+                    { x: zR * zf, label: '±zR', color: 'var(--c3)' }
                 ],
                 hover: { format: (x, hits) => hits.length ? `z = ${fmt.num(hits[0].x, 4)} ${zu} · w(z) = ${fmt.num(Math.abs(hits[0].y), 4)} ${wu}` : '' }
             });
