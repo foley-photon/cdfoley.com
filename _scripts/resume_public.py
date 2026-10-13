@@ -6,6 +6,7 @@ The source, applications/resume-source.html, is git-ignored and holds every tail
 (elements tagged data-v="master mfg rd inspect"). This script copies it to resume/index.html with
 only the master version: every element whose data-v list lacks "master" is removed, and the
 version switch is fixed to master. Tailored text therefore never reaches the public site.
+The page's JSON-LD block (id="ld-page") is kept from the existing resume/index.html, where _scripts/seo.py writes it.
 Run by _scripts/build-resume.ps1; edit the source, not resume/index.html.
 """
 import os, re, sys
@@ -61,5 +62,12 @@ for pat, rep in fixes:
 leftover = [v for v in re.findall(r'data-v="([^"]*)"', out) if 'master' not in v.split()]
 if leftover:
     sys.exit('resume_public.py: non-master elements remain: %s' % leftover[:5])
+# The ProfilePage JSON-LD in resume/index.html belongs to _scripts/seo.py (dates from git, the Person from the
+# home page), so keep the block already there; the source's copy is only a fallback for a first build.
+LD = re.compile(r'<script type="application/ld\+json" id="ld-page">.*?</script>\n', re.S)
+if os.path.exists(OUT):
+    old = LD.search(open(OUT, encoding='utf-8').read())
+    if old:
+        out = LD.sub(lambda m: old.group(0), out, count=1)
 open(OUT, 'w', encoding='utf-8').write(out)
 print('resume/index.html: master version only (%d -> %d characters)' % (len(src), len(out)))

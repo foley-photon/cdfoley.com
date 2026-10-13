@@ -26,6 +26,14 @@ issues = []
 if dom.count('class="site-header"') != 1: issues.append('header')
 if 'class="site-footer"' not in dom: issues.append('footer')
 k = dom.count('katex-error');  issues += [f'katex-error x{k}'] if k else []
+# With throwOnError: false, KaTeX draws an unsupported command (e.g. the \cdotp it reads for a "·" inside \text{}) as red text
+# with no katex-error class. Its MathML copy carries KaTeX's default errorColor, which site.js doesn't change.
+red = re.findall(r'<mstyle mathcolor="#cc0000">(?:<mtext>)?([^<]*)', dom)
+if red: issues.append(f'katex-red x{len(red)}: ' + ' '.join(sorted(set(red)))[:80])
+# math that never rendered (KaTeX missing, or markup such as a bare "<" inside TeX): a \( or \[ left in the page text
+txt = re.sub(r'<(script|style|textarea|annotation|pre|code)\b[^>]*>.*?</\1>', '', dom, flags=re.S)
+tex = re.findall(r'\\[(\[]', re.sub(r'<[^>]+>', '', txt))
+if tex: issues.append(f'raw TeX x{len(tex)}')
 if re.search(r'class="calc-error show"', dom): issues.append('calc-error shown: ' + re.search(r'class="calc-error show"[^>]*>([^<]*)', dom).group(1)[:80])
 blank = []
 for m in re.finditer(r'<div class="result[^"]*"([^>]*)>(.*?)</div>', dom, re.S):

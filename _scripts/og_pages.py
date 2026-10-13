@@ -101,10 +101,11 @@ def card(path, eyebrow, title, desc):
 
 def point_page_at(page, image_url, alt):
     s = open(page, encoding='utf-8').read()
-    s = re.sub(r'<meta property="og:image" content="[^"]*">', '<meta property="og:image" content="%s">' % image_url, s, count=1)
+    s = re.sub(r'<meta property="og:image" content="[^"]*">', lambda m: '<meta property="og:image" content="%s">' % image_url, s, count=1)
     a = '<meta property="og:image:alt" content="%s">' % html.escape(alt, quote=True)
-    if 'og:image:alt' in s: s = re.sub(r'<meta property="og:image:alt" content="[^"]*">', a, s, count=1)
-    else: s = re.sub(r'(<meta property="og:image:height"[^>]*>\n)', r'\1' + a.replace('\\', '\\\\') + '\n', s, count=1)
+    # Function replacements: a backslash in the alt text (e.g. \lambda) must not be read as a regex escape
+    if 'og:image:alt' in s: s = re.sub(r'<meta property="og:image:alt" content="[^"]*">', lambda m: a, s, count=1)
+    else: s = re.sub(r'(<meta property="og:image:height"[^>]*>\n)', lambda m: m.group(1) + a + '\n', s, count=1)
     open(page, 'w', encoding='utf-8').write(s)
 
 os.makedirs('assets/img/og', exist_ok=True)

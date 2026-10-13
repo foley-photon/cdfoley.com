@@ -5,7 +5,8 @@
 1. Writes JSON-LD (WebApplication + BreadcrumbList) into every tool page and an
    ItemList into the tools and learn hubs, from the TOOLS/ARTICLES registries
    in assets/js/site.js.
-2. Regenerates sitemap.xml with lastmod dates from git (today for uncommitted edits).
+2. Regenerates sitemap.xml with lastmod dates from git (today for uncommitted edits). Private and tooling
+   folders, the unlisted beta/ section, and pages marked noindex are left out.
 3. Reports pages missing a title, description, canonical URL, or Open Graph tags.
 """
 import datetime, html, json, os, re, subprocess
@@ -36,7 +37,8 @@ for f in ['index.html', 'tools/index.html', 'learn/index.html']:
 
 def put_ld(path, data):
     s = open(path, encoding='utf-8').read()
-    block = '<script type="application/ld+json" id="ld-page">\n' + json.dumps(data, ensure_ascii=False, indent=1) + '\n</script>\n'
+    ld = json.dumps(data, ensure_ascii=False, indent=1).replace('</', '<\\/')    # text can never close the <script> early
+    block = '<script type="application/ld+json" id="ld-page">\n' + ld + '\n</script>\n'
     s, n = re.subn(r'<script type="application/ld\+json" id="ld-page">.*?</script>\n', lambda m: block, s, flags=re.S)
     if not n:
         s = s.replace('</head>', block + '</head>', 1)
@@ -44,22 +46,30 @@ def put_ld(path, data):
 
 def modified(f):
     """When a page's content last changed, as an ISO 8601 date-time with time zone (what Google expects).
-    Edits that only touch the date fields themselves are ignored, so re-running this script doesn't move the date."""
+    Edits that only touch the fields this script writes (dates, article image) are ignored, so re-running it doesn't move the date."""
     def real(diff):
-        return any(l[:1] in '+-' and not l.startswith(('+++', '---')) and not re.search(r'"date(Modified|Published)"', l)
+        return any(l[:1] in '+-' and not l.startswith(('+++', '---')) and not re.search(r'"(date(Modified|Published)|image)"', l)
                    for l in diff.splitlines())
     now = datetime.datetime.now().astimezone().isoformat(timespec='seconds')
-    if real(subprocess.run(['git', 'diff', 'HEAD', '-U0', '--', f], capture_output=True, text=True).stdout):
+    # A diff is the page's own UTF-8 text. With text=True, Windows decodes it as cp1252, which can't map some of its bytes
+    # (⁻ is E2 81 BB), and then .stdout comes back as None, so decode it as UTF-8.
+    if real(subprocess.run(['git', 'diff', 'HEAD', '-U0', '--', f], capture_output=True, encoding='utf-8', errors='replace').stdout):
         return now                                             # uncommitted content edits
     for line in subprocess.run(['git', 'log', '--format=%H %cI', '--', f], capture_output=True, text=True).stdout.splitlines():
         sha, when = line.split()
-        if real(subprocess.run(['git', 'show', '-U0', '--format=', sha, '--', f], capture_output=True, text=True).stdout):
+        if real(subprocess.run(['git', 'show', '-U0', '--format=', sha, '--', f], capture_output=True, encoding='utf-8', errors='replace').stdout):
             return when
     return now
 
+def created(f):
+    """When a page was first committed, as an ISO 8601 date-time with time zone (now, if it isn't committed yet)."""
+    added = subprocess.run(['git', 'log', '--diff-filter=A', '--format=%cI', '--', f], capture_output=True, text=True).stdout.split()
+    return added[-1] if added else datetime.datetime.now().astimezone().isoformat(timespec='seconds')
+
 def meta(s, name, attr='name'):
+    """A meta tag's content as plain text: JSON-LD is not HTML, so entities such as &#x27; must be decoded here."""
     m = re.search(r'<meta ' + attr + r'="' + re.escape(name) + r'" content="([^"]*)"', s)
-    return m.group(1) if m else ''
+    return html.unescape(m.group(1)) if m else ''
 
 def crumbs(items):
     return {'@type': 'BreadcrumbList', 'itemListElement': [
@@ -94,14 +104,15 @@ put_ld('learn/index.html', {'@context': 'https://schema.org', '@type': 'Collecti
 hub = open('games/index.html', encoding='utf-8').read()
 GENRE = {'pinball': 'Pinball', 'brick-breaker': 'Arcade', 'space-rocks': 'Shooter', 'paddle-ball': 'Sports', 'snake': 'Arcade',
          '2048': 'Puzzle', 'sudoku': 'Puzzle', 'minesweeper': 'Puzzle', 'solitaire': 'Card game', 'hangman': 'Word game'}
-GAMES = [dict(slug=m.group(1), title=m.group(2)) for m in re.finditer(
+PLAYMODE = {'paddle-ball': ['SinglePlayer', 'MultiPlayer']}     # vs. the computer, or two players on one device
+GAMES = [dict(slug=m.group(1), title=html.unescape(m.group(2))) for m in re.finditer(
     r'<a class="card tool-card game-card" href="/games/([^/]+)/">.*?<h3>(.*?)</h3>', hub, re.S)]
 for g in GAMES:
     path = 'games/%s/index.html' % g['slug']
     s = open(path, encoding='utf-8').read()
     put_ld(path, {'@context': 'https://schema.org', '@graph': [
         {'@type': 'VideoGame', 'name': g['title'], 'url': '%s/games/%s/' % (SITE, g['slug']), 'description': meta(s, 'description'),
-         'genre': GENRE.get(g['slug'], 'Casual'), 'gamePlatform': 'Web browser', 'playMode': 'SinglePlayer',
+         'genre': GENRE.get(g['slug'], 'Casual'), 'gamePlatform': 'Web browser', 'playMode': PLAYMODE.get(g['slug'], 'SinglePlayer'),
          'applicationCategory': 'GameApplication', 'operatingSystem': 'Any (web browser)', 'isAccessibleForFree': True,
          'offers': {'@type': 'Offer', 'price': '0', 'priceCurrency': 'USD'}, 'author': AUTHOR, 'publisher': AUTHOR},
         crumbs([('Games', '/games/'), (g['title'], '/games/%s/' % g['slug'])])]})
@@ -139,27 +150,39 @@ person = next(json.loads(b) for b in re.findall(r'<script type="application/ld\+
               if '"@type": "Person"' in b)
 person.pop('@context', None)
 put_ld('resume/index.html', {'@context': 'https://schema.org', '@type': 'ProfilePage', 'url': SITE + '/resume/',
-    'dateModified': modified('resume/index.html'), 'mainEntity': person})
+    'dateCreated': created('resume/index.html'), 'dateModified': modified('resume/index.html'), 'mainEntity': person})
 
-# Articles: Google wants full ISO 8601 date-times with a time zone, not bare dates
+# Articles: Google wants full ISO 8601 date-times with a time zone, not bare dates, and recommends an image
 for a in ARTICLES:
     f = 'learn/%s/index.html' % a['slug']
     if not os.path.exists(f): continue
     s = open(f, encoding='utf-8').read()
     t = re.sub(r'("datePublished": ?")(\d{4}-\d{2}-\d{2})(")', r'\g<1>\g<2>T09:00:00-04:00\3', s)
     t = re.sub(r'("dateModified": ?")[^"]*(")', lambda m: m.group(1) + modified(f) + m.group(2), t)
+    img = meta(t, 'og:image', 'property')                  # the article's own 1200 × 630 card from og_pages.py
+    if img and '"image"' not in t:                         # one line per key, or the whole block minified on one line
+        t = re.sub(r'(\n *)?"datePublished"', lambda m: '%s"image":%s%s,%s"datePublished"' % (
+            m.group(1) or '', ' ' if m.group(1) else '', json.dumps(img), m.group(1) or ''), t, count=1)
     if t != s: open(f, 'w', encoding='utf-8').write(t)
 formulas = open('formulas/index.html', encoding='utf-8').read()
 put_ld('formulas/index.html', {'@context': 'https://schema.org', '@type': 'CollectionPage', 'name': 'Formula reference',
     'url': SITE + '/formulas/', 'description': meta(formulas, 'description'), 'author': AUTHOR})
 print('JSON-LD: %d tools, %d games, %d publications, tools/learn/games hubs, resume, formulas' % (len(TOOLS), len(GAMES), len(PUBS)))
 
-# 2. Sitemap
-pages = ['index.html'] + sorted(
-    os.path.join(dp, 'index.html').replace('\\', '/').lstrip('./')
-    for dp, dn, fn in os.walk('.') if 'index.html' in fn and dp != '.'
-    and not re.match(r'\./(\.git|applications|_)', dp))
-dirty = set(subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True).stdout.split())
+# 2. Sitemap: public pages only. Folders starting with . or _ (.git, .claude worktrees, _scripts), the private
+#    applications/ folder, and the unlisted beta/ section are pruned, and so is any page marked noindex.
+def indexable(f):
+    return not re.search(r'<meta name="robots" content="[^"]*noindex', open(f, encoding='utf-8').read(), re.I)
+pages = []
+for dp, dn, fn in os.walk('.'):
+    dn[:] = [d for d in dn if not d.startswith(('.', '_')) and not (dp == '.' and d in ('applications', 'beta'))]
+    if 'index.html' in fn and dp != '.':
+        pages.append(os.path.relpath(os.path.join(dp, 'index.html')).replace('\\', '/'))
+pages = ['index.html'] + sorted(f for f in pages if indexable(f))
+# Pages whose content differs from the last commit, plus new files. (git status would also flag a page that a tool only
+# rewrote, e.g. from LF to CRLF line endings, and give it a false lastmod.)
+dirty = set(subprocess.run(['git', 'diff', '--name-only', 'HEAD'], capture_output=True, text=True).stdout.split()
+            + subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'], capture_output=True, text=True).stdout.split())
 today = datetime.date.today().isoformat()
 def lastmod(f):
     if f in dirty or any(f.startswith(d) for d in dirty if d.endswith('/')): return today
