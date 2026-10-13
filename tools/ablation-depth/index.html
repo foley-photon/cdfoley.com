@@ -227,7 +227,7 @@
         <div class="formula">\[ L = \delta_\text{eff}\,\ln\!\left(\frac{F_0}{F_\text{th}}\right). \]</div>
         <p>Depth grows with the <em>logarithm</em> of fluence. Doubling the fluence adds a fixed increment \(\delta_\text{eff}\ln 2\) instead of doubling the depth. For ultrashort pulses on metals, two logarithmic regimes are commonly seen (Nolte et al., 1997). At low fluence \(\delta_\text{eff}\) is close to the optical penetration depth, of order 10 nm. At higher fluence a larger electron heat-diffusion length applies, of order 100 nm.</p>
         <div class="callout callout-warn">
-            <p><strong>δ<sub>eff</sub> is a fit parameter, not 1/α.</strong> Take crystalline silicon at 1064 nm. Absorption is weak (α of order 10 cm⁻¹ at room temperature), so the optical penetration depth is about a millimetre. Nanosecond ablation depths there are set by heating, melting, and the rise in absorption with temperature, not by optical absorption. Measure δ<sub>eff</sub> for your material, wavelength, and pulse duration. Do not take it from optical constants.</p>
+            <p><strong>δ<sub>eff</sub> is a fit parameter, not 1/α.</strong> Take crystalline silicon at 1064 nm. Absorption is weak (α of order 10 cm⁻¹ at room temperature), so the optical penetration depth is about a millimeter. Nanosecond ablation depths there are set by heating, melting, and the rise in absorption with temperature, not by optical absorption. Measure δ<sub>eff</sub> for your material, wavelength, and pulse duration. Do not take it from optical constants.</p>
         </div>
 
         <h2>Incubation</h2>
@@ -287,13 +287,16 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ── Part 1: Liu fit ─────────────────────────────────────────────── */
     // Tabs, semicolons, or spaces between columns leave any comma inside its number. It is a decimal comma
     // ("13,1", "0,035") unless the data has decimal points or every such comma could be a thousands separator
-    // ("1,000"). Lines with neither ("1, 13.1", "1,13.1") are read as comma-separated values.
+    // ("1,000"). With no decimal points, a single "d,ddd" group reads two ways, so it is refused, as calc.js
+    // does for single inputs. Lines with neither ("1, 13.1", "1,13.1") are read as comma-separated values.
     function parsePairs(text) {
         const lines = String(text).split(/\r?\n/).map(l => l.trim()).filter(l => l && l[0] !== '#');
         const cols = lines.map(l => /[\t;]/.test(l) ? l.split(/\s*[\t;]\s*/)
             : /\s/.test(l) && !/(^|\s),|,(\s|$)/.test(l) ? l.split(/\s+/) : null);
         const fields = [].concat(...cols.filter(Boolean));
         const decComma = !fields.some(f => /\d\.\d/.test(f)) && fields.some(f => /^[-+]?(0?,\d+|\d*,(\d\d?|\d{4,}))$/.test(f));
+        const amb = !decComma && !fields.some(f => /\d\.\d/.test(f)) && fields.find(f => /^[-+]?[1-9]\d{0,2},\d{3}$/.test(f));
+        if (amb) throw Calc.fail('“' + amb + '” is ambiguous (crater data): enter ' + amb.replace(',', '') + ' or ' + amb.replace(',', '.') + '.', 'data');
         // Calc.parseNum refuses "1,500" as ambiguous, so thousands separators are removed here
         const num = f => Calc.parseNum(decComma ? f.replace(',', '.') : /^[-+]?\d{1,3}(,\d{3})+(\.\d*)?$/.test(f) ? f.replace(/,/g, '') : f);
         const pts = [];
