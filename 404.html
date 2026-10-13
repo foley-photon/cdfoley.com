@@ -17,14 +17,52 @@
     <header class="page-head">
         <span class="eyebrow">404</span>
         <h1>This page is out of focus</h1>
-        <p class="lede">The page you're looking for doesn't exist, or it moved when the site was reorganized. The old single-page calculators are now individual tools.</p>
+        <p class="lede">The page you're looking for doesn't exist, or it moved when the site was reorganized. The old single-page calculators are now individual tools, so search for the one you need.</p>
     </header>
+    <form class="tool-search" action="/tools/" method="get" role="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" name="q" placeholder="Search tools — “Rayleigh”, “Cpk”, “Torr”, “lens”" aria-label="Search engineering tools" autocomplete="off">
+    </form>
+    <section id="suggest" aria-labelledby="suggest-h" style="margin-bottom:2rem" hidden>
+        <h2 id="suggest-h" style="font-size:1.1rem">Were you looking for one of these?</h2>
+        <div data-suggest></div>
+    </section>
     <div class="btn-row">
         <a class="btn btn-primary" href="/">Home</a>
         <a class="btn btn-secondary" href="/tools/">All tools</a>
         <a class="btn btn-ghost" href="/resume/">Resume →</a>
     </div>
+    <p style="color:var(--text-2);margin-top:1.4rem">You can also browse the <a href="/learn/">knowledge center</a>, the <a href="/formulas/">formula reference</a>, <a href="/publications/">publications</a>, or <a href="/games/">games</a>.</p>
 </main>
 <div id="site-footer"></div>
+<script>
+// GitHub Pages serves this page at any missing address, so use the address to help.
+(function () {
+    // The calculators were on one page, /tools.html, until June 2025: send old links and their #anchors to /tools/
+    if (/^\/tools\.html?$/i.test(location.pathname)) { location.replace('/tools/' + location.hash); return; }
+    if (!window.Site || /^\/games\//i.test(location.pathname)) return;
+    var path;
+    try { path = decodeURIComponent(location.pathname); } catch (e) { path = location.pathname; }
+    // Words from the address, e.g. /tools/beam-waist-calculator/ → "beam waist calculator"
+    var words = path.replace(/\.(html?|php|aspx?)$/i, '').split(/[\/\s_.+-]+/).filter(function (w) {
+        return w && !/^(tools?|learn|index|404)$/i.test(w);
+    });
+    var q = words.join(' ').slice(0, 80);
+    if (!q) return;
+    var tools = Site.findTools(q), articles = Site.findArticles(q), terms = Site.searchWords(q);
+    if (!tools.length && !articles.length && terms.length > 1) {
+        // Nothing matches every word: suggest the tools that match at least half of them
+        var hits = {};
+        terms.forEach(function (w) { Site.findTools(w).forEach(function (t) { hits[t.slug] = (hits[t.slug] || 0) + 1; }); });
+        tools = Site.tools.filter(function (t) { return hits[t.slug] >= terms.length / 2; })
+            .sort(function (a, b) { return hits[b.slug] - hits[a.slug]; });
+    }
+    var items = articles.map(function (a) { return 'article:' + a.slug; }).concat(tools.map(function (t) { return t.slug; })).slice(0, 6);
+    if (!items.length) return;
+    document.querySelector('main input[name="q"]').value = q;
+    document.querySelector('[data-suggest]').setAttribute('data-related', items.join(','));   // site.js renders the cards
+    document.getElementById('suggest').hidden = false;
+})();
+</script>
 </body>
 </html>
