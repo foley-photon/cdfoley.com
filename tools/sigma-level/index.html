@@ -200,10 +200,10 @@
         <table>
             <thead><tr><th class="num">Sigma level</th><th class="num">DPMO (1.5σ shift)</th><th class="num">Yield (1.5σ shift)</th><th class="num">DPMO, one-sided, no shift</th><th class="num">PPM, ±Zσ two-sided, centered</th></tr></thead>
             <tbody>
-                <tr><td class="num">1</td><td class="num">691,462</td><td class="num">30.85 %</td><td class="num">158,655</td><td class="num">317,311</td></tr>
-                <tr><td class="num">2</td><td class="num">308,538</td><td class="num">69.15 %</td><td class="num">22,750</td><td class="num">45,500</td></tr>
-                <tr><td class="num">3</td><td class="num">66,807</td><td class="num">93.32 %</td><td class="num">1,350</td><td class="num">2,700</td></tr>
-                <tr><td class="num">4</td><td class="num">6,210</td><td class="num">99.379 %</td><td class="num">31.7</td><td class="num">63.3</td></tr>
+                <tr><td class="num">1</td><td class="num">691 462</td><td class="num">30.85 %</td><td class="num">158 655</td><td class="num">317 311</td></tr>
+                <tr><td class="num">2</td><td class="num">308 538</td><td class="num">69.15 %</td><td class="num">22 750</td><td class="num">45 500</td></tr>
+                <tr><td class="num">3</td><td class="num">66 807</td><td class="num">93.32 %</td><td class="num">1 350</td><td class="num">2 700</td></tr>
+                <tr><td class="num">4</td><td class="num">6 210</td><td class="num">99.379 %</td><td class="num">31.7</td><td class="num">63.3</td></tr>
                 <tr><td class="num">5</td><td class="num">233</td><td class="num">99.9767 %</td><td class="num">0.287</td><td class="num">0.573</td></tr>
                 <tr><td class="num">6</td><td class="num">3.4</td><td class="num">99.99966 %</td><td class="num">0.00099</td><td class="num">0.0020</td></tr>
             </tbody>
@@ -324,7 +324,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const pois = Math.exp(-dpuV), failed = U - v.pass;
                 const g = dpuV < 1e-4 ? dpuV * dpuV * (0.5 - dpuV / 3) : -Math.expm1(-dpuV) - dpuV * pois;
                 const sd = Math.sqrt(U * pois * g), z = sd > 0 ? (v.pass - U * pois) / sd : 0;
-                fpyNote = failed > D || failed * O < D ? 'Does not fit the defect count: check that both counts cover the same units.'
+                fpyNote = D === 0 && failed === 0 ? 'No defects were found, so there is no Poisson comparison to make.'
+                    : failed > D || failed * O < D ? 'Does not fit the defect count: check that both counts cover the same units.'
                     : Math.abs(z) < 2 ? 'Close to the Poisson estimate: defects look randomly distributed.'
                     : z > 0 ? 'Above the Poisson estimate: defects are clustering on fewer units.'
                     : 'Below the Poisson estimate: defects are spread more evenly than random, with few units carrying more than one.';

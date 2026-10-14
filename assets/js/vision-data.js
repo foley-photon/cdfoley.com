@@ -4,8 +4,10 @@
    vision system configurator: area-scan sensors, camera interfaces, lens
    formats and mounts, standard focal lengths, and lighting guidance.
 
-   Sensor values are the sensor maker's full active array. Camera makers
-   often crop a few rows or columns, so confirm against the camera datasheet.
+   Sensor arrays are the counts most cameras deliver: Sony's recommended
+   recording pixels for first-generation Pregius, the maker's effective array
+   otherwise. Camera makers may crop a few more rows or columns, so confirm
+   against the camera datasheet.
    ========================================================================== */
 (function () {
     'use strict';
@@ -98,8 +100,8 @@
         { name: '1″',    circle: 16.0, mount: 'C-mount' },
         { name: '1.1″',  circle: 17.6, mount: 'C-mount' },
         { name: '1.2″',  circle: 19.3, mount: 'C-mount (1.2″-rated lenses only)' },
-        { name: '4/3″',  circle: 21.6, mount: 'TFL-II (M35) or M42' },
-        { name: 'APS-C', circle: 28.4, mount: 'M42 or TFL-II' },
+        { name: '4/3″',  circle: 21.6, mount: 'TFL (M35) or M42' },
+        { name: 'APS-C', circle: 28.4, mount: 'TFL (M35), TFL-II (M48), or M42' },
         { name: '35 mm full frame', circle: 43.3, mount: 'F-mount, M58, or M72' },
         { name: 'Large format', circle: 60, mount: 'M72 or larger, often with a custom lens' }
     ];

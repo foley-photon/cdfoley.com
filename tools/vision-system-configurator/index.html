@@ -193,7 +193,7 @@
                     <div class="field">
                         <label for="depth">Height variation to keep in focus</label>
                         <div class="input-unit"><input id="depth" name="depth" value="2" inputmode="decimal" data-nonneg data-label="height variation"><select data-dim="length" data-units="µm,mm,cm,in" data-default="mm"></select></div>
-                        <p class="hint">Part height range plus positioning tolerance.</p>
+                        <p class="hint">Part height range plus positioning tolerance, centered on the working distance.</p>
                     </div>
                 </div>
                 <div class="field-row">
@@ -336,7 +336,7 @@
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="fit-h">
         <div class="panel-head"><h2 id="fit-h">Sensors that fit this job</h2><span class="badge" data-out="fitcount">—</span></div>
         <div class="panel-body">
-            <p class="hint" style="margin:0 0 .8rem">Each sensor gets the longest standard focal length that still covers your field at your working distance. Rows that meet resolution, depth of field, and bandwidth come first, smallest sensor first. Click <b>Use</b> to load one above.</p>
+            <p class="hint" style="margin:0 0 .8rem">Each sensor gets the longest standard focal length that still covers your field at your working distance. Rows that meet resolution, depth of field, and bandwidth come first, fewest pixels first. Click <b>Use</b> to load one above.</p>
             <div class="fit-wrap" data-out="table"></div>
         </div>
     </section>
@@ -353,7 +353,7 @@
 
         <h2>Bandwidth and lens format</h2>
         <p>The data rate is pixels per frame × bytes per pixel × frame rate. The interface limits are practical sustained payloads after protocol overhead: about 115 MB/s for GigE, 380 MB/s for USB3, 1.15 GB/s for 10GigE, and 1.2 GB/s per CXP-12 link. The sensor's own maximum frame rate is not modeled, so check the camera datasheet as well.</p>
-        <p>A lens must project an image circle at least as large as the sensor diagonal. The configurator suggests the smallest standard lens format that covers the sensor and the usual mount for that format. C-mount covers sensors up to about 1.1″ (17.6 mm diagonal), or 1.2″ (19.3 mm) with lenses rated for it; larger sensors need TFL-II, M42, F-mount, M58, or M72 lenses.</p>
+        <p>A lens must project an image circle at least as large as the sensor diagonal. The configurator suggests the smallest standard lens format that covers the sensor and the usual mount for that format. C-mount covers sensors up to about 1.1″ (17.6 mm diagonal), or 1.2″ (19.3 mm) with lenses rated for it; larger sensors need TFL (M35), TFL-II (M48), M42, F-mount, M58, or M72 lenses.</p>
 
         <h2>Lighting</h2>
         <p>Lighting decides contrast, and contrast decides whether a feature that spans enough pixels is actually detectable. The suggestions follow standard practice: backlights for silhouettes and gauging, coaxial light for flat reflective parts, dome light for curved shiny parts, low-angle dark field for scratches and particles, and patterned backgrounds for transparent parts. The <a href="/learn/machine-vision-optics/">machine vision optics article</a> covers the geometry in more depth.</p>
@@ -507,7 +507,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const lf = V.lensFormatFor(s.diag);
             const covered = o.fovA >= v.fovw * (1 - 1e-9) && o.fovB >= v.fovh * (1 - 1e-9);
             const resOK = o.ppf >= v.ppf * (1 - 1e-9);
-            const dofOK = !(v.depth > 0) || o.dof >= v.depth;
+            // the thin-lens depth of field is asymmetric about the working distance (the near side is always the shorter), so test both ends of WD ± depth/2
+            const dofOK = !(v.depth > 0) || (o.near <= v.wd - v.depth / 2 && o.far >= v.wd + v.depth / 2);
             const Nw = v.N * (1 + o.m), airy = 2.44 * v.wl * Nw;
             const ratio = 2 * o.p / (v.wl * Nw), nu = 1 / ratio;
             const mtf = nu < 1 ? (2 / Math.PI) * (Math.acos(nu) - nu * Math.sqrt(1 - nu * nu)) : 0;
@@ -525,9 +526,12 @@ document.addEventListener('DOMContentLoaded', () => {
             ck.push(resOK
                 ? item('ok', 'Resolution', fmt.num(o.ppf, 3) + ' px across a ' + fmt.si(v.feat, 'm', 3) + ' feature (target ' + v.ppf + ').')
                 : item('bad', 'Resolution', 'Only ' + fmt.num(o.ppf, 3) + ' px across a ' + fmt.si(v.feat, 'm', 3) + ' feature (target ' + v.ppf + '). Use a sensor with more pixels or smaller pixels, a smaller field, or more cameras.'));
+            const farTxt = isFinite(o.far) ? L(o.far) : '∞';
             if (v.depth > 0) ck.push(dofOK
-                ? item('ok', 'Depth of field', (isFinite(o.dof) ? L(o.dof) : 'Unlimited') + ' at f/' + v.N + ' covers the ' + L(v.depth) + ' height variation.')
-                : item('bad', 'Depth of field', 'Only ' + L(o.dof) + ' at f/' + v.N + ' for a ' + L(v.depth) + ' height variation. Stop down, accept more blur, or reduce magnification.'));
+                ? item('ok', 'Depth of field', (isFinite(o.dof) ? L(o.dof) : 'Unlimited') + ' at f/' + v.N + ' (in focus from ' + L(o.near) + ' to ' + farTxt + ') covers the ' + L(v.depth) + ' height variation.')
+                : o.dof < v.depth
+                    ? item('bad', 'Depth of field', 'Only ' + L(o.dof) + ' at f/' + v.N + ' for a ' + L(v.depth) + ' height variation. Stop down, accept more blur, or reduce magnification.')
+                    : item('bad', 'Depth of field', L(o.dof) + ' at f/' + v.N + ', but it runs from ' + L(o.near) + ' to ' + farTxt + ', so the near end of the ' + L(v.depth) + ' height variation (' + L(v.wd - v.depth / 2) + ') is out of focus. Stop down, accept more blur, or reduce magnification.'));
             ck.push(ratio >= 2
                 ? item('ok', 'Optics vs. pixels', 'Sensor-limited: the ideal lens keeps ' + fmt.pct(mtf, 2) + ' contrast at the pixel Nyquist frequency.')
                 : ratio >= 1
@@ -542,7 +546,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ck.push(bwOK
                 ? item('ok', 'Bandwidth', fmt.num(rate, 3) + ' MB/s of about ' + iface.mbps + ' MB/s on ' + iface.name + ', so up to ' + fmt.num(maxFps, 3) + ' fps.')
                 : item('bad', 'Bandwidth', fmt.num(rate, 3) + ' MB/s exceeds the roughly ' + iface.mbps + ' MB/s of ' + iface.name + ', which allows at most ' + fmt.num(maxFps, 3) + ' fps. Use a faster interface, a region of interest, or fewer bits per pixel.'));
-            ck.push(item('ok', 'Lens format', 'Use a lens rated for ' + lf.name + ' (Ø ' + lf.circle + ' mm) or larger to cover the ' + n1(s.diag) + ' mm sensor diagonal; ' + lf.mount + '.'));
+            const nominal = parseFloat(n1(s.diag)) > lf.circle;   // lensFormatFor used its tolerance and the displayed diagonal exceeds the nominal circle (the maker designates the sensor by this format)
+            ck.push(item('ok', 'Lens format', nominal
+                ? 'Use a lens rated for ' + lf.name + ' (Ø ' + lf.circle + ' mm nominal; ' + lf.name + ' lenses cover this ' + n1(s.diag) + ' mm ' + (s.format ? 'Type ' + s.format.replace('″', '') + ' ' : '') + 'sensor) or larger; ' + lf.mount + '.'
+                : 'Use a lens rated for ' + lf.name + ' (Ø ' + lf.circle + ' mm) or larger to cover the ' + n1(s.diag) + ' mm sensor diagonal; ' + lf.mount + '.'));
             if (v.app === 'measure' && v.depth > 0 && persp > 0.5) ck.push(item('warn', 'Perspective', 'A ' + L(v.depth) + ' height change shifts edges at the field edge by ' + fmt.num(persp, 2) + ' px. A telecentric lens removes this error.'));
             if (v.app === 'color') ck.push(item('warn', 'Color', 'Pick the color version of the camera. A Bayer filter halves the effective resolution for fine detail.'));
 
@@ -565,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rows = V.sensors.filter(x => !v.globalonly || x.shutter === 'global').map(x => {
                 const r = optics(x, v, null);
                 const mf = iface.mbps * 1e6 / (x.nx * x.ny * pf.bpp);
-                const ok = r.f && r.ppf >= v.ppf * (1 - 1e-9) && (!(v.depth > 0) || r.dof >= v.depth) && mf >= v.fps;
+                const ok = r.f && r.ppf >= v.ppf * (1 - 1e-9) && (!(v.depth > 0) || (r.near <= v.wd - v.depth / 2 && r.far >= v.wd + v.depth / 2)) && mf >= v.fps;
                 const near = r.f && r.ppf >= 0.8 * v.ppf;
                 return { x, r, mf, ok, near, rank: ok ? 0 : near ? 1 : 2 };
             }).sort((a, b) => a.rank - b.rank || (a.rank === 0 ? a.x.mp - b.x.mp : (b.r.ppf || 0) - (a.r.ppf || 0)));
@@ -595,7 +602,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 circsvg: { html: circSVG(s, lf) },
                 fovcap: L(o.fovA) + ' × ' + L(o.fovB) + (covered ? ' · ' + (used < 0.5 ? '< 1' : Math.round(used)) + '% used' : ' · too small'),
                 pixcap: fmt.num(o.ppf, 2) + ' px across · 1 px = ' + fmt.si(o.pobj, 'm', 3),
-                circcap: lf.name + ' lens, Ø ' + lf.circle + ' mm · sensor Ø ' + n1(s.diag) + ' mm',
+                circcap: lf.name + ' lens, Ø ' + lf.circle + ' mm' + (nominal ? ' nominal' : '') + ' · sensor Ø ' + n1(s.diag) + ' mm',
                 checks: { html: '<ul class="checks">' + ck.join('') + '</ul>' },
                 lens: fLabel + ' · f/' + v.N + (custom ? '' : ' (standard)'),
                 fov: L(o.fovA, 4) + ' × ' + L(o.fovB, 4),
@@ -612,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fideal: L(o.fideal, 4),
                 summary: { html: '<dl class="summary-dl">' +
                     '<dt>Sensor</dt><dd>' + esc(s.maker + ' ' + s.name) + ' · ' + esc(V.formatLabel(s)) + ' · ' + s.nx + ' × ' + s.ny + ' · ' + s.pitch + ' µm · ' + s.shutter + ' shutter</dd>' +
-                    '<dt>Lens</dt><dd>' + fLabel + ', f/' + v.N + ', ' + esc(lf.name) + ' format or larger, ' + esc(lf.mount) + '</dd>' +
+                    '<dt>Lens</dt><dd>' + fLabel + ', f/' + v.N + ', ' + esc(lf.name) + (/format/i.test(lf.name) ? '' : ' format') + ' or larger, ' + esc(lf.mount) + '</dd>' +
                     '<dt>Setup</dt><dd>' + esc(L(v.wd)) + ' working distance, ' + esc(L(o.fovA)) + ' × ' + esc(L(o.fovB)) + ' field, ' + esc(fmt.si(o.pobj, 'm', 3)) + ' per pixel</dd>' +
                     '<dt>Interface</dt><dd>' + esc(iface.name) + ', ' + esc(pf.name) + ', ' + v.fps + ' fps (' + fmt.num(rate, 3) + ' MB/s)</dd>' +
                     '<dt>Exposure</dt><dd>' + esc(fmt.si(v.exp, 's', 3)) + (v.speed > 0 ? ' (' + fmt.num(blurPx, 2) + ' px of motion blur)' : '') + '</dd></dl>' },

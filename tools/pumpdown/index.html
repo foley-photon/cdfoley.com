@@ -246,7 +246,7 @@
         <p>A 50 L chamber pumped by a 35 m³/h (9.72 L/s) rotary-vane pump through 1 m of 25 mm bore line (KF25), down to 0.1 mbar with air at 20 °C:</p>
         <ul>
             <li>Without the line, \(t = (50/9.72)\ln(1013/0.1) = 47\) s.</li>
-            <li>With the line, the laminar conductance is about 50 000 L/s near atmosphere but only 5.0 L/s at 0.1 mbar. There \(S_\text{eff}\) falls to 3.3 L/s, 34 % of the pump's speed, and the pump-down takes about 58 s.</li>
+            <li>With the line, the conductance is about 50 000 L/s near atmosphere (laminar) but only 5.0 L/s at 0.1 mbar, where the flow is already transitional (Kn ≈ 0.04 in the line): the laminar term alone gives 3.5 L/s at the mean line pressure of 0.067 mbar and the molecular term adds the rest. There \(S_\text{eff}\) falls to 3.3 L/s, 34 % of the pump's speed, and the pump-down takes about 58 s.</li>
             <li>Near atmosphere the flow in the line is turbulent (Re ≈ 3 × 10⁴), so the line actually conducts roughly ten times less than the laminar value. That is still hundreds of times the pump's speed, so the result is unaffected.</li>
             <li>In molecular flow the same line conducts only 1.8 L/s. A turbo pump behind this line would lose most of its speed. High vacuum pumps are mounted directly on the chamber for this reason.</li>
             <li>An unbaked chamber with 5000 cm² of internal surface outgassing at 10⁻⁸ mbar·L/(s·cm²) adds Q = 5 × 10⁻⁵ mbar·L/s. Through this line, that limits the base pressure to about 3 × 10⁻⁵ mbar regardless of pump size.</li>
@@ -393,20 +393,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const regime = kn < 0.01 ? 'viscous' : kn <= 0.5 ? 'transitional' : 'molecular';
             const frac = r1.Seff / v.S;
             // Reynolds number in the line at p₀, where the mass flow is largest: Re = 4ṁ/(π d η), ṁ = S_eff·p·M/(RT).
-            // Choked: a reservoir at p₀ can push at most C*·p₀·A·√(RT/M) into the line (C* = 0.685 for γ = 1.4),
+            // Choked: a reservoir at p₀ can push at most C*·p₀·A·√(RT/M) into the line (C* = 0.685 for γ = 1.4, 0.726 for γ = 5/3),
             // and the gas leaving at the pump end (velocity S/A, the fastest point) cannot exceed √(RT/M).
             const S0 = m.at(v.p0).Seff;
             const re = 4 * S0 * v.p0 * o.M / (K.R * v.T) / (Math.PI * v.d * o.eta);
             const area = Math.PI * v.d * v.d / 4, cIso = Math.sqrt(K.R * v.T / o.M);
-            const choked = S0 / area > 0.685 * cIso || v.S / area > cIso;
+            const cstar = (v.gas === 'he' || v.gas === 'ar') ? 0.726 : 0.685;   // monatomic gases γ = 5/3, otherwise 1.4 (custom gases use 1.4)
+            const choked = S0 / area > cstar * cIso || v.S / area > cIso;
             const flow = (re < 2000 ? 'laminar' : re < 4000 ? 'laminar–turbulent transition' : 'turbulent') + (choked ? ', choked' : '');
-            if (!c.reached) { limit.textContent = 'Below ultimate pressure'; limit.className = 'badge badge-bad'; }
+            // the curve stops 2 % above p_ult, so a target inside that band is reachable in principle but is not integrated
+            const atLimit = !c.reached && v.p1 > m.pult;
+            if (atLimit) { limit.textContent = 'At the outgassing limit'; limit.className = 'badge badge-warn'; }
+            else if (!c.reached) { limit.textContent = 'Below ultimate pressure'; limit.className = 'badge badge-bad'; }
             else if (frac < 0.5) { limit.textContent = 'Line-limited at p₁'; limit.className = 'badge badge-warn'; }
             else { limit.textContent = 'Pump-limited at p₁'; limit.className = 'badge badge-ok'; }
 
             last = { m, c, v, unit, Q };
             return {
-                t: c.reached ? fmtTime(c.t) : 'not reached',
+                t: c.reached ? fmtTime(c.t) : atLimit ? 'not computed (p₁ within 2 % of the outgassing limit)' : 'not reached',
                 tideal: fmtTime(v.V / v.S * Math.log(v.p0 / v.p1)),
                 seff: speed(r1.Seff) + '  (' + fmt.num(frac * 100, 3) + ' % of S)',
                 c1: isFinite(r1.C) ? speed(r1.C) : 'no restriction',
