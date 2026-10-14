@@ -100,7 +100,7 @@
         <p class="lede">Choose a camera sensor and a lens to see what the camera will see: how large an area it covers (the field of view), how small a defect it can resolve, and how much height variation stays sharp (the depth of field). The page also shows whether the lens or the pixels limit the finest detail, and the lower panel finds the focal length you need for a given field of view and distance.</p>
         <details class="key-terms"><summary>Key terms</summary><dl>
             <dt>Field of view (FOV)</dt><dd>The width and height of the area on the part that one image covers. Spreading the same pixels over a larger field makes each pixel cover more of the part.</dd>
-            <dt>Object distance</dt><dd>How far the part is from the lens. Here it is measured from the lens’s front principal plane, an optical reference point, so it differs somewhat from the working distance that lens makers quote from the front of the lens barrel.</dd>
+            <dt>Object distance</dt><dd>How far the part is from the lens (the vision system configurator calls it the working distance). Here it is measured from the lens’s front principal plane, an optical reference point, so it differs somewhat from the working distance that lens makers quote from the front of the lens barrel.</dd>
             <dt>Focal length</dt><dd>The lens’s main specification, printed on the barrel (25&nbsp;mm, for example). From the same distance, a longer focal length sees a smaller area in more detail.</dd>
             <dt>Magnification</dt><dd>The size of the image on the sensor divided by the true size on the part. Most machine vision setups work well below 1; the default setup here is 0.14.</dd>
             <dt>Pixel pitch</dt><dd>The spacing between neighboring pixels on the sensor, listed in the camera datasheet as the pixel size, in micrometers (µm).</dd>
@@ -122,7 +122,7 @@
                     <select id="sensor" name="sensor" class="input">
                         <option value="custom">Custom</option>
                     </select>
-                    <p class="hint">39 area-scan sensors from Sony, onsemi, Gpixel, and ams OSRAM. Camera makers sometimes crop the array, so check the camera datasheet. To size a whole system, try the <a href="/tools/vision-system-configurator/">vision system configurator</a>.</p>
+                    <p class="hint"><span data-vd-count>392</span> area-scan sensors from <span data-vd-makers>ten</span> makers, grouped by maker and series. Each array is the maker’s recommended recording size where one is stated (what most cameras output by default), otherwise the effective or active array; camera makers sometimes crop further, so check the camera datasheet. To size a whole system, try the <a href="/tools/vision-system-configurator/">vision system configurator</a>.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
@@ -239,7 +239,7 @@
     </div>
 
     <article class="prose" style="margin-top:3rem">
-        <h2>How the calculation works</h2>
+        <h2>How it is calculated</h2>
         <p>The lens is modeled as a thin lens. For an object at distance \(s\) from the front principal plane of a lens of focal length \(f\), the magnification (image size over object size) and the field of view are</p>
         <div class="formula">\[ \begin{gathered} m = \frac{f}{s - f}, \quad \text{FOV} = \frac{\text{sensor size}}{m}, \\[6pt] \text{pixel on object} = \frac{p}{m}, \end{gathered} \]</div>
         <p>where \(p\) is the pixel pitch. To resolve a defect reliably it should span several pixels (typically 3–5), so the smallest detectable defect is that many object-side pixels.</p>
@@ -314,13 +314,16 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const { fmt } = Calc;
-    const SENSORS = Object.fromEntries(VisionData.sensors.map(x => [x.id, x]));
+    const V = VisionData;
     const sel = document.getElementById('sensor');
-    sel.insertAdjacentHTML('beforeend', VisionData.sensorOptionsHTML('imx250'));
+    const picker = V.attachPicker(sel, { selected: 'imx250', custom: true });   // the static inputs below equal the IMX250 row
+    const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+    document.querySelectorAll('[data-vd-count]').forEach(e => { e.textContent = V.sensors.length; });
+    document.querySelectorAll('[data-vd-makers]').forEach(e => { e.textContent = WORDS[V.makers.length] || V.makers.length; });
     const pitchIn = document.getElementById('pitch'), nxIn = document.getElementById('nx'), nyIn = document.getElementById('ny');
     const pitchUnit = pitchIn.parentElement.querySelector('select');
     sel.addEventListener('change', () => {
-        const s = SENSORS[sel.value];
+        const s = V.sensorById(sel.value);
         if (!s) return;
         pitchIn.value = fmt.plain(Calc.fromSI('length', pitchUnit.value, s.pitch * 1e-6), 5);
         nxIn.value = s.nx; nyIn.value = s.ny;
@@ -328,10 +331,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // a preset whose numbers no longer match the fields reads as Custom: after an edit, and on load for a link whose
     // values differ from the preset's (an edited link, or one made before a correction to the sensor data)
     const syncPreset = () => {
-        const s = SENSORS[sel.value];
+        const s = V.sensorById(sel.value);
         if (!s) return;
         const p = Calc.toSI('length', pitchUnit.value, Calc.parseNum(pitchIn.value)) * 1e6;
-        if (Math.abs(p - s.pitch) > 1e-9 || Calc.parseNum(nxIn.value) !== s.nx || Calc.parseNum(nyIn.value) !== s.ny) sel.value = 'custom';
+        if (Math.abs(p - s.pitch) > 1e-9 || Calc.parseNum(nxIn.value) !== s.nx || Calc.parseNum(nyIn.value) !== s.ny) { sel.value = 'custom'; picker.refresh(); }
     };
     [pitchIn, nxIn, nyIn].forEach(inp => inp.addEventListener('input', syncPreset));
 
@@ -344,6 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
         form: '#calc',
         outputs: '#mv-results',
         compute(v) {
+            picker.refresh();   // the sensor line under the preset (Reset and links set the preset without a change event)
             if (!(v.wd > v.f)) throw Calc.fail('The object distance must be longer than the focal length.', 'wd');
             const m = v.f / (v.wd - v.f);
             const sw = v.pitch * v.nx, sh = v.pitch * v.ny;
