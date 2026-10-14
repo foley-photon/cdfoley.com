@@ -25,6 +25,8 @@
 <style>
     .od-note { font-size: 0.85rem; color: var(--warn); min-height: 1.2em; margin: 0.8rem 0 0; }
     .od-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0 0.9rem; }
+    .od-lead { margin: 0 0 0.8rem; }
+    .od-filters-hint { margin-top: 0; }
 </style>
 <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
 <script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
@@ -100,7 +102,16 @@
 
     <header class="page-head">
         <h1>Optical Density (OD) &amp; ND Filter Calculator</h1>
-        <p class="lede">Convert between the ways attenuation is specified: optical density, transmittance, decibels, and percent blocked. Then stack neutral-density filters to bring a laser down to a safe or measurable power for a camera, power meter, or spectrometer.</p>
+        <p class="lede">How much does a filter dim a laser beam? Convert between the ways that dimming (attenuation) is specified: optical density, transmittance, decibels, and percent blocked. Then stack neutral-density filters to bring a laser down to a power that a camera, power meter, or spectrometer can take.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Optical density (OD)</dt><dd>A logarithmic measure of how strongly a filter dims light. OD&nbsp;1 passes 10&nbsp;%, OD&nbsp;2 passes 1&nbsp;%, and OD&nbsp;3 passes 0.1&nbsp;%.</dd>
+            <dt>Transmittance (T)</dt><dd>The fraction of the incoming power that gets through, from 0 to 1.</dd>
+            <dt>Decibel (dB)</dt><dd>Ten times the OD: OD&nbsp;3 is 30&nbsp;dB. Common in fiber optics and electronics.</dd>
+            <dt>Neutral-density (ND) filter</dt><dd>A gray filter that dims all colors in its working range by about the same amount. Absorptive ND filters are tinted glass; reflective ones carry a thin metal coating.</dd>
+            <dt>Absorbance</dt><dd>The spectroscopy name for the same logarithm when the light is lost by absorption in a sample.</dd>
+            <dt>Damage threshold</dt><dd>The power or energy per unit area a filter can take without cracking, burning, or changing.</dd>
+            <dt>MPE</dt><dd>Maximum permissible exposure: the most laser light the eye or skin may receive, set by the laser-safety standards. It decides the OD that safety eyewear needs.</dd>
+        </dl></details>
     </header>
 
     <section class="panel" id="conv" aria-labelledby="conv-h">
@@ -109,6 +120,7 @@
         </div>
         <div class="panel-body">
             <div class="calc-error" role="alert"></div>
+            <p class="hint od-lead">Type a value in any box; the others follow.</p>
             <div class="conv-grid">
                 <div class="field"><label for="c-od">Optical density <span class="sym">OD</span></label><div class="input-unit"><input id="c-od" name="od" inputmode="decimal"><span class="unit">OD</span></div></div>
                 <div class="field"><label for="c-t">Transmittance <span class="sym">T</span></label><div class="input-unit"><input id="c-t" name="t" inputmode="decimal"><span class="unit">fraction</span></div></div>
@@ -134,14 +146,16 @@
                     <div class="field"><div class="input-unit"><input name="od3" value="0.5" inputmode="decimal" data-optional data-nonneg data-label="filter 3 OD" aria-label="Filter 3 OD"><span class="unit">OD</span></div></div>
                     <div class="field"><div class="input-unit"><input name="od4" value="" inputmode="decimal" data-optional data-nonneg data-label="filter 4 OD" aria-label="Filter 4 OD"><span class="unit">OD</span></div></div>
                 </div>
+                <p class="hint od-filters-hint">Catalog filters run from about OD 0.1 to 4 (metal-coated) or 8 (absorptive glass). The OD marked on each filter applies at its design wavelength; check the vendor's curve at yours.</p>
                 <div class="field" style="margin-top:.95rem">
                     <label for="pin">Input power</label>
                     <div class="input-unit"><input id="pin" name="pin" value="2" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="input power"><select data-dim="power" data-units="µW,mW,W,kW" data-default="W"></select></div>
+                    <p class="hint">Laser power reaching the first filter, from a power meter or the laser datasheet.</p>
                 </div>
                 <div class="field">
                     <label for="ptg">Target power after filters</label>
                     <div class="input-unit"><input id="ptg" name="ptg" value="1" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="target power"><select data-dim="power" data-units="nW,µW,mW,W" data-default="mW"></select></div>
-                    <p class="hint">For example, a camera's saturation power or a power-meter range.</p>
+                    <p class="hint">The most your sensor can take, for example a camera's saturation power or a power meter's range, from its datasheet.</p>
                 </div>
             </div>
         </form>
@@ -154,7 +168,7 @@
                     <div class="result"><span class="result-label">Total transmission</span><output class="result-value" data-out="tt">—</output></div>
                     <div class="result"><span class="result-label">Total attenuation</span><output class="result-value" data-out="dbt">—</output></div>
                     <div class="result"><span class="result-label">Transmitted power</span><output class="result-value" data-out="pout">—</output></div>
-                    <div class="result"><span class="result-label">Power absorbed / reflected by the stack</span><output class="result-value" data-out="pblk">—</output></div>
+                    <div class="result"><span class="result-label">Power absorbed / reflected by the stack</span><output class="result-value" data-out="pblk">—</output><span class="result-note">The first filter in the beam takes most of this. Check its damage threshold (see the cautions below).</span></div>
                     <div class="result"><span class="result-label">OD required for target</span><output class="result-value" data-out="odreq">—</output></div>
                     <div class="result"><span class="result-label">Additional OD needed</span><output class="result-value" data-out="odadd">—</output></div>
                 </div>
@@ -166,41 +180,56 @@
         <h2>How it is calculated</h2>
         <p>Optical density is the base-10 logarithm of the attenuation. Decibels use ten times the same logarithm:</p>
         <div class="formula">\[ \mathrm{OD} = -\log_{10} T = \log_{10}\frac{P_\text{in}}{P_\text{out}}, \qquad \mathrm{dB} = 10\,\mathrm{OD}, \qquad T = 10^{-\mathrm{OD}}. \]</div>
-        <p>Because these are logarithms, filters in series add: \(\mathrm{OD}_\text{total} = \sum \mathrm{OD}_i\), equivalent to multiplying their transmittances. The OD needed to bring a beam from \(P_\text{in}\) down to \(P_\text{target}\) is \(\log_{10}(P_\text{in}/P_\text{target})\). Laser-safety eyewear uses the same formula with the exposure and the maximum permissible exposure (MPE) from ANSI Z136.1 or IEC 60825-1 in place of the powers.</p>
+        <p>Because these are logarithms, filters in series add: \(\mathrm{OD}_\text{total} = \sum \mathrm{OD}_i\), equivalent to multiplying their transmittances. The OD needed to bring a beam from \(P_\text{in}\) down to \(P_\text{target}\) is \(\log_{10}(P_\text{in}/P_\text{target})\).</p>
         <table>
             <thead><tr><th class="num">OD</th><th class="num">Transmission</th><th class="num">Attenuation</th></tr></thead>
             <tbody>
-                <tr><td class="num">0.1</td><td class="num">79.4 %</td><td class="num">1 dB</td></tr>
-                <tr><td class="num">0.3</td><td class="num">50.1 %</td><td class="num">3 dB</td></tr>
-                <tr><td class="num">0.5</td><td class="num">31.6 %</td><td class="num">5 dB</td></tr>
-                <tr><td class="num">1</td><td class="num">10 %</td><td class="num">10 dB</td></tr>
-                <tr><td class="num">2</td><td class="num">1 %</td><td class="num">20 dB</td></tr>
-                <tr><td class="num">3</td><td class="num">0.1 %</td><td class="num">30 dB</td></tr>
-                <tr><td class="num">4</td><td class="num">0.01 %</td><td class="num">40 dB</td></tr>
-                <tr><td class="num">6</td><td class="num">0.0001 %</td><td class="num">60 dB</td></tr>
+                <tr><td class="num">0.1</td><td class="num">79.4&nbsp;%</td><td class="num">1&nbsp;dB</td></tr>
+                <tr><td class="num">0.3</td><td class="num">50.1&nbsp;%</td><td class="num">3&nbsp;dB</td></tr>
+                <tr><td class="num">0.5</td><td class="num">31.6&nbsp;%</td><td class="num">5&nbsp;dB</td></tr>
+                <tr><td class="num">1</td><td class="num">10&nbsp;%</td><td class="num">10&nbsp;dB</td></tr>
+                <tr><td class="num">2</td><td class="num">1&nbsp;%</td><td class="num">20&nbsp;dB</td></tr>
+                <tr><td class="num">3</td><td class="num">0.1&nbsp;%</td><td class="num">30&nbsp;dB</td></tr>
+                <tr><td class="num">4</td><td class="num">0.01&nbsp;%</td><td class="num">40&nbsp;dB</td></tr>
+                <tr><td class="num">6</td><td class="num">0.0001&nbsp;%</td><td class="num">60&nbsp;dB</td></tr>
             </tbody>
         </table>
+        <p><strong>Laser-safety eyewear</strong> uses the same logarithm with exposures in place of powers: \(\mathrm{OD} = \log_{10}(H_0/\mathrm{MPE})\), where \(H_0\) is the worst-case exposure at the eye and MPE the maximum permissible exposure, both in the same units (W/cm² or J/cm²) and for the same wavelength and exposure time. The MPE values come from ANSI Z136.1 or IEC 60825-1. Eyewear must also survive the beam: ANSI Z136.1 asks for a filter damage threshold over a stated exposure time (typically 10&nbsp;s), and the EN 207 scale numbers (LB) combine a minimum OD with a direct-hit test of 5&nbsp;s for continuous lasers or 50 pulses for pulsed ones. This tool does not calculate MPEs; choose eyewear with your laser safety officer.</p>
 
         <h2>OD is not always absorbance</h2>
-        <p>For an <strong>absorptive</strong> ND filter (colored glass), OD is close to the absorbance of the glass plus small surface-reflection losses. A <strong>reflective</strong> ND filter (a thin metal or dielectric coating) attenuates mainly by reflecting light. Its OD describes transmission only. The "missing" power goes back toward the source, which can disturb the laser or create ghost beams. In spectroscopy, absorbance \(A = -\log_{10}(I/I_0)\) means the same thing when \(I_0\) is measured through a reference that cancels reflection losses.</p>
+        <p>For an <strong>absorptive</strong> ND filter (tinted glass), the OD is the internal absorbance of the glass plus a small surface-reflection term:</p>
+        <div class="formula">\[ \mathrm{OD} = \mathrm{OD}_\text{int} - \log_{10}P, \qquad \mathrm{OD}_\text{int} = \frac{\alpha d}{\ln 10}, \qquad P \approx \frac{2n}{n^2+1}. \]</div>
+        <p>The internal part grows in proportion to the thickness \(d\) (the Beer–Lambert law, with absorption coefficient \(\alpha\)), which is how one glass gives a range of ODs. The reflection factor \(P\) of two uncoated surfaces is 0.92 at \(n = 1.5\), about OD 0.035. A <strong>reflective</strong> ND filter (a thin metal or dielectric coating) reflects much of the light; a metal coating such as Inconel also absorbs part of it. Its OD describes transmission only. The “missing” power goes partly back toward the source, where it can disturb the laser or create ghost beams. In spectroscopy, absorbance \(A = -\log_{10}(I/I_0)\) is the same logarithm, measured against a reference so that it leaves out reflection at the cell walls.</p>
 
         <h2>Practical cautions</h2>
         <ul>
-            <li><strong>OD depends on wavelength.</strong> Absorptive ND glass is often far less dense in the near-IR than in the visible. Check the vendor's OD curve at your wavelength rather than the nominal value.</li>
-            <li><strong>Stacking reflective filters</strong> creates multiple reflections between them. Light bouncing between parallel filters adds to the transmitted beam, so the stack transmits more than the summed OD predicts. Tilt them by a few degrees so back-reflections leave the beam path, and don't let them return into the laser.</li>
-            <li><strong>High power.</strong> An absorptive filter at the front of a stack absorbs almost all the power and can crack or thermally lens. Put a reflective filter first, or pick off a small fraction with a beam sampler and send the rest into a beam dump. Keep within each filter's damage threshold.</li>
-            <li><strong>High OD is hard to verify.</strong> Above OD 4–5, scattered and leaked light around the filter often dominates the measured transmission.</li>
+            <li><strong>OD depends on wavelength.</strong> The OD of absorptive ND glass can change by a factor of two or more between the visible and the near-infrared: 1&nbsp;mm of SCHOTT NG9 glass has an internal OD of 1.38 at 550&nbsp;nm, 0.92 at 1060&nbsp;nm, and 0.49 at 1550&nbsp;nm. Metal-coated reflective filters are flatter, but only over their stated range. Use the vendor's curve at your wavelength rather than the nominal value, and calibrate a filter in your own setup when the number matters.</li>
+            <li><strong>Stacking reflective filters</strong> creates multiple reflections between them. Light bouncing between two parallel filters adds to the transmitted beam: with reflectances \(R_1\) and \(R_2\) facing each other, the pair transmits \(T_1T_2/(1 - R_1R_2)\) instead of \(T_1T_2\), so two filters that each reflect 50&nbsp;% pass a third more than the summed OD predicts. With laser light the gap can act as a resonator. Tilt the filters by a few degrees so back-reflections leave the beam path, and don't let them return into the laser.</li>
+            <li><strong>High power.</strong> ND filters are generally not high-power attenuators. An absorptive filter at the front of a stack absorbs most of the power and can crack or thermally lens, and a metal-coated reflective filter also absorbs part of the light, in a very thin film. For watts, pick off a small fraction with a beam sampler or wedge, send the rest into a beam dump, and keep every filter below its damage threshold.</li>
+            <li><strong>Ultrashort pulses.</strong> At the peak intensities of picosecond and femtosecond pulses, glass, polymer, and interference filters can show nonlinear effects such as saturable absorption that lower their OD; ANSI Z136.1 warns of this for eyewear filters. Attenuate where the beam is large, and ask the vendor for data at your pulse duration.</li>
+            <li><strong>High OD is hard to verify.</strong> At OD 5 a filter passes only 10⁻⁵ of the light, so a little light that scatters or leaks around it can exceed what goes through. Block every path around the filters before trusting a measured high OD.</li>
         </ul>
 
         <h2>Worked example</h2>
-        <p>A 2 W beam needs to be at or below 1 mW for a camera. The required OD is \(\log_{10}(2\,\text{W}/1\,\text{mW}) = 3.30\). Stacking OD 1 + OD 2 + OD 0.5 = OD 3.5 transmits \(2\,\text{W}\times10^{-3.5} = 0.63\) mW, which meets the target. The stack absorbs or reflects 1.999 W, and the first filter (OD 1) takes 1.8 W of that, so make it a reflective filter or one with a suitable damage threshold.</p>
+        <p>The default inputs: a 2&nbsp;W beam needs to be at or below 1&nbsp;mW for a camera. The required OD is \(\log_{10}(2\,\text{W}/1\,\text{mW}) = 3.30\). Stacking OD 1 + OD 2 + OD 0.5 = OD 3.5 transmits \(2\,\text{W}\times10^{-3.5} = 0.63\)&nbsp;mW, which meets the target. The stack absorbs or reflects 1.999&nbsp;W, and the first filter in the beam (OD 1) takes 1.8&nbsp;W of that. That is a lot for an ND filter: check its damage threshold for your beam size, or pick off a small fraction of the beam first.</p>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>ANSI Z136.1-2022, <em>American National Standard for Safe Use of Lasers</em>, Laser Institute of America.</li>
-            <li>IEC 60825-1:2014, Safety of laser products — Part 1: Equipment classification and requirements.</li>
-            <li>E. Hecht, <em>Optics</em>, 5th ed., Pearson (2017).</li>
+            <li>ANSI Z136.1-2022, <em>American National Standard for Safe Use of Lasers</em>, Laser Institute of America (approved August 3, 2022); free sample pages at <a href="https://www.lia.org/sites/default/files/pdf/ansi-standards/samples/Sample%20-%20Z136.1%20-2022-Print.pdf" target="_blank" rel="noopener">lia.org</a> (MPE values; laser protective eyewear in sec. 4.4.4.2: OD at the laser wavelength, filter damage threshold, and saturable absorption of eyewear filters under picosecond and femtosecond pulses).</li>
+            <li>IEC 60825-1:2014 (edition 3.0), Safety of laser products — Part 1: Equipment classification and requirements (MPE values in informative Annex A).</li>
+            <li>EN 207:2017, Personal eye-protection equipment — Filters and eye-protectors against laser radiation (laser eye-protectors) (LB scale numbers: minimum OD plus the direct-hit test). Free summary: Trinity College Dublin, School of Physics, “EN20X,” <a href="https://www.tcd.ie/physics/research/facilities/oal/laser-safety/en20x/" target="_blank" rel="noopener">tcd.ie</a> (an LB rating means an OD above the LB number and a filter that withstands a direct hit for 5&nbsp;s or 50 pulses).</li>
+            <li>SCHOTT, “TIE-35: Transmittance of optical glass,” technical information (November 2020), <a href="https://media.schott.com/api/public/content/3d5861d824f64033aafd5353a21f7603" target="_blank" rel="noopener">media.schott.com</a> (internal transmittance, the reflection factor, and how transmittance scales with thickness).</li>
+            <li>SCHOTT, “NG9” filter glass data, <a href="https://www.schott.com/shop/advanced-optics/en/Matt-Filter-Plates/NG9/c/glass-NG9" target="_blank" rel="noopener">schott.com</a> (internal transmittance of a neutral-density glass from the UV to the infrared).</li>
+            <li>Thorlabs, absorptive and reflective ND filter pages, <a href="https://www.thorlabs.com/unmounted-absorptive-neutral-density-filters" target="_blank" rel="noopener">absorptive</a> and <a href="https://www.thorlabs.com/unmounted-n-bk7-reflective-neutral-density-filters" target="_blank" rel="noopener">reflective (Inconel)</a> (OD 0.1–8 absorptive and 0.1–4 Inconel filters; glass lots vary, so calibrate each filter in your setup; the Inconel coating also absorbs light, which limits it to low power).</li>
+            <li>IUPAC, “absorbance,” <em>Compendium of Chemical Terminology</em> (the Gold Book), <a href="https://doi.org/10.1351/goldbook.A00028" target="_blank" rel="noopener">doi:10.1351/goldbook.A00028</a> (absorbance leaves out the effects of the cell walls).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>R. Paschotta, “Neutral density filters,” <em>RP Photonics Encyclopedia</em>, <a href="https://www.rp-photonics.com/neutral_density_filters.html" target="_blank" rel="noopener">rp-photonics.com/neutral_density_filters.html</a> (absorbing and metal-coated filters, their power limits, and resonances between stacked filters).</li>
+            <li>Edmund Optics, “What is the difference between using an absorptive ND filter and a reflective ND filter?” <a href="https://www.edmundoptics.com/knowledge-center/frequently-asked-questions/optics/optical-filters/what-is-the-difference-between-using-an-absorptive-nd-filter-and-a-reflective-nd-filter/" target="_blank" rel="noopener">edmundoptics.com</a> (back reflections, heating, OD set by glass thickness, and tilting stacked reflective filters).</li>
+            <li>OSHA, <em>OSHA Technical Manual</em>, sec. III, ch. 6, “Laser Hazards,” <a href="https://www.osha.gov/otm/section-3-health-hazards/chapter-6" target="_blank" rel="noopener">osha.gov</a> (how eyewear OD follows from the exposure and the MPE, with a worked example; its MPE values come from an older edition of ANSI Z136.1).</li>
+        </ul>
     </article>
 
     <section class="related">

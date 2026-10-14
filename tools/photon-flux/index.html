@@ -97,6 +97,16 @@
     <header class="page-head">
         <h1>Photon Energy &amp; Flux Calculator</h1>
         <p class="lede">Count the photons in a beam. Enter a wavelength and an average power, or a pulse energy and repetition rate, to get photons per second and per pulse, the photon flux density for a Gaussian beam, and the responsivity and photocurrent of a detector with a given quantum efficiency.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Photon energy</dt><dd>The energy of one particle of light, set by its wavelength: 2.33&nbsp;eV at 532&nbsp;nm, 1.17&nbsp;eV at 1064&nbsp;nm. Shorter wavelengths carry more energy per photon.</dd>
+            <dt>Photon rate</dt><dd>How many photons pass per second. A 1&nbsp;mW green (532&nbsp;nm) beam carries about 2.7&nbsp;×&nbsp;10¹⁵ photons per second.</dd>
+            <dt>Photon flux density</dt><dd>Photons per second per unit area, here per cm². It is highest on the beam axis.</dd>
+            <dt>Pulse energy and repetition rate</dt><dd>The energy in each pulse and the number of pulses per second. Their product is the average power.</dd>
+            <dt>1/e² beam diameter</dt><dd>The diameter at which the intensity has fallen to 13.5&nbsp;% of its peak. It contains 86.5&nbsp;% of a Gaussian beam’s power.</dd>
+            <dt>Quantum efficiency</dt><dd>The fraction of incoming photons that a detector turns into electrons it counts. 80&nbsp;% means 8 electrons for every 10 photons.</dd>
+            <dt>Responsivity</dt><dd>A detector’s output current per watt of light, in A/W. A perfect detector (100&nbsp;%) gives 0.43&nbsp;A/W at 532&nbsp;nm and 0.86&nbsp;A/W at 1064&nbsp;nm.</dd>
+            <dt>Photocurrent</dt><dd>The current a photodiode delivers: responsivity times the optical power.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -109,6 +119,7 @@
                 <div class="field">
                     <label for="wl">Wavelength (vacuum) <span class="sym">λ</span></label>
                     <div class="input-unit"><input id="wl" name="wl" value="532" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <p class="hint">A wavelength measured in air differs by about 0.03&nbsp;%, which does not matter here.</p>
                 </div>
                 <div class="field">
                     <label for="p">Average optical power <span class="sym">P</span></label>
@@ -129,15 +140,18 @@
                 <div class="field">
                     <label for="d">Beam diameter (1/e²) <span class="sym">2w</span></label>
                     <div class="input-unit"><input id="d" name="d" value="1" inputmode="decimal" data-optional data-positive placeholder="optional"><select data-dim="length" data-units="µm,mm,cm" data-default="mm"></select></div>
+                    <p class="hint">Only needed for the photons per cm².</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
                         <label for="qe">Detector quantum efficiency <span class="sym">η</span></label>
                         <div class="input-unit"><input id="qe" name="qe" value="80" inputmode="decimal" data-optional data-nonneg data-max="100" data-label="quantum efficiency"><span class="unit">%</span></div>
+                        <p class="hint">From the quantum-efficiency curve in the detector datasheet, at your wavelength.</p>
                     </div>
                     <div class="field">
                         <label for="r">Measured responsivity <span class="sym">ℛ</span></label>
                         <div class="input-unit"><input id="r" name="r" value="" inputmode="decimal" data-optional data-positive placeholder="optional"><span class="unit">A/W</span></div>
+                        <p class="hint">If the datasheet gives A/W instead, enter it here to get the quantum efficiency.</p>
                     </div>
                 </div>
             </div>
@@ -168,29 +182,37 @@
         <h2>How it is calculated</h2>
         <p>A photon of vacuum wavelength \(\lambda\) carries energy \(E_\text{ph} = hc/\lambda\). In convenient units that is \(E_\text{ph}\,[\text{eV}] = 1239.842/\lambda\,[\text{nm}]\). The photon rate in a beam of average power \(P\), and the number of photons in a pulse of energy \(E_p\), are</p>
         <div class="formula">\[ \begin{gathered} \Phi = \frac{P}{E_\text{ph}} = \frac{P\lambda}{hc}, \\[4pt] N_p = \frac{E_p}{E_\text{ph}} = \frac{P}{f\,E_\text{ph}} . \end{gathered} \]</div>
-        <p>For a Gaussian beam of 1/e² radius \(w\), the on-axis photon flux density is twice the average over the area \(\pi w^2\): \(\phi_0 = 2\Phi/(\pi w^2)\). The same factor of two applies to the peak photon fluence per pulse.</p>
+        <p>For a Gaussian beam of 1/e² radius \(w\), the on-axis photon flux density is twice the photon rate divided by \(\pi w^2\): \(\phi_0 = 2\Phi/(\pi w^2)\). The “average” shown is \(\Phi/(\pi w^2)\), the usual convention; it is not the mean over the 1/e² circle, which holds only 86.5&nbsp;% of the photons. The same factor of two applies to the peak photon fluence per pulse.</p>
 
         <h2>Detector responsivity and quantum efficiency</h2>
-        <p>A detector with external quantum efficiency \(\eta\) produces \(\eta\) electrons per incident photon. Its current responsivity is</p>
+        <p>A detector with external quantum efficiency \(\eta\) produces \(\eta\) electrons per incident photon. For a camera, EMVA&nbsp;1288 defines this “total quantum efficiency” over the whole pixel area, so it includes the fill factor and microlenses. The current responsivity of a photodiode is</p>
         <div class="formula">\[ \begin{gathered} \mathcal{R} = \frac{\eta\, e\, \lambda}{hc} \;\approx\; \eta\,\frac{\lambda\,[\text{nm}]}{1239.842}\ \text{A/W}, \\[4pt] I = \mathcal{R} P . \end{gathered} \]</div>
-        <p>The relation also runs backwards: a measured responsivity gives \(\eta = \mathcal{R}\,hc/(e\lambda)\). Even an ideal detector (\(\eta = 1\)) has a responsivity that rises linearly with wavelength, because a watt of red light contains more photons than a watt of blue. Silicon photodiodes have a responsivity peak in the near-IR for this reason, even though their quantum efficiency is broadly flat across the visible.</p>
+        <p>The relation also runs backwards: a measured responsivity gives \(\eta = \mathcal{R}\,hc/(e\lambda)\), which is how Hamamatsu converts its photosensitivity curves to quantum efficiency. Even an ideal detector (\(\eta = 1\)) has a responsivity that rises linearly with wavelength, because a watt of red light contains more photons than a watt of blue. Silicon photodiodes therefore respond most strongly in the near infrared, roughly 900–1000&nbsp;nm, where their quantum efficiency is still high. At longer wavelengths silicon absorbs too weakly and the response falls steeply toward the cutoff near 1100&nbsp;nm, where photons no longer bridge its 1.12&nbsp;eV band gap (Hamamatsu).</p>
 
         <h2>Worked example</h2>
-        <p>A 1 mW, 532 nm beam: \(E_\text{ph} = 2.3305\) eV \(= 3.7339\times10^{-19}\) J, so \(\Phi = 2.678\times10^{15}\) photons/s. At 10 kHz that is \(2.678\times10^{11}\) photons per pulse. Over a 1 mm (1/e²) beam the average flux density is \(3.41\times10^{17}\) photons s⁻¹ cm⁻² and the on-axis value is \(6.82\times10^{17}\). A photodiode with \(\eta = 80\,\%\) has \(\mathcal{R} = 0.343\) A/W and delivers 343 µA.</p>
+        <p>A 1&nbsp;mW, 532&nbsp;nm beam: \(E_\text{ph} = 2.3305\)&nbsp;eV \(= 3.7339\times10^{-19}\)&nbsp;J, so \(\Phi = 2.678\times10^{15}\) photons/s. At 10&nbsp;kHz that is \(2.678\times10^{11}\) photons per pulse. Over a 1&nbsp;mm (1/e²) beam the average flux density is \(3.41\times10^{17}\) photons s⁻¹&nbsp;cm⁻² and the on-axis value is \(6.82\times10^{17}\). A photodiode with \(\eta = 80\,\%\) has \(\mathcal{R} = 0.343\)&nbsp;A/W and delivers 343&nbsp;µA.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>Vacuum wavelength.</strong> The photon energy depends on frequency, so use the vacuum wavelength. Air wavelengths differ by about 0.03 %, which is negligible here.</li>
+            <li><strong>Vacuum wavelength.</strong> The photon energy depends on frequency, so use the vacuum wavelength. Air wavelengths differ by about 0.03&nbsp;%, which is negligible here.</li>
             <li><strong>Monochromatic light.</strong> For broadband sources, integrate \(P_\lambda \lambda/hc\) over the spectrum. Using the center wavelength is a good approximation when the bandwidth is small.</li>
             <li><strong>Gaussian spatial profile.</strong> The peak-to-average factor of 2 holds for a TEM₀₀ beam. Flat-top beams have a factor near 1.</li>
-            <li><strong>Linear detector.</strong> Responsivity assumes no saturation, gain, or multiphoton response. Avalanche and photomultiplier detectors multiply the current by their internal gain.</li>
+            <li><strong>Linear detector.</strong> Responsivity assumes no saturation, gain, or multiphoton response. Avalanche and photomultiplier detectors multiply the current by their internal gain. In the deep ultraviolet one photon can free more than one electron (EMVA&nbsp;1288), so a quantum efficiency computed from responsivity can exceed 100&nbsp;% there even without gain.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>P. J. Mohr, D. B. Newell, B. N. Taylor, E. Tiesinga, “CODATA recommended values of the fundamental physical constants: 2022,” <em>Rev. Mod. Phys.</em> <strong>97</strong>, 025002 (2025).</li>
-            <li>B. E. A. Saleh and M. C. Teich, <em>Fundamentals of Photonics</em>, 3rd ed., Wiley (2019) — photodetector chapter.</li>
+            <li>P. J. Mohr, D. B. Newell, B. N. Taylor, and E. Tiesinga, “CODATA recommended values of the fundamental physical constants: 2022,” <em>Rev. Mod. Phys.</em> <strong>97</strong>, 025002 (2025), <a href="https://doi.org/10.1103/RevModPhys.97.025002" target="_blank" rel="noopener">doi:10.1103/RevModPhys.97.025002</a> (h, c, and e; all three are exact in the SI).</li>
+            <li>European Machine Vision Association, <em>EMVA Standard 1288: Standard for Characterization of Image Sensors and Cameras</em>, Release 4.0 Linear (2021), <a href="https://www.emva.org/standards-technology/emva-1288/" target="_blank" rel="noopener">free download</a>, Sec. 2.1 (total quantum efficiency, and the photon count \(\mu_p = AEt_\text{exp}\lambda/hc\) on a pixel).</li>
+            <li>B. E. A. Saleh and M. C. Teich, <em>Fundamentals of Photonics</em>, 3rd ed., Wiley (2019), photodetector chapter (responsivity and quantum efficiency).</li>
+            <li>Hamamatsu Photonics, “<a href="https://www.hamamatsu.com/content/dam/hamamatsu-photonics/sites/documents/99_SALES_LIBRARY/ssd/si_pd_kspd9001e.pdf" target="_blank" rel="noopener">Si photodiodes</a>,” technical note KSPD9001E04 (2025), Sec. 2-3 (quantum efficiency from photosensitivity, QE&nbsp;=&nbsp;S&nbsp;×&nbsp;1240/λ; the 1100&nbsp;nm cutoff; spectral response curves).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>R. Paschotta, “<a href="https://www.rp-photonics.com/responsivity.html" target="_blank" rel="noopener">Responsivity</a>,” RP Photonics Encyclopedia, <a href="https://doi.org/10.61835/xal" target="_blank" rel="noopener">doi:10.61835/xal</a> (responsivity, its link to quantum efficiency, and its wavelength dependence).</li>
+            <li>R. Paschotta, “<a href="https://www.rp-photonics.com/quantum_efficiency.html" target="_blank" rel="noopener">Quantum efficiency</a>,” RP Photonics Encyclopedia, <a href="https://doi.org/10.61835/fxl" target="_blank" rel="noopener">doi:10.61835/fxl</a> (what quantum efficiency means for detectors and other devices).</li>
+        </ul>
     </article>
 
     <section class="related">

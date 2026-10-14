@@ -98,7 +98,16 @@
 
     <header class="page-head">
         <h1>Fresnel Equations Calculator</h1>
-        <p class="lede">Reflection and transmission at an uncoated interface between two transparent media, for s- and p-polarized light at any angle. Use it for Brewster windows, uncoated window and viewport losses, ghost reflections, and total internal reflection in prisms.</p>
+        <p class="lede">How much light reflects from, and passes through, a bare (uncoated) surface between two transparent materials, such as air and glass, at any angle and for each polarization? Use it to estimate losses at uncoated windows and viewports, ghost reflections, Brewster windows, and total internal reflection in prisms.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Refractive index, n</dt><dd>How much a material slows light. About 1.0003 for air, 1.33 for water, 1.45–1.52 for common optical glasses, and 4.0 for germanium in the infrared. It changes with wavelength.</dd>
+            <dt>Angle of incidence</dt><dd>The angle between the incoming beam and the surface normal, a line perpendicular to the surface. 0° is straight on.</dd>
+            <dt>s and p polarization</dt><dd>Light whose electric field oscillates parallel to the surface (s) or in the plane that contains the beam and the normal (p). Unpolarized light is an equal mix of the two.</dd>
+            <dt>Reflectance, R</dt><dd>The fraction of the power that is reflected: about 4&nbsp;% per surface for glass in air at normal incidence.</dd>
+            <dt>Brewster angle</dt><dd>The angle at which p-polarized light is not reflected at all, about 57° for glass in air.</dd>
+            <dt>Total internal reflection</dt><dd>Going from a higher to a lower index, such as glass to air, light beyond the critical angle (about 41° for glass) is reflected completely.</dd>
+            <dt>Uncoated window</dt><dd>A plate with two surfaces. It loses roughly twice the single-surface reflectance; an anti-reflection coating reduces that.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -111,11 +120,12 @@
                 <div class="field">
                     <label for="n1">Incident medium index <span class="sym">n₁</span></label>
                     <div class="input-unit"><input id="n1" name="n1" value="1" inputmode="decimal" data-positive data-label="index n₁"><select class="fr-preset" data-for="n1" aria-label="Incident medium preset"></select></div>
+                    <p class="hint">The material the light arrives from: 1 for vacuum or air, or the glass index for light leaving a prism or window.</p>
                 </div>
                 <div class="field">
                     <label for="n2">Second medium index <span class="sym">n₂</span></label>
                     <div class="input-unit"><input id="n2" name="n2" value="1.5168" inputmode="decimal" data-positive data-label="index n₂"><select class="fr-preset" data-for="n2" aria-label="Second medium preset"></select></div>
-                    <p class="hint">Preset indices are at the stated wavelength. Index varies with wavelength, so use your material's value at your wavelength.</p>
+                    <p class="hint">Preset indices are at the stated wavelength and near room temperature. Index varies with wavelength, so use your material's value at your wavelength (refractiveindex.info lists most materials).</p>
                 </div>
                 <div class="field">
                     <label for="ai">Angle of incidence <span class="sym">θ<sub>i</sub></span></label>
@@ -129,7 +139,7 @@
             <div class="panel-head"><h2 id="results-h">Results</h2><span id="flag" class="badge" hidden></span></div>
             <div class="panel-body">
                 <div class="results">
-                    <div class="result primary"><span class="result-label">Reflectance, unpolarized<span class="sym">R</span></span><output class="result-value" data-out="r">—</output></div>
+                    <div class="result primary"><span class="result-label">Reflectance, unpolarized<span class="sym">R</span></span><output class="result-value" data-out="r">—</output><span class="result-note">The average of s and p. For a linearly polarized laser, use R<sub>s</sub> or R<sub>p</sub>, whichever matches its polarization.</span></div>
                     <div class="result"><span class="result-label">Reflectance, s-polarized<span class="sym">R<sub>s</sub></span></span><output class="result-value" data-out="rs">—</output></div>
                     <div class="result"><span class="result-label">Reflectance, p-polarized<span class="sym">R<sub>p</sub></span></span><output class="result-value" data-out="rp">—</output></div>
                     <div class="result"><span class="result-label">Transmittance s&nbsp;/&nbsp;p<wbr><span class="sym">T&nbsp;=&nbsp;1&nbsp;−&nbsp;R</span></span><output class="result-value" data-out="t">—</output></div>
@@ -154,8 +164,8 @@
         <div class="formula">\[ \begin{gathered} r_s = \frac{n_1\cos\theta_i - n_2\cos\theta_t}{n_1\cos\theta_i + n_2\cos\theta_t}, \\[10pt] r_p = \frac{n_2\cos\theta_i - n_1\cos\theta_t}{n_2\cos\theta_i + n_1\cos\theta_t}, \end{gathered} \]</div>
         <p>with power reflectances \(R_s = |r_s|^2\), \(R_p = |r_p|^2\), and \(R = (R_s+R_p)/2\) for unpolarized light. For lossless media \(T = 1 - R\) in each polarization. (Sign conventions for \(r_p\) differ between textbooks, but the reflectances do not.)</p>
         <div class="formula">\[ \begin{gathered} R_0 = \left(\frac{n_1-n_2}{n_1+n_2}\right)^2, \\[10pt] \theta_B = \arctan\frac{n_2}{n_1}, \\[10pt] \theta_c = \arcsin\frac{n_2}{n_1}\;\;(n_1>n_2). \end{gathered} \]</div>
-        <p>At the <strong>Brewster angle</strong> \(R_p = 0\): p-polarized light passes with no reflection loss, and the reflected beam is purely s-polarized. Laser tubes, Brewster windows, and polarizing plates use this. Above the <strong>critical angle</strong>, going from high to low index, no wave propagates into the second medium, only an evanescent field that decays within about a wavelength, and \(R = 1\) (total internal reflection). A second surface that close lets some light tunnel across (frustrated total internal reflection), which this tool does not model.</p>
-        <p>An uncoated window has two surfaces. Summing the incoherent multiple reflections between them gives a transmission of \((1-R)/(1+R)\) per polarization. That is higher than \((1-R)^2\), the estimate that ignores multiple reflections: barely for glass (91.9 % instead of 91.7 % for N-BK7) but noticeably for high-index materials (47.0 % instead of 40.9 % for germanium).</p>
+        <p>At the <strong>Brewster angle</strong> \(R_p = 0\): p-polarized light passes with no reflection loss, and the reflected beam is purely s-polarized. Laser tubes, Brewster windows, and polarizing plates use this. Above the <strong>critical angle</strong>, going from high to low index, no wave propagates into the second medium, and \(R = 1\) (total internal reflection). Only an evanescent field enters it, with an amplitude that falls by 1/e over \(\lambda_0 / \bigl(2\pi\sqrt{n_1^2\sin^2\theta_i - n_2^2}\bigr)\): 0.41 vacuum wavelengths at 45° in BK7, and longer close to the critical angle. A second surface that close lets some light tunnel across (frustrated total internal reflection), which this tool does not model.</p>
+        <p>An uncoated window has two surfaces. Summing the incoherent multiple reflections between them gives a transmission of \((1-R)/(1+R)\) per polarization; at normal incidence in air that is \(2n/(n^2+1)\), the “reflection factor” glass makers quote for uncoated plates. That is higher than \((1-R)^2\), the estimate that ignores multiple reflections: barely for glass (91.9&nbsp;% instead of 91.7&nbsp;% for N-BK7) but noticeably for high-index materials (47.0&nbsp;% instead of 40.9&nbsp;% for germanium).</p>
 
         <h2>Reference values</h2>
         <table class="fr-ref">
@@ -168,28 +178,43 @@
                 <tr><td>Sapphire (o&#8209;ray), 587.6&nbsp;nm, <i>n</i>&nbsp;=&nbsp;1.768</td><td class="num">7.70&nbsp;%</td><td class="num">85.7&nbsp;%</td><td class="num">60.5°</td></tr>
                 <tr><td>ZnSe, 10.6&nbsp;µm, <i>n</i>&nbsp;=&nbsp;2.403</td><td class="num">17.0&nbsp;%</td><td class="num">70.9&nbsp;%</td><td class="num">67.4°</td></tr>
                 <tr><td>Silicon, 1550&nbsp;nm, <i>n</i>&nbsp;=&nbsp;3.476</td><td class="num">30.6&nbsp;%</td><td class="num">53.1&nbsp;%</td><td class="num">74.0°</td></tr>
-                <tr><td>Germanium, 10.6&nbsp;µm, <i>n</i>&nbsp;=&nbsp;4.003</td><td class="num">36.0&nbsp;%</td><td class="num">47.0&nbsp;%</td><td class="num">76.0°</td></tr>
+                <tr><td>Germanium, 10.6&nbsp;µm, <i>n</i>&nbsp;=&nbsp;4.002</td><td class="num">36.0&nbsp;%</td><td class="num">47.0&nbsp;%</td><td class="num">76.0°</td></tr>
             </tbody>
         </table>
         <p>This is why infrared optics made of Si, Ge, or ZnSe are almost always anti-reflection coated. An uncoated germanium window loses more than half the beam.</p>
 
         <h2>Worked example</h2>
-        <p>Light in air (\(n_1 = 1\)) hits N-BK7 (\(n_2 = 1.5168\)) at 45°. Snell's law gives \(\theta_t = 27.79°\). Then \(R_s = 9.60\) %, \(R_p = 0.92\) %, and unpolarized \(R = 5.26\) %, compared with 4.22 % at normal incidence. The Brewster angle is 56.60°. Going the other way, from BK7 into air, light is totally internally reflected beyond \(\theta_c = 41.25°\). That is why a 45° BK7 right-angle prism works as a mirror.</p>
+        <p>The default inputs: light in air (\(n_1 = 1\)) hits N-BK7 (\(n_2 = 1.5168\)) at 45°. Snell's law gives \(\theta_t = 27.79°\). Then \(R_s = 9.60\)&nbsp;%, \(R_p = 0.92\)&nbsp;%, and unpolarized \(R = 5.26\)&nbsp;%, compared with 4.22&nbsp;% at normal incidence. The Brewster angle is 56.60°. Going the other way, from BK7 into air, light is totally internally reflected beyond \(\theta_c = 41.25°\). That is why a 45° BK7 right-angle prism works as a mirror.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>Non-absorbing, isotropic media.</strong> Metals and strongly absorbing materials need a complex index \(\tilde n = n + ik\), which this tool does not support. Birefringent crystals (sapphire, quartz, calcite) have different indices for different polarizations.</li>
+            <li><strong>Non-absorbing, isotropic media.</strong> Metals and strongly absorbing materials need a complex index \(\tilde n = n + ik\), which this tool does not support. Birefringent crystals (sapphire, quartz, calcite) have two indices, depending on the polarization relative to the crystal axis; the sapphire preset is the ordinary-ray index.</li>
             <li><strong>Single, uncoated, smooth interface.</strong> Coatings, thin films, and surface roughness change the reflectance completely. Use the coating vendor's curves for coated optics.</li>
-            <li><strong>Window transmission</strong> assumes incoherent addition: a thick window, or a beam with short coherence length. Thin plates with coherent light show etalon fringes: the transmission swings between \(\big((1-R)/(1+R)\big)^2\) and 1 and averages to the incoherent value. At normal incidence that is 84.5 % to 100 % for N-BK7, but 22.1 % to 100 % for germanium.</li>
+            <li><strong>Window transmission</strong> assumes incoherent addition: a thick window, or a beam with short coherence length. Thin plates with coherent light show etalon fringes: the transmission swings between \(\big((1-R)/(1+R)\big)^2\) and 1 and averages to the incoherent value. At normal incidence that is 84.5&nbsp;% to 100&nbsp;% for N-BK7, but 22.1&nbsp;% to 100&nbsp;% for germanium.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>E. Hecht, <em>Optics</em>, 5th ed., Pearson (2017), §§4.6–4.7.</li>
-            <li>M. Born and E. Wolf, <em>Principles of Optics</em>, 7th ed., Cambridge University Press (1999), §1.5.</li>
-            <li>I. H. Malitson, “Interspecimen comparison of the refractive index of fused silica,” <em>J. Opt. Soc. Am.</em> <strong>55</strong>, 1205–1209 (1965).</li>
-            <li>Other preset indices: Schott N-BK7 data sheet; I. H. Malitson, <em>Appl. Opt.</em> <strong>2</strong>, 1103 (1963) (CaF₂); I. H. Malitson and M. J. Dodge, <em>J. Opt. Soc. Am.</em> <strong>62</strong>, 1405 (1972) (sapphire); J. Connolly et al., <em>Proc. SPIE</em> <strong>181</strong>, 141 (1979) (ZnSe); H. H. Li, <em>J. Phys. Chem. Ref. Data</em> <strong>9</strong>, 561 (1980) (silicon, germanium); M. Daimon and A. Masumura, <em>Appl. Opt.</em> <strong>46</strong>, 3811 (2007) (water, 20&nbsp;°C); H. R. Phillip and E. A. Taft, <em>Phys. Rev.</em> <strong>136</strong>, A1445 (1964) (diamond); P. E. Ciddor, <em>Appl. Opt.</em> <strong>35</strong>, 1566 (1996) (air).</li>
+            <li>M. Born and E. Wolf, <em>Principles of Optics</em>, 7th ed., Cambridge University Press (1999), <a href="https://doi.org/10.1017/CBO9781139644181" target="_blank" rel="noopener">doi:10.1017/CBO9781139644181</a>, sec. 1.5 (Fresnel formulae, Brewster angle, and total reflection) and ch. 7 (multiple-beam interference in a plane-parallel plate: the etalon limits).</li>
+            <li>E. Hecht, <em>Optics</em>, 5th ed., Pearson (2017), ch. 4 (the Fresnel equations, total internal reflection, and the evanescent wave) and ch. 8 (polarization by reflection).</li>
+            <li>SCHOTT, “TIE-35: Transmittance of optical glass,” technical information (November 2020), <a href="https://media.schott.com/api/public/content/3d5861d824f64033aafd5353a21f7603" target="_blank" rel="noopener">media.schott.com</a> (transmittance of a plate with multiple reflections, and the reflection factor 2n/(n²+1)).</li>
+            <li>I. H. Malitson, “Interspecimen comparison of the refractive index of fused silica,” <em>J. Opt. Soc. Am.</em> <strong>55</strong>, 1205–1209 (1965), <a href="https://doi.org/10.1364/JOSA.55.001205" target="_blank" rel="noopener">doi:10.1364/JOSA.55.001205</a> (fused silica preset: 1.4585 at 587.6&nbsp;nm, 20&nbsp;°C).</li>
+            <li>SCHOTT, “SCHOTT N-BK7®” optical glass data, <a href="https://www.schott.com/shop/advanced-optics/en/Optical-Glass/SCHOTT-N-BK7/c/glass-SCHOTT%20N-BK7%C2%AE" target="_blank" rel="noopener">schott.com</a> (N-BK7 preset: n<sub>d</sub>&nbsp;=&nbsp;1.51680 at 587.6&nbsp;nm).</li>
+            <li>I. H. Malitson, “A redetermination of some optical properties of calcium fluoride,” <em>Appl. Opt.</em> <strong>2</strong>, 1103–1107 (1963), <a href="https://doi.org/10.1364/AO.2.001103" target="_blank" rel="noopener">doi:10.1364/AO.2.001103</a> (CaF₂ preset: 1.4338 at 587.6&nbsp;nm, 24&nbsp;°C).</li>
+            <li>I. H. Malitson, “Refraction and dispersion of synthetic sapphire,” <em>J. Opt. Soc. Am.</em> <strong>52</strong>, 1377–1379 (1962), <a href="https://doi.org/10.1364/JOSA.52.001377" target="_blank" rel="noopener">doi:10.1364/JOSA.52.001377</a> (sapphire ordinary-ray preset: 1.768 at 587.6&nbsp;nm, 24&nbsp;°C).</li>
+            <li>J. Connolly, B. diBenedetto, and R. Donadio, “Specifications of Raytran material,” <em>Proc. SPIE</em> <strong>181</strong>, 141–144 (1979), <a href="https://doi.org/10.1117/12.957359" target="_blank" rel="noopener">doi:10.1117/12.957359</a> (CVD ZnSe preset: 2.403 at 10.6&nbsp;µm).</li>
+            <li>H. H. Li, “Refractive index of silicon and germanium and its wavelength and temperature derivatives,” <em>J. Phys. Chem. Ref. Data</em> <strong>9</strong>, 561–658 (1980), <a href="https://doi.org/10.1063/1.555624" target="_blank" rel="noopener">doi:10.1063/1.555624</a> (silicon preset 3.476 at 1550&nbsp;nm and germanium preset 4.002 at 10.6&nbsp;µm, both at 293&nbsp;K).</li>
+            <li>M. Daimon and A. Masumura, “Measurement of the refractive index of distilled water from the near-infrared region to the ultraviolet region,” <em>Appl. Opt.</em> <strong>46</strong>, 3811–3820 (2007), <a href="https://doi.org/10.1364/AO.46.003811" target="_blank" rel="noopener">doi:10.1364/AO.46.003811</a> (water preset: 1.333 at 589&nbsp;nm and room temperature).</li>
+            <li>H. R. Phillip and E. A. Taft, “Kramers-Kronig analysis of reflectance data for diamond,” <em>Phys. Rev.</em> <strong>136</strong>, A1445–A1448 (1964), <a href="https://doi.org/10.1103/PhysRev.136.A1445" target="_blank" rel="noopener">doi:10.1103/PhysRev.136.A1445</a> (diamond preset: 2.417 at 589&nbsp;nm).</li>
+            <li>P. E. Ciddor, “Refractive index of air: new equations for the visible and near infrared,” <em>Appl. Opt.</em> <strong>35</strong>, 1566–1573 (1996), <a href="https://doi.org/10.1364/AO.35.001566" target="_blank" rel="noopener">doi:10.1364/AO.35.001566</a> (air preset: 1.00028 for dry air at 15&nbsp;°C and 101.325&nbsp;kPa across the visible).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>R. Paschotta, “Fresnel equations,” <em>RP Photonics Encyclopedia</em>, <a href="https://www.rp-photonics.com/fresnel_equations.html" target="_blank" rel="noopener">rp-photonics.com/fresnel_equations.html</a> (the s and p coefficients, with a plotting tool).</li>
+            <li>R. Paschotta, “Brewster's angle,” <em>RP Photonics Encyclopedia</em>, <a href="https://www.rp-photonics.com/brewster_s_angle.html" target="_blank" rel="noopener">rp-photonics.com/brewster_s_angle.html</a> (why p-polarized light is not reflected there, and Brewster windows and plates).</li>
+            <li>M. N. Polyanskiy, “Refractiveindex.info database of optical constants,” <em>Sci. Data</em> <strong>11</strong>, 94 (2024), <a href="https://doi.org/10.1038/s41597-023-02898-2" target="_blank" rel="noopener">doi:10.1038/s41597-023-02898-2</a>; free at <a href="https://refractiveindex.info/" target="_blank" rel="noopener">refractiveindex.info</a> (indices of most optical materials at any wavelength, including the data behind the presets).</li>
+        </ul>
     </article>
 
     <section class="related">
@@ -215,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ['2.403', 'ZnSe, 10.6 µm'],
         ['2.417', 'Diamond, 589 nm'],
         ['3.476', 'Silicon, 1550 nm'],
-        ['4.003', 'Germanium, 10.6 µm']
+        ['4.002', 'Germanium, 10.6 µm']
     ];
     document.querySelectorAll('.fr-preset').forEach(sel => {
         sel.innerHTML = PRESETS.map(p => `<option value="${p[0]}">${p[1]}</option>`).join('');

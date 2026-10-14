@@ -22,7 +22,7 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<style>.ap-geo { margin-bottom: 1.1rem; } .prose td.num { white-space: nowrap; }</style>
+<style>.ap-geo { margin-bottom: 1.1rem; } .prose td.num { white-space: nowrap; } .ap-ratios th { white-space: normal; }</style>
 <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
 <script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
@@ -98,7 +98,16 @@
 
     <header class="page-head">
         <h1>Gaussian Beam Aperture Transmission Calculator</h1>
-        <p class="lede">How much of a TEM₀₀ beam passes through a circular aperture, a slit, or past a knife edge, and how large an aperture you need for a target throughput. Use it to size irises, mounts, scanner mirrors, and spatial-filter pinholes, and to interpret knife-edge beam-profile measurements.</p>
+        <p class="lede">How much of a laser beam's power gets through a round opening (an iris, a lens mount, a mirror), through a slit, or past a knife edge, and how large must the opening be to pass a target fraction? Use it to size irises, mounts, scanner mirrors, and spatial-filter pinholes, and to read knife-edge beam-size measurements. It assumes an ideal, round Gaussian (TEM₀₀) beam.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Gaussian (TEM₀₀) beam</dt><dd>The bell-shaped intensity profile of an ideal single-mode laser beam: brightest in the center and fading smoothly outward, with no sharp edge.</dd>
+            <dt>1/e² diameter</dt><dd>The usual way to state a laser beam's size: the diameter where the intensity falls to 13.5&nbsp;% of the center value. A round opening of that size passes 86.5&nbsp;% of the power.</dd>
+            <dt>Clear aperture</dt><dd>The usable open diameter of an iris, lens mount, or mirror. Outside it, the optic's performance is not specified.</dd>
+            <dt>Clipping (truncation)</dt><dd>Cutting off the outer part of a beam with an edge. The blocked power heats the mount, and the hard edge diffracts what gets through.</dd>
+            <dt>Slit</dt><dd>A long, narrow opening that passes a strip of the beam.</dd>
+            <dt>Knife-edge profiling</dt><dd>Measuring a beam's size by moving a razor blade across it while a power meter records how much light gets past.</dd>
+            <dt>Diffraction ripples</dt><dd>Rings and intensity ripples that a hard edge puts into the beam downstream of it.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -118,21 +127,23 @@
                 <div class="field">
                     <label for="d">Beam diameter (1/e²) <span class="sym">D<sub>b</sub> = 2w</span></label>
                     <div class="input-unit"><input id="d" name="d" value="8" inputmode="decimal" data-positive><select data-dim="length" data-units="µm,mm,cm,in" data-default="mm"></select></div>
-                    <p class="hint">1/e² diameter at the aperture plane (for a spatial-filter pinhole, the focused spot diameter).</p>
+                    <p class="hint">1/e² diameter where the beam meets the aperture (for a spatial-filter pinhole, the focused spot diameter). A laser datasheet gives it at the output; it usually grows with distance from the laser (the <a href="/tools/gaussian-beam/">Gaussian beam</a> tool gives it anywhere along the beam).</p>
                 </div>
                 <div class="field">
                     <label for="a" id="a-label">Aperture diameter <span class="sym" id="a-sym">D<sub>t</sub></span></label>
                     <div class="input-unit"><input id="a" name="a" value="12" inputmode="decimal" data-label="aperture diameter"><select data-dim="length" data-units="µm,mm,cm,in" data-default="mm"></select></div>
-                    <p class="hint" id="a-hint">Centered on the beam.</p>
+                    <p class="hint" id="a-hint">Clear aperture of the iris, mount, or mirror, centered on the beam.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
                         <label for="tgt">Target transmission</label>
                         <div class="input-unit"><input id="tgt" name="tgt" value="99" inputmode="decimal" data-optional placeholder="optional" data-label="target transmission"><span class="unit">%</span></div>
+                        <p class="hint">The fraction you want to get through. The tool gives the size, or blade position, that passes it.</p>
                     </div>
                     <div class="field">
                         <label for="p">Input power</label>
                         <div class="input-unit"><input id="p" name="p" value="" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="input power"><select data-dim="power" data-units="mW,W,kW" data-default="W"></select></div>
+                        <p class="hint">Optional: shows how many watts land on the edge.</p>
                     </div>
                 </div>
             </div>
@@ -143,7 +154,7 @@
             <div class="panel-body">
                 <div class="results">
                     <div class="result primary"><span class="result-label">Transmitted fraction</span><output class="result-value" data-out="t">—</output></div>
-                    <div class="result"><span class="result-label">Clipped (blocked) fraction</span><output class="result-value" data-out="loss">—</output></div>
+                    <div class="result"><span class="result-label">Clipped (blocked) fraction</span><output class="result-value" data-out="loss">—</output><span class="result-note">This power lands on the edge, where it heats the mount or coating. The hard edge also puts ripples into the transmitted beam: see “Clipping is more than lost power” below.</span></div>
                     <div class="result"><span class="result-label" id="ratio-label">Aperture / beam diameter</span><output class="result-value" data-out="ratio">—</output></div>
                     <div class="result"><span class="result-label">Irradiance at the edge, relative to peak</span><output class="result-value" data-out="edge">—</output></div>
                     <div class="result"><span class="result-label" id="need-label">Aperture diameter for target</span><output class="result-value" data-out="need">—</output></div>
@@ -168,47 +179,61 @@
         <div class="formula">\[ \begin{gathered} \frac{D_t}{D_b} = \sqrt{\frac{-\ln(1-T)}{2}} \\[8pt] \frac{s}{D_b} = \frac{\operatorname{erf}^{-1}(T)}{\sqrt{2}} \\[8pt] \frac{x_0}{w} = \frac{\operatorname{erf}^{-1}(2T-1)}{\sqrt{2}} \end{gathered} \]</div>
 
         <h2>Common clipping ratios</h2>
-        <table>
-            <thead><tr><th class="num">D<sub>t</sub>/D<sub>b</sub> or s/D<sub>b</sub></th><th class="num">Circular aperture T</th><th class="num">Slit T</th><th class="num">Edge irradiance / peak</th></tr></thead>
+        <table class="ap-ratios">
+            <thead><tr><th class="num">D<sub>t</sub>/D<sub>b</sub> or s/D<sub>b</sub></th><th class="num">Circular aperture T</th><th class="num">Slit T</th><th class="num">Edge irradiance / peak</th><th class="num">On-axis ripple downstream (circular)</th></tr></thead>
             <tbody>
-                <tr><td class="num">0.5</td><td class="num">39.35 %</td><td class="num">68.27 %</td><td class="num">60.7 %</td></tr>
-                <tr><td class="num">1.0</td><td class="num">86.47 %</td><td class="num">95.45 %</td><td class="num">13.5 %</td></tr>
-                <tr><td class="num">1.25</td><td class="num">95.61 %</td><td class="num">98.76 %</td><td class="num">4.39 %</td></tr>
-                <tr><td class="num">1.5</td><td class="num">98.89 %</td><td class="num">99.73 %</td><td class="num">1.11 %</td></tr>
-                <tr><td class="num">π/2 ≈ 1.571</td><td class="num">99.28 %</td><td class="num">99.83 %</td><td class="num">0.72 %</td></tr>
-                <tr><td class="num">2.0</td><td class="num">99.966 %</td><td class="num">99.994 %</td><td class="num">0.034 %</td></tr>
-                <tr><td class="num">2.5</td><td class="num">99.9996 %</td><td class="num">&gt; 99.9999 %</td><td class="num">0.0004 %</td></tr>
+                <tr><td class="num">0.5</td><td class="num">39.35&nbsp;%</td><td class="num">68.27&nbsp;%</td><td class="num">60.7&nbsp;%</td><td class="num">−95 to +216&nbsp;%</td></tr>
+                <tr><td class="num">1.0</td><td class="num">86.47&nbsp;%</td><td class="num">95.45&nbsp;%</td><td class="num">13.5&nbsp;%</td><td class="num">−60 to +87&nbsp;%</td></tr>
+                <tr><td class="num">1.25</td><td class="num">95.61&nbsp;%</td><td class="num">98.76&nbsp;%</td><td class="num">4.39&nbsp;%</td><td class="num">−38 to +46&nbsp;%</td></tr>
+                <tr><td class="num">1.5</td><td class="num">98.89&nbsp;%</td><td class="num">99.73&nbsp;%</td><td class="num">1.11&nbsp;%</td><td class="num">−20 to +22&nbsp;%</td></tr>
+                <tr><td class="num">π/2 ≈ 1.571</td><td class="num">99.28&nbsp;%</td><td class="num">99.83&nbsp;%</td><td class="num">0.72&nbsp;%</td><td class="num">−16 to +18&nbsp;%</td></tr>
+                <tr><td class="num">2.0</td><td class="num">99.966&nbsp;%</td><td class="num">99.994&nbsp;%</td><td class="num">0.034&nbsp;%</td><td class="num">−3.6 to +3.7&nbsp;%</td></tr>
+                <tr><td class="num">2.5</td><td class="num">99.9996&nbsp;%</td><td class="num">&gt; 99.9999&nbsp;%</td><td class="num">0.0004&nbsp;%</td><td class="num">±0.39&nbsp;%</td></tr>
             </tbody>
         </table>
-        <p>For a circular aperture: 99 % throughput needs \(D_t \ge 1.52\,D_b\), 99.9 % needs \(1.86\,D_b\), and 99.99 % needs \(2.15\,D_b\). A common design rule is to make every aperture at least \(\pi w \approx 1.57\,D_b\) across.</p>
+        <p>For a circular aperture: 99&nbsp;% throughput needs \(D_t \ge 1.52\,D_b\), 99.9&nbsp;% needs \(1.86\,D_b\), and 99.99&nbsp;% needs \(2.15\,D_b\). A common design rule (Siegman's 99&nbsp;% criterion) is to make every aperture at least \(\pi w \approx 1.57\,D_b\) across. That rule is about power; the last column, explained next, is about beam quality.</p>
 
         <h2>Clipping is more than lost power</h2>
-        <p>A hard edge diffracts. Even 1 % clipping produces Fresnel ripples in the near field downstream and side lobes in the focal plane. Those can cause hot spots on optics, raise the measured M², and spread energy outside the processing spot. High-power and imaging systems therefore usually use clear apertures of at least 2× the beam diameter. A deliberately truncated beam (scanner pupils) also changes the focused spot. See the <a href="/tools/focused-spot/">focused spot</a> tool for the apodization (APO) factor. The power that is clipped is absorbed or scattered by the mount, which matters at kilowatt levels.</p>
+        <p>A hard edge diffracts. Behind a round aperture of radius \(a\), the intensity on the beam axis in the near field differs from that of the unclipped beam by the factor</p>
+        <div class="formula">\[ \frac{I(0,z)}{I_\text{G}(0,z)} = \left|\,1 - e^{-a^2/w^2}\,e^{\,i\pi a^2/(\lambda z)}\right|^2 , \]</div>
+        <p>for a collimated beam with its waist at the aperture, in the paraxial (Fresnel) approximation. As the distance \(z\) changes, this factor swings between \((1 - e^{-a^2/w^2})^2\) and \((1 + e^{-a^2/w^2})^2\): a ripple of about \(\pm 2e^{-a^2/w^2} = \pm 2\sqrt{1-T}\). So clipping 1&nbsp;% of the power (\(D_t \approx 1.52\,D_b\)) makes the on-axis intensity downstream swing by about ±20&nbsp;%, and the \(\pi w\) rule still leaves about ±17&nbsp;%. Keeping the ripple within ±1&nbsp;% takes \(D_t \approx 4.6\,w\), about 2.3 times the 1/e² diameter (Siegman, §17.1).</p>
+        <p>The clipped edge also puts weak rings around the focused spot. Ripples and rings can cause hot spots on downstream optics and spread energy outside the processing spot, and a hard-edged profile inflates a second-moment (ISO 11146) M² measurement. A deliberately truncated beam, such as one filling a scanner's pupil, focuses to a larger spot: see the <a href="/tools/focused-spot/">focused spot</a> tool for the apodization (APO) factor. The power that is clipped is absorbed or scattered by the mount, which matters at kilowatt levels.</p>
 
         <h2>Knife-edge beam profiling</h2>
-        <p>Translating a blade through the beam while recording transmitted power traces out \(T_\text{edge}(x_0)\), the error-function profile. For a Gaussian beam:</p>
+        <p>Translating a blade through the beam while recording the transmitted power traces out \(T_\text{edge}(x_0)\). For a Gaussian beam this is an error function, the cumulative normal distribution with a standard deviation of \(w/2\), so:</p>
         <ul>
-            <li>The 15.9 % and 84.1 % points are separated by exactly \(w\), one 1/e² radius.</li>
-            <li>The 10 % and 90 % points are separated by \(1.2816\,w\), so \(D_b = 2w \approx 1.561\,\Delta x_{10\text{–}90}\).</li>
+            <li>The 15.87&nbsp;% and 84.13&nbsp;% points are separated by exactly \(w\), one 1/e² radius. (The rounded 16&nbsp;% and 84&nbsp;% clip levels give \(0.994\,w\).)</li>
+            <li>The 10&nbsp;% and 90&nbsp;% points are separated by \(1.2816\,w\), so \(D_b = 2w \approx 1.561\,\Delta x_{10\text{–}90}\).</li>
+            <li>Fitting the whole recorded curve with the error function uses every data point instead of two (Khosrofian and Garetz, 1983; de Araújo et al., 2009).</li>
         </ul>
-        <p>These clip-level conversions assume a Gaussian profile. For non-Gaussian beams, ISO 11146 specifies second-moment (D4σ) widths, which a knife edge can only approximate.</p>
+        <p>These conversions are exact only for a Gaussian profile. ISO 11146-1 defines beam width by the second moment of the intensity (D4σ), which a single knife-edge width can only approximate. Siegman, Sasnett, and Johnston (1991) showed that a knife-edge width taken at clip levels between about 8.5&nbsp;% and 11.6&nbsp;%, and scaled by the factor that makes it exact for a Gaussian beam (10&nbsp;%/90&nbsp;% with 1.561 is one such pair), comes out only slightly off the second-moment width for a wide range of higher-order and poorer-quality beams.</p>
 
         <h2>Worked example</h2>
-        <p>An 8 mm beam passing a 12 mm iris \((D_t/D_b = 1.5)\) transmits \(1 - e^{-4.5} = 98.89\,\%\). With 500 W in the beam, about 5.6 W lands on the iris. Getting to 99.9 % needs an aperture of \(1.858 \times 8 = 14.9\) mm.</p>
+        <p>The default inputs: an 8&nbsp;mm beam passing a 12&nbsp;mm iris \((D_t/D_b = 1.5)\) transmits \(1 - e^{-4.5} = 98.89\,\%\). With 500&nbsp;W in the beam, about 5.6&nbsp;W lands on the iris, and the on-axis intensity downstream ripples by about −20&nbsp;% to +22&nbsp;%. Getting to 99.9&nbsp;% needs an aperture of \(1.858 \times 8 = 14.9\)&nbsp;mm.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
             <li>Ideal TEM₀₀ profile, centered on the aperture. Pointing offsets reduce transmission.</li>
             <li>Round (stigmatic) beam. For an elliptical beam, the slit and knife-edge results apply with the 1/e² diameter across the slit or along the blade travel. The circular-aperture formula does not apply.</li>
-            <li>Transmission is evaluated at the aperture plane (power accounting only). It does not describe the diffracted field downstream.</li>
+            <li>The calculator evaluates power at the aperture plane only. The ripple formula and table column above describe the on-axis near field behind a circular aperture; the full diffracted pattern needs a diffraction calculation.</li>
             <li>Multimode and top-hat beams have heavier or sharper edges. Use measured profiles for those.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), ch. 17 (aperture transmission and diffraction of Gaussian beams).</li>
-            <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios.</li>
+            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), sec. 17.1 (power transmission of a Gaussian beam through a circular aperture, the D&nbsp;=&nbsp;πw 99&nbsp;% criterion, and the near-field ripple behind a truncating aperture).</li>
+            <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios — Part 1: Stigmatic and simple astigmatic beams (second-moment beam widths).</li>
+            <li>A. E. Siegman, M. W. Sasnett, and T. F. Johnston, “Choice of clip levels for beam width measurements using knife-edge techniques,” <em>IEEE J. Quantum Electron.</em> <strong>27</strong>, 1098–1104 (1991), <a href="https://doi.org/10.1109/3.83346" target="_blank" rel="noopener">doi:10.1109/3.83346</a> (clip levels of about 8.5–11.6&nbsp;% with a matched scale factor track the second-moment width for non-Gaussian beams).</li>
+            <li>J. M. Khosrofian and B. A. Garetz, “Measurement of a Gaussian laser beam diameter through the direct inversion of knife-edge data,” <em>Appl. Opt.</em> <strong>22</strong>, 3406–3410 (1983), <a href="https://doi.org/10.1364/AO.22.003406" target="_blank" rel="noopener">doi:10.1364/AO.22.003406</a> (least-squares fit of a whole knife-edge scan).</li>
+            <li>M. A. C. de Araújo, R. Silva, E. de Lima, D. P. Pereira, and P. C. de Oliveira, “Measurement of Gaussian laser beam radius using the knife-edge technique: improvement on data analysis,” <em>Appl. Opt.</em> <strong>48</strong>, 393–396 (2009), <a href="https://doi.org/10.1364/AO.48.000393" target="_blank" rel="noopener">doi:10.1364/AO.48.000393</a> (an error-function fit that holds over the full measured range).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>A. E. Siegman, “How to (maybe) measure laser beam quality,” tutorial, Optical Society of America Annual Meeting (1997), <a href="https://web.archive.org/web/20110604095354/http://www.stanford.edu/~siegman/beams_and_resonators/beam_quality_tutorial_osa.pdf" target="_blank" rel="noopener">archived PDF</a>; also in <em>DPSS Lasers: Applications and Issues</em>, OSA Trends in Optics and Photonics (1998), paper MQ1, <a href="https://doi.org/10.1364/DLAI.1998.MQ1" target="_blank" rel="noopener">doi:10.1364/DLAI.1998.MQ1</a> (beam-width definitions, the πW aperture rule, and why knife-edge widths need conversion).</li>
+            <li>R. Paschotta, “Beam radius,” <em>RP Photonics Encyclopedia</em>, <a href="https://www.rp-photonics.com/beam_radius.html" target="_blank" rel="noopener">rp-photonics.com/beam_radius.html</a> (1/e² and second-moment radii, and which methods suit Gaussian beams only).</li>
+            <li>Novanta, “What is the Difference? Beam Size vs. Clear Aperture,” <a href="https://novanta.com/precision-manufacturing/articles/article/what-is-the-difference-beam-size-vs-clear-aperture/" target="_blank" rel="noopener">novanta.com</a> (a beam as wide as the clear aperture loses 13.5&nbsp;%, and what that power does to a scan head).</li>
+        </ul>
     </article>
 
     <section class="related">
@@ -226,9 +251,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const erfinv = y => normInv((y + 1) / 2) / Math.SQRT2;
     const grade = document.getElementById('grade');
     const LABELS = {
-        circle: ['Aperture diameter', 'Centered on the beam.', 'Aperture / beam diameter', 'Aperture diameter for target'],
-        slit:   ['Slit width', 'Centered, and much longer than the beam.', 'Slit width / beam diameter', 'Slit width for target'],
-        edge:   ['Blade position from beam center', 'Positive = blade edge not yet at the center (more than half transmitted).', 'Blade position x₀ / w', 'Blade position for target']
+        circle: ['Aperture diameter', 'Clear aperture of the iris, mount, or mirror, centered on the beam.', 'Aperture / beam diameter', 'Aperture diameter for target'],
+        slit:   ['Slit width', 'Full width of the slit, centered on the beam and much longer than it.', 'Slit width / beam diameter', 'Slit width for target'],
+        edge:   ['Blade position from beam center', 'Distance from the beam center to the blade edge. Positive = the blade has not yet reached the center (more than half transmitted).', 'Blade position x₀ / w', 'Blade position for target']
     };
     const curves = {
         x: linspace(0, 2.5, 126),

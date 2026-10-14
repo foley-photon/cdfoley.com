@@ -97,7 +97,17 @@
 
     <header class="page-head">
         <h1>Focused Laser Spot Size Calculator</h1>
-        <p class="lede">The focused laser spot size: the 1/e² diameter of a laser beam at the focus of a lens. The calculator applies the beam quality factor M² and computes the aperture-truncation (APO) factor exactly from the diffraction integral, so it stays accurate when the beam nearly fills the lens or scanner aperture.</p>
+        <p class="lede">How small a spot a lens focuses a laser beam to, and how long the focus stays that small. Use it to choose a focal length and beam size for a target spot, or to check what a given laser, lens, and scanner will deliver. The calculator applies the beam quality factor M² and computes the aperture-truncation (APO) factor from the diffraction integral rather than a lookup table, so it stays accurate when the beam nearly fills the lens or scanner aperture.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Spot diameter (1/e²)</dt><dd>The diameter of the focused beam where the intensity has fallen to 13.5&nbsp;% of its peak. An unclipped Gaussian spot holds 86.5&nbsp;% of the power inside it.</dd>
+            <dt>Focal length</dt><dd>The effective focal length f′ of the focusing or f-theta lens, from its datasheet. It is not the working distance to the part.</dd>
+            <dt>Input beam diameter</dt><dd>The 1/e² diameter of the beam arriving at the lens, after any beam expander.</dd>
+            <dt>Clear aperture</dt><dd>The usable diameter of the smallest opening the beam passes: the lens, a scanner mirror, or an iris.</dd>
+            <dt>Truncation ratio</dt><dd>Beam diameter divided by aperture diameter, T. Below about 0.5 the aperture has almost no effect. At 1 the aperture cuts the beam at its 1/e² edge and passes 86.5&nbsp;% of the power.</dd>
+            <dt>APO factor</dt><dd>The number that multiplies λf′M²/D<sub>b</sub> to give the spot diameter: 4/π ≈ 1.27 for an unclipped Gaussian beam, and larger when the aperture clips the beam.</dd>
+            <dt>M² (beam quality)</dt><dd>How many times larger the focused spot is than that of an ideal Gaussian beam of the same size through the same lens. 1 is perfect.</dd>
+            <dt>Depth of focus</dt><dd>The length along the beam, centered on the focus, over which the spot radius stays within your tolerance. It shrinks with the square of the spot size.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -110,28 +120,33 @@
                 <div class="field">
                     <label for="wl">Wavelength <span class="sym">λ</span></label>
                     <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <p class="hint">Vacuum wavelength from the laser datasheet. In air it is 0.03&nbsp;% shorter, which can be ignored here.</p>
                 </div>
                 <div class="field">
                     <label for="f">Focal length <span class="sym">f′</span></label>
                     <div class="input-unit"><input id="f" name="f" value="100" inputmode="decimal" data-positive><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                    <p class="hint">Effective focal length of the focusing or f-theta lens, from its datasheet.</p>
                 </div>
                 <div class="field">
                     <label for="db">Input beam diameter at the lens (1/e²) <span class="sym">D<sub>b</sub></span></label>
                     <div class="input-unit"><input id="db" name="db" value="8" inputmode="decimal" data-positive><select data-dim="length" data-units="mm,µm,cm,in" data-default="mm"></select></div>
+                    <p class="hint">The beam diameter where it reaches the lens: the laser’s diameter times any beam-expander magnification, plus any growth over the path. A FWHM diameter is 0.59 times the 1/e² diameter.</p>
                 </div>
                 <div class="field">
                     <label for="dt">Clear aperture / entrance pupil <span class="sym">D<sub>t</sub></span></label>
                     <div class="input-unit"><input id="dt" name="dt" value="12" inputmode="decimal" data-optional data-positive placeholder="blank = no truncation"><select data-dim="length" data-units="mm,µm,cm,in" data-default="mm"></select></div>
-                    <p class="hint">The smallest aperture in the path: lens clear aperture, scanner mirror, or iris. Leave blank for an untruncated beam.</p>
+                    <p class="hint">The smallest aperture in the path: lens clear aperture, scanner mirror, or iris. For a scan head, use its specified input aperture. Leave blank for an untruncated beam.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
                         <label for="m2">Beam quality <span class="sym">M²</span></label>
                         <div class="input-unit"><input id="m2" name="m2" value="1.1" inputmode="decimal" data-min="1" data-label="M²"><span class="unit">—</span></div>
+                        <p class="hint">From the laser datasheet. 1 is a perfect Gaussian beam. <a href="/tools/gaussian-beam/#typical-values">Typical values</a>.</p>
                     </div>
                     <div class="field">
                         <label for="tol">Depth-of-focus tolerance</label>
                         <div class="input-unit"><input id="tol" name="tol" value="5" inputmode="decimal" data-positive data-label="DOF tolerance"><span class="unit">% growth</span></div>
+                        <p class="hint">Allowed growth of the spot radius. 5&nbsp;% gives 0.64&nbsp;z<sub>R</sub> in total, and 41.4&nbsp;% the full ±z<sub>R</sub>.</p>
                     </div>
                 </div>
             </div>
@@ -144,13 +159,13 @@
                     <div class="result primary"><span class="result-label">Focused spot diameter (1/e²)<span class="sym">d<sub>F</sub></span></span><output class="result-value" data-out="dF">—</output><span class="result-note" id="coll-note" hidden></span></div>
                     <div class="result"><span class="result-label">Waist radius<span class="sym">w₀</span></span><output class="result-value" data-out="w0">—</output></div>
                     <div class="result"><span class="result-label">Truncation ratio<span class="sym">T = D<sub>b</sub>/D<sub>t</sub></span></span><output class="result-value" data-out="T">—</output></div>
-                    <div class="result"><span class="result-label">Apodization factor<span class="sym">APO</span></span><output class="result-value" data-out="apo">—</output></div>
-                    <div class="result"><span class="result-label">Power through aperture</span><output class="result-value" data-out="trans">—</output></div>
+                    <div class="result"><span class="result-label">Apodization factor<span class="sym">APO</span></span><output class="result-value" data-out="apo">—</output><span class="result-note">4/π ≈ 1.273 means the aperture does not enlarge the spot. Larger values show how much clipping costs.</span></div>
+                    <div class="result"><span class="result-label">Power through aperture</span><output class="result-value" data-out="trans">—</output><span class="result-note">Clipped power heats mirrors and mounts. For scan heads, keep the loss to about 1&nbsp;% (T ≤ 0.66).</span></div>
                     <div class="result"><span class="result-label">Untruncated spot (APO = 4/π)</span><output class="result-value" data-out="dF0">—</output></div>
                     <div class="result"><span class="result-label">Rayleigh range<span class="sym">z<sub>R</sub></span></span><output class="result-value" data-out="zR">—</output></div>
                     <div class="result"><span class="result-label" id="dof-label">Depth of focus, total</span><output class="result-value" data-out="dof">—</output></div>
                     <div class="result"><span class="result-label">Convergence half-angle<span class="sym">θ</span></span><output class="result-value" data-out="theta">—</output></div>
-                    <div class="result"><span class="result-label">Beam f-number<span class="sym">f′/D<sub>b</sub></span></span><output class="result-value" data-out="fno">—</output></div>
+                    <div class="result"><span class="result-label">Beam f-number<span class="sym">f′/D<sub>b</sub></span></span><output class="result-value" data-out="fno">—</output><span class="result-note">A simple spherical lens adds spherical aberration that grows fast below about f/7. See <a href="#limits">assumptions and limits</a>.</span></div>
                 </div>
             </div>
         </section>
@@ -170,44 +185,60 @@
         <h2>Truncation and the APO factor</h2>
         <p>A larger input beam gives a smaller spot, but only until the aperture starts to clip it. Clipping diffracts light out of the central lobe. The focal profile then moves away from a Gaussian toward an Airy pattern, and the spot stops shrinking in proportion to \(1/D_b\). This calculator does not use a lookup table. It evaluates the Fraunhofer diffraction integral of a truncated Gaussian,</p>
         <div class="formula">\[ U(r) \propto \int_0^{D_t/2} e^{-\rho^2/w_L^2}\, J_0\!\left(\frac{2\pi \rho r}{\lambda f'}\right)\rho\, d\rho , \]</div>
-        <p>and finds the radius at which \(|U|^2\) falls to \(e^{-2}\) of its peak. The table gives the result for a TEM₀₀ beam (\(M^2 = 1\)).</p>
+        <p>and finds the radius at which \(|U|^2\) falls to \(e^{-2}\) of its peak. The table gives the result for a TEM₀₀ beam (\(M^2 = 1\)). The widely quoted curve fit in the CVI Melles Griot guide, of the kind Urey derived from the same integral, writes the spot as \(d_F = K\lambda f'/D_t\), so \(K = \mathrm{APO}/T\). It agrees with the integral to within 0.7&nbsp;% for \(T \ge 0.8\) but runs 1–3&nbsp;% low for \(T\) = 0.5–0.7.</p>
         <table>
-            <thead><tr><th class="num">T = D<sub>b</sub>/D<sub>t</sub></th><th class="num">APO</th><th class="num">Power transmitted</th><th>Comment</th></tr></thead>
+            <thead><tr><th class="num">T = D<sub>b</sub>/D<sub>t</sub></th><th class="num">APO</th><th class="num">Transmitted</th><th>Comment</th></tr></thead>
             <tbody>
-                <tr><td class="num">≤ 0.5</td><td class="num">1.27–1.29</td><td class="num">&gt; 99.9 %</td><td>Effectively untruncated Gaussian</td></tr>
-                <tr><td class="num">0.7</td><td class="num">1.45</td><td class="num">98.3 %</td><td>Common compromise for scanners</td></tr>
-                <tr><td class="num">0.9</td><td class="num">1.69</td><td class="num">91.5 %</td><td>Noticeable side lobes</td></tr>
-                <tr><td class="num">1.0</td><td class="num">1.83</td><td class="num">86.5 %</td><td>Aperture at the 1/e² diameter</td></tr>
+                <tr><td class="num">≤ 0.5</td><td class="num" style="white-space:nowrap">1.27–1.29</td><td class="num">&gt; 99.9&nbsp;%</td><td>Effectively untruncated Gaussian</td></tr>
+                <tr><td class="num">0.66</td><td class="num">1.41</td><td class="num">99.0&nbsp;%</td><td>1&nbsp;% clipped: scan-head limit</td></tr>
+                <tr><td class="num">0.7</td><td class="num">1.45</td><td class="num">98.3&nbsp;%</td><td>Usual lens range: 0.7–1.0</td></tr>
+                <tr><td class="num">0.9</td><td class="num">1.69</td><td class="num">91.5&nbsp;%</td><td>Noticeable side lobes</td></tr>
+                <tr><td class="num">1.0</td><td class="num">1.83</td><td class="num">86.5&nbsp;%</td><td>Aperture at the 1/e² diameter</td></tr>
                 <tr><td class="num">→ ∞</td><td class="num">1.645·T</td><td class="num">→ 0</td><td>Uniform illumination (Airy disk); \(d_F \to 1.645\,\lambda f'/D_t\)</td></tr>
             </tbody>
         </table>
-        <p>In practice, T ≈ 0.6–0.8 is a reasonable design point for galvo scanners and focusing heads. Past that, enlarging the beam gives little reduction in spot size, costs throughput, and makes the setup more sensitive to beam pointing.</p>
-        <p>A multimode beam (\(M^2 > 1\)) is usually only partially coherent across the aperture, so clipping broadens its focus less than it would a TEM₀₀ beam of the same diameter. The calculator therefore evaluates APO at \(T/M\), with \(M = \sqrt{M^2}\): the truncation ratio of the embedded TEM₀₀ beam of diameter \(D_b/M\). Taking APO at \(T\) instead would overstate the spot at \(T = 1\) by 5.5 %, 14 %, and 40 % for \(M^2 = 1.1\), 1.3, and 5.</p>
+        <p>Where to stop is a trade-off between spot size and lost power. For a fixed aperture, going from T = 0.7 to 1 shrinks the spot by only 11&nbsp;% while the clipped power rises from 1.7&nbsp;% to 13.5&nbsp;%, and going on to T = 2 gains about 8&nbsp;% more at a 60&nbsp;% loss. Optics guides give T ≈ 0.7–1.0 as the usual range for focusing lenses (CVI Melles Griot). Scan heads are held to a stricter limit: clipped power heats the mirrors and housing, so the aperture should be at least 1.52 times the beam diameter (T ≤ 0.66, about 1&nbsp;% clipped), with extra margin for beam pointing and alignment errors (Novanta).</p>
+        <p>A multimode beam (\(M^2 > 1\)) is usually only partially coherent across the aperture, so clipping broadens its focus less than it would a TEM₀₀ beam of the same diameter. The calculator therefore evaluates APO at \(T/M\), with \(M = \sqrt{M^2}\): the truncation ratio of the embedded TEM₀₀ beam of diameter \(D_b/M\). Compared with an exact calculation for a partially coherent beam (see the limits below), taking APO at \(T\) instead would overstate the spot at \(T = 1\) by 5.5&nbsp;%, 14&nbsp;%, and 40&nbsp;% for \(M^2 = 1.1\), 1.3, and 5.</p>
 
         <h2>Depth of focus</h2>
-        <p>The Rayleigh range \(z_R = \pi w_0^2/(M^2\lambda)\) is the distance over which the beam radius grows by \(\sqrt{2}\) (the area doubles and the peak fluence halves). Most processes tolerate much less than that. For a maximum allowed spot growth \(\varepsilon\) (e.g. 5 %), the usable depth of focus is</p>
+        <p>The Rayleigh range \(z_R = \pi w_0^2/(M^2\lambda)\) is the distance over which the beam radius grows by \(\sqrt{2}\) (the area doubles and the peak fluence halves). A process that depends on fluence often tolerates much less than that. For a maximum allowed spot growth \(\varepsilon\) (e.g. 5&nbsp;%), the usable depth of focus is</p>
         <div class="formula">\[ \mathrm{DOF} = 2\,z_R\sqrt{(1+\varepsilon)^2 - 1}. \]</div>
-        <p>This is the total range, half on each side of the waist. Because \(z_R \propto w_0^2\), halving the spot size cuts the depth of focus to a quarter. Tight-focus ablation and scribing processes therefore need height sensing or tracking optics.</p>
+        <p>This is the total range, half on each side of the waist. Because \(z_R \propto w_0^2\), halving the spot size cuts the depth of focus to a quarter. Tight-focus ablation and scribing processes therefore often need height sensing or tracking optics.</p>
 
         <h2>Worked example</h2>
-        <p>A fiber laser at 1064 nm with M² = 1.1 and an 8 mm beam, focused by a 100 mm lens with a 12 mm clear aperture: T = 0.667 and T/M = 0.636, so APO = 1.383 and</p>
+        <p>A fiber laser at 1064&nbsp;nm with M² = 1.1 and an 8&nbsp;mm beam, focused by a 100&nbsp;mm lens with a 12&nbsp;mm clear aperture: T = 0.667 and T/M = 0.636, so APO = 1.383 and</p>
         <div class="formula">\[ d_F = 1.383 \times \frac{1.064\,\mu\text{m}\times 100\,\text{mm}\times 1.1}{8\,\text{mm}} \approx 20.2\,\mu\text{m}. \]</div>
-        <p>That gives \(z_R \approx 0.27\) mm, and with a 5 % growth tolerance the depth of focus is only about 0.18 mm in total (±0.09 mm about the waist). Without the aperture the spot would be 18.6 µm. The 12 mm aperture costs about 9 % in spot size and 1.1 % in power.</p>
+        <p>That gives \(z_R \approx 0.27\,\text{mm}\), and with a 5&nbsp;% growth tolerance the depth of focus is only about 0.18&nbsp;mm in total (±0.09&nbsp;mm about the waist). Without the aperture the spot would be 18.6&nbsp;µm. The 12&nbsp;mm aperture costs about 9&nbsp;% in spot size and 1.1&nbsp;% in power.</p>
 
-        <h2>Assumptions and limits</h2>
+        <h2 id="limits">Assumptions and limits</h2>
         <ul>
-            <li><strong>Paraxial, aberration-free lens.</strong> Real lenses add spherical aberration, which matters at low f-numbers (roughly f/# &lt; 5 for singlets). Use a ray-trace or the lens vendor's spot data when θ is large.</li>
-            <li><strong>Collimated input with the waist near the lens.</strong> The focus then lies close to \(f'\), provided \(f'\) is much shorter than the input beam's Rayleigh range \(z_{R,\mathrm{in}} = \pi D_b^2/(4M^2\lambda)\). Otherwise \(d_F\) is the spot size at \(f'\), but the true waist is smaller by \(1/\sqrt{1+(f'/z_{R,\mathrm{in}})^2}\) and forms closer to the lens, at \(f'/[1+(f'/z_{R,\mathrm{in}})^2]\); the calculator flags this when the difference exceeds 1 %. A diverging or converging input shifts the focus. See the <a href="/tools/gaussian-beam/">Gaussian beam propagation</a> tool.</li>
-            <li><strong>M² enters through the embedded Gaussian.</strong> The spot is \(M\) times that of the embedded TEM₀₀ beam (diameter \(D_b/M\)) clipped by the same aperture. This is exact for untruncated beams. With clipping, it agrees with an exact calculation for a partially coherent (Gaussian Schell-model) beam to within about 4 % for \(T \le 1\). It overstates the spot by up to about 26 % for \(T \le 2\), and by up to a factor \(M\) when the aperture is much smaller than the beam, where any beam gives the Airy spot \(1.645\,\lambda f'/D_t\).</li>
-            <li><strong>Truncated beams are no longer Gaussian.</strong> When T &gt; ~0.8, \(z_R\) and DOF from the 1/e² radius are approximate, and side lobes outside the first dark ring carry a growing share of the transmitted power (for M² = 1: about 2 % at T = 0.8, 4.5 % at T = 1, 12 % at T = 2, and 16 % for uniform illumination).</li>
+            <li><strong>Paraxial, aberration-free lens.</strong> Real lenses add spherical aberration. A simple spherical singlet stays diffraction-limited only at modest apertures, about f/7 or slower in Edmund Optics’ comparison, and slower still at long focal lengths and short wavelengths: at a fixed f-number the aberration grows in proportion to the focal length, while the diffraction-limited spot does not. Aspheres, corrected doublets, and f-theta objectives do far better. Use the lens vendor’s spot data or a ray trace for fast lenses or when θ is large.</li>
+            <li><strong>Collimated input with the waist near the lens.</strong> The focus then lies close to \(f'\), provided \(f'\) is much shorter than the input beam's Rayleigh range \(z_{R,\mathrm{in}} = \pi D_b^2/(4M^2\lambda)\). Otherwise \(d_F\) is the spot size at \(f'\), but the true waist is smaller by \(1/\sqrt{1+(f'/z_{R,\mathrm{in}})^2}\) and forms closer to the lens, at \(f'/[1+(f'/z_{R,\mathrm{in}})^2]\) (Self’s lens equation with the input waist at the lens); the calculator flags this when the difference exceeds 1&nbsp;%. A diverging or converging input shifts the focus. See the <a href="/tools/gaussian-beam/">Gaussian beam propagation</a> tool.</li>
+            <li><strong>M² enters through the embedded Gaussian.</strong> The spot is \(M\) times that of the embedded TEM₀₀ beam (diameter \(D_b/M\)) clipped by the same aperture. This is exact for untruncated beams. With clipping, it agrees with an exact calculation for a partially coherent (Gaussian Schell-model) beam to within about 4&nbsp;% for \(T \le 1\). For \(T \le 2\) it errs on the large side by up to about 26&nbsp;%, and on the small side by at most 2&nbsp;%. When the aperture is much smaller than the beam, any beam gives the Airy spot \(1.645\,\lambda f'/D_t\), and the rule overstates the spot by up to a factor \(M\).</li>
+            <li><strong>Truncated beams are no longer Gaussian.</strong> When T &gt; ~0.8, \(z_R\) and DOF from the 1/e² radius are approximate, and side lobes outside the first dark ring carry a growing share of the transmitted power (for M² = 1: about 1.7&nbsp;% at T = 0.8, 4.5&nbsp;% at T = 1, 12&nbsp;% at T = 2, and 16&nbsp;% for uniform illumination).</li>
+            <li><strong>1/e² is not D4σ for a clipped beam.</strong> The spot here is the 1/e² diameter. The second-moment (D4σ) diameter that ISO 11146-1 uses is formally infinite for the focus of a hard-edged aperture, because the side lobes fall off only as \(1/r^3\). A camera’s D4σ reading of a clipped focus therefore depends on its integration window and background subtraction.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), ch. 17–18 (Gaussian beams, aperture diffraction).</li>
-            <li>B. E. A. Saleh and M. C. Teich, <em>Fundamentals of Photonics</em>, 3rd ed., Wiley (2019), ch. 3.</li>
-            <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios.</li>
+            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), secs. 17.1–17.2 (Gaussian beam propagation and focusing) and 18.4 (aperture diffraction by circular apertures).</li>
+            <li>S. A. Self, “Focusing of spherical Gaussian beams,” <em>Appl. Opt.</em> <strong>22</strong>, 658–661 (1983), <a href="https://doi.org/10.1364/AO.22.000658" target="_blank" rel="noopener">doi:10.1364/AO.22.000658</a> (waist size and position behind a lens: the collimation check).</li>
+            <li>H. Urey, “Spot size, depth-of-focus, and diffraction ring intensity formulas for truncated Gaussian beams,” <em>Appl. Opt.</em> <strong>43</strong>, 620–625 (2004), <a href="https://doi.org/10.1364/AO.43.000620" target="_blank" rel="noopener">doi:10.1364/AO.43.000620</a> (spot size against truncation ratio from the diffraction integral, with curve fits).</li>
+            <li>V. N. Mahajan, “Uniform versus Gaussian beams: a comparison of the effects of diffraction, obscuration, and aberrations,” <em>J. Opt. Soc. Am. A</em> <strong>3</strong>, 470–485 (1986), <a href="https://doi.org/10.1364/JOSAA.3.000470" target="_blank" rel="noopener">doi:10.1364/JOSAA.3.000470</a> (focal-plane irradiance and encircled power of clipped Gaussian beams).</li>
+            <li>A. L. Buck, “The radiation pattern of a truncated Gaussian aperture distribution,” <em>Proc. IEEE</em> <strong>55</strong>, 448–450 (1967), <a href="https://doi.org/10.1109/PROC.1967.5535" target="_blank" rel="noopener">doi:10.1109/PROC.1967.5535</a> (the far-field pattern of a clipped Gaussian).</li>
+            <li>M. Born and E. Wolf, <em>Principles of Optics</em>, 7th ed., Cambridge University Press (1999), sec. 8.5.2 (the Airy pattern of a uniformly filled circular aperture).</li>
+            <li>A. Starikov and E. Wolf, “Coherent-mode representation of Gaussian Schell-model sources and of their radiation fields,” <em>J. Opt. Soc. Am.</em> <strong>72</strong>, 923–928 (1982), <a href="https://doi.org/10.1364/JOSA.72.000923" target="_blank" rel="noopener">doi:10.1364/JOSA.72.000923</a>, and L. Mandel and E. Wolf, <em>Optical Coherence and Quantum Optics</em>, Cambridge University Press (1995), ch. 5, <a href="https://doi.org/10.1017/CBO9781139644105" target="_blank" rel="noopener">doi:10.1017/CBO9781139644105</a> (the partially coherent beam model used to check the M² &gt; 1 rule).</li>
+            <li>CVI Melles Griot, “Gaussian Beam Optics,” in <em>Fundamental Optics</em> (technical guide, undated), pp. 2.7–2.9 (truncation ratio, the K-factor curve fit, and the usual T = 0.7–1.0 range).</li>
+            <li>B. E. A. Saleh and M. C. Teich, <em>Fundamentals of Photonics</em>, 3rd ed., Wiley (2019), ch. 3, “Beam optics” (focusing a Gaussian beam).</li>
+            <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios — Part 1: Stigmatic and simple astigmatic beams (beam widths and M²).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>Edmund Optics, “Propagation of a Gaussian Beam Through a Thin Lens,” application note, <a href="https://www.edmundoptics.com/knowledge-center/application-notes/lasers/gaussian-beam-propagation/" target="_blank" rel="noopener">edmundoptics.com</a> (focusing a collimated beam, and why the waist forms slightly short of f′).</li>
+            <li>Novanta, “What is the Difference? Beam Size vs. Clear Aperture,” <a href="https://novanta.com/precision-manufacturing/articles/article/what-is-the-difference-beam-size-vs-clear-aperture/" target="_blank" rel="noopener">novanta.com</a> (sizing a scan-head aperture for about 1&nbsp;% clipping).</li>
+            <li>Edmund Optics, “Lens Geometry Performance Comparison,” application note, <a href="https://www.edmundoptics.com/knowledge-center/application-notes/optics/lens-geometry-performance-comparison/" target="_blank" rel="noopener">edmundoptics.com</a> (when a plano-convex singlet is diffraction-limited and when an asphere is worth it).</li>
+        </ul>
     </article>
 
     <section class="related">

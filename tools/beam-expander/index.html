@@ -101,7 +101,17 @@
 
     <header class="page-head">
         <h1>Laser Beam Expander Calculator</h1>
-        <p class="lede">An afocal two-lens telescope that enlarges a collimated beam and reduces its divergence by the same factor. Enter the lens focal lengths, or a target magnification, to get the lens spacing, the output beam, and how much smaller the spot will be after a focusing lens.</p>
+        <p class="lede">A beam expander is a two-lens telescope that makes a collimated laser beam wider and, by the same factor, less divergent, so the beam stays narrow over a longer distance and focuses to a smaller spot. Enter the lens focal lengths, or a target magnification, to get the lens spacing, the output beam, and how much smaller the spot will be after a focusing lens.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Beam expander</dt><dd>Two lenses spaced so that a collimated beam goes in and a wider collimated beam comes out (an afocal telescope). Used backward, it is a beam reducer.</dd>
+            <dt>Magnification</dt><dd>Output beam diameter divided by input beam diameter, |M|. It equals the ratio of the two focal lengths.</dd>
+            <dt>Galilean</dt><dd>A diverging (negative) lens followed by a converging one. It is short and has no focus inside, so it suits high-power lasers.</dd>
+            <dt>Keplerian</dt><dd>Two converging lenses with a real focus between them, where a pinhole can clean up the beam. It is longer and turns the beam upside down.</dd>
+            <dt>Divergence (full angle)</dt><dd>The cone angle at which the beam spreads far from the laser, in mrad, measured at the 1/e² edge. An expander divides it by |M|.</dd>
+            <dt>M² (beam quality)</dt><dd>How many times the ideal divergence a beam has for its size. 1 is a perfect Gaussian beam. An expander does not change it.</dd>
+            <dt>Spatial filter</dt><dd>A pinhole at the internal focus of a Keplerian expander that blocks scattered light and beam noise and passes a smoother beam.</dd>
+            <dt>Rayleigh range</dt><dd>The distance over which a beam grows by √2 from its narrowest point. It grows with the square of the beam diameter, so a 3× expander makes it 9 times longer.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -139,36 +149,42 @@
                     <div class="field">
                         <label for="mag">Target magnification <span class="sym">|M|</span></label>
                         <div class="input-unit"><input id="mag" name="mag" value="3" inputmode="decimal" data-optional data-label="magnification"><span class="unit">×</span></div>
+                        <p class="hint">Output diameter ÷ input diameter, for example 3 for a 3× expander. A value below 1 makes a reducer (Keplerian in this mode).</p>
                     </div>
                 </div>
 
                 <div class="field">
                     <label for="f2">Output lens focal length (signed) <span class="sym">f₂</span></label>
                     <div class="input-unit"><input id="f2" name="f2" value="150" data-label="output lens focal length"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                    <p class="hint">The lens the beam leaves through. Positive for a converging lens. In design mode it must be positive, and the input lens is calculated from it.</p>
                 </div>
 
                 <div class="field">
                     <label for="din">Input beam diameter (1/e²) <span class="sym">D<sub>in</sub></span></label>
                     <div class="input-unit"><input id="din" name="din" value="3" inputmode="decimal" data-positive><select data-dim="length" data-units="µm,mm,cm,in" data-default="mm"></select></div>
+                    <p class="hint">From the laser datasheet. A FWHM diameter is 0.59 times the 1/e² diameter.</p>
                 </div>
                 <div class="field">
                     <label for="divin">Input divergence, full angle <span class="sym">Θ<sub>in</sub></span></label>
                     <div class="input-unit"><input id="divin" name="divin" value="1.2" inputmode="decimal" data-optional data-positive placeholder="blank = from M²" data-label="input divergence"><select data-dim="angle" data-units="µrad,mrad,deg" data-default="mrad"></select></div>
-                    <p class="hint">From the laser datasheet. When filled in, it overrides the M² input. Leave blank to calculate it from the diameter and M² (M² times the diffraction limit).</p>
+                    <p class="hint">The 1/e² full angle from the laser datasheet (double a half-angle value). When filled in, it overrides the M² input. Leave blank to calculate it from the diameter and M² (M² times the diffraction limit).</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
                         <label for="wl">Wavelength <span class="sym">λ</span></label>
                         <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                        <p class="hint">Vacuum wavelength from the laser datasheet. It sets the diffraction limit behind M² and the Rayleigh ranges.</p>
                     </div>
                     <div class="field">
                         <label for="m2">Beam quality <span class="sym">M²</span></label>
                         <div class="input-unit"><input id="m2" name="m2" value="1" inputmode="decimal" data-min="1" data-label="M²"><span class="unit">—</span></div>
+                        <p class="hint">From the laser datasheet; 1 is a perfect Gaussian beam. Used only when the divergence is blank.</p>
                     </div>
                 </div>
                 <div class="field">
                     <label for="ff">Downstream focusing lens <span class="sym">f<sub>F</sub></span></label>
                     <div class="input-unit"><input id="ff" name="ff" value="100" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="focusing lens focal length"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                    <p class="hint">Focal length of the lens or f-theta objective after the expander. Leave blank to skip the spot results.</p>
                 </div>
             </div>
         </form>
@@ -183,12 +199,12 @@
                     <div class="result"><span class="result-label">Output beam diameter<span class="sym">D<sub>out</sub></span></span><output class="result-value" data-out="dout">—</output></div>
                     <div class="result"><span class="result-label">Output divergence, full angle<span class="sym">Θ<sub>out</sub></span></span><output class="result-value" data-out="divout">—</output></div>
                     <div class="result"><span class="result-label">Effective M² of the input beam</span><output class="result-value" data-out="m2eff">—</output><span class="result-note" id="m2note"></span></div>
-                    <div class="result"><span class="result-label">Output Rayleigh range (collimated length)</span><output class="result-value" data-out="zrout">—</output></div>
+                    <div class="result"><span class="result-label">Output Rayleigh range (collimated length)</span><output class="result-value" data-out="zrout">—</output><span class="result-note">Distance from the output waist at which the beam has grown by √2 (41&nbsp;%). It is |M|² times the input Rayleigh range.</span></div>
                     <div class="result"><span class="result-label">Internal focus diameter (Keplerian)</span><output class="result-value" data-out="dint">—</output></div>
-                    <div class="result"><span class="result-label">Suggested pinhole (≈ 1.5 × focus)</span><output class="result-value" data-out="pin">—</output></div>
+                    <div class="result"><span class="result-label">Suggested pinhole (≈ 1.5 × focus)</span><output class="result-value" data-out="pin">—</output><span class="result-note">Passes 98.9&nbsp;% of a TEM₀₀ beam. Vendors suggest 1.5 to 2 times the focus diameter (see Galilean or Keplerian below).</span></div>
                     <div class="result"><span class="result-label">Focused spot without expander</span><output class="result-value" data-out="spot0">—</output></div>
                     <div class="result"><span class="result-label">Focused spot with expander</span><output class="result-value" data-out="spot1">—</output><span class="result-note" id="spotnote"></span></div>
-                    <div class="result"><span class="result-label">Rayleigh range at focus, with expander</span><output class="result-value" data-out="zrf">—</output></div>
+                    <div class="result"><span class="result-label">Rayleigh range at focus, with expander</span><output class="result-value" data-out="zrf">—</output><span class="result-note">The price of the smaller spot: the depth of focus falls as 1/|M|².</span></div>
                 </div>
             </div>
         </section>
@@ -196,7 +212,7 @@
 
     <article class="prose" style="margin-top:3rem">
         <h2>How it is calculated</h2>
-        <p>Two lenses separated by the sum of their focal lengths form an afocal telescope: collimated light in, collimated light out. With \(f_1\) the input lens and \(f_2\) the output lens (signed, positive for converging),</p>
+        <p>Two lenses separated by the sum of their focal lengths form an afocal telescope: collimated light in, collimated light out. The rear focal point of the first lens then coincides with the front focal point of the second. With \(f_1\) the input lens and \(f_2\) the output lens (signed, positive for converging),</p>
         <div class="formula">\[ \begin{gathered} M = -\frac{f_2}{f_1}, \quad L = f_1 + f_2, \\[4pt] D_\text{out} = |M|\,D_\text{in}, \quad \Theta_\text{out} = \frac{\Theta_\text{in}}{|M|}. \end{gathered} \]</div>
         <p>A <strong>Galilean</strong> expander pairs a negative input lens with a positive output lens. \(M\) is positive (upright beam) and the tube is shorter than \(f_2\). A <strong>Keplerian</strong> expander uses two positive lenses. \(M\) is negative (the beam is inverted) and there is a real focus between the lenses.</p>
         <p>The product of diameter and divergence is conserved, so expansion does not change beam quality. It only redistributes it. If you leave the input divergence blank, the calculator uses \(\Theta = 4M^2\lambda/(\pi D_\text{in})\), which is M² times the diffraction limit. If you enter a measured divergence, it takes precedence over the M² input, and the calculator reports the implied M² so you can check the datasheet for consistency.</p>
@@ -204,36 +220,47 @@
         <h2>Effect on the focused spot</h2>
         <p>A focusing lens maps the far field to its focal plane, so the spot diameter is the focal length times the full divergence of the beam entering the lens:</p>
         <div class="formula">\[ \begin{gathered} d_F = f_F\,\Theta = \frac{4M^2\lambda f_F}{\pi D} \\[4pt] \Longrightarrow\quad d_{F,\text{expanded}} = \frac{d_{F,\text{direct}}}{|M|}. \end{gathered} \]</div>
-        <p>A 3× expander therefore gives a spot one-third the size, nine times the peak fluence, and one-ninth the depth of focus (\(z_R \propto d_F^2\)). Expanding the beam is an alternative to a shorter focal length lens, but check that the expanded beam still fits through the scanner mirrors and focusing optics without clipping. The <a href="/tools/focused-spot/">focused spot tool</a> includes aperture truncation.</p>
+        <p>This holds in the lens’s back focal plane for any input beam, because that plane receives the far field of the beam at the lens. The focused waist lies exactly in that plane when the input waist is in the front focal plane, and close to it whenever the input beam’s Rayleigh range is much longer than \(f_F\). A 3× expander therefore gives a spot one-third the size, nine times the peak fluence, and one-ninth the depth of focus (\(z_R \propto d_F^2\)). Expanding the beam is an alternative to a shorter focal length lens, but check that the expanded beam still fits through the scanner mirrors and focusing optics without clipping, and that the lens is still free of spherical aberration at the larger aperture. The <a href="/tools/focused-spot/">focused spot tool</a> includes aperture truncation.</p>
 
         <h2>Galilean or Keplerian?</h2>
         <ul>
-            <li><strong>Galilean</strong> has no internal focus, so it is preferred for pulsed lasers with high peak power: there is no risk of air breakdown or of damaging an optic placed near the focus. It is also shorter: for the same magnification and output lens, the lens separation is \(f_2 - |f_1|\) instead of \(f_2 + |f_1|\).</li>
-            <li><strong>Keplerian</strong> has an accessible internal focus. A pinhole placed there acts as a spatial filter that strips high-spatial-frequency noise from the beam. The spot is about \(f_1\Theta_\text{in}\), and a pinhole of roughly 1.5 times the 1/e² focus diameter passes about 99 % of a TEM₀₀ beam. At high peak power the internal focus can ionize air, so evacuate the filter or use a Galilean design instead.</li>
+            <li><strong>Galilean</strong> has no internal focus, so it is preferred for high-power lasers: there is no risk of air breakdown at high peak power, no heated air at a focus to distort the wavefront at high average power, and no tight focus to damage an optic placed near it. It is also shorter: for the same magnification and output lens, the lens separation is \(f_2 - |f_1|\) instead of \(f_2 + |f_1|\).</li>
+            <li><strong>Keplerian</strong> has an accessible internal focus. A pinhole placed there acts as a spatial filter that strips high-spatial-frequency noise, such as scatter from dust on the optics, from the beam. The focus is \(f_1\Theta_\text{in}\) across (1/e²). A pinhole 1.5 times that diameter, the size suggested in the results, passes 98.9&nbsp;% of a TEM₀₀ beam. For a TEM₀₀ beam, vendors recommend from \(\pi/2 \approx 1.57\) times (\(\lambda f_1/w_\text{in}\) for an input 1/e² radius \(w_\text{in}\), passing 99.3&nbsp;%; Edmund Optics) to about 2 times (99.97&nbsp;%, and easier to align; CVI Melles Griot). At high peak power the internal focus can ionize air, so evacuate the filter or use a Galilean design instead.</li>
         </ul>
 
         <h2>Worked example</h2>
-        <p>A 3 mm laser beam with a 1.2 mrad full-angle divergence (implied M² ≈ 2.66 at 1064 nm) passes through a Galilean expander with \(f_1 = -50\) mm and \(f_2 = 150\) mm:</p>
+        <p>A 3&nbsp;mm laser beam with a 1.2&nbsp;mrad full-angle divergence (implied M² ≈ 2.66 at 1064&nbsp;nm) passes through a Galilean expander with \(f_1 = -50\,\text{mm}\) and \(f_2 = 150\,\text{mm}\):</p>
         <ul>
-            <li>\(|M| = 3\) and \(L = 100\) mm. The output is 9 mm in diameter with 0.40 mrad divergence.</li>
-            <li>With a 100 mm focusing lens the spot shrinks from \(100\,\text{mm}\times 1.2\,\text{mrad} = 120\) µm to 40 µm. The Rayleigh range at focus becomes 0.44 mm.</li>
-            <li>A Keplerian version (\(f_1 = +50\) mm) needs \(L = 200\) mm and has a 60 µm internal focus. A 90 µm pinhole would make a suitable spatial filter.</li>
+            <li>\(|M| = 3\) and \(L = 100\,\text{mm}\). The output is 9&nbsp;mm in diameter with 0.40&nbsp;mrad divergence.</li>
+            <li>With a 100&nbsp;mm focusing lens the spot shrinks from \(100\,\text{mm}\times 1.2\,\text{mrad} = 120\,\mu\text{m}\) to 40&nbsp;µm. The Rayleigh range at focus becomes 0.44&nbsp;mm.</li>
+            <li>A Keplerian version (\(f_1 = +50\,\text{mm}\)) needs \(L = 200\,\text{mm}\) and has a 60&nbsp;µm internal focus. A 90&nbsp;µm pinhole would make a suitable spatial filter.</li>
         </ul>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>Thin, aberration-free lenses.</strong> Real expanders have a lens spacing that differs slightly from \(f_1 + f_2\) because of principal-plane positions, and they are usually adjustable to set collimation. Use the vendor's mechanical data.</li>
+            <li><strong>Thin, aberration-free lenses.</strong> Real expanders have a lens spacing that differs slightly from \(f_1 + f_2\) because of principal-plane positions, and many have a divergence (collimation) adjustment to set it. Use the vendor's mechanical data.</li>
+            <li><strong>Alignment and pointing.</strong> An expander divides angular pointing jitter by \(|M|\) but multiplies any lateral offset of the beam by \(|M|\), and an expander tilted to the beam adds coma and astigmatism.</li>
             <li><strong>Collimated input.</strong> If the input beam's waist is far from the expander, the output waist moves too. The divergence ratio still holds, but the location of the minimum spot does not. The M² and divergence relations also treat \(D_\text{in}\) as the waist diameter. If the expander is more than a small fraction of the input Rayleigh range (about \(D_\text{in}/\Theta_\text{in}\)) from the laser's waist, the implied M² comes out too high and the M²-based divergence too low. See <a href="/tools/gaussian-beam/">Gaussian beam propagation</a>.</li>
-            <li><strong>No clipping.</strong> Both lenses and every downstream aperture must be at least about 1.6× the local 1/e² beam diameter (π times the 1/e² radius, which passes 99.3 % of the power). See <a href="/tools/aperture-transmission/">beam clipping</a>.</li>
-            <li><strong>Focused-spot estimate assumes an untruncated beam</strong> with no lens aberrations, paraxial focusing (the results flag a convergence half-angle above 0.15 rad), and the focal plane close to the beam waist.</li>
+            <li><strong>No clipping.</strong> Both lenses and every downstream aperture must be at least about 1.6× the local 1/e² beam diameter (π times the 1/e² radius, which passes 99.3&nbsp;% of the power). See <a href="/tools/aperture-transmission/">beam clipping</a>.</li>
+            <li><strong>Focused-spot estimate assumes an untruncated beam</strong> with no lens aberrations, paraxial focusing (the results flag a convergence half-angle above 0.15&nbsp;rad), and the focal plane close to the beam waist.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), ch. 15–17 and 20 (ray matrices, Gaussian beams, complex paraxial wave optics).</li>
-            <li>B. E. A. Saleh and M. C. Teich, <em>Fundamentals of Photonics</em>, 3rd ed., Wiley (2019), ch. 3.</li>
-            <li>W. J. Smith, <em>Modern Optical Engineering</em>, 4th ed., McGraw-Hill (2008) — afocal systems.</li>
+            <li>W. J. Smith, <em>Modern Optical Engineering</em>, 4th ed., McGraw-Hill (2008), sec. 13.1 (telescopes and afocal systems: magnification and lens spacing).</li>
+            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), ch. 15 (ray matrices), ch. 17 (Gaussian beam propagation and focusing), and ch. 20 (Gaussian beams through ABCD systems).</li>
+            <li>H. Kogelnik and T. Li, “Laser beams and resonators,” <em>Appl. Opt.</em> <strong>5</strong>, 1550–1567 (1966), <a href="https://doi.org/10.1364/AO.5.001550" target="_blank" rel="noopener">doi:10.1364/AO.5.001550</a> (how lenses transform a Gaussian beam).</li>
+            <li>B. E. A. Saleh and M. C. Teich, <em>Fundamentals of Photonics</em>, 3rd ed., Wiley (2019), ch. 3, “Beam optics.”</li>
+            <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios — Part 1: Stigmatic and simple astigmatic beams (beam widths, divergence angles, and M²).</li>
+            <li>CVI Melles Griot, “Gaussian Beam Optics,” in <em>Fundamental Optics</em> (technical guide, undated), p. 2.9 (spatial-filter pinhole about twice the 1/e² focus diameter).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>Edmund Optics, “Laser Beam Expanders,” application note, <a href="https://www.edmundoptics.com/knowledge-center/application-notes/lasers/beam-expanders/" target="_blank" rel="noopener">edmundoptics.com</a> (Galilean and Keplerian designs, divergence, and why high-power expanders avoid an internal focus).</li>
+            <li>R. Paschotta, “Beam expanders,” <em>RP Photonics Encyclopedia</em>, <a href="https://www.rp-photonics.com/beam_expanders.html" target="_blank" rel="noopener">rp-photonics.com/beam_expanders.html</a> (design types, divergence adjustment, and effects on pointing).</li>
+            <li>Edmund Optics, “Understanding Spatial Filters,” application note, <a href="https://www.edmundoptics.com/knowledge-center/application-notes/lasers/understanding-spatial-filters/" target="_blank" rel="noopener">edmundoptics.com</a> (choosing the pinhole for a Keplerian spatial filter).</li>
+        </ul>
     </article>
 
     <section class="related">

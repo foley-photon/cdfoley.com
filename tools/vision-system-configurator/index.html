@@ -163,6 +163,16 @@
     <header class="page-head">
         <h1>Machine Vision System Configurator</h1>
         <p class="lede">Describe the job: field of view, working distance, the smallest feature you need to see, and how fast the part moves. The configurator picks a standard lens for your sensor, draws the setup, and checks resolution, depth of field, motion blur, interface bandwidth, lens format, and lighting. The table at the bottom ranks 39 common sensors for the same job.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Field of view (FOV)</dt><dd>The width and height of the area one image must cover: the part, plus a margin for where it can land.</dd>
+            <dt>Working distance</dt><dd>How far the lens is from the part. The calculation measures it from the lens’s front principal plane, an optical reference point, so it differs somewhat from the working distance lens makers quote from the front of the lens barrel.</dd>
+            <dt>Smallest feature</dt><dd>The smallest defect or detail the system must find or measure, such as a scratch width, a particle, or the gap between two edges.</dd>
+            <dt>Pixels across the feature</dt><dd>How many pixels the smallest feature spans in the image. Two is the theoretical minimum; about 3 to 5 detect a feature reliably, and measuring it takes 10 or more.</dd>
+            <dt>Depth of field</dt><dd>The range of heights that stays acceptably sharp. It grows with a higher f-number (a smaller aperture) or a lower magnification.</dd>
+            <dt>Exposure or strobe time</dt><dd>How long the sensor collects light for each image. A short exposure, or a brief strobe flash, freezes a moving part.</dd>
+            <dt>Interface bandwidth</dt><dd>How many megabytes per second the camera’s connection to the computer (GigE, USB3, CoaXPress, Camera Link) can carry. It caps the frame rate of a large sensor.</dd>
+            <dt>Lens format</dt><dd>The largest sensor a lens is designed for, set by the diameter of the sharp image circle it projects. It must be at least the sensor diagonal, or the image corners go dark and soft.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -184,11 +194,12 @@
                         <div class="input-unit"><input id="fovh" name="fovh" value="90" inputmode="decimal" data-positive data-label="field-of-view height"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
                     </div>
                 </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The area one image must cover, along the sensor’s long side (width) and short side (height): the part plus a margin for where it can land.</p>
                 <div class="field-row">
                     <div class="field">
                         <label for="wd">Working distance</label>
                         <div class="input-unit"><input id="wd" name="wd" value="300" inputmode="decimal" data-positive data-label="working distance"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
-                        <p class="hint">Lens to part. The mechanical clearance from the lens barrel is a little shorter.</p>
+                        <p class="hint">Lens to part, measured from the lens’s front principal plane. The clearance in front of the lens barrel can differ by several millimeters or more; check the lens data.</p>
                     </div>
                     <div class="field">
                         <label for="depth">Height variation to keep in focus</label>
@@ -200,11 +211,12 @@
                     <div class="field">
                         <label for="feat">Smallest feature or defect</label>
                         <div class="input-unit"><input id="feat" name="feat" value="0.2" inputmode="decimal" data-positive data-label="smallest feature"><select data-dim="length" data-units="µm,mm,in,mil" data-default="mm"></select></div>
+                        <p class="hint">The smallest defect or detail you must find, such as a scratch width or a particle size.</p>
                     </div>
                     <div class="field">
                         <label for="ppf">Pixels across it</label>
                         <div class="input-unit"><input id="ppf" name="ppf" value="3" inputmode="decimal" data-positive data-label="pixels across the feature"><span class="unit">px</span></div>
-                        <p class="hint">3 to detect; 5–10 to measure.</p>
+                        <p class="hint">2 is the sampling minimum; about 3–5 to detect reliably, 10 or more to measure.</p>
                     </div>
                 </div>
                 <div class="field">
@@ -218,6 +230,7 @@
                         <option value="transparent">Transparent parts (glass, film, bottles)</option>
                         <option value="color">Color sorting and color inspection</option>
                     </select>
+                    <p class="hint">Sets the lighting suggestion. Gauging can add a perspective check, and color inspection a color check.</p>
                 </div>
 
                 <h3 class="cfg-sub">Motion and frame rate</h3>
@@ -225,15 +238,17 @@
                     <div class="field">
                         <label for="speed">Part speed</label>
                         <div class="input-unit"><input id="speed" name="speed" value="100" inputmode="decimal" data-nonneg data-label="part speed"><select data-dim="speed" data-units="mm/s,m/s,m/min,in/s" data-default="mm/s"></select></div>
-                        <p class="hint">0 for a stationary part.</p>
+                        <p class="hint">Speed during the exposure; 0 if the part is at rest when the image is taken.</p>
                     </div>
                     <div class="field">
                         <label for="exp">Exposure or strobe time</label>
                         <div class="input-unit"><input id="exp" name="exp" value="100" inputmode="decimal" data-positive data-label="exposure time"><select data-dim="time" data-units="µs,ms" data-default="µs"></select></div>
+                        <p class="hint">With a strobe in a shielded station, the flash length.</p>
                     </div>
                     <div class="field">
                         <label for="fps">Frame rate needed</label>
                         <div class="input-unit"><input id="fps" name="fps" value="10" inputmode="decimal" data-positive data-label="frame rate"><span class="unit">fps</span></div>
+                        <p class="hint">Images per second: the parts per second if each part gets one image.</p>
                     </div>
                 </div>
 
@@ -241,16 +256,18 @@
                 <div class="field">
                     <label for="sensor">Sensor</label>
                     <select id="sensor" name="sensor" class="input"></select>
-                    <p class="hint">Full sensor arrays; camera makers sometimes crop a few rows. The table below ranks every sensor for this job.</p>
+                    <p class="hint">Arrays close to what cameras deliver; camera makers may crop a few dozen pixels, so check the camera datasheet. The table below ranks every sensor for this job.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
                         <label for="iface">Interface</label>
                         <select id="iface" name="iface" class="input"></select>
+                        <p class="hint">The camera’s connection. GigE and USB3 use standard computer ports; Camera Link and CoaXPress need a frame grabber card.</p>
                     </div>
                     <div class="field">
                         <label for="pixfmt">Pixel format</label>
                         <select id="pixfmt" name="pixfmt" class="input"></select>
+                        <p class="hint">Packed 10- and 12-bit formats keep finer gray levels but need 25&nbsp;% and 50&nbsp;% more bandwidth than 8-bit; RGB8 needs three times as much.</p>
                     </div>
                 </div>
 
@@ -260,7 +277,7 @@
                         <label for="fmode">Focal length</label>
                         <select id="fmode" name="fmode" class="input">
                             <option value="auto" selected>Pick a standard lens for me</option>
-                            <option value="custom">I'll enter one</option>
+                            <option value="custom">I’ll enter one</option>
                         </select>
                     </div>
                     <div class="field">
@@ -272,15 +289,17 @@
                     <div class="field">
                         <label for="N">Aperture <span class="sym">f/#</span></label>
                         <div class="input-unit"><input id="N" name="N" value="4" inputmode="decimal" data-positive data-label="f-number"><span class="unit">f/#</span></div>
+                        <p class="hint">Higher: more depth of field, less light, more diffraction blur.</p>
                     </div>
                     <div class="field">
                         <label for="wl">Light wavelength</label>
                         <div class="input-unit"><input id="wl" name="wl" value="525" inputmode="decimal" data-positive data-label="wavelength"><select data-dim="length" data-units="nm" data-default="nm"></select></div>
-                        <p class="hint">Red 625, green 525, blue 470, white ≈ 550.</p>
+                        <p class="hint">LED peaks: blue 470, green 525, red 625, near infrared 850. White: use 550.</p>
                     </div>
                     <div class="field">
                         <label for="blur">Acceptable blur</label>
                         <div class="input-unit"><input id="blur" name="blur" value="2" inputmode="decimal" data-positive data-label="acceptable blur"><span class="unit">px</span></div>
+                        <p class="hint">Defocus blur still counted as sharp. Use 1–2.</p>
                     </div>
                 </div>
                 <label class="check-line"><input type="checkbox" name="globalonly"> Rank only global-shutter sensors in the table</label>
@@ -312,14 +331,19 @@
                     <div class="result"><span class="result-label">Magnification</span><output class="result-value" data-out="m">—</output></div>
                     <div class="result"><span class="result-label">Pixel size on the part</span><output class="result-value" data-out="pobj">—</output></div>
                     <div class="result"><span class="result-label">Pixels across smallest feature</span><output class="result-value" data-out="ppfout">—</output></div>
-                    <div class="result"><span class="result-label">Depth of field</span><output class="result-value" data-out="dof">—</output></div>
-                    <div class="result"><span class="result-label">Working f-number<span class="sym">N(1 + m)</span></span><output class="result-value" data-out="nw">—</output></div>
+                    <div class="result"><span class="result-label">Depth of field</span><output class="result-value" data-out="dof">—</output>
+                        <span class="result-note">Sharp from the near to the far distance shown; your height variation must fit inside, around the working distance.</span></div>
+                    <div class="result"><span class="result-label">Working f-number<span class="sym">N(1 + m)</span></span><output class="result-value" data-out="nw">—</output>
+                        <span class="result-note">The effective f-number at this magnification. It sets the diffraction blur and the image brightness.</span></div>
                     <div class="result"><span class="result-label">Airy disk on the sensor</span><output class="result-value" data-out="airy">—</output></div>
-                    <div class="result"><span class="result-label">Diffraction MTF at Nyquist</span><output class="result-value" data-out="mtf">—</output></div>
+                    <div class="result"><span class="result-label">Diffraction MTF at Nyquist</span><output class="result-value" data-out="mtf">—</output>
+                        <span class="result-note">Contrast an ideal lens keeps on the finest pattern the pixels can record; real lenses keep less. About 10&nbsp;% is needed to detect detail, and 20&nbsp;% or more is a safer target.</span></div>
                     <div class="result"><span class="result-label">Motion blur</span><output class="result-value" data-out="mblur">—</output></div>
                     <div class="result"><span class="result-label">Data rate</span><output class="result-value" data-out="rate">—</output></div>
-                    <div class="result"><span class="result-label">Max frame rate on this interface</span><output class="result-value" data-out="maxfps">—</output></div>
-                    <div class="result"><span class="result-label">Ideal focal length for this field</span><output class="result-value" data-out="fideal">—</output></div>
+                    <div class="result"><span class="result-label">Max frame rate on this interface</span><output class="result-value" data-out="maxfps">—</output>
+                        <span class="result-note">The bandwidth limit only. The sensor’s own maximum frame rate may be lower; see the camera datasheet.</span></div>
+                    <div class="result"><span class="result-label">Ideal focal length for this field</span><output class="result-value" data-out="fideal">—</output>
+                        <span class="result-note">The focal length that would exactly fill the field. Automatic mode picks the longest standard lens at or below it.</span></div>
                 </div>
             </div>
         </section>
@@ -344,26 +368,63 @@
     <article class="prose" style="margin-top:3rem">
         <h2>How the configurator works</h2>
         <p>The lens is a thin lens with its principal plane at the working distance \(s\) from the part. The sensor of width \(w\) and height \(h\) must see a field of at least \(W \times H\), so the magnification cannot exceed</p>
-        <div class="formula">\[ m_\text{max} = \min\!\left(\frac{w}{W}, \frac{h}{H}\right), \qquad f_\text{ideal} = \frac{m_\text{max}\, s}{1 + m_\text{max}}. \]</div>
-        <p>In automatic mode it picks the longest standard focal length at or below \(f_\text{ideal}\) (4, 5, 6, 8, 12, 16, 25, 35, 50, 75, or 100 mm), so the field is always covered. The actual magnification is then \(m = f/(s - f)\), each pixel of pitch \(p\) covers \(p/m\) on the part, and the smallest feature spans \(d\,m/p\) pixels.</p>
+        <div class="formula">\[ \begin{gathered} m_\text{max} = \min\!\left(\frac{w}{W}, \frac{h}{H}\right), \\[6pt] f_\text{ideal} = \frac{m_\text{max}\, s}{1 + m_\text{max}}. \end{gathered} \]</div>
+        <p>In automatic mode it picks the longest standard focal length at or below \(f_\text{ideal}\) (4, 5, 6, 8, 12, 16, 25, 35, 50, 75, or 100&nbsp;mm), so the field is always covered. The actual magnification is then \(m = f/(s - f)\), each pixel of pitch \(p\) covers \(p/m\) on the part, and the smallest feature spans \(d\,m/p\) pixels.</p>
 
         <h2>Depth of field, diffraction, and motion</h2>
-        <p>Depth of field uses the exact thin-lens limits with the acceptable blur \(c\) (in pixels) and hyperfocal distance \(H = f^2/(Nc) + f\), the same model as the <a href="/tools/machine-vision-lens/">lens selection calculator</a>. The Airy disk diameter at the sensor is \(2.44\,\lambda N(1+m)\), and the ideal-lens MTF at the sensor Nyquist frequency \(1/(2p)\) shows whether the optics or the pixels limit resolution.</p>
+        <p>Depth of field uses the exact thin-lens limits with the acceptable blur \(c\) (in pixels) and hyperfocal distance \(H = f^2/(Nc) + f\), the same model as the <a href="/tools/machine-vision-lens/">lens selection calculator</a>. The height check passes only when both ends of the range, \(s \pm \Delta z/2\), lie between the near and far limits; the far side of the depth of field is always the longer one. The Airy disk diameter at the sensor is \(2.44\,\lambda N(1+m)\), and the ideal-lens MTF at the sensor Nyquist frequency \(1/(2p)\) shows whether the optics or the pixels limit resolution.</p>
         <p>Motion blur in pixels is the distance the part moves during the exposure divided by the pixel size on the part, \(v\,t_\text{exp}\,m/p\). Keep it under one pixel for measurement and under about two for detection. Rolling-shutter sensors also skew moving parts, because rows expose at different times.</p>
 
         <h2>Bandwidth and lens format</h2>
-        <p>The data rate is pixels per frame × bytes per pixel × frame rate. The interface limits are practical sustained payloads after protocol overhead: about 115 MB/s for GigE, 380 MB/s for USB3, 1.15 GB/s for 10GigE, and 1.2 GB/s per CXP-12 link. The sensor's own maximum frame rate is not modeled, so check the camera datasheet as well.</p>
-        <p>A lens must project an image circle at least as large as the sensor diagonal. The configurator suggests the smallest standard lens format that covers the sensor and the usual mount for that format. C-mount covers sensors up to about 1.1″ (17.6 mm diagonal), or 1.2″ (19.3 mm) with lenses rated for it; larger sensors need TFL (M35), TFL-II (M48), M42, F-mount, M58, or M72 lenses.</p>
+        <p>The data rate is pixels per frame × bytes per pixel × frame rate. Packed 10- and 12-bit pixel formats carry 1.25 and 1.5&nbsp;bytes per pixel. The interface limits are typical sustained image payloads, listed below. The sensor’s own maximum frame rate is not modeled, so check the camera datasheet as well.</p>
+        <table>
+            <thead><tr><th>Interface</th><th class="num">MB/s used</th><th>Plugs into</th></tr></thead>
+            <tbody>
+                <tr><td>GigE Vision</td><td class="num">115</td><td>Ethernet port</td></tr>
+                <tr><td>2.5/5/10 GigE</td><td class="num">290/580/1150</td><td>Ethernet port</td></tr>
+                <tr><td>USB3 Vision</td><td class="num">380</td><td>USB&nbsp;3 port</td></tr>
+                <tr><td>Camera Link Base/Full</td><td class="num">255/680</td><td>Frame grabber</td></tr>
+                <tr><td>CoaXPress CXP-6/CXP-12, per cable</td><td class="num">600/1200</td><td>Frame grabber</td></tr>
+            </tbody>
+        </table>
+        <p>The Ethernet figures follow JAI’s effective-throughput table for 1, 2.5, 5, and 10&nbsp;Gb/s links, rounded (Ethernet cables run up to 100&nbsp;m). USB3 Vision’s 5&nbsp;Gb/s link carries 500&nbsp;MB/s after 8b/10b coding, and A3 gives 350–400&nbsp;MB/s sustained over a 5&nbsp;m passive cable. Camera Link Base and Full are 2.04 and 5.44&nbsp;Gb/s at an 85&nbsp;MHz pixel clock, their maximum. CoaXPress runs 6.25&nbsp;Gb/s (CXP-6) or 12.5&nbsp;Gb/s (CXP-12) per cable, also 8b/10b coded, keeps at least 95&nbsp;% of the coded rate for image data, and can combine cables (four CXP-12 cables: about 4800&nbsp;MB/s). Real throughput also depends on the host computer, so leave some margin.</p>
+        <p>A lens must project an image circle at least as large as the sensor diagonal. Format names such as 2/3″ are a legacy of television camera tubes, not a dimension: a 2/3″ sensor is about 11&nbsp;mm across its diagonal, not 17&nbsp;mm. The configurator suggests the smallest standard lens format that covers the sensor and the usual mount for that format. C-mount covers sensors up to about 1.1″ (17.6&nbsp;mm diagonal), or 1.2″ (19.3&nbsp;mm) with lenses rated for it; larger sensors need TFL (M35), TFL-II (M48), M42, F-mount, M58, or M72 lenses.</p>
 
         <h2>Lighting</h2>
         <p>Lighting decides contrast, and contrast decides whether a feature that spans enough pixels is actually detectable. The suggestions follow standard practice: backlights for silhouettes and gauging, coaxial light for flat reflective parts, dome light for curved shiny parts, low-angle dark field for scratches and particles, and patterned backgrounds for transparent parts. The <a href="/learn/machine-vision-optics/">machine vision optics article</a> covers the geometry in more depth.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li>Thin-lens, paraxial model. Real lenses have separated principal planes and a minimum object distance, so confirm the working distance with the lens maker's data or a test image.</li>
+            <li>Thin-lens, paraxial model. Real lenses have separated principal planes and a minimum object distance, so confirm the working distance with the lens maker’s data or a test image.</li>
             <li>Telecentric lenses do not follow \(m = f/(s - f)\). For gauging with height variation, the perspective check suggests when a telecentric lens is worth it.</li>
-            <li>Color cameras with a Bayer filter resolve fine detail at roughly half the monochrome pixel density. Use monochrome unless the decision depends on color.</li>
-            <li>Sensor data are the maker's full active arrays. Effective resolution, frame rate, and noise depend on the camera built around the sensor.</li>
+            <li>In a color camera’s Bayer filter, green covers every other pixel and red and blue each cover every second row and column, so fine color detail is sampled at about half the monochrome pixel density in each direction. Use monochrome unless the decision depends on color.</li>
+            <li>Sensor arrays are close to what cameras deliver, but camera makers crop by up to a few dozen pixels. Frame rate and noise depend on the camera built around the sensor.</li>
+            <li>Sensitivity and noise are not modeled. To compare cameras for dim scenes or short strobes, use their EMVA 1288 data: quantum efficiency (the share of photons that become signal), saturation capacity, and dynamic range.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>C. Steger, M. Ulrich, and C. Wiedemann, <em>Machine Vision Algorithms and Applications</em>, 2nd ed., Wiley-VCH (2018), ISBN 978-3-527-41365-2, secs. 2.1.5 (bright-field, dark-field, and back-light illumination), 2.2.2–2.2.4 (lens model, depth of field, telecentric lenses), 2.3.2–2.3.4 (rolling and global shutters, color cameras, sensor sizes), and 2.4.2–2.4.3 (Camera Link, CoaXPress, USB3 Vision, GigE Vision, and GenICam).</li>
+            <li>B. Jähne, <em>Digital Image Processing and Image Acquisition</em>, 7th ed., Springer (2026), <a href="https://doi.org/10.1007/978-3-032-04806-6" target="_blank" rel="noopener">doi:10.1007/978-3-032-04806-6</a>, secs. 3.4.4 (depth of field), 3.5.3 (the MTF of diffraction-limited optics), 4.4.5–4.4.6 (color sensors and digital camera interfaces), and 5.2.3 (the sampling theorem).</li>
+            <li>J. E. Greivenkamp, <em>Field Guide to Geometrical Optics</em>, SPIE Press (2004), <a href="https://doi.org/10.1117/3.547461" target="_blank" rel="noopener">doi:10.1117/3.547461</a> (f-number, depth of field, hyperfocal distance).</li>
+            <li>G. D. Boreman, <em>Modulation Transfer Function in Optical and Electro-Optical Systems</em>, SPIE Press (2001), <a href="https://doi.org/10.1117/3.419857" target="_blank" rel="noopener">doi:10.1117/3.419857</a>, secs. 1.5 (the diffraction MTF) and 2.2 (sampling and aliasing).</li>
+            <li>European Machine Vision Association, <em>EMVA Standard 1288: Standard for Characterization of Image Sensors and Cameras</em>, Release 4.0 Linear (16 June 2021), <a href="https://www.emva.org/wp-content/uploads/EMVA1288Linear_4.0Release.pdf" target="_blank" rel="noopener">emva.org</a>, secs. 2.1 and 2.7 (quantum efficiency, saturation capacity, and dynamic range); free.</li>
+            <li>Association for Advancing Automation (A3), GigE Vision 3.0 (2026), USB3 Vision 1.2, and Camera Link 2.1 standards, <a href="https://www.automate.org/vision/vision-standards" target="_blank" rel="noopener">automate.org/vision/vision-standards</a> (the camera interface standards; free to download for evaluation).</li>
+            <li>Japan Industrial Imaging Association, JIIA CXP-001-2021, <em>CoaXPress Standard</em>, version 2.1 (2021) (CXP-6 and CXP-12 links at 6.25 and 12.5&nbsp;Gb/s, with 8b/10b coding).</li>
+            <li>European Machine Vision Association, <em>GenICam Pixel Format Naming Convention (PFNC)</em>, version 2.4 (16 June 2021), <a href="https://www.emva.org/wp-content/uploads/GenICam_PFNC_2_4.pdf" target="_blank" rel="noopener">emva.org</a>, sec. 6.3 (packed formats: Mono10p and Mono12p carry 1.25 and 1.5&nbsp;bytes per pixel).</li>
+            <li>Japan Industrial Imaging Association, LE-004, <em>TFL Mount and TFL-II Mount Standards and Operational Regulations</em>, and JIIA’s comparison of machine vision lens mounts by image size, <a href="https://jiia.org/mv_dl/lens/" target="_blank" rel="noopener">jiia.org/mv_dl/lens</a>, in Japanese (the mount suggested for each lens format).</li>
+            <li>Edmund Optics, “TFL Lens: Maximum Optical Performance beyond 1.1″ Sensors,” white paper (2020), <a href="https://www.edmundoptics.com/ViewDocument/TFL-Lens.pdf" target="_blank" rel="noopener">PDF</a>, and “Lens Mounts,” <a href="https://www.edmundoptics.com/knowledge-center/application-notes/imaging/lens-mounts/" target="_blank" rel="noopener">edmundoptics.com</a> (1.1″, 17.6&nbsp;mm, as the practical limit of C-mount; the TFL mount for APS-C sensors, 27.9&nbsp;mm; the F-mount for 35&nbsp;mm, 43.3&nbsp;mm).</li>
+            <li>Sensor data: Sony Semiconductor Solutions, <a href="https://www.sony-semicon.com/en/products/is/industry/selector.html" target="_blank" rel="noopener">Product Selector for Industrial Image Sensors</a> and product flyers; onsemi, Gpixel, and ams OSRAM datasheets and product pages (array, pixel pitch, optical format, and shutter of every sensor in the list; checked October 2026).</li>
+            <li>Interface throughput: JAI, “GigE Interface, a true versatile workhorse” (12 October 2020), <a href="https://news.jai.com/blog/gige-interface-a-true-versatile-workhorse" target="_blank" rel="noopener">news.jai.com</a> (effective throughput of 115, 287.5, 575, and 1150&nbsp;MB/s); A3, “What Is USB3 Vision?”, <a href="https://www.automate.org/vision/vision-standards/usb3-vision" target="_blank" rel="noopener">automate.org</a> (350–400&nbsp;MB/s sustained); Opto Engineering, “Camera Link,” <a href="https://www.opto-e.com/en/basics/camera-link" target="_blank" rel="noopener">opto-e.com</a> (255 and 680&nbsp;MB/s at 85&nbsp;MHz); A. Wilson, “CoaXPress gains support as bandwidth rises,” <em>Vision Systems Design</em> (14 February 2018), <a href="https://www.vision-systems.com/home/article/16739366/coaxpress-gains-support-as-bandwidth-rises" target="_blank" rel="noopener">vision-systems.com</a> (at least 95&nbsp;% of the coded CoaXPress rate carries image data).</li>
+            <li>Pixels across a feature: M. Henkart, “Spatial Resolution in Machine Vision,” Commonlands Optics (updated May 2026), <a href="https://commonlands.com/blogs/technical/spatial-resolution-machine-vision" target="_blank" rel="noopener">commonlands.com</a> (2&nbsp;pixels as the sampling floor, 3–5 for production inspection, 10 or more for measurement, all as starting heuristics).</li>
+            <li>Texas Instruments, “Light That Freezes Motion – Insight into a LED Lighting Control Design for Machine Vision,” technical article SSZT704 (May 2018), <a href="https://www.ti.com/lit/pdf/sszt704" target="_blank" rel="noopener">ti.com</a> (motion blur of at most one pixel, by shutter or strobe).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>NI, “Calculating Camera Sensor Resolution and Lens Focal Length” (updated 7 October 2020), <a href="https://www.ni.com/en/support/documentation/supplemental/18/calculating-camera-sensor-resolution-and-lens-focal-length.html" target="_blank" rel="noopener">ni.com</a> (from field of view and smallest feature to sensor resolution and focal length, step by step).</li>
+            <li>Edmund Optics, “Imaging Electronics 101: Understanding Camera Sensors for Machine Vision Applications,” <a href="https://www.edmundoptics.com/knowledge-center/application-notes/imaging/understanding-camera-sensors-for-machine-vision-applications/" target="_blank" rel="noopener">edmundoptics.com</a> (sensor format names, global and rolling shutters, color sensors).</li>
+            <li>D. Martin, “A Practical Guide to Machine Vision Lighting,” Advanced Illumination (February 2013), <a href="https://www.advancedillumination.com/wp-content/uploads/2018/10/A-Practical-Guide-to-Machine-Vision-Lighting-v.-4-Generic.pdf" target="_blank" rel="noopener">PDF</a> (back, dome, on-axis, and dark-field lighting, and choosing a light color for contrast).</li>
         </ul>
     </article>
 
@@ -551,7 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? 'Use a lens rated for ' + lf.name + ' (Ø ' + lf.circle + ' mm nominal; ' + lf.name + ' lenses cover this ' + n1(s.diag) + ' mm ' + (s.format ? 'Type ' + s.format.replace('″', '') + ' ' : '') + 'sensor) or larger; ' + lf.mount + '.'
                 : 'Use a lens rated for ' + lf.name + ' (Ø ' + lf.circle + ' mm) or larger to cover the ' + n1(s.diag) + ' mm sensor diagonal; ' + lf.mount + '.'));
             if (v.app === 'measure' && v.depth > 0 && persp > 0.5) ck.push(item('warn', 'Perspective', 'A ' + L(v.depth) + ' height change shifts edges at the field edge by ' + fmt.num(persp, 2) + ' px. A telecentric lens removes this error.'));
-            if (v.app === 'color') ck.push(item('warn', 'Color', 'Pick the color version of the camera. A Bayer filter halves the effective resolution for fine detail.'));
+            if (v.app === 'color') ck.push(item('warn', 'Color', 'Pick the color version of the camera. Its Bayer filter samples red and blue on every second row and column, so fine color detail is resolved at about half the pixel density.'));
 
             const bad = ck.filter(x => x.indexOf('<li class="bad"') === 0).length;   // every ✕ check, including diffraction and motion blur
             const verdict = $('verdict');

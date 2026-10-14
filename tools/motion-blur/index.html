@@ -100,7 +100,17 @@
 
     <header class="page-head">
         <h1>Motion Blur &amp; Exposure Time Calculator</h1>
-        <p class="lede">The longest exposure or strobe pulse that freezes a moving part, the blur you get at a given exposure, and the frame or line rate needed to image every millimeter of a conveyor or web.</p>
+        <p class="lede">A part that moves while the camera’s shutter is open comes out smeared. Use this calculator when parts move past a camera: it finds the longest exposure or strobe pulse that keeps the smear within your pixel budget, the blur at the exposure you use now, and the frame or line rate needed to image every millimeter of a conveyor or web.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Exposure time</dt><dd>How long the sensor collects light for one image, set in the camera (also called shutter or integration time).</dd>
+            <dt>Strobe</dt><dd>A light that flashes briefly while the shutter is open. When the station is shielded from other light, the flash length, not the shutter time, sets the blur.</dd>
+            <dt>Motion blur</dt><dd>The smear a moving part leaves in the image, counted here in pixels: 1&nbsp;px means the part moved the width of one pixel during the exposure.</dd>
+            <dt>Field of view (FOV)</dt><dd>The length of the part that one image covers. Here it is measured along the direction of travel, or across it for the line-scan camera.</dd>
+            <dt>Pixel size on the part</dt><dd>The length of the part that one pixel covers: the field of view divided by the number of pixels across it.</dd>
+            <dt>Frame overlap</dt><dd>The share of each image that repeats in the next one, so that a feature cut by one image’s edge appears whole in another.</dd>
+            <dt>Line-scan camera</dt><dd>A camera with a single row of pixels that builds the image one line at a time as the part or web moves past. Its line rate is the number of lines it takes per second.</dd>
+            <dt>Global and rolling shutter</dt><dd>A global shutter exposes every pixel at the same time. A rolling shutter starts and ends the rows one after another, so a moving part comes out skewed.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -115,6 +125,7 @@
                 <div class="field">
                     <label for="v">Part or web speed <span class="sym">v</span></label>
                     <div class="input-unit"><input id="v" name="v" value="500" inputmode="decimal" data-positive data-label="speed"><select data-dim="speed" data-units="mm/s,m/s,m/min,mm/min,in/s,ft/min" data-default="mm/s"></select></div>
+                    <p class="hint">The conveyor or line speed while the image is taken. For stop-and-go (indexed) motion with the part at rest during the exposure, there is no motion blur.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
@@ -126,11 +137,12 @@
                         <div class="input-unit"><input id="npx" name="npx" value="2048" inputmode="decimal" data-positive data-label="pixel count"><span class="unit">px</span></div>
                     </div>
                 </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The field and the sensor pixels in the direction of travel: for example 2048 when the short side of a 2448 × 2048 sensor runs along the conveyor.</p>
                 <div class="field-row">
                     <div class="field">
                         <label for="blur">Allowed blur</label>
                         <div class="input-unit"><input id="blur" name="blur" value="1" inputmode="decimal" data-positive data-label="allowed blur"><span class="unit">px</span></div>
-                        <p class="hint">≤ 0.5 px for sub-pixel gauging, ≤ 1 px for general measurement, up to ~2 px for presence checks.</p>
+                        <p class="hint">≤ 0.5&nbsp;px for sub-pixel gauging, ≤ 1&nbsp;px for general measurement, up to ~2&nbsp;px for presence checks.</p>
                     </div>
                     <div class="field">
                         <label for="te">Exposure or strobe time</label>
@@ -155,6 +167,7 @@
                         <div class="input-unit"><input id="ln" name="ln" value="4096" inputmode="decimal" data-optional data-positive data-label="pixels per line"><span class="unit">px</span></div>
                     </div>
                 </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The width of web the line covers, and the line sensor’s length in pixels from its datasheet. Leave both blank if you have no line-scan camera.</p>
             </div>
         </form>
 
@@ -165,11 +178,14 @@
                     <div class="result primary"><span class="result-label">Maximum exposure for the allowed blur<span class="sym">t<sub>max</sub></span></span><output class="result-value" data-out="tmax">—</output></div>
                     <div class="result"><span class="result-label">Pixel size on the part (along motion)</span><output class="result-value" data-out="po">—</output></div>
                     <div class="result"><span class="result-label">Blur at the entered exposure</span><output class="result-value" data-out="blurAt">—</output></div>
-                    <div class="result"><span class="result-label">Light needed vs. now (same signal at t<sub>max</sub>)</span><output class="result-value" data-out="light">—</output></div>
-                    <div class="result"><span class="result-label">Minimum frame rate for full coverage</span><output class="result-value" data-out="fps">—</output></div>
+                    <div class="result"><span class="result-label">Light needed vs. now (same signal at t<sub>max</sub>)</span><output class="result-value" data-out="light">—</output>
+                        <span class="result-note">How much brighter the light must be at t<sub>max</sub> for the same image brightness and signal-to-noise ratio. Raising the camera gain instead amplifies the noise as well.</span></div>
+                    <div class="result"><span class="result-label">Minimum frame rate for full coverage</span><output class="result-value" data-out="fps">—</output>
+                        <span class="result-note">Check that the camera reaches this frame rate at the resolution you use.</span></div>
                     <div class="result"><span class="result-label">Maximum time between frames</span><output class="result-value" data-out="dt">—</output></div>
                     <div class="result"><span class="result-label">Line-scan pixel size (across)</span><output class="result-value" data-out="lpx">—</output></div>
-                    <div class="result"><span class="result-label">Line rate for square pixels</span><output class="result-value" data-out="lrate">—</output></div>
+                    <div class="result"><span class="result-label">Line rate for square pixels</span><output class="result-value" data-out="lrate">—</output>
+                        <span class="result-note">The camera’s maximum line rate must be at least this. If the speed varies, trigger each line from an encoder on the conveyor.</span></div>
                     <div class="result"><span class="result-label">Line period (longest exposure per line)</span><output class="result-value" data-out="lper">—</output></div>
                 </div>
             </div>
@@ -180,7 +196,7 @@
         <h2>How the calculation works</h2>
         <p>While the shutter is open (or the strobe is on), the part moves \(v\,t\). Expressed in object-side pixels of size \(p_o = \text{FOV}/N_\text{px}\), the blur and the maximum exposure are</p>
         <div class="formula">\[ b = \frac{v\,t_\text{exp}}{p_o}\ \text{pixels}, \qquad t_\text{max} = \frac{b_\text{allowed}\,p_o}{v}. \]</div>
-        <p>To image every part of a moving stream with an area camera, a new frame must be taken before the part travels one field of view, less the chosen overlap \(o\) (as a fraction, 20 % = 0.2):</p>
+        <p>To image every part of a moving stream with an area camera, a new frame must be taken before the part travels one field of view, less the chosen overlap \(o\) (as a fraction, 20&nbsp;% = 0.2):</p>
         <div class="formula">\[ f_\text{frame} \ge \frac{v}{\text{FOV}\,(1 - o)}. \]</div>
         <p>At this rate, a feature of length \(L\) appears whole in at least one frame when \(o\,\text{FOV} \ge L\).</p>
         <p>A line-scan camera builds the image one row at a time. To get square pixels, the line period must equal the time the web takes to move one cross-web pixel, so the line rate is</p>
@@ -188,31 +204,39 @@
         <p>The line period, \(1/f_\text{line} = p_\text{across}/v\), is also the longest exposure each line can use.</p>
 
         <h2>The light budget</h2>
-        <p>Signal is proportional to irradiance × exposure time. If blur forces a shorter exposure, the lighting must be brighter by the same factor to keep the same image brightness and signal-to-noise ratio. That is why fast lines use high-intensity LED strobes, overdriven for microseconds, rather than continuous lighting. Raising the gain instead amplifies noise along with the signal.</p>
+        <p>The number of photons each pixel collects is proportional to the irradiance on the sensor times the exposure time. If blur forces a shorter exposure, the lighting must be brighter by the same factor to keep the same image brightness and signal-to-noise ratio. That is why fast lines use short, intense LED strobe pulses, often only microseconds long, rather than continuous lighting. Raising the camera gain instead brightens the image but amplifies the noise with it, so the signal-to-noise ratio does not improve.</p>
 
         <h2>Worked example</h2>
-        <p>Parts move at 500 mm/s under a camera with 2048 pixels across a 60 mm field along the motion:</p>
+        <p>Parts move at 500&nbsp;mm/s under a camera with 2048&nbsp;pixels across a 60&nbsp;mm field along the motion:</p>
         <ul>
-            <li>\(p_o = 60\ \text{mm}/2048 = 29.3\ \mu\text{m}\) per pixel, so for ≤ 1 px of blur the exposure must be ≤ 29.3 µm ÷ 500 mm/s = 58.6 µs.</li>
-            <li>A 100 µs exposure smears features over 1.7 pixels. Holding the image brightness at 58.6 µs needs 1.7× more light.</li>
-            <li>With 20 % overlap, the camera must capture at least 500/(60 × 0.8) = 10.4 frames per second.</li>
-            <li>A 4096-pixel line-scan camera covering 300 mm across the web has 73.2 µm pixels and needs a 6.83 kHz line rate (a 146 µs line period) for square pixels at this speed.</li>
+            <li>\(p_o = 60\ \text{mm}/2048 = 29.3\ \mu\text{m}\) per pixel, so for ≤ 1&nbsp;px of blur the exposure must be ≤ 29.3&nbsp;µm ÷ 500&nbsp;mm/s = 58.6&nbsp;µs.</li>
+            <li>A 100&nbsp;µs exposure smears features over 1.71&nbsp;pixels (50&nbsp;µm of travel). Holding the image brightness at 58.6&nbsp;µs needs 1.71 times as much light.</li>
+            <li>With 20&nbsp;% overlap, the camera must capture at least 500/(60 × 0.8) = 10.42 frames per second, one frame at least every 96&nbsp;ms.</li>
+            <li>A 4096-pixel line-scan camera covering 300&nbsp;mm across the web has 73.24&nbsp;µm pixels and needs a 6.827&nbsp;kHz line rate (a 146&nbsp;µs line period) for square pixels at this speed.</li>
         </ul>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li>Constant speed and a global-shutter camera. Rolling-shutter sensors expose rows at different times, which skews moving parts even with a short exposure. Either use a global-shutter sensor, or fire a short strobe while all rows are integrating at once, with ambient light kept low. That common window exists in global reset release mode (also called global start), which starts every row at the same moment, or whenever the exposure is longer than the frame readout time.</li>
+            <li>Constant speed and a global-shutter camera. Rolling-shutter sensors expose rows at different times, which skews moving parts even with a short exposure. Either use a global-shutter sensor, or fire a short strobe while all rows are integrating at once, with ambient light kept low. That common window exists in global reset release mode (Sony’s “global reset function”), which starts every row at the same moment, or whenever the exposure is longer than the frame readout time.</li>
             <li>With a strobe, the pulse width sets the blur only if the ambient light collected while the shutter is open is negligible. Otherwise ambient light adds a faint smear \(v\,t_\text{shutter}\) long. Shield the station or shorten the shutter to just cover the pulse.</li>
-            <li>Motion blur adds to optical blur (defocus, diffraction, aberrations). The total is roughly the root-sum-square of the individual blur widths.</li>
+            <li>Motion blur combines with optical blur (defocus, diffraction, aberrations): the system MTF is the product of the individual MTFs. For roughly Gaussian blur shapes the widths add in quadrature (root-sum-square). A uniform motion smear is not Gaussian, so treat that sum as an estimate.</li>
             <li>Speed variation and vibration matter for line-scan cameras. Use an encoder to trigger lines rather than a fixed rate when the speed is not tightly controlled.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>C. Steger, M. Ulrich, and C. Wiedemann, <em>Machine Vision Algorithms and Applications</em>, 2nd ed., Wiley-VCH (2018), ch. 2 (image acquisition).</li>
-            <li>B. Jähne, <em>Digital Image Processing</em>, 6th ed., Springer (2005).</li>
-            <li>E. Hecht, <em>Optics</em>, 5th ed., Pearson (2017), §6.3 (aberrations) and ch. 10 (diffraction).</li>
+            <li>C. Steger, M. Ulrich, and C. Wiedemann, <em>Machine Vision Algorithms and Applications</em>, 2nd ed., Wiley-VCH (2018), ISBN 978-3-527-41365-2, secs. 2.3.1.1 (line sensors and encoder triggering), 2.3.2.2 (rolling and global shutters), and 2.4.4 (triggered image acquisition).</li>
+            <li>B. Jähne, <em>Digital Image Processing and Image Acquisition</em>, 7th ed., Springer (2026), <a href="https://doi.org/10.1007/978-3-032-04806-6" target="_blank" rel="noopener">doi:10.1007/978-3-032-04806-6</a>, ch. 4, “Radiation Detection and Image Sensors” (line sensors for objects moving on a conveyor; signal and noise of image sensors).</li>
+            <li>European Machine Vision Association, <em>EMVA Standard 1288: Standard for Characterization of Image Sensors and Cameras</em>, Release 4.0 Linear (16 June 2021), <a href="https://www.emva.org/wp-content/uploads/EMVA1288Linear_4.0Release.pdf" target="_blank" rel="noopener">emva.org</a>, sec. 2.1, eq. (3) (the photons a pixel collects scale with irradiance × exposure time: the light budget) and sec. 2.6 (the signal-to-noise ratio does not depend on the camera gain); free.</li>
+            <li>G. D. Boreman, <em>Modulation Transfer Function in Optical and Electro-Optical Systems</em>, SPIE Press (2001), <a href="https://doi.org/10.1117/3.419857" target="_blank" rel="noopener">doi:10.1117/3.419857</a>, secs. 3.1 (the MTF of image motion) and 5.1 (cascading MTFs: how motion blur combines with optical blur).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>Texas Instruments, “Light That Freezes Motion – Insight into a LED Lighting Control Design for Machine Vision,” technical article SSZT704 (May 2018), <a href="https://www.ti.com/lit/pdf/sszt704" target="_blank" rel="noopener">ti.com</a> (the one-pixel blur target, the exposure-time formula, and short LED strobe pulses).</li>
+            <li>Basler, “Electronic Shutter Types,” <em>Basler Product Documentation</em>, <a href="https://docs.baslerweb.com/electronic-shutter-types" target="_blank" rel="noopener">docs.baslerweb.com</a> (global, rolling, and global reset release shutters, and why the last needs flash lighting).</li>
+            <li>Teledyne Vision Solutions, “Beyond Camera Specs: What Drives Line Scan Image Quality at Production Speeds” (2026), <a href="https://www.teledynevisionsolutions.com/learn/learning-center/machine-vision/beyond-camera-specs-what-drives-line-scan-image-quality-at-production-speeds/" target="_blank" rel="noopener">teledynevisionsolutions.com</a> (line rate as speed ÷ pixel size, and triggering lines from an encoder).</li>
+        </ul>
     </article>
 
     <section class="related">

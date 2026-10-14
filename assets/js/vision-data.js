@@ -4,10 +4,19 @@
    vision system configurator: area-scan sensors, camera interfaces, lens
    formats and mounts, standard focal lengths, and lighting guidance.
 
-   Sensor arrays are the counts most cameras deliver: Sony's recommended
-   recording pixels for first-generation Pregius, the maker's effective array
-   otherwise. Camera makers may crop a few more rows or columns, so confirm
-   against the camera datasheet.
+   Sensor arrays are close to what cameras deliver, but camera makers crop by
+   up to a few dozen pixels, so confirm against the camera datasheet. Sony
+   rows: Sony's recommended recording size for Pregius, STARVIS, and IMX183;
+   the cameras' usual 720 × 540 and 1440 × 1080 for IMX287 and IMX273 (Sony
+   recommends 728 × 544 and 1456 × 1088); Sony's effective array for
+   Pregius S (cameras mostly crop 8 to 32 pixels per axis, to Sony's
+   recommended size); Sony's active array for IMX477. Other makers: the
+   stated active array. A null format is shown as the diagonal (the makers
+   label some of these loosely, e.g. "APS-like", or 2/3″ for the 12.7 mm
+   CMV2000).
+   Sources, checked 2026-10-14: Sony Semiconductor Solutions flyers and
+   sensor-selector data (sony-semicon.com); onsemi, Gpixel, and ams OSRAM
+   datasheets and product pages.
    ========================================================================== */
 (function () {
     'use strict';
@@ -35,7 +44,7 @@
         ['imx290', 'Sony', 'STARVIS', 'IMX290', 1920, 1080, 2.9, 'rolling', '1/2.8″'],
         ['imx178', 'Sony', 'STARVIS', 'IMX178', 3072, 2048, 2.4, 'rolling', '1/1.8″'],
         ['imx334', 'Sony', 'STARVIS', 'IMX334', 3840, 2160, 2.0, 'rolling', '1/1.8″'],
-        ['imx226', 'Sony', 'Exmor R', 'IMX226', 4024, 3036, 1.85, 'rolling', '1/1.7″'],
+        ['imx226', 'Sony', 'STARVIS', 'IMX226', 4000, 3000, 1.85, 'rolling', '1/1.7″'],
         ['imx477', 'Sony', 'Exmor RS', 'IMX477', 4056, 3040, 1.55, 'rolling', '1/2.3″'],
         ['imx183', 'Sony', 'Exmor R', 'IMX183', 5472, 3648, 2.4, 'rolling', '1″'],
         // onsemi
@@ -70,7 +79,9 @@
         };
     });
 
-    // Practical sustained payload, MB/s (10^6 bytes/s), after protocol overhead.
+    // Typical sustained image payload, MB/s (10^6 bytes/s). Ethernet, USB3, and CoaXPress: after protocol overhead
+    // (GigE family per JAI; USB3 Vision 350–400 MB/s per A3; CoaXPress: 8b/10b-coded 6.25 and 12.5 Gb/s links,
+    // about 95 % usable). Camera Link: the 85 MHz maximum (Base 2.04 Gb/s, Full 5.44 Gb/s).
     var interfaces = [
         { id: 'gige',     name: 'GigE Vision (1 GbE)',      mbps: 115 },
         { id: 'gige2',    name: '2.5GigE',                  mbps: 290 },
@@ -84,7 +95,7 @@
         { id: 'cxp12x4',  name: 'CoaXPress CXP-12 ×4',      mbps: 4800 }
     ];
 
-    // Bytes per pixel on the wire for common GenICam pixel formats.
+    // Bytes per pixel on the wire for common GenICam pixel formats (PFNC 2.4: "p" = packed, no padding bits).
     var pixelFormats = [
         { id: 'mono8',  name: 'Mono8 / Bayer8',      bpp: 1 },
         { id: 'mono10', name: 'Mono10p / Bayer10p',  bpp: 1.25 },
@@ -92,7 +103,8 @@
         { id: 'rgb8',   name: 'RGB8 (debayered)',    bpp: 3 }
     ];
 
-    // Lens formats by image-circle diameter (mm), smallest first.
+    // Lens formats by image-circle diameter (mm), smallest first: Edmund Optics' sensor-format table and Sony's type
+    // designations (1.2″ = 19.3 mm, APS-C = 27.9 mm); mounts per JIIA LER-004 and lens makers' practice.
     var lensFormats = [
         { name: '1/2″',  circle: 8.0,  mount: 'C-mount or CS-mount' },
         { name: '1/1.8″', circle: 9.0, mount: 'C-mount' },
@@ -101,7 +113,7 @@
         { name: '1.1″',  circle: 17.6, mount: 'C-mount' },
         { name: '1.2″',  circle: 19.3, mount: 'C-mount (1.2″-rated lenses only)' },
         { name: '4/3″',  circle: 21.6, mount: 'TFL (M35) or M42' },
-        { name: 'APS-C', circle: 28.4, mount: 'TFL (M35), TFL-II (M48), or M42' },
+        { name: 'APS-C', circle: 27.9, mount: 'TFL (M35), TFL-II (M48), or M42' },
         { name: '35 mm full frame', circle: 43.3, mount: 'F-mount, M58, or M72' },
         { name: 'Large format', circle: 60, mount: 'M72 or larger, often with a custom lens' }
     ];
@@ -112,7 +124,7 @@
         measure: {
             label: 'Dimensional gauging (edges, holes, profiles)',
             light: 'Backlight for a sharp silhouette. Use a telecentric lens with a collimated or telecentric backlight when part height varies or accuracy matters.',
-            color: 'Monochrome camera. Blue or green light gives the finest diffraction-limited edges; red tolerates dust and surface tint.'
+            color: 'Monochrome camera. Blue or green light gives a smaller diffraction blur, and so sharper edges, than red.'
         },
         flat: {
             label: 'Defects on flat, reflective surfaces (glass, wafers, polished metal)',

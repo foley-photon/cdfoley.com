@@ -7,7 +7,7 @@
    ========================================================================== */
 (function (root) {
     'use strict';
-    var WHITE = [0.95047, 1.0, 1.08883];   // D65, 2°
+    var WHITE = [0.95047, 1.0, 1.08883];   // D65, 2°: the white summed from the CIE 1 nm tables (360–830 nm), X 95.047 and Z 108.883 at Y = 100
     function inv3(m) {
         var a = [[m[1][1] * m[2][2] - m[1][2] * m[2][1], m[0][2] * m[2][1] - m[0][1] * m[2][2], m[0][1] * m[1][2] - m[0][2] * m[1][1]],
                  [m[1][2] * m[2][0] - m[1][0] * m[2][2], m[0][0] * m[2][2] - m[0][2] * m[2][0], m[0][2] * m[1][0] - m[0][0] * m[1][2]],
@@ -35,7 +35,7 @@
     function inGamut(rgb, tol) { tol = tol || 1e-4; return rgb.every(function (c) { return c >= -tol && c <= 1 + tol; }); }
     function clip(rgb) { return rgb.map(function (c) { return Math.min(1, Math.max(0, c)); }); }
 
-    var E = 216 / 24389, K = 24389 / 27;
+    var E = 216 / 24389, K = 24389 / 27;   // CIE 15 exact constants (6/29)³ and (29/3)³; inverse per CIE 15:2004 Appendix D (break at L* = 8)
     function f(t) { return t > E ? Math.cbrt(t) : (K * t + 16) / 116; }
     function finv(t) { var t3 = t * t * t; return t3 > E ? t3 : (116 * t - 16) / K; }
     function xyzToLab(xyz) {
@@ -86,7 +86,7 @@
     }
 
     function deltaE76(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]); }
-    // CIEDE2000 (Sharma, Wu & Dalal 2005), kL = kC = kH = 1
+    // CIEDE2000 (Sharma, Wu & Dalal 2005), kL = kC = kH = 1; reproduces their 34 test pairs to the data's 4 decimals
     function deltaE00(l1, l2) {
         var rad = Math.PI / 180, deg = 180 / Math.PI;
         var C1 = Math.hypot(l1[1], l1[2]), C2 = Math.hypot(l2[1], l2[2]), Cb = (C1 + C2) / 2;

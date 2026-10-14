@@ -97,7 +97,17 @@
 
     <header class="page-head">
         <h1>Gaussian Beam Propagation Calculator</h1>
-        <p class="lede">How a laser beam grows away from its waist. Enter the waist size, wavelength, and M² to get the Rayleigh range, the beam radius and wavefront curvature at any distance, the far-field divergence, and the usable depth of focus.</p>
+        <p class="lede">How a laser beam grows on either side of its narrowest point, the waist: how far from focus the spot stays nearly the same size, how large the beam is at a given distance, and how fast it spreads. Enter the waist size, wavelength, and M² to get the Rayleigh range, the beam radius and wavefront curvature at any distance, the far-field divergence, and the usable depth of focus.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Beam waist</dt><dd>The narrowest point of the beam, at a focus or inside the laser. Its size is given as the radius w₀ or the diameter 2w₀.</dd>
+            <dt>1/e² radius</dt><dd>The distance from the beam axis at which the intensity has fallen to 13.5&nbsp;% of its peak. For an ideal beam this circle holds 86.5&nbsp;% of the power. Laser beam sizes are usually given this way.</dd>
+            <dt>Rayleigh range</dt><dd>The distance from the waist at which the beam radius has grown by √2 (41&nbsp;%), so the beam area has doubled and the peak intensity has halved. The default 25&nbsp;µm waist at 1064&nbsp;nm has a Rayleigh range of 1.7&nbsp;mm.</dd>
+            <dt>Divergence</dt><dd>How fast the beam spreads far from the waist, as an angle. This page gives the full angle 2θ. Some datasheets quote the half-angle θ instead, so check which one.</dd>
+            <dt>M² (beam quality)</dt><dd>How many times faster the beam spreads than an ideal Gaussian beam with the same waist. 1 is perfect. Single-mode lasers come close to 1, and multimode lasers can be far higher.</dd>
+            <dt>Depth of focus</dt><dd>The length along the beam, centered on the waist, over which the spot radius stays within your tolerance (5&nbsp;% growth by default).</dd>
+            <dt>Wavefront curvature</dt><dd>The radius of the curved wavefronts. It is infinite (flat) at the waist, smallest at one Rayleigh range, and close to the distance from the waist far away.</dd>
+            <dt>Beam parameter product</dt><dd>Waist radius times the divergence half-angle, in mm·mrad. It measures beam quality, and lenses cannot reduce it. The smallest possible value at 1064&nbsp;nm is 0.34&nbsp;mm·mrad.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -115,14 +125,17 @@
                         </span>
                     </div>
                     <div class="input-unit"><input id="w" name="w" value="25" inputmode="decimal" data-positive data-label="waist size" aria-label="Waist size"><select data-dim="length" data-units="nm,µm,mm,cm" data-default="µm"></select></div>
+                    <p class="hint">The beam size at its narrowest point, measured where the intensity is 13.5&nbsp;% (1/e²) of the peak. For a focused beam, take it from the <a href="/tools/focused-spot/">focused spot</a> tool or a beam profiler. A datasheet beam diameter may be given at the laser exit rather than at the waist.</p>
                 </div>
                 <div class="field">
                     <label for="wl">Wavelength <span class="sym">λ</span></label>
                     <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <p class="hint">Vacuum wavelength from the laser datasheet, for example 1064&nbsp;nm (Nd:YAG), 532&nbsp;nm (its second harmonic), or 10.6&nbsp;µm (CO₂).</p>
                 </div>
                 <div class="field">
                     <label for="m2">Beam quality <span class="sym">M²</span></label>
                     <div class="input-unit"><input id="m2" name="m2" value="1.1" inputmode="decimal" data-min="1" data-label="M²"><span class="unit">—</span></div>
+                    <p class="hint">From the laser datasheet. 1 is a perfect Gaussian beam. See <a href="#typical-values">typical values</a> below.</p>
                 </div>
                 <div class="field">
                     <label for="z">Distance from the waist <span class="sym">z</span></label>
@@ -132,6 +145,7 @@
                 <div class="field">
                     <label for="tol">Depth-of-focus tolerance</label>
                     <div class="input-unit"><input id="tol" name="tol" value="5" inputmode="decimal" data-positive data-label="DOF tolerance"><span class="unit">% growth</span></div>
+                    <p class="hint">How much the spot radius may grow before the result suffers. A tighter tolerance gives a shorter depth: 5&nbsp;% allows 0.64&nbsp;z<sub>R</sub> in total, and 41.4&nbsp;% (√2) the full ±z<sub>R</sub>.</p>
                 </div>
             </div>
         </form>
@@ -143,13 +157,13 @@
                     <div class="result primary"><span class="result-label">Rayleigh range<span class="sym">z<sub>R</sub></span></span><output class="result-value" data-out="zR">—</output></div>
                     <div class="result"><span class="result-label">Beam radius at z<span class="sym">w(z)</span></span><output class="result-value" data-out="wz">—</output></div>
                     <div class="result"><span class="result-label">Beam diameter at z<span class="sym">2w(z)</span></span><output class="result-value" data-out="dz">—</output></div>
-                    <div class="result"><span class="result-label">Peak intensity at z, relative to waist</span><output class="result-value" data-out="irel">—</output></div>
-                    <div class="result"><span class="result-label">Wavefront radius of curvature<span class="sym">R(z)</span></span><output class="result-value" data-out="R">—</output></div>
-                    <div class="result"><span class="result-label">Gouy phase<span class="sym">ψ(z)</span></span><output class="result-value" data-out="gouy">—</output></div>
+                    <div class="result"><span class="result-label">Peak intensity at z, relative to waist</span><output class="result-value" data-out="irel">—</output><span class="result-note">Exact for a TEM₀₀ beam. For M² &gt; 1 it is the change in power per second-moment area, which tracks the peak only if the profile keeps its shape.</span></div>
+                    <div class="result"><span class="result-label">Wavefront radius of curvature<span class="sym">R(z)</span></span><output class="result-value" data-out="R">—</output><span class="result-note">Flat (infinite) at the waist, tightest (2z<sub>R</sub>) at z = ±z<sub>R</sub>, and close to z far from the waist.</span></div>
+                    <div class="result"><span class="result-label">Gouy phase<span class="sym">ψ(z)</span></span><output class="result-value" data-out="gouy">—</output><span class="result-note">Phase shift relative to a plane wave. It changes by 180° across the whole focus and matters for resonator mode frequencies and interference near a focus, not for spot size.</span></div>
                     <div class="result"><span class="result-label">Far-field divergence, full angle<span class="sym">2θ</span></span><output class="result-value" data-out="div">—</output></div>
-                    <div class="result"><span class="result-label">Beam parameter product<span class="sym">w₀θ</span></span><output class="result-value" data-out="bpp">—</output></div>
-                    <div class="result"><span class="result-label" id="dof-label">Depth of focus, total</span><output class="result-value" data-out="dof">—</output></div>
-                    <div class="result"><span class="result-label">Confocal parameter<span class="sym">b = 2z<sub>R</sub></span></span><output class="result-value" data-out="b">—</output></div>
+                    <div class="result"><span class="result-label">Beam parameter product<span class="sym">w₀θ</span></span><output class="result-value" data-out="bpp">—</output><span class="result-note">Equal to M²λ/π. Lenses and beam expanders cannot reduce it. The minimum, at M² = 1, is λ/π: 0.34&nbsp;mm·mrad at 1064&nbsp;nm.</span></div>
+                    <div class="result"><span class="result-label" id="dof-label">Depth of focus, total</span><output class="result-value" data-out="dof">—</output><span class="result-note">The full length, centered on the waist, over which the spot radius stays within the tolerance.</span></div>
+                    <div class="result"><span class="result-label">Confocal parameter<span class="sym">b = 2z<sub>R</sub></span></span><output class="result-value" data-out="b">—</output><span class="result-note">Twice the Rayleigh range. Older texts use it instead of z<sub>R</sub>.</span></div>
                 </div>
             </div>
         </section>
@@ -162,41 +176,69 @@
 
     <article class="prose" style="margin-top:3rem">
         <h2>How it is calculated</h2>
-        <p>A beam with 1/e² waist radius \(w_0\) and beam quality \(M^2\) keeps the hyperbolic profile of an ideal Gaussian, but spreads \(M^2\) times faster. Every quantity follows from the Rayleigh range:</p>
+        <p>A beam with waist radius \(w_0\) (the 1/e² radius for a Gaussian beam, the second-moment radius for any other) and beam quality \(M^2\) keeps the hyperbolic profile of an ideal Gaussian, but spreads \(M^2\) times faster. Every quantity follows from the Rayleigh range:</p>
         <div class="formula">\[ z_R = \frac{\pi w_0^2}{M^2 \lambda} \]\[ w(z) = w_0\sqrt{1 + \left(\frac{z}{z_R}\right)^2} \]</div>
         <div class="formula">\[ R(z) = z\left[1 + \left(\frac{z_R}{z}\right)^2\right] \]\[ \psi(z) = \arctan\frac{z}{z_R} \]\[ \theta = \frac{M^2\lambda}{\pi w_0} \]</div>
-        <p>\(\theta\) is the far-field <em>half</em>-angle divergence of the 1/e² radius. The full angle \(\Theta = 2\theta\) is what most laser datasheets quote. The beam parameter product \(\mathrm{BPP} = w_0\theta = M^2\lambda/\pi\) is invariant through ideal optics. A lens can trade waist size for divergence but cannot reduce their product, which makes BPP the natural figure of merit for fiber and multimode lasers.</p>
-        <p>At \(z = \pm z_R\) the radius has grown by \(\sqrt{2}\), the area has doubled, and the peak intensity has halved. The wavefront curvature is strongest there (\(R = 2z_R\)). The wavefront is flat only at the waist. Far from it \(R \approx z\), so the beam looks like a spherical wave diverging from the waist. Over the whole focus the Gouy phase advances by π relative to a plane wave.</p>
-        <p>The badge above the results gives the regime at \(z\): within the Rayleigh range (\(|z| \le z_R\)), the transition region (\(z_R &lt; |z| \le 10\,z_R\)), or the far field (\(|z| &gt; 10\,z_R\), where \(w(z)\) is within 0.5 % of \(\theta|z|\)).</p>
+        <p>\(\theta\) is the far-field <em>half</em>-angle divergence of the 1/e² radius, and the results show the full angle \(\Theta = 2\theta\). Datasheets quote either one, so check which before comparing. The beam parameter product \(\mathrm{BPP} = w_0\theta = M^2\lambda/\pi\) is invariant through ideal optics. A lens can trade waist size for divergence but cannot reduce their product, which is why BPP, in mm·mrad, is often used to specify beam quality. ISO 11146-1 defines M² the same way, from second-moment widths: \(M^2 = \pi w_0\theta/\lambda\).</p>
+        <p>At \(z = \pm z_R\) the radius has grown by \(\sqrt{2}\), the area has doubled, and the peak intensity has halved. The wavefront curvature is strongest there (\(R = 2z_R\)). The wavefront is flat only at the waist. Far from it \(R \approx z\), so the beam looks like a spherical wave diverging from the waist. Over the whole focus the Gouy phase advances by π relative to a plane wave. For a higher-order Hermite–Gaussian TEM<sub><i>mn</i></sub> mode it advances \(m + n + 1\) times as much, which is why transverse modes of a laser resonator have different frequencies.</p>
+        <p>The badge above the results gives the regime at \(z\): within the Rayleigh range (\(|z| \le z_R\)), the transition region (\(z_R &lt; |z| \le 10\,z_R\)), or the far field (\(|z| &gt; 10\,z_R\), where \(w(z)\) is within 0.5&nbsp;% of \(\theta|z|\)).</p>
 
         <h2>Depth of focus for a spot-size tolerance</h2>
-        <p>The full Rayleigh range (\(\sqrt{2}\) growth) is too loose for most processes. If the spot radius may grow by at most a fraction \(\varepsilon\), the usable depth is</p>
+        <p>At the ends of the Rayleigh range the radius has grown by \(\sqrt{2}\) and the peak intensity has halved, which is often too much for a process that depends on fluence. If the spot radius may grow by at most a fraction \(\varepsilon\), the usable depth is</p>
         <div class="formula">\[ \mathrm{DOF} = 2z_R\sqrt{(1+\varepsilon)^2 - 1} \]\[ \mathrm{DOF} \approx 2z_R\sqrt{2\varepsilon}\quad(\varepsilon \ll 1). \]</div>
-        <p>A 5 % tolerance gives only 0.64 \(z_R\) in total. Because \(z_R \propto w_0^2\), halving the spot cuts the depth of focus by a factor of four.</p>
+        <p>A 5&nbsp;% tolerance gives only \(0.64\,z_R\) in total. Because \(z_R \propto w_0^2\), halving the spot cuts the depth of focus by a factor of four.</p>
+
+        <h2 id="typical-values">Typical values of M²</h2>
+        <p>Use the value on the laser datasheet when there is one. These ranges show what to expect.</p>
+        <table>
+            <thead><tr><th>Beam</th><th class="num">M²</th><th>Source</th></tr></thead>
+            <tbody>
+                <tr><td>Ideal Gaussian (TEM₀₀) beam: the minimum possible</td><td class="num" style="white-space:nowrap">1</td><td>RP Photonics, M² factor</td></tr>
+                <tr><td>Single-mode fiber laser; solid-state laser on one transverse mode</td><td class="num" style="white-space:nowrap">≈ 1</td><td>RP Photonics, beam quality</td></tr>
+                <tr><td>Helium–neon laser, TEM₀₀</td><td class="num" style="white-space:nowrap">&lt; 1.1</td><td>CVI Melles Griot</td></tr>
+                <tr><td>Collimated single-mode diode laser</td><td class="num" style="white-space:nowrap">1.1–1.7</td><td>CVI Melles Griot</td></tr>
+                <tr><td>Hermite–Gaussian mode TEM<sub><i>mn</i></sub>, x / y</td><td class="num" style="white-space:nowrap">2m+1 / 2n+1</td><td>RP Photonics, M² factor</td></tr>
+                <tr><td>High-power diode bar, fast / slow axis</td><td class="num" style="white-space:nowrap">≈ 1 / &gt; 1000</td><td>RP Photonics, diode bars</td></tr>
+            </tbody>
+        </table>
 
         <h2>Worked example</h2>
-        <p>A 1064 nm beam with M² = 1.1 focused to \(w_0\) = 25 µm:</p>
+        <p>A 1064&nbsp;nm beam with M² = 1.1 focused to \(w_0\) = 25&nbsp;µm:</p>
         <ul>
-            <li>\(z_R = \pi (25\,\mu\text{m})^2 / (1.1 \times 1.064\,\mu\text{m}) = 1.678\) mm.</li>
-            <li>At z = 5 mm the radius is \(25\sqrt{1 + (5/1.678)^2} = 78.6\) µm. The peak intensity is 10.1 % of its value at the waist, and \(R = 5.56\) mm.</li>
-            <li>The full-angle divergence is \(2 \times 1.1 \times 1.064 / (\pi \times 25) = 29.8\) mrad (1.708°). BPP = 0.373 mm·mrad.</li>
-            <li>With a 5 % growth tolerance the depth of focus is 1.07 mm in total (±0.54 mm about the waist).</li>
+            <li>\(z_R = \pi (25\,\mu\text{m})^2 / (1.1 \times 1.064\,\mu\text{m}) = 1.678\,\text{mm}\).</li>
+            <li>At z = 5&nbsp;mm the radius is \(25\sqrt{1 + (5/1.678)^2} = 78.6\,\mu\text{m}\). The peak intensity is 10.1&nbsp;% of its value at the waist, and \(R = 5.56\,\text{mm}\).</li>
+            <li>The full-angle divergence is \(2 \times 1.1 \times 1.064 / (\pi \times 25) = 29.8\,\text{mrad}\) (1.708°). BPP = 0.373&nbsp;mm·mrad.</li>
+            <li>With a 5&nbsp;% growth tolerance the depth of focus is 1.07&nbsp;mm in total (±0.54&nbsp;mm about the waist).</li>
         </ul>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>Paraxial propagation.</strong> The model assumes \(\theta \ll 1\). Above roughly 0.1–0.2 rad (NA ≳ 0.15), the 1/e² radius from these formulas becomes increasingly approximate. The badge warns when \(\theta\) exceeds 0.15 rad, and above 0.5 rad (a waist radius below about \(0.64\,M^2\lambda\)) the calculator shows an error instead of results.</li>
-            <li><strong>M² is an embedded-Gaussian model.</strong> For a multimode beam, \(w(z)\) and \(z_R\) describe the second-moment (D4σ) radius, as defined in ISO 11146. \(R(z)\) and the Gouy phase strictly apply to the embedded TEM₀₀ component. The relative peak intensity \((w_0/w)^2\) is exact for TEM₀₀. For a multimode beam, whose profile can change shape through focus, it is the change in average intensity over the second-moment area.</li>
-            <li><strong>Uniform medium.</strong> In a medium of index \(n\), use \(\lambda/n\) for the wavelength. Thermal lensing and aberrations are not included.</li>
-            <li><strong>Symmetric, stigmatic beam.</strong> For astigmatic or elliptical beams (diode, slab, and excimer lasers), apply the calculation separately to each axis with its own waist position and M².</li>
+            <li><strong>Paraxial propagation.</strong> The model assumes \(\theta \ll 1\). These formulas are the leading term of an expansion of Maxwell’s equations in powers of \(1/(kw_0)\), which equals \(\theta/2\) for a TEM₀₀ beam (Lax et al.). The corrections are of order \((\theta/2)^2\), so the 1/e² radius from these formulas becomes increasingly approximate above roughly 0.1–0.2&nbsp;rad (NA ≳ 0.15). The badge warns when \(\theta\) exceeds 0.15&nbsp;rad. Above 0.5&nbsp;rad (a waist radius below about \(0.64\,M^2\lambda\)), where the waist approaches the wavelength and the paraxial model breaks down (Nemoto), the calculator shows an error instead of results.</li>
+            <li><strong>M² is an embedded-Gaussian model.</strong> For a multimode beam, \(w(z)\) and \(z_R\) describe the second-moment radius, half the D4σ diameter defined in ISO 11146-1. Only these widths follow the formulas above: 1/e² or FWHM widths read off a non-Gaussian profile do not. Measure M² as ISO 11146-1 describes, with second-moment widths at ten or more planes, roughly half within one Rayleigh range of the waist and half beyond two. \(R(z)\) and the Gouy phase strictly apply to the embedded TEM₀₀ beam, whose waist is \(M\) times smaller (\(M = \sqrt{M^2}\)) and whose Rayleigh range is the same. The relative peak intensity \((w_0/w)^2\) is exact for TEM₀₀. For a multimode beam, whose profile can change shape through focus, it is the change in power per second-moment area.</li>
+            <li><strong>Uniform medium.</strong> In a medium of index \(n\), use \(\lambda/n\) for the wavelength. For air, \(n - 1 \approx 0.0003\) (Ciddor), so the vacuum wavelength from a datasheet gives the same results to within 0.03&nbsp;%. Thermal lensing and aberrations are not included.</li>
+            <li><strong>Symmetric, stigmatic beam.</strong> For elliptical or simple astigmatic beams (diode, slab, and excimer lasers), apply the calculation separately to each principal axis with its own waist position and M². A general astigmatic (twisted) beam needs the full second-moment description of ISO 11146-2.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), ch. 17.</li>
-            <li>H. Kogelnik and T. Li, “Laser beams and resonators,” <em>Appl. Opt.</em> <strong>5</strong>, 1550–1567 (1966).</li>
-            <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios — Part 1: Stigmatic and simple astigmatic beams.</li>
+            <li>H. Kogelnik and T. Li, “Laser beams and resonators,” <em>Appl. Opt.</em> <strong>5</strong>, 1550–1567 (1966), <a href="https://doi.org/10.1364/AO.5.001550" target="_blank" rel="noopener">doi:10.1364/AO.5.001550</a> (the Gaussian beam formulas for w(z), R(z), z<sub>R</sub>, and the Gouy phase).</li>
+            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), ch. 16–17, especially secs. 17.1 (propagation), 17.4 (Gouy phase), and 17.5–17.6 (higher-order modes and multimode beams).</li>
+            <li>A. E. Siegman, “New developments in laser resonators,” <em>Proc. SPIE</em> <strong>1224</strong>, 2 (1990), <a href="https://doi.org/10.1117/12.18425" target="_blank" rel="noopener">doi:10.1117/12.18425</a> (the M² beam-quality factor).</li>
+            <li>ISO 11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios — Part 1: Stigmatic and simple astigmatic beams (second-moment widths, divergence, M², and how to measure them).</li>
+            <li>ISO 11146-2:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios — Part 2: General astigmatic beams (twisted and other general astigmatic beams).</li>
+            <li>M. Lax, W. H. Louisell, and W. B. McKnight, “From Maxwell to paraxial wave optics,” <em>Phys. Rev. A</em> <strong>11</strong>, 1365–1370 (1975), <a href="https://doi.org/10.1103/PhysRevA.11.1365" target="_blank" rel="noopener">doi:10.1103/PhysRevA.11.1365</a> (the paraxial formulas as the leading term of an expansion in 1/(kw₀)).</li>
+            <li>S. Nemoto, “Nonparaxial Gaussian beams,” <em>Appl. Opt.</em> <strong>29</strong>, 1940–1946 (1990), <a href="https://doi.org/10.1364/AO.29.001940" target="_blank" rel="noopener">doi:10.1364/AO.29.001940</a> (where the paraxial model fails as the waist approaches the wavelength).</li>
+            <li>P. E. Ciddor, “Refractive index of air: new equations for the visible and near infrared,” <em>Appl. Opt.</em> <strong>35</strong>, 1566–1573 (1996), <a href="https://doi.org/10.1364/AO.35.001566" target="_blank" rel="noopener">doi:10.1364/AO.35.001566</a> (the refractive index of air, n − 1 ≈ 0.0003).</li>
+            <li>CVI Melles Griot, “Gaussian Beam Optics,” in <em>Fundamental Optics</em> (technical guide, undated), pp. 2.1–2.14 (typical M² of helium–neon and diode lasers).</li>
+            <li>R. Paschotta, “Beam quality,” <a href="https://doi.org/10.61835/8mq" target="_blank" rel="noopener">doi:10.61835/8mq</a>, and “Diode bars,” <a href="https://doi.org/10.61835/ufs" target="_blank" rel="noopener">doi:10.61835/ufs</a>, <em>RP Photonics Encyclopedia</em> (typical M² of single-mode and high-power lasers).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>R. Paschotta, “Gaussian beams,” <em>RP Photonics Encyclopedia</em>, <a href="https://www.rp-photonics.com/gaussian_beams.html" target="_blank" rel="noopener">rp-photonics.com/gaussian_beams.html</a> (beam radius, Rayleigh length, divergence, and wavefront curvature, with diagrams).</li>
+            <li>R. Paschotta, “M² factor,” <em>RP Photonics Encyclopedia</em>, <a href="https://www.rp-photonics.com/m2_factor.html" target="_blank" rel="noopener">rp-photonics.com/m2_factor.html</a> (what M² means, how ISO 11146 measures it, and common measurement mistakes).</li>
+            <li>Edmund Optics, “Propagation of a Gaussian Beam Through a Thin Lens,” application note, <a href="https://www.edmundoptics.com/knowledge-center/application-notes/lasers/gaussian-beam-propagation/" target="_blank" rel="noopener">edmundoptics.com</a> (the same formulas with figures, and what a lens does to the waist).</li>
+        </ul>
     </article>
 
     <section class="related">
