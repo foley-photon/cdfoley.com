@@ -1,0 +1,134 @@
+/* ==========================================================================
+   Conductance Lab (beta) — CAD tab and 3D viewer (WP4).
+   Site tokens only (H10): every colour is a variable or a color-mix() of variables.
+   ========================================================================== */
+
+.cl-cad { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.2rem; }
+.cl-cad > * { min-width: 0; }
+.cl-cad .panel + .panel { margin-top: 0; }
+.cl-cad .panel-head .btn-row { gap: 0.3rem; }
+.cl-cad .panel-head { flex-wrap: wrap; row-gap: 0.4rem; }
+.cl-cad .panel-head h3 { white-space: nowrap; }
+
+/* ── Toolbar ──────────────────────────────────────────────────────────────── */
+.cl-cad-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 0.9rem; }
+.cl-cad-file { position: relative; cursor: pointer; }
+.cl-cad-file:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cl-cad-builtins .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.cl-cad-builtins .chip:disabled, .cl-cad .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.cl-cad-unit { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.86rem; color: var(--text-2); }
+.cl-cad-unit select.input { width: auto; padding: 0.35rem 0.5rem; font-size: 0.86rem; }
+.cl-cad-bbox { font-family: var(--mono); font-size: 0.82rem; color: var(--muted); }
+.cl-cad-bbox-warn { color: var(--warn); }
+.cl-cad-files { display: inline-flex; gap: 0.3rem; margin-left: auto; }
+.cl-cad-advice { margin: -0.6rem 0 0; }
+.cl-cad .calc-error { margin: 0; }
+.cl-cad-note { margin: 0; font-size: 0.86rem; color: var(--text-2); background: var(--accent-soft); border-radius: var(--radius-sm); padding: 0.5rem 0.75rem; }
+.cl-cad-note-warn { background: var(--warn-soft); color: var(--warn); }
+
+/* ── Main grid ────────────────────────────────────────────────────────────── */
+.cl-cad-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 1.2rem; align-items: start; }
+.cl-cad-side { display: grid; gap: 1.2rem; min-width: 0; }
+@media (max-width: 860px) { .cl-cad-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── Mesh check ───────────────────────────────────────────────────────────── */
+.cl-cad-checks, .cl-cad-messages { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; }
+.cl-cad-check-item details { border-bottom: 1px solid var(--border); }
+.cl-cad-check-item summary { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.4rem 0; cursor: pointer; font-size: 0.88rem; color: var(--text); list-style-position: inside; }
+.cl-cad-check-item summary .badge { white-space: nowrap; }
+.cl-cad-check-title { flex: 1; }
+.cl-cad-check-item p { margin: 0 0 0.5rem; }
+.cl-cad-messages { margin-top: 0.7rem; gap: 0.4rem; }
+.cl-cad-msg { display: grid; grid-template-columns: 1.2rem 1fr; gap: 0.3rem; font-size: 0.84rem; line-height: 1.45; color: var(--text-2); }
+.cl-cad-msg-icon { font-weight: 700; text-align: center; }
+.cl-cad-msg-warn .cl-cad-msg-icon { color: var(--warn); }
+.cl-cad-msg-error .cl-cad-msg-icon { color: var(--danger); }
+.cl-cad-msg-error { color: var(--danger); }
+.cl-cad-advanced { margin-top: 0.8rem; font-size: 0.88rem; }
+.cl-cad-advanced summary { cursor: pointer; color: var(--text-2); margin-bottom: 0.6rem; }
+
+/* ── Openings ─────────────────────────────────────────────────────────────── */
+.cl-ports { display: grid; gap: 0.6rem; }
+.cl-port { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.5rem 0.6rem; background: var(--surface); }
+.cl-port-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; gap: 0.5rem; align-items: center; }
+.cl-port-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 4px; border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); flex-shrink: 0; }
+.cl-swatch-select { background: var(--c2); }
+.cl-swatch-nodata { background: var(--border); }
+.cl-port .input { padding: 0.3rem 0.5rem; font-size: 0.86rem; }
+.cl-port-name { min-width: 0; }
+.cl-port select.input.cl-port-role { width: auto; }
+.cl-port-area { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+.cl-port-pump { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.7rem; margin-top: 0.5rem; }
+.cl-port-pump .seg label { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+.cl-port-value { flex: 1 1 9rem; max-width: 14rem; }
+.cl-port-value input { padding: 0.3rem 0.5rem; font-size: 0.86rem; }
+.cl-port-value .unit { padding: 0.3rem 0.5rem; font-size: 0.8rem; min-width: 44px; }
+.cl-port-conv { flex-basis: 100%; margin: 0; }
+.cl-cad-pending { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.7rem; padding: 0.5rem 0.6rem; border: 1px dashed var(--c2); border-radius: var(--radius-sm); font-size: 0.86rem; color: var(--text-2); }
+.cl-cad-profile .field { margin-bottom: 0.4rem; }
+.cl-cad-items { margin: 0.4rem 0 0.8rem; padding-left: 1.4rem; font-size: 0.88rem; color: var(--text-2); display: grid; gap: 0.2rem; }
+.cl-cad-toggle-on { background: var(--accent-soft); color: var(--accent); }
+@media (max-width: 480px) {
+    .cl-port-head { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .cl-port-area { grid-column: 2; }
+}
+
+/* ── Run ──────────────────────────────────────────────────────────────────── */
+.cl-cad-output { display: block; font-family: var(--mono); font-size: 0.9rem; padding: 0.45rem 0; color: var(--text-2); }
+.cl-cad-check { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.86rem; color: var(--text-2); cursor: pointer; }
+.cl-cad-check input { accent-color: var(--accent); }
+.cl-cad-runrow { margin-top: 0.9rem; }
+.cl-cad-progress { display: block; width: 100%; height: 8px; margin-top: 0.8rem; accent-color: var(--accent); }
+.cl-cad-status { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); margin: 0.5rem 0 0; min-height: 1.3em; overflow-wrap: anywhere; }
+
+/* ── Viewer ───────────────────────────────────────────────────────────────── */
+.cl-cad-view { min-width: 0; }
+.cl-cad-view.cl-cad-drop { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.cl-cad-viewhint { font-size: 0.76rem; text-align: right; margin: 0; }
+.cl-cad-viewbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem 0.8rem; padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); }
+.cl-cad-viewbar .seg label { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+.cl-cad select.input.cl-cad-small, .cl-cad .input.cl-cad-small { width: auto; padding: 0.3rem 0.45rem; font-size: 0.82rem; }
+.cl-cad-clip { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-size: 0.86rem; color: var(--text-2); }
+.cl-cad-clip input[type="range"] { width: 7.5rem; accent-color: var(--accent); }
+.cl-viewer { position: relative; height: 480px; background: var(--surface); overflow: hidden; }
+.cl-viewer-canvas { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
+.cl-viewer-canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 0; }
+.cl-viewer-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 1.5rem; margin: 0; color: var(--muted); }
+.cl-viewer-msg[hidden] { display: none; }
+@media (max-width: 860px) { .cl-viewer { height: min(60vh, 420px); } }
+
+.cl-cad-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; padding: 0.6rem 1rem 0.8rem; border-top: 1px solid var(--border); font-size: 0.82rem; color: var(--text-2); min-height: 2.6rem; }
+.cl-legend-item { display: inline-flex; align-items: center; gap: 0.4rem; }
+.cl-legend-pressure { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; width: 100%; }
+.cl-legend-title { font-weight: 550; color: var(--text); }
+.cl-legend-barwrap { position: relative; flex: 1 1 12rem; min-width: 10rem; padding-bottom: 1.1rem; }
+.cl-legend-bar { height: 12px; border-radius: 3px; border: 1px solid var(--border); }
+.cl-legend-ticks { position: absolute; left: 0; right: 0; top: 14px; height: 1rem; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+.cl-legend-ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.cl-legend-ticks span:first-child { transform: none; }
+.cl-legend-ticks span:last-child { transform: translateX(-100%); }
+
+/* ── Results ──────────────────────────────────────────────────────────────── */
+.cl-cad-h4 { margin: 1.3rem 0 0.4rem; font-size: 0.9rem; }
+.cl-matrix-scroll { max-width: 100%; overflow-x: auto; }
+.cl-matrix { border-collapse: collapse; font-size: 0.84rem; margin: 0.3rem 0 0.4rem; }
+.cl-matrix th, .cl-matrix td { padding: 0.4rem 0.65rem; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; vertical-align: middle; }
+.cl-matrix thead th { color: var(--text); font-weight: 600; background: var(--surface-2); }
+.cl-matrix tbody th { color: var(--text); font-weight: 550; }
+.cl-matrix .num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.cl-matrix thead .num { font-family: var(--font); }
+.cl-cad-results .results .result-value { white-space: nowrap; }
+.cl-cad-results .result-label { overflow-wrap: break-word; }
+@media (max-width: 480px) {
+    /* long values (α with its interval) go under their label instead of squeezing it */
+    .cl-cad-results .results .result { grid-template-columns: minmax(0, 1fr); }
+    .cl-cad-results .results .result-value { text-align: left; white-space: normal; padding: 0; }
+}
+.cl-cad-paused { opacity: 0.5; }
+.cl-cad-stats .result { padding: 0.45rem 0; }
+.cl-cad-stats .result-value { font-size: 0.9rem; cursor: default; }
+.cl-cad-plot { min-height: 230px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .cl-cad *, .cl-cad *::before, .cl-cad *::after { transition: none !important; animation: none !important; }
+}

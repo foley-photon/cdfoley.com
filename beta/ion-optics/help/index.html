@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ion Optics Workbench (beta): help and methods</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="How the in-browser charged-particle optics simulator works: units, geometry rules, accuracy, numerical methods, the validation suite, keyboard shortcuts and limitations. Not yet validated by the author.">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<script src="/assets/js/site.js"></script>
+<style>
+    .io-help-back { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; margin-bottom: 1rem; }
+    .io-help-beta { margin: 0 0 1.6rem; max-width: 780px; }
+    .io-help .io-math { font-family: var(--font); font-style: normal; white-space: nowrap; }
+    .io-help .io-math i { font-style: italic; }
+    .io-help dl.io-help-keys { display: grid; grid-template-columns: minmax(7.5rem, max-content) 1fr; gap: 0.35rem 1rem; margin: 1rem 0; }
+    .io-help dl.io-help-keys dt { margin: 0; font-weight: 500; color: var(--text); }
+    .io-help dl.io-help-keys dd { margin: 0; }
+    .io-help kbd { font-size: 0.82em; border: 1px solid var(--border-strong); border-bottom-width: 2px; background: var(--surface-2); color: var(--text); }
+    .io-help td.io-id { font-family: var(--mono); font-size: 0.85rem; white-space: nowrap; color: var(--text); }
+    .io-help tr.io-group td { background: var(--bg-soft); font-weight: 600; color: var(--text); }
+    .io-help .io-tag { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0 0.4rem; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+    .io-help .refs a { overflow-wrap: anywhere; }
+    @media (max-width: 560px) { .io-help dl.io-help-keys { grid-template-columns: 1fr; gap: 0.1rem; } .io-help dl.io-help-keys dd { margin-bottom: 0.5rem; } }
+</style>
+<script type="module">
+    import { PRODUCT_NAME, ENGINE_VERSION } from '../js/engine/version.js';
+    for (const el of document.querySelectorAll('[data-product-name]')) el.textContent = PRODUCT_NAME;
+    for (const el of document.querySelectorAll('[data-engine-version]')) el.textContent = ENGINE_VERSION;
+    // the shortcut list comes from the workbench itself when it loads; the static list below is the fallback
+    try {
+        const { SHORTCUTS } = await import('../js/ui/shortcuts.js');
+        const dl = document.getElementById('io-help-keys');
+        if (dl && Array.isArray(SHORTCUTS) && SHORTCUTS.length) {
+            dl.replaceChildren();
+            for (const [keys, what] of SHORTCUTS) {
+                const dt = document.createElement('dt');
+                String(keys).split(/( or | and )/).forEach((part) => {
+                    if (part === ' or ' || part === ' and ') dt.append(part);
+                    else { const k = document.createElement('kbd'); k.textContent = part; dt.append(k); }
+                });
+                const dd = document.createElement('dd');
+                dd.textContent = what;
+                dl.append(dt, dd);
+            }
+        }
+    } catch (e) { /* keep the static list */ }
+</script>
+</head>
+<body data-section="beta">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page io-help">
+    <a class="io-help-back" href="../">&larr; Back to the simulator</a>
+    <header class="page-head">
+        <span class="eyebrow">Beta · help and methods</span>
+        <h1><span data-product-name>Simulator</span> help</h1>
+        <p class="lede">An in-browser simulator for electrostatic and magnetic charged-particle optics: draw electrodes on a two-dimensional planar or cylindrically symmetric grid, solve for the potential, and trace ions and electrons through lenses, mirrors, energy analyzers, time-of-flight spectrometers and RF devices.</p>
+    </header>
+    <p class="callout callout-warn io-help-beta" role="note"><strong>Beta: not yet validated by the author.</strong> The validation suite below compares the simulator with published and exact values, but its results have not yet been reviewed. Use the simulator for exploration, and check numbers that matter against an independent calculation.</p>
+
+    <div class="article-layout">
+        <article class="prose">
+            <h2 id="quick-start">Quick start</h2>
+            <ol>
+                <li><strong>Start from a preset.</strong> The Einzel lens loads on a first visit, solves and runs by itself. <em>Presets</em> in the top bar opens ten more devices, each with a short note and a suggestion to try.</li>
+                <li><strong>Change voltages.</strong> Every electrode in the <em>Electrodes</em> tab has a voltage box and a slider. With <em>Live</em> on, the trajectories run again while you drag. A voltage may be a number, a parameter name or an expression, and units can be typed (<code>2 kV</code>).</li>
+                <li><strong>Edit the geometry.</strong> Pick an electrode (or <em>Void</em>) in the view bar and draw boxes, tubes, plates, discs, circles, annuli, polygons, lines and quadrics on the canvas, or type exact numbers in the inspector. A geometry change marks the fields stale; small grids are solved again automatically, larger ones when you press <em>Solve</em>.</li>
+                <li><strong>Define particles and detectors.</strong> The <em>Particles</em> tab sets each source's species, positions, directions, energies and start times; the <em>Recording</em> tab adds planes. A plane that stops particles is a detector.</li>
+                <li><strong>Read the results.</strong> The dock below the canvas has <em>Summary</em> (counts, transmission, waist, spot size, energy diagnostics), <em>Hits</em>, <em>Planes</em> (detector images, phase space, emittance), <em>TOF</em>, <em>Lens</em> (focal properties), <em>Profile</em> (potential and field along a line), <em>Scan &amp; tune</em>, <em>Benchmarks</em> and <em>Log</em>. Every table and plot exports to CSV.</li>
+                <li><strong>Save or share.</strong> Work is saved automatically in this browser. <em>Project</em> saves and opens files (<code>.ionopt.json</code>); <em>Share</em> copies a link that contains the whole project.</li>
+            </ol>
+
+            <h2 id="units">Units and conventions</h2>
+            <table>
+                <thead><tr><th>Quantity</th><th>Unit</th><th>Quantity</th><th>Unit</th></tr></thead>
+                <tbody>
+                    <tr><td>Length</td><td>mm</td><td>Potential</td><td>V</td></tr>
+                    <tr><td>Time</td><td>µs</td><td>Electric field</td><td>V/mm</td></tr>
+                    <tr><td>Velocity</td><td>mm/µs (= km/s)</td><td>Magnetic flux density</td><td>T</td></tr>
+                    <tr><td>Mass</td><td>u (unified atomic mass unit)</td><td>Frequency</td><td>MHz</td></tr>
+                    <tr><td>Charge</td><td>e, signed (an electron is &minus;1)</td><td>Angles you type</td><td>degrees</td></tr>
+                    <tr><td>Kinetic energy</td><td>eV (total, not per charge)</td><td>Current</td><td>A</td></tr>
+                </tbody>
+            </table>
+            <p>Constants are the CODATA 2022 values; derived ones (for example the acceleration constant <span class="io-math">e/u</span>) are computed from them. Particles are relativistic by default; switch that off in the tracer settings to compare with nonrelativistic formulas.</p>
+            <p><strong>Coordinates.</strong> The canvas shows <span class="io-math"><i>x</i></span> to the right and <span class="io-math"><i>y</i></span> up; particles always move in three dimensions <span class="io-math">(<i>x</i>, <i>y</i>, <i>z</i>)</span>.</p>
+            <ul>
+                <li><strong>Planar:</strong> the electrodes extend without limit along <span class="io-math"><i>z</i></span>, so the potential depends on <span class="io-math"><i>x</i></span> and <span class="io-math"><i>y</i></span> only and particles move freely along <span class="io-math"><i>z</i></span> (the RF quadrupole preset uses this for ions traveling along the rods).</li>
+                <li><strong>Cylindrical:</strong> everything is a body of revolution about the <span class="io-math"><i>x</i></span> axis. The vertical axis is the radius <span class="io-math"><i>r</i> = &radic;(<i>y</i>² + <i>z</i>²)</span>, and the canvas draws the lower half as a mirror image. A box becomes a ring or a disc, a circle a torus (or a sphere when it is centered on the axis), a line a cone or a flat annulus.</li>
+                <li><strong>Mirror planes</strong> halve or quarter the work for symmetric devices: the solved region ends on the mirror plane, and the other half is its reflection.</li>
+            </ul>
+            <p><strong>Parameters and expressions.</strong> Any number can be an expression of parameters: <code>+ − * / ^</code>, parentheses, <code>sqrt abs sin cos tan</code> (degrees), <code>asin acos atan atan2</code> (returning degrees), <code>exp ln log10 min max pow floor ceil round hypot</code> and <code>pi</code>. The Einzel preset, for example, draws its tubes from a parameter <code>D</code>, and the hemispherical analyzer sets its voltages from the pass energy <code>Ep</code>. Expressions are parsed and evaluated by the simulator; they are never run as program code.</p>
+
+            <h2 id="geometry">Geometry rules</h2>
+            <ul>
+                <li><strong>Later shapes win.</strong> Shapes are painted in list order, and each one overwrites what lies under it. A shape assigned to <em>Void</em> carves free space out of earlier shapes (a hole, a slit, a gap). Reorder shapes by dragging them in the <em>Shapes</em> tab, or with <kbd>[</kbd> and <kbd>]</kbd>.</li>
+                <li><strong>Exact boundaries.</strong> Each grid line is intersected exactly with every shape, so a surface that falls between grid nodes keeps its true position: the solver uses the true distance to the surface (Shortley and Weller's method) instead of moving the surface to the nearest node. Curved electrodes are therefore accurate to second order in the cell size, and a plate thinner than a cell still blocks the field and the particles.</li>
+                <li><strong>Zero-thickness lines</strong> (the Line tool) are sheets: they hold their electrode's voltage on both sides. Use them for thin apertures, deflector shields and meshes.</li>
+                <li><strong>Meshes.</strong> Set an electrode's kind to <em>mesh</em> to make it transparent to particles. For the field a mesh is an ideal equipotential surface; a particle that reaches it passes with the probability given by the mesh transmission and is otherwise absorbed. The field is never averaged across a mesh, so the field jump at a mesh is kept sharp.</li>
+                <li><strong>Domain edges</strong> are held at an electrode's voltage, have no normal field (a symmetry or open edge), are the axis (cylindrical), or follow a profile: segments of different electrodes, or a linear ramp between two voltages that acts as an ideal resistive divider, for example the walls of an ideal ion mirror.</li>
+                <li><strong>Beyond the domain</strong> a particle either stops (it is recorded as having left) or drifts on in a straight line with no electric field; a magnetic field still acts there. Electrodes are not tested for hits outside the grid.</li>
+                <li><strong>Warnings</strong> in the <em>Log</em> and on the <em>Shapes</em> tab point out shapes smaller than a cell, features thinner than half a cell, electrodes of different voltages that touch, shapes outside the domain or hidden by later ones, and apertures resolved by too few cells.</li>
+            </ul>
+            <p><strong>Voltages without new solves.</strong> Each electrode's field is solved once with that electrode at 1 V and all others at 0 V. Because Laplace's equation is linear, the field for any set of voltages is the weighted sum of these basis fields, so changing a voltage, a waveform or a parameter that only sets voltages takes a few milliseconds and needs no new solve. Time-dependent voltages (cosine, pulse or a table of values, each repeating or not) are grouped into channels and summed at every time step.</p>
+
+            <h2 id="accuracy">Accuracy</h2>
+            <p>Three things limit the accuracy of a result: the grid (how finely the electrodes and the field are resolved), the field interpolation between grid nodes, and the trajectory integration. The simulator reports on each.</p>
+            <ul>
+                <li><strong>Cells across the smallest aperture.</strong> Lens properties depend on how well the field in and near the smallest opening is resolved. For thin-walled electrodes, 20 cells across the aperture radius give focal properties good to about 1 part in 1000, 40 cells about 2 parts in 10<sup>4</sup>, and 80 cells about 1 part in 10<sup>4</sup>. Electrodes with sharp (re-entrant) corners converge more slowly, with an error proportional to the cell size to the power 4/3: the default Einzel lens, at 40 cells, is good to a few parts in 1000. Use the <em>Accuracy check</em> to measure your own geometry. Below 16 cells a warning appears. In two dimensions, halving the cell size multiplies the node count, the memory and roughly the solve time by four. The <em>Domain</em> tab shows the node count, the memory and the estimated solve time as you change the cell.</li>
+                <li><strong>Field interpolation.</strong> <em>Cubic</em> (the default) builds a smooth potential from the nodal values and their derivatives, and the force is its exact gradient, so energy is conserved to the precision of the integrator: best for analyzers, mirrors and long flights. <em>Linear</em> interpolates the nodal field; on very coarse grids (fewer than about 16 cells per aperture radius) it can give smaller focal errors. In cells cut by an electrode both modes use the nodal field on the particle's own side of the electrode only.</li>
+                <li><strong>Trajectory accuracy.</strong> The tracer settings offer four levels:
+                    <table>
+                        <thead><tr><th>Level</th><th class="num">Relative tolerance</th><th class="num">Largest step</th><th class="num">Near electrodes</th><th class="num">Steps per RF period</th><th class="num">Boris steps per gyration</th></tr></thead>
+                        <tbody>
+                            <tr><td>Draft</td><td class="num">10<sup>−6</sup></td><td class="num">1 cell</td><td class="num">0.25 cell</td><td class="num">24</td><td class="num">64</td></tr>
+                            <tr><td>Normal (default)</td><td class="num">10<sup>−8</sup></td><td class="num">0.5 cell</td><td class="num">0.1 cell</td><td class="num">32</td><td class="num">128</td></tr>
+                            <tr><td>Fine</td><td class="num">10<sup>−10</sup></td><td class="num">0.25 cell</td><td class="num">0.05 cell</td><td class="num">64</td><td class="num">256</td></tr>
+                            <tr><td>Custom</td><td colspan="5">your own values (steps of at most one cell)</td></tr>
+                        </tbody>
+                    </table>
+                </li>
+                <li><strong>Energy diagnostics.</strong> In static fields the simulator compares each particle's total energy (kinetic plus potential) at the end with its value at the start, and adds up the difference between the change in kinetic energy and the work done by the field. The <em>Summary</em> tab counts the particles whose energy error exceeds 10<sup>−6</sup> of the energy scale (10<sup>−4</sup> with linear interpolation). Warnings usually mean that a trajectory passed through cells cut by an electrode, where the field is only first-order accurate, or crossed a mesh at a coarse tolerance; a smaller cell or a tighter tolerance removes them.</li>
+                <li><strong>Accuracy check.</strong> The button in the <em>Summary</em> tab solves the fields again with half the cell size, runs the first 200 particles again with a 100 times tighter tolerance, and reports how much each result changed. When twice the cell size also divides the domain it solves once more with that cell, so that the observed order of convergence <span class="io-math"><i>p</i></span> can be measured, and estimates the remaining grid error by Richardson extrapolation: for the current cell size it is the change × 2<sup><i>p</i></sup>/(2<sup><i>p</i></sup> − 1), for the finer one the change/(2<sup><i>p</i></sup> − 1). The order is clamped to between 1 and 2, and taken as 1 (the cautious choice) when it cannot be measured. Smooth geometries converge with <span class="io-math"><i>p</i></span> ≈ 2; electrodes with sharp corners give <span class="io-math"><i>p</i></span> ≈ 4/3, so the error of the current result is several times the change.</li>
+                <li><strong>Solver tolerance.</strong> Each basis field is solved until the estimated error is below 10<sup>−10</sup> V per volt applied. The fields pill in the top bar shows the method used, the iterations and the estimated error.</li>
+            </ul>
+
+            <h2 id="methods">How it works</h2>
+            <p>The methods are standard ones from the open literature; the references are listed at the end of this page.</p>
+            <h3>The field</h3>
+            <p>The potential obeys Laplace's equation, <span class="io-math">&nabla;²<i>φ</i> = 0</span> (there is no space charge in this version). It is discretized with finite differences on a square grid. Where a grid line meets an electrode between two nodes, the difference formula uses the true, shorter distance to the surface (Shortley and Weller, 1938), which keeps the scheme second-order accurate at curved and oblique boundaries. In cylindrical symmetry the axis row uses a finite-volume form.</p>
+            <p>The equations are solved by geometric multigrid: V-cycles with two red-black Gauss–Seidel sweeps before and after each coarse-grid correction (Briggs, Henson and McCormick; Trottenberg, Oosterlee and Schüller). Every coarse grid is built from the exact geometry at its own spacing, so thin plates and meshes do not disappear on coarse levels. If multigrid stalls, the solver switches automatically to BiCGSTAB (van der Vorst, 1992) preconditioned by a multigrid cycle, and then to successive over-relaxation with Carré's adaptive choice of the over-relaxation factor (Carré, 1961; Hageman and Young). It stops when the estimated algebraic error and the scaled residual are both below the tolerance.</p>
+            <h3>From the grid to a force</h3>
+            <p>In cells away from electrodes the potential is interpolated by a bicubic Hermite surface built from the nodal potential and its derivatives (estimated with fourth-order differences), so both the potential and the field are continuous and the force is the exact gradient of the interpolated potential. In cells cut by an electrode or a mesh the nodal field is interpolated bilinearly, using only nodes on the particle's own side of the surface and extrapolating from them where a corner lies behind it; a field is never averaged across an electrode. Ideal analytic fields (uniform, quadrupole, coaxial, spherical) can be added on top of the solved field.</p>
+            <h3>Particle motion</h3>
+            <p>Particles follow the relativistic Lorentz-force equations, written for the proper velocity <span class="io-math"><i>γ</i><b>v</b></span>. The default integrator is the adaptive Dormand–Prince 5(4) Runge–Kutta method (Dormand and Prince, 1980) with Hairer's continuous output (Hairer, Nørsett and Wanner), which also locates events inside a step. For long flights in magnetic fields the relativistic Boris method (Boris, 1970), with the exact rotation angle (Zenitani and Umeda, 2018), conserves speed in a pure magnetic field to rounding error (Qin and coworkers, 2013). With the exact rotation angle the drift in crossed electric and magnetic fields comes out too slow by about θ²/12 (θ = the rotation angle per step, 2×10<sup>−4</sup> at 128 steps per turn), so the automatic choice uses Boris only when there is no electric field; with both fields it keeps the adaptive Runge–Kutta method, which is slower for long flights but follows the drift to the set tolerance. Steps never cross a magnetic field edge or a corner of a voltage pulse.</p>
+            <p>Electrode hits are found by testing straight sub-chords of every step against the exact geometry wherever the step comes near an electrode, then bisecting to 10<sup>−9</sup> mm. Recording planes are located by root finding on the continuous output, and the events of a step are processed in time order. Magnetic fields come from uniform fields, hard-edged field regions and circular current loops (complete elliptic integrals, after Simpson and coworkers, 2001, and Abramowitz and Stegun §17.6).</p>
+            <p>Random starting conditions come from a counter-based generator: particle number <span class="io-math"><i>i</i></span> of a source always gets the same numbers, so a run gives identical results however it is split among the browser's worker threads.</p>
+            <h3>Analysis</h3>
+            <p>Lens properties follow DiChio, Natali and Kuyatt (1974): rays parallel to the axis are traced through the lens in both directions, the focal points and principal planes are found from their straight asymptotes, and the values are fitted in the ray height and extrapolated to the axis. Arrival-time peaks give the resolving power <span class="io-math"><i>t</i>/(2&nbsp;FWHM)</span>; because a peak with a steep edge (common after an ion mirror) has no stable half-maximum width, the TOF tab also gives <span class="io-math"><i>t</i>/(2 × 2.3548&nbsp;<i>σ</i>)</span> from the rms width, the robust value that Scan &amp; tune uses, and the narrowest interval holding 76.1% of the arrivals. The FWHM comes from a smoothed histogram and is marked unreliable when, over a bootstrap of the arrivals, it follows the bin width or is statistically unstable; even when it is marked reliable, the FWHM of a sharply peaked (cusp-shaped) distribution is biased high by up to about a quarter, so its resolving power reads low and the rms-based and 76% values are the ones to compare. Detector images give rms spot sizes, waists (found per species, so a mass spectrometer reports the image of each species rather than the crossing point of their lines) and emittances. Equipotential lines are traced with marching squares, the two-dimensional form of Lorensen and Cline's method; the potential maps use a perceptually uniform map in the style of viridis (van der Walt and Smith), the color-vision-deficiency-friendly cividis map (Nuñez, Anderton and Renslow, 2018) and a blue-white-red diverging map after Moreland (2009).</p>
+
+            <h2 id="validation">Validation</h2>
+            <p>The <em>Benchmarks</em> tab runs a suite of test cases in this browser and compares each result with a published value or an exact formula. There are <strong>38 gates</strong> (all must pass before the beta can be released), <strong>3 informational comparisons</strong> with published tables whose geometry is not fully known, and <strong>4 planned cases</strong> for features still to come. Every case builds its own setup and runs through the same code as your projects. <em>Run quick</em> takes a few seconds on a desktop computer; <em>Run full</em> uses finer grids and takes longer. Each row shows the reference with its source, the computed value, the deviation, the tolerance and the typical deviation found when the tolerances were calibrated; <em>Open setup</em> loads the case as a project.</p>
+            <p>Every tolerance except the printed-digits ones is at least twice the deviation measured in calibration runs; digits checks compare with the value as printed, so their margin can be smaller, and where an exact value is available they also compare with it at a tight tolerance. Where a tolerance is written as two numbers, the first applies to the quick level and the second to the full level. "Digits" means agreement to half a unit in the last digit printed by the source.</p>
+            <table class="io-help-cases">
+                <thead><tr><th>ID</th><th>Check</th><th>Reference</th><th>Tolerance</th></tr></thead>
+                <tbody>
+                    <tr class="io-group"><td colspan="4">K: particle kinematics in known fields</td></tr>
+                    <tr><td class="io-id">K1</td><td>Transit through a uniform field, from rest and at 10 eV</td><td>Exact: 0.455286 µs, 43.9284 mm/µs; 0.412028 µs</td><td>digits</td></tr>
+                    <tr><td class="io-id">K2</td><td>1 m drift at 1000 eV for four masses</td><td>Exact: 2.28532, 12.04574, 22.7643, 71.98705 µs</td><td>digits</td></tr>
+                    <tr><td class="io-id">K3</td><td>Gyration radius and frequency: ion, electron, relativistic electron; Boris at 128 steps per turn</td><td>Exact (CODATA 2022)</td><td>digits; Boris 2.5×10<sup>−4</sup></td></tr>
+                    <tr><td class="io-id">K4</td><td>Sense of gyration for an ion and an electron, both integrators</td><td>Lorentz force</td><td>exact sign</td></tr>
+                    <tr><td class="io-id">K5</td><td>180° focusing in a uniform magnetic field</td><td>180.000°</td><td>±0.005°</td></tr>
+                    <tr><td class="io-id">K6</td><td>Imaging by hard-edged 90° and 60° magnetic sectors</td><td>Barber's rule: 100.000, 173.205 mm</td><td>relative 2×10<sup>−4</sup></td></tr>
+                    <tr><td class="io-id">K7</td><td>Ions in a uniform RF field</td><td>Exact positions at 0.5 µs</td><td>digits</td></tr>
+                    <tr><td class="io-id">K8</td><td>Voltage pulse with sharp corners</td><td>Exact integral</td><td>relative 10<sup>−9</sup></td></tr>
+                    <tr><td class="io-id">K9</td><td>Electron with kinetic energy equal to its rest energy in 0.1 T</td><td>γ = 2, β = 0.866025, r = 29.523 mm</td><td>digits</td></tr>
+                    <tr class="io-group"><td colspan="4">S: the field solver</td></tr>
+                    <tr><td class="io-id">S1</td><td>Coaxial cylinders: potential and field</td><td>Logarithmic potential (exact)</td><td>3×10<sup>−3</sup> / 10<sup>−3</sup> V</td></tr>
+                    <tr><td class="io-id">S2</td><td>Concentric spheres: potential and field</td><td>A + B/r (exact)</td><td>0.04 / 0.01 V</td></tr>
+                    <tr><td class="io-id">S3</td><td>Axial potential of two tubes with no gap</td><td>Natali, Di Chio and Kuyatt (1972), Table 2</td><td>1.5×10<sup>−4</sup> / 4×10<sup>−5</sup></td></tr>
+                    <tr><td class="io-id">S4</td><td>Axial potential of two tubes with a 0.1 D deep gap</td><td>Natali, Di Chio and Kuyatt (1972)</td><td>2×10<sup>−4</sup></td></tr>
+                    <tr><td class="io-id">S5</td><td>Order of convergence, einzel lens</td><td>2 (second-order scheme)</td><td>1.8 to 2.3</td></tr>
+                    <tr><td class="io-id">S6</td><td>Quadratic harmonic potentials reproduced exactly with curved boundaries</td><td>Exact</td><td>10<sup>−9</sup></td></tr>
+                    <tr><td class="io-id">S7</td><td>Superposition of basis fields equals a direct solve</td><td>Linearity</td><td>10<sup>−9</sup> of the largest voltage</td></tr>
+                    <tr><td class="io-id">S8</td><td>Multigrid, Krylov and over-relaxation solvers agree</td><td>Each other</td><td>10<sup>−9</sup> V/V</td></tr>
+                    <tr><td class="io-id">S9</td><td>Thin plates on coarse multigrid levels</td><td>Convergence rate, agreement with over-relaxation</td><td>≤ 0.35 per cycle; 10<sup>−9</sup></td></tr>
+                    <tr><td class="io-id">S10</td><td>Order of convergence on spheres (exact boundaries)</td><td>2</td><td>1.8 to 2.3</td></tr>
+                    <tr class="io-group"><td colspan="4">T: trajectories in solved fields</td></tr>
+                    <tr><td class="io-id">T1</td><td>Parallel-plate mirror behind a mesh: return points and depth</td><td>Exact: 34.641, 40.000, 34.641; 10.000 mm</td><td>digits</td></tr>
+                    <tr><td class="io-id">T2</td><td>Energy gained through an exit mesh</td><td>500 eV</td><td>relative 10<sup>−6</sup></td></tr>
+                    <tr><td class="io-id">T3</td><td>Space focus of a single-field source</td><td>Wiley and McLaren (1955)</td><td>10<sup>−4</sup></td></tr>
+                    <tr><td class="io-id">T4</td><td>Energy focus of an ion mirror</td><td>Mamyrin and coworkers (1973)</td><td>10<sup>−4</sup></td></tr>
+                    <tr><td class="io-id">T5</td><td>Energy conservation through an einzel lens</td><td>0</td><td>2×10<sup>−6</sup></td></tr>
+                    <tr><td class="io-id">T6</td><td>Time reversal through the same lens</td><td>The starting point</td><td>10<sup>−6</sup> of the radius</td></tr>
+                    <tr><td class="io-id">T7</td><td>127° cylindrical analyzer: focusing angle and constant radius</td><td>Hughes and Rojansky (1929): 127.279°</td><td>±0.003° / ±0.002°</td></tr>
+                    <tr><td class="io-id">T8</td><td>180° spherical analyzer</td><td>Purcell (1938): 180°</td><td>±0.03° / ±0.008°</td></tr>
+                    <tr><td class="io-id">T9</td><td>Secular frequency in a solved quadrupole</td><td>Floquet theory of Mathieu's equation</td><td>relative 10<sup>−5</sup></td></tr>
+                    <tr><td class="io-id">T10</td><td>Edge of the stability region in a solved quadrupole</td><td>Mathieu stability diagram</td><td>stable and unstable as predicted</td></tr>
+                    <tr><td class="io-id">T11</td><td>Apex of the stability region and mass-filter voltages (ideal quadrupole)</td><td>Paul (1990)</td><td>as predicted; digits</td></tr>
+                    <tr><td class="io-id">T12</td><td>Low-mass cut-off of a solved Paul trap</td><td>Paul (1990): 107.7 u</td><td>m/z 120 trapped, 100 lost</td></tr>
+                    <tr><td class="io-id">T13</td><td>Helmholtz pair and single current loop</td><td>0.899176 mT; 4.49588 µT</td><td>digits</td></tr>
+                    <tr><td class="io-id">T14</td><td>Results independent of how a run is split</td><td>Identical</td><td>bit for bit</td></tr>
+                    <tr><td class="io-id">T15</td><td>Hits on tilted, thin and zero-thickness electrodes</td><td>Exact intersections</td><td>10<sup>−8</sup> mm; no misses</td></tr>
+                    <tr class="io-group"><td colspan="4">L: electrostatic lenses</td></tr>
+                    <tr><td class="io-id">L1</td><td>Two-tube lens with no gap, four voltage ratios</td><td>Exact paraxial properties (Bessel series)</td><td>relative 10<sup>−3</sup> / 3×10<sup>−4</sup></td></tr>
+                    <tr><td class="io-id">L2</td><td>Einzel lens with no gaps, five voltage ratios</td><td>Exact paraxial properties</td><td>relative 6×10<sup>−4</sup> / 2×10<sup>−4</sup></td></tr>
+                    <tr><td class="io-id">L3</td><td>Two-tube lens with a 0.1 D deep gap, ratios 2 to 100</td><td>DiChio, Natali and Kuyatt (1974), Table I</td><td>0.35 % or 0.003 D</td></tr>
+                    <tr><td class="io-id">L4</td><td>Lagrange–Helmholtz relation on the same rays</td><td>0</td><td>2×10<sup>−4</sup> / 10<sup>−4</sup></td></tr>
+                    <tr><td class="io-id">L5 <span class="io-tag">info</span></td><td>Einzel lens</td><td>Adams and Read (1972)</td><td>band ±2 %</td></tr>
+                    <tr><td class="io-id">L6 <span class="io-tag">info</span></td><td>Two-aperture lens</td><td>Harting and Read (1976)</td><td>model runs 3 to 6 % above</td></tr>
+                    <tr><td class="io-id">L7 <span class="io-tag">info</span></td><td>Thin aperture between two fields</td><td>Davisson and Calbick (1932): f = 4V/(E<sub>2</sub> − E<sub>1</sub>)</td><td>band ±10 %</td></tr>
+                    <tr class="io-group"><td colspan="4">Planned</td></tr>
+                    <tr><td class="io-id">P1</td><td>Space-charge-limited current (Child–Langmuir)</td><td>Needs space charge</td><td>planned</td></tr>
+                    <tr><td class="io-id">P2</td><td>Two protons released 1 µm apart</td><td>Needs particle–particle forces</td><td>planned</td></tr>
+                    <tr><td class="io-id">P3</td><td>Coaxial cylinders and spheres in three dimensions</td><td>Needs the 3D solver</td><td>planned</td></tr>
+                    <tr><td class="io-id">P4</td><td>Capacitance from the field flux</td><td>Exact</td><td>planned</td></tr>
+                </tbody>
+            </table>
+            <p>The presets carry their own expectations (for example the waist of the Einzel lens, the dispersion of the analyzers, the transmitted masses of the quadrupole filter), which the developer's test suite checks on every change.</p>
+
+            <h2 id="presets">Presets</h2>
+            <dl>
+                <dt>Einzel lens</dt><dd>Three tubes focus a parallel beam; the waist lies before the near-axis focus because of spherical aberration.</dd>
+                <dt>Two-tube immersion lens</dt><dd>The deep-gap geometry of the NBS lens studies; the Lens tab reproduces the published focal properties.</dd>
+                <dt>Two-aperture lens</dt><dd>Two thin apertures focus while they accelerate the beam tenfold.</dd>
+                <dt>Parallel-plate mirror</dt><dd>A uniform retarding field behind a mesh; return points and depth match closed forms.</dd>
+                <dt>127° cylindrical deflector</dt><dd>A cylindrical energy filter: rays leaving a point refocus after 127°; the exit slit selects the pass energy.</dd>
+                <dt>Hemispherical analyzer</dt><dd>Electrons of 99, 100 and 101 eV land about 2 mm apart after a 180° turn.</dd>
+                <dt>Reflectron TOF</dt><dd>A gridded ion mirror compensates the energy spread of a single-field source and separates m/z 100 from 101.</dd>
+                <dt>RF quadrupole mass filter</dt><dd>Hyperbolic rods with RF and DC voltages pass m/z 100 and reject 90 and 110.</dd>
+                <dt>Paul trap</dt><dd>A ring and end caps with RF trap ions above the low-mass cut-off.</dd>
+                <dt>90° magnetic sector</dt><dd>A sector magnet focuses a fan of ions and separates neighboring masses by 1 mm.</dd>
+                <dt>Velocity-map imaging lens</dt><dd>Three plates in the style of Eppink and Parker (1997) image equal velocities to equal points; the dimensions are generic, not those of the paper.</dd>
+            </dl>
+
+            <h2 id="shortcuts">Keyboard shortcuts</h2>
+            <p>Shortcuts work when the keyboard focus is not in a text field; <kbd>?</kbd> in the simulator shows the same list. Every canvas action also has a form in the inspector or the tabs.</p>
+            <dl class="io-help-keys" id="io-help-keys">
+                <dt><kbd>S</kbd></dt><dd>Solve the fields</dd>
+                <dt><kbd>R</kbd></dt><dd>Run all particles</dd>
+                <dt><kbd>L</kbd></dt><dd>Live preview on or off</dd>
+                <dt><kbd>Esc</kbd></dt><dd>Cancel the current drawing, or stop a solve or run</dd>
+                <dt><kbd>V</kbd></dt><dd>Select and edit tool</dd>
+                <dt><kbd>H</kbd></dt><dd>Pan tool (or hold Space, or drag with the middle button)</dd>
+                <dt><kbd>B</kbd></dt><dd>Box tool</dd>
+                <dt><kbd>T</kbd></dt><dd>Tube tool</dd>
+                <dt><kbd>C</kbd></dt><dd>Circle tool</dd>
+                <dt><kbd>P</kbd></dt><dd>Polygon tool (Enter or double-click closes)</dd>
+                <dt><kbd>M</kbd></dt><dd>Measure tool</dd>
+                <dt><kbd>Shift+P</kbd></dt><dd>Probe line for the Profile tab</dd>
+                <dt><kbd>Delete</kbd></dt><dd>Delete the selection (or the grabbed polygon vertex)</dd>
+                <dt><kbd>Ctrl+Z</kbd></dt><dd>Undo</dd>
+                <dt><kbd>Ctrl+Y</kbd> or <kbd>Ctrl+Shift+Z</kbd></dt><dd>Redo</dd>
+                <dt><kbd>Ctrl+D</kbd></dt><dd>Duplicate the selection</dd>
+                <dt><kbd>Arrows</kbd></dt><dd>Move the selection one cell (Shift ×10, Alt ×0.1)</dd>
+                <dt><kbd>[</kbd> and <kbd>]</kbd></dt><dd>Move the selected shape earlier or later in the painting order</dd>
+                <dt><kbd>0</kbd></dt><dd>Fit the domain in view</dd>
+                <dt><kbd>+</kbd> and <kbd>−</kbd></dt><dd>Zoom in and out</dd>
+                <dt><kbd>Ctrl+S</kbd></dt><dd>Save the project to a file</dd>
+                <dt><kbd>?</kbd></dt><dd>Show this list</dd>
+            </dl>
+
+            <h2 id="limitations">Limitations</h2>
+            <ul>
+                <li><strong>Two dimensions.</strong> Geometries are planar (infinitely long along <span class="io-math"><i>z</i></span>) or cylindrically symmetric. Three-dimensional grids are planned.</li>
+                <li><strong>Quasistatic fields.</strong> The field follows the electrode voltages instantly, which is accurate when the device is much smaller than the wavelength; the simulator warns when 2π<span class="io-math"><i>f</i></span>&thinsp;<span class="io-math"><i>L</i></span>/<span class="io-math"><i>c</i></span> exceeds 0.05 for the domain length <span class="io-math"><i>L</i></span>.</li>
+                <li><strong>No space charge</strong> in this version: particles do not repel each other and do not change the field, so high-current beams are not modeled.</li>
+                <li><strong>Sharp magnetic edges.</strong> Magnetic field regions end abruptly; fringe fields are not modeled. Current loops are exact.</li>
+                <li><strong>Field-free drift outside the grid.</strong> Beyond the solved region the electric field is taken as zero.</li>
+                <li><strong>Ideal surfaces.</strong> Electrodes absorb the particles that hit them (no secondary electrons, reflection or charging). A mesh is an ideal equipotential sheet with a transmission probability; the small lenses formed by real mesh holes are not modeled.</li>
+                <li><strong>Phones</strong> open a viewer mode with smaller limits (grids up to 400,000 nodes and 20,000 particles); geometry editing needs a larger screen. On desktops grids up to 4 million nodes and a million particles per run are allowed, with a confirmation above about 5 seconds of computing.</li>
+            </ul>
+
+            <h2 id="privacy">Privacy</h2>
+            <p>Everything runs in your browser; no project, result or file is uploaded. Your current project and the ten most recent ones are kept in this browser's local storage. A share link carries the whole project after the <code>#</code> in the address, a part that browsers do not send to the server; anyone with the link can open a copy. An optional cache of solved fields (off by default) uses the browser's own database and can be cleared at any time.</p>
+
+            <h2 id="about">About this beta</h2>
+            <p>Independent software written from the open literature. Not affiliated with any commercial ion-optics package.</p>
+            <p>This is an unlisted beta: it is not linked from the rest of the site and not indexed by search engines. Simulation engine version <span data-engine-version>0.1.0</span>.</p>
+
+            <h2 id="references">References</h2>
+            <h3>Numerical methods</h3>
+            <ul class="refs">
+                <li>G. H. Shortley and R. Weller, “The numerical solution of Laplace's equation,” <em>J. Appl. Phys.</em> <strong>9</strong>, 334–348 (1938). <a href="https://doi.org/10.1063/1.1710426">doi:10.1063/1.1710426</a></li>
+                <li>B. A. Carré, “The determination of the optimum accelerating factor for successive over-relaxation,” <em>Comput. J.</em> <strong>4</strong>, 73–78 (1961). <a href="https://doi.org/10.1093/comjnl/4.1.73">doi:10.1093/comjnl/4.1.73</a></li>
+                <li>L. A. Hageman and D. M. Young, <em>Applied Iterative Methods</em> (Academic Press, 1981).</li>
+                <li>W. L. Briggs, V. E. Henson and S. F. McCormick, <em>A Multigrid Tutorial</em>, 2nd ed. (SIAM, 2000).</li>
+                <li>U. Trottenberg, C. W. Oosterlee and A. Schüller, <em>Multigrid</em> (Academic Press, 2001).</li>
+                <li>H. A. van der Vorst, “Bi-CGSTAB: a fast and smoothly converging variant of Bi-CG for the solution of nonsymmetric linear systems,” <em>SIAM J. Sci. Stat. Comput.</em> <strong>13</strong>, 631–644 (1992). <a href="https://doi.org/10.1137/0913035">doi:10.1137/0913035</a></li>
+                <li>J. R. Dormand and P. J. Prince, “A family of embedded Runge–Kutta formulae,” <em>J. Comput. Appl. Math.</em> <strong>6</strong>, 19–26 (1980). <a href="https://doi.org/10.1016/0771-050X(80)90013-3">doi:10.1016/0771-050X(80)90013-3</a></li>
+                <li>E. Hairer, S. P. Nørsett and G. Wanner, <em>Solving Ordinary Differential Equations I: Nonstiff Problems</em>, 2nd ed. (Springer, 1993).</li>
+                <li>J. P. Boris, “Relativistic plasma simulation: optimization of a hybrid code,” <em>Proc. Fourth Conf. Numerical Simulation of Plasmas</em> (Naval Research Laboratory, Washington, 1970).</li>
+                <li>H. Qin, S. Zhang, J. Xiao, J. Liu, Y. Sun and W. M. Tang, “Why is Boris algorithm so good?,” <em>Phys. Plasmas</em> <strong>20</strong>, 084503 (2013). <a href="https://doi.org/10.1063/1.4818428">doi:10.1063/1.4818428</a></li>
+                <li>S. Zenitani and T. Umeda, “On the Boris solver in particle-in-cell simulation,” <em>Phys. Plasmas</em> <strong>25</strong>, 112110 (2018). <a href="https://doi.org/10.1063/1.5051077">doi:10.1063/1.5051077</a></li>
+                <li>M. Abramowitz and I. A. Stegun (eds.), <em>Handbook of Mathematical Functions</em> (National Bureau of Standards, 1964), §17.6.</li>
+                <li>J. C. Simpson, J. E. Lane, C. D. Immer, R. C. Youngquist and T. Steinrock, “Simple analytic expressions for the magnetic field of a circular current loop,” NASA Technical Reports Server 20010038494 (2001). <a href="https://ntrs.nasa.gov/citations/20010038494">ntrs.nasa.gov/citations/20010038494</a></li>
+                <li>W. E. Lorensen and H. E. Cline, “Marching cubes: a high resolution 3D surface construction algorithm,” <em>Comput. Graph.</em> <strong>21</strong>, 163–169 (1987). <a href="https://doi.org/10.1145/37402.37422">doi:10.1145/37402.37422</a></li>
+                <li>J. R. Nuñez, C. R. Anderton and R. S. Renslow, “Optimizing colormaps with consideration for color vision deficiency to enable accurate interpretation of scientific data,” <em>PLoS ONE</em> <strong>13</strong>, e0199239 (2018), CC BY 4.0. <a href="https://doi.org/10.1371/journal.pone.0199239">doi:10.1371/journal.pone.0199239</a></li>
+                <li>K. Moreland, “Diverging color maps for scientific visualization,” in <em>Advances in Visual Computing</em>, Lecture Notes in Computer Science 5876, 92–103 (Springer, 2009). <a href="https://doi.org/10.1007/978-3-642-10520-3_9">doi:10.1007/978-3-642-10520-3_9</a></li>
+                <li>Constants: CODATA 2022 recommended values, NIST. <a href="https://physics.nist.gov/cuu/Constants/">physics.nist.gov/cuu/Constants</a></li>
+            </ul>
+            <h3>Lenses and devices</h3>
+            <ul class="refs">
+                <li>S. Natali, D. Di Chio and C. E. Kuyatt, “Accurate calculations of properties of the two-tube electrostatic lens. I. Improved digital methods for the precise calculation of electric fields and trajectories,” <em>J. Res. Natl. Bur. Stand.</em> <strong>76A</strong>, 27 (1972). <a href="https://doi.org/10.6028/jres.076A.003">doi:10.6028/jres.076A.003</a></li>
+                <li>D. DiChio, S. V. Natali and C. E. Kuyatt, “Focal properties of the two-tube electrostatic lens for large and near-unity voltage ratios,” <em>Rev. Sci. Instrum.</em> <strong>45</strong>, 559–565 (1974). <a href="https://doi.org/10.1063/1.1686684">doi:10.1063/1.1686684</a></li>
+                <li>F. H. Read, A. Adams and J. R. Soto-Montiel, “Electrostatic cylinder lenses. I. Two element lenses,” <em>J. Phys. E</em> <strong>4</strong>, 625–632 (1971). <a href="https://doi.org/10.1088/0022-3735/4/9/001">doi:10.1088/0022-3735/4/9/001</a></li>
+                <li>A. Adams and F. H. Read, “Electrostatic cylinder lenses II: three element einzel lenses,” <em>J. Phys. E</em> <strong>5</strong>, 150–155 (1972). <a href="https://doi.org/10.1088/0022-3735/5/2/019">doi:10.1088/0022-3735/5/2/019</a></li>
+                <li>E. Harting and F. H. Read, <em>Electrostatic Lenses</em> (Elsevier, 1976).</li>
+                <li>C. J. Davisson and C. J. Calbick, “Electron lenses,” <em>Phys. Rev.</em> <strong>42</strong>, 580 (1932). <a href="https://doi.org/10.1103/PhysRev.42.580">doi:10.1103/PhysRev.42.580</a></li>
+                <li>A. Ll. Hughes and V. Rojansky, “On the analysis of electronic velocities by electrostatic means,” <em>Phys. Rev.</em> <strong>34</strong>, 284–290 (1929). <a href="https://doi.org/10.1103/PhysRev.34.284">doi:10.1103/PhysRev.34.284</a></li>
+                <li>E. M. Purcell, “The focusing of charged particles by a spherical condenser,” <em>Phys. Rev.</em> <strong>54</strong>, 818–826 (1938). <a href="https://doi.org/10.1103/PhysRev.54.818">doi:10.1103/PhysRev.54.818</a></li>
+                <li>H. Wollnik, <em>Optics of Charged Particles</em> (Academic Press, 1987).</li>
+                <li>C. E. Kuyatt and J. A. Simpson, “Electron monochromator design,” <em>Rev. Sci. Instrum.</em> <strong>38</strong>, 103–111 (1967). <a href="https://doi.org/10.1063/1.1720492">doi:10.1063/1.1720492</a></li>
+                <li>W. C. Wiley and I. H. McLaren, “Time-of-flight mass spectrometer with improved resolution,” <em>Rev. Sci. Instrum.</em> <strong>26</strong>, 1150–1157 (1955). <a href="https://doi.org/10.1063/1.1715212">doi:10.1063/1.1715212</a></li>
+                <li>B. A. Mamyrin, V. I. Karataev, D. V. Shmikk and V. A. Zagulin, “The mass-reflectron, a new nonmagnetic time-of-flight mass spectrometer with high resolution,” <em>Sov. Phys. JETP</em> <strong>37</strong>, 45 (1973). <a href="http://www.jetp.ras.ru/cgi-bin/e/index/e/37/1/p45?a=list">jetp.ras.ru</a></li>
+                <li>W. Paul, “Electromagnetic traps for charged and neutral particles,” <em>Rev. Mod. Phys.</em> <strong>62</strong>, 531–540 (1990). <a href="https://doi.org/10.1103/RevModPhys.62.531">doi:10.1103/RevModPhys.62.531</a></li>
+                <li>N. W. McLachlan, <em>Theory and Application of Mathieu Functions</em> (Clarendon Press, 1947).</li>
+                <li>P. H. Dawson (ed.), <em>Quadrupole Mass Spectrometry and Its Applications</em> (Elsevier, 1976).</li>
+                <li>A. T. J. B. Eppink and D. H. Parker, “Velocity map imaging of ions and electrons using electrostatic lenses: application in photoelectron and photofragment ion imaging of molecular oxygen,” <em>Rev. Sci. Instrum.</em> <strong>68</strong>, 3477–3484 (1997). <a href="https://doi.org/10.1063/1.1148310">doi:10.1063/1.1148310</a></li>
+            </ul>
+        </article>
+        <aside class="toc" data-toc></aside>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+</body>
+</html>

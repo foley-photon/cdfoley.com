@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glazing Performance Calculator (Open-Data Beta) | Casey D. Foley, PhD</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Beta: the glazing calculator with measured glass optical constants, thin-film low-e coatings calibrated to published datasheets, and measured IGDB products, side by side with the current model.">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="./glazing-beta.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script defer src="/assets/js/glazing-weights.js"></script>
+<script defer src="/assets/js/glazing-engine.js"></script>
+<script defer src="/assets/js/glazing-materials.js"></script>
+<script defer src="/assets/js/glazing-solar-e891.js"></script>
+<script defer src="/assets/js/glazing-tmm.js"></script>
+<script defer src="/assets/js/glazing-coatings.js"></script>
+<script defer src="/assets/js/glazing-open.js"></script>
+<script defer src="/assets/js/glazing-products.js"></script>
+<script defer src="./beta-core.js"></script>
+<script defer src="./selftest.js"></script>
+<script defer src="./glazing-beta.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/beta/">Beta</a></li><li aria-current="page">Glazing (open data)</li></ol>
+    </nav>
+    <header class="page-head">
+        <span class="eyebrow">Beta</span>
+        <h1>Glazing Performance Calculator (Open-Data Beta)</h1>
+        <p class="lede">Build single, double, triple or vacuum glazing and see the current calculator's material model and a new one built only from openly licensed data side by side: measured glass optical constants, thin-film low-e coatings calibrated to published datasheets, and nine measured IGDB products. Compare either model with manufacturers' published values. Everything runs in your browser.</p>
+    </header>
+    <div class="callout callout-warn" role="note">
+        <p><strong>Beta: not yet validated by the author.</strong> This page tests a new material model built only from openly licensed data, next to the model used by the <a href="/tools/glazing-performance/">current glazing calculator</a>, which is unchanged. Check its numbers against the published datasheets and the self-test below before relying on them.</p>
+    </div>
+
+    <div class="tool-layout">
+        <form class="panel" id="glzb" autocomplete="off">
+            <div class="panel-head"><h2>Glazing system</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="glzb">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <span class="field-label" id="view-l">Models shown</span>
+                    <div class="seg" role="radiogroup" aria-label="Models shown">
+                        <input type="radio" name="view" id="view-both" value="both" checked><label for="view-both">Side by side</label>
+                        <input type="radio" name="view" id="view-open" value="open"><label for="view-open">Open data</label>
+                        <input type="radio" name="view" id="view-classic" value="classic"><label for="view-classic">Classic</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="sol">Solar spectrum</label>
+                    <select id="sol" name="sol" class="input">
+                        <option value="e891" selected>ASTM E891 (as in LBNL's NFRC calculations)</option>
+                        <option value="g173">ASTM G173 (current calculator)</option>
+                    </select>
+                    <p class="hint">The current calculator uses G173; choose it to compare with that page exactly.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="np">Panes</label>
+                        <select id="np" name="np" class="input">
+                            <option value="2" selected>Double</option>
+                            <option value="1">Single (monolithic)</option>
+                            <option value="3">Triple</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="H">Glazing height</label>
+                        <div class="input-unit"><input id="H" name="H" value="1" inputmode="decimal" data-positive data-label="glazing height"><select data-dim="length" data-units="m,mm,in,ft" data-default="m"></select></div>
+                        <p class="hint">Sets gap and indoor convection. NFRC uses 1 m.</p>
+                    </div>
+                </div>
+                <div id="stack"></div>
+            </div>
+        </form>
+
+        <section class="panel" id="glzb-out" aria-labelledby="out-h">
+            <div class="panel-head"><h2 id="out-h">Performance</h2><span class="badge" data-out="cond">NFRC 100 / 200 · ASTM E891</span></div>
+            <div class="panel-body">
+                <div class="callout callout-warn gl-open-err" id="open-err" role="status" hidden><p>The open-data model could not load. The classic results below are unaffected.</p></div>
+                <div class="xsec" data-out="xsec" role="img" aria-label="Cross-section of the glazing unit with surface numbers, coatings, gaps, and winter surface temperatures"></div>
+                <p class="hint" style="margin:.4rem 0 0">Purple line: low-e coating. Orange: surface temperatures (°C) at NFRC 100 winter conditions.</p>
+                <div class="kpis" data-out="kpis"></div>
+                <div class="gl-notes" data-out="notes" aria-live="polite"></div>
+                <div class="cmp-wrap" data-out="table"></div>
+                <div class="swatches" data-out="swatches"></div>
+                <div class="attrib" data-out="attrib"></div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel gl-sec" aria-labelledby="sp-h">
+        <div class="panel-head"><h2 id="sp-h">Spectral transmittance and reflectance</h2></div>
+        <div class="panel-body"><div id="glzb-plot"></div>
+            <p class="hint gl-plot-hint">Shaded: the solar spectrum in use (ASTM E891 direct normal, or ASTM G173 direct + circumsolar). The visible band, 380–780 nm, is marked.</p></div>
+    </section>
+
+    <section class="panel gl-sec" id="cmp-panel" aria-labelledby="cmp-h">
+        <div class="panel-head"><h2 id="cmp-h">Compare with a published datasheet</h2>
+            <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" id="cmp-load">Load into calculator</button></div></div>
+        <div class="panel-body">
+            <form id="cmp" autocomplete="off"><div class="calc-error" role="alert"></div>
+                <div class="field"><label for="row">Published configuration</label><select id="row" name="row" class="input"></select></div>
+            </form>
+            <div id="cmp-out">
+                <div class="cmp-src" data-out="cmpsrc"></div>
+                <div class="cmp-wrap" data-out="cmptable"></div>
+                <div class="cmp-color" data-out="cmpcolor"></div>
+            </div>
+            <p class="hint">Computed with the ASTM E891 solar spectrum. In the “Measured record” column, uncoated panes use the open model's clear glass.</p>
+            <p class="hint">Published values come from the manufacturers' documents linked above and are quoted as facts. Each manufacturer computed them with LBNL WINDOW; small differences in solar spectrum, glass and gap assumptions are expected.</p>
+        </div>
+    </section>
+
+    <section class="panel gl-sec" id="coat-panel" aria-labelledby="coat-h">
+        <div class="panel-head"><h2 id="coat-h">How the open coatings are built</h2></div>
+        <div class="panel-body"><div id="coat-info"><p class="muted">Loading the coating data…</p></div></div>
+    </section>
+
+    <section class="panel gl-sec" id="selftest" aria-labelledby="st-h">
+        <div class="panel-head"><h2 id="st-h">Self-test</h2><button type="button" class="btn btn-secondary btn-sm" id="st-run">Run self-test</button></div>
+        <div class="panel-body">
+            <p class="hint">Runs the validation cases of the build specification in your browser: LBNL Windows-CalcEngine unit tests, measured IGDB records, and published datasheets, each with a stated tolerance. The first run downloads about 400 kB of LBNL data files.</p>
+            <div id="st-out" aria-live="polite"></div>
+        </div>
+    </section>
+
+    <section class="panel gl-sec" id="imp-panel" aria-labelledby="imp-h">
+        <div class="panel-head"><h2 id="imp-h">Use measured product data</h2></div>
+        <div class="panel-body">
+            <p class="imp-note">Load a spectral file exported from LBNL Optics or WINDOW (IGDB text format), an IGSDB product record (JSON), or four columns of your own data (wavelength, T, Rfront, Rback). The file is read in this browser only: it is not uploaded, and this site never redistributes it. Records from the International Glazing Database are Copyright (c) 2011, The Regents of the University of California, through Lawrence Berkeley National Laboratory, and licensed under <a href="https://creativecommons.org/licenses/by-nd/4.0/" target="_blank" rel="noopener">CC BY-ND 4.0</a>; their attribution is shown with every result that uses them. Import only data you have the right to use.</p>
+            <label for="imp-text" class="field-label">Spectral data</label>
+            <textarea id="imp-text" class="input" rows="7" placeholder="{ Thickness } 5.7&#10;{ Emissivity, forward, back } Emis= 0.840 0.037&#10;{ Product Name: … }  { Manufacturer: … }&#10;0.300  0.000  0.047  0.048&#10;0.305  0.002  0.047  0.048&#10;…   (wavelength, T, Rfront, Rback; µm or nm; fractions or %)"></textarea>
+            <div class="btn-row gl-btn-row">
+                <button type="button" class="btn btn-primary btn-sm" id="imp-add">Add product</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="imp-pick">Load file</button><input type="file" id="imp-file" multiple hidden aria-label="Spectral files to load">
+            </div>
+            <div class="imp-msg" id="imp-msg" role="status"></div>
+            <ul class="imp-list" id="imp-list"></ul>
+        </div>
+    </section>
+
+    <article class="prose gl-prose">
+        <h2>How the open-data model works</h2>
+        <p>The open-data model replaces the current calculator's parametric glass and coating curves with physics computed from published optical constants. Everything else is shared: both models feed the same multiple-reflection optics, the same ISO 15099 center-of-glass thermal model and the same NFRC 100 and 200 conditions, so the two columns of the results differ only in how each pane's spectra are made.</p>
+        <p><strong>Glass.</strong> Each pane uses the refractive index \(n(\lambda)\) and extinction coefficient \(k(\lambda)\) that Rubin measured for soda-lime float glass: clear, low-iron and three tints (green, gray and bronze). The internal transmittance of a pane of thickness \(d\) is</p>
+        <div class="formula">\[ \tau(\lambda) = \exp\!\left(-\frac{4\pi k d}{\lambda}\right), \]</div>
+        <p>and the two air–glass surfaces add Fresnel reflection, so any thickness can be modeled. Against the measured IGDB clear-glass records shipped with this page, the Rubin glass is within about 0.1 point in visible transmittance and 0.5 to 0.8 point in solar transmittance.</p>
+        <p><strong>Coatings.</strong> A low-e coating is a stack of thin films a few nanometers to a few hundred nanometers thick: silver for infrared reflection, dielectric layers (titanium dioxide, silicon nitride) to suppress visible reflection, and a thin nickel blocker. Its optics follow from the characteristic matrix of each layer at normal incidence,</p>
+        <div class="formula">\[ \begin{bmatrix} B \\ C \end{bmatrix} = \left( \prod_j \begin{bmatrix} \cos\delta_j & i\sin\delta_j/N_j \\ i N_j \sin\delta_j & \cos\delta_j \end{bmatrix} \right) \begin{bmatrix} 1 \\ n_s \end{bmatrix}, \qquad \delta_j = \frac{2\pi N_j d_j}{\lambda}, \]</div>
+        <p>with \( R = |(n_0 B - C)/(n_0 B + C)|^2 \) and \( T = 4 n_0 n_s/|n_0 B + C|^2 \), where \(N_j = n_j - i k_j\) is the complex index of layer \(j\). The optical constants are public-domain (CC0) data from the refractiveindex.info database; the pyrolytic hard coat uses published Drude–Lorentz models of tin oxide and fluorine-doped tin oxide.</p>
+        <p><strong>The coated pane.</strong> The film and the thick glass combine incoherently:</p>
+        <div class="formula">\[ T = \frac{T_c\,(1-R_0)\,\tau}{1 - R_g R_0 \tau^2}, \]</div>
+        <p>where \(T_c\) is the film's transmittance, \(R_0\) the bare glass surface's reflectance, and \( R_g \) the film's reflectance seen from inside the glass. The classic model reuses the air-side value for \(R_g\). Within the visible band the two differ by up to about 14 points for the double-silver stack and 5 points for the triple-silver stack, mostly near the ends of the band, and by less than 1 point for the single-silver stack.</p>
+        <p><strong>Calibration.</strong> Four generic stacks (hard coat, single, double and triple silver) had their layer thicknesses fitted offline only to published datasheet values: visible transmittance, reflectance, SHGC, UV transmittance (computed as LBNL WINDOW computes it for datasheets) and, for the hard coat, solar transmittance. Color windows taken from the manufacturers' appearance statements keep the reflected color neutral. The emissivity of the coated face is then inferred from the published air and argon U-factors. A fitted stack is an effective model of a coating family, not any manufacturer's actual design. The panel “How the open coatings are built” shows every layer and every residual, and the comparison panel shows the datasheet rows the fit never saw.</p>
+        <p><strong>Measured products.</strong> The nine named products are unmodified International Glazing Database (IGDB) records that LBNL distributes in its open-source pyWinCalc and Windows-CalcEngine projects. Your browser reads each file when you first select the product and resamples its spectra to the calculator's 5 nm grid for that calculation only; a measured pane is identical in both models.</p>
+        <p><strong>Solar spectrum.</strong> The solar quantities (solar transmittance, SHGC, UV) depend on the solar spectrum used to weight them. This page defaults to the ASTM E891 direct-normal spectrum, which LBNL's NFRC calculations in Windows-CalcEngine use, so its numbers are comparable with manufacturers' datasheets computed in LBNL WINDOW; the datasheet comparisons always use it. The current calculator weights by ASTM G173 (direct plus circumsolar), which has more ultraviolet and visible light; choose it to reproduce that page.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Center-of-glass values at normal incidence only. Frames, edge spacers, angular optics, laminates, films and shades are not modeled.</li>
+            <li>Nickel stands in for the nickel-chromium blockers used in production, for which no open optical data exist.</li>
+            <li>The hard coat's emissivity comes from its published U-factors, not from the film's infrared optics.</li>
+            <li>Some manufacturers' clear glass is clearer than Rubin's: Cardinal's 6 mm clear double glazing reads about 1.8 points of visible transmittance higher than the open model.</li>
+            <li>The color windows used in the calibration are published descriptors (“neutral”), not measured color coordinates.</li>
+            <li>The thermal model is the same as the current calculator's.</li>
+        </ul>
+
+        <h2>References</h2>
+        <ol class="refs">
+            <li>M. Rubin, “Optical properties of soda lime silica glasses,” <em>Solar Energy Materials</em> 12, 275–288 (1985).</li>
+            <li>M. N. Polyanskiy, “Refractiveindex.info database of optical constants,” <em>Scientific Data</em> 11, 94 (2024), <a href="https://doi.org/10.1038/s41597-023-02898-2" target="_blank" rel="noopener">doi:10.1038/s41597-023-02898-2</a>.</li>
+            <li>H. U. Yang et al., “Optical dielectric function of silver,” <em>Phys. Rev. B</em> 91, 235137 (2015); T. Siefke et al., <em>Adv. Opt. Mater.</em> 4, 1780–1786 (2016); K. Luke et al., <em>Opt. Lett.</em> 40, 4823–4826 (2015); I. H. Malitson, <em>J. Opt. Soc. Am.</em> 55, 1205–1208 (1965); A. D. Rakić et al., <em>Appl. Opt.</em> 37, 5271–5283 (1998).</li>
+            <li>K. von Rottkay and M. Rubin, “Optical indices of pyrolytic tin-oxide glass,” <em>Mater. Res. Soc. Symp. Proc.</em> 426, 449 (1996), LBNL-38586.</li>
+            <li>H. A. Macleod, <em>Thin-Film Optical Filters</em> (CRC Press), for the characteristic-matrix method.</li>
+            <li>ISO 15099:2003, <em>Thermal performance of windows, doors and shading devices — Detailed calculations</em>.</li>
+            <li>NFRC 100 (U-factor), NFRC 200 (SHGC and VT) and NFRC 300 (optical properties) procedures.</li>
+            <li>ISO 9050:2003, <em>Glass in building — Determination of light transmittance, solar direct transmittance, total solar energy transmittance, ultraviolet transmittance and related glazing factors</em>.</li>
+            <li>ASTM E891-87, direct normal solar spectral irradiance (as tabulated in LBNL Windows-CalcEngine), and ASTM G173-03 reference solar spectra.</li>
+            <li>Lawrence Berkeley National Laboratory, <a href="https://windows.lbl.gov/software/window" target="_blank" rel="noopener">WINDOW</a> and the <a href="https://windows.lbl.gov/igdb-license" target="_blank" rel="noopener">International Glazing Database</a>.</li>
+        </ol>
+    </article>
+
+    <section class="panel gl-sec" id="credits" aria-labelledby="cr-h">
+        <div class="panel-head"><h2 id="cr-h">Data sources and licenses</h2></div>
+        <div class="panel-body gl-credits">
+            <p><strong>Glass and coating materials.</strong> Optical constants are from the refractiveindex.info database (M. N. Polyanskiy, “Refractiveindex.info database of optical constants,” <em>Sci. Data</em> 11, 94 (2024), <a href="https://doi.org/10.1038/s41597-023-02898-2" target="_blank" rel="noopener">doi:10.1038/s41597-023-02898-2</a>), dedicated to the public domain under CC0 1.0. Original sources: M. Rubin, <em>Sol. Energy Mater.</em> 12, 275–288 (1985) (soda-lime glass); H. U. Yang et al., <em>Phys. Rev. B</em> 91, 235137 (2015) (silver); T. Siefke et al., <em>Adv. Opt. Mater.</em> 4, 1780–1786 (2016) (titanium dioxide); K. Luke et al., <em>Opt. Lett.</em> 40, 4823–4826 (2015) (silicon nitride); I. H. Malitson, <em>J. Opt. Soc. Am.</em> 55, 1205–1208 (1965) (silica); A. D. Rakić et al., <em>Appl. Opt.</em> 37, 5271–5283 (1998) (nickel, titanium). Tin-oxide models: K. von Rottkay and M. Rubin, <em>Mater. Res. Soc. Symp. Proc.</em> 426, 449 (1996), LBNL-38586.</p>
+            <p><strong>Measured products.</strong> Nine records of the International Glazing Database (IGDB), Copyright (c) 2011, The Regents of the University of California, through Lawrence Berkeley National Laboratory, licensed under CC BY-ND 4.0. They are served unmodified, exactly as LBNL publishes them in its open-source pyWinCalc and Windows-CalcEngine projects (BSD-style licenses). Your browser resamples them for each calculation; the page shows computed results only. Details, file hashes and license texts: <a href="/assets/data/glazing/lbnl/NOTICE.txt">NOTICE.txt</a> and <a href="/assets/data/glazing/manifest.json">manifest.json</a>.</p>
+            <p><strong>Solar spectrum and test references.</strong> The ASTM E891 solar spectrum is taken from LBNL Windows-CalcEngine (BSD-style license), as are the unit-test values used in the self-test. Low-iron reference values are from the EnergyPlus glass dataset.</p>
+            <p><strong>Published values.</strong> Datasheet values are quoted as facts from the manufacturers' documents linked in the comparison panel; the documents themselves are not copied. Product names are trademarks of their owners and identify the products only. Nothing on this page is endorsed by any manufacturer, by LBNL, by the University of California or by the U.S. Department of Energy.</p>
+        </div>
+    </section>
+</main>
+<div id="site-footer"></div>
+</body>
+</html>

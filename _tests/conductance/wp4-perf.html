@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WP4 viewer performance | Conductance Lab (beta)</title>
+<meta name="robots" content="noindex, nofollow">
+<!--
+  Manual performance page (spec §6, §7.5 acceptance 4; not published: underscore folder). Loads the CAD viewer with a
+  synthetic 250 000-triangle mesh (a 250-sided tube of 500 rings) and prints:
+    - frame times: on-demand redraws after camera changes, each followed by a 1-pixel readPixels so the time includes
+      the GPU work (budget ≤ 16 ms);
+    - colour update: p/p_in values → viridis log scale → setColors → redraw (budget ≤ 80 ms), and the one-time
+      "Average over flat faces" patching and wall-pressure steps of cad-ui.js at this size.
+  ?n=250000 sets the triangle count (rounded to whole rings); ?frames=40 the number of timed redraws.
+  Serve from the worktree root (python -m http.server <port> --bind 127.0.0.1) and open
+  /_tests/conductance/wp4-perf.html; the results also appear in #perf-out as JSON.
+-->
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/beta/conductance/cad.css">
+<script src="/assets/js/site.js"></script>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.186.1/three.module.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.186.1/three.core.js":
+      "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.186.1/three.core.min.js" } }
+</script>
+<style>
+  #perf-out { white-space: pre-wrap; font-family: var(--mono); font-size: 0.8rem; color: var(--text-2); }
+  .perf-view { height: 600px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+</style>
+</head>
+<body>
+<main id="main" class="wrap page">
+  <h1>CAD viewer performance (WP4)</h1>
+  <p class="hint" id="perf-status">Building the mesh…</p>
+  <div class="cl-viewer perf-view" id="perf-view"></div>
+  <pre id="perf-out"></pre>
+</main>
+<script type="module">
+import { createViewer } from '/beta/conductance/js/ui/viewer3d.js';
+import { pressureColors, trianglePatches, triangleAreas, wallPressureValues } from '/beta/conductance/js/ui/cad-ui.js';
+
+const Q = new URLSearchParams(location.search);
+const N_TARGET = Number(Q.get('n')) || 250000, FRAMES = Number(Q.get('frames')) || 40;
+const status = document.getElementById('perf-status');
+const now = () => performance.now();
+const stats = (a) => { const s = a.slice().sort((x, y) => x - y); const q = (f) => s[Math.min(s.length - 1, Math.floor(f * s.length))]; return { median: +q(0.5).toFixed(2), p90: +q(0.9).toFixed(2), max: +s[s.length - 1].toFixed(2), n: s.length }; };
+const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
+
+// a tube of radius 20 mm and length 400 mm: nSeg sides × nRing rings × 2 triangles
+function tube(nTri) {
+  const nSeg = 250, nRing = Math.max(1, Math.round(nTri / (2 * nSeg)));
+  const R = 0.02, L = 0.4, pos = new Float32Array(9 * 2 * nSeg * nRing);
+  let o = 0;
+  const put = (a, z) => { pos[o++] = R * Math.cos(a); pos[o++] = R * Math.sin(a); pos[o++] = z; };
+  for (let j = 0; j < nRing; j++) {
+    const z0 = L * j / nRing, z1 = L * (j + 1) / nRing;
+    for (let i = 0; i < nSeg; i++) {
+      const a0 = 2 * Math.PI * i / nSeg, a1 = 2 * Math.PI * (i + 1) / nSeg;
+      put(a0, z0); put(a1, z0); put(a1, z1);
+      put(a0, z0); put(a1, z1); put(a0, z1);
+    }
+  }
+  return pos;
+}
+
+async function main() {
+  const out = { ua: navigator.userAgent };
+  let t = now();
+  const positions = tube(N_TARGET);
+  const nTri = positions.length / 9;
+  out.triangles = nTri;
+  out.buildMeshMs = +(now() - t).toFixed(1);
+  const triPort = new Int16Array(nTri).fill(-1);
+  const v = await createViewer(document.getElementById('perf-view'), {});
+  if (!v.webgl) { out.webgl = false; return out; }
+  const gl = v.canvas.getContext('webgl2');
+  out.renderer = (() => { const e = gl.getExtension('WEBGL_debug_renderer_info'); return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); })();
+  const px = new Uint8Array(4);
+  const sync = () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  t = now();
+  v.setMesh(positions, triPort, {});
+  v.renderNow(); sync();
+  out.setMeshAndFirstFrameMs = +(now() - t).toFixed(1);
+  out.wireframeAbove150k = v.setDisplay({ wireframe: true }).wireframe;
+  // redraws after camera changes (orbit: the keyboard handler rotates by 5° per key press)
+  const dirs = ['iso', '+x', '-y', '+z', 'iso'];
+  for (let k = 0; k < 5; k++) { v.resetView(dirs[k]); v.renderNow(); sync(); await nextFrame(); }   // warm-up
+  const frame = [];
+  for (let k = 0; k < FRAMES; k++) {
+    v.canvas.dispatchEvent(new KeyboardEvent('keydown', { key: k % 2 ? 'ArrowLeft' : 'ArrowUp', bubbles: true }));
+    const t0 = now(); v.renderNow(); sync(); frame.push(now() - t0);
+    await nextFrame();
+  }
+  out.frameMs = stats(frame);
+  // colour updates: synthetic p/p_in falling along the tube with noise; some triangles below 10 hits
+  const areas = triangleAreas(positions);
+  t = now();
+  const patches = trianglePatches(positions);
+  out.patchesMs = +(now() - t).toFixed(1);
+  out.patchCount = new Set(patches).size;
+  const hits = new Uint32Array(nTri);
+  for (let i = 0; i < nTri; i++) { const z = positions[9 * i + 2] / 0.4; hits[i] = Math.max(0, Math.round(200 * (1 - 0.95 * z) * (0.8 + 0.4 * Math.random()))) - (i % 97 === 0 ? 200 : 0); }
+  const inlet = [{ port: 0, n: 1e6 }], portAreas = [Math.PI * 0.02 * 0.02];
+  const color = [], parts = [];
+  for (let k = 0; k < 6; k++) {
+    const t0 = now();
+    const wp = wallPressureValues({ hits, areas, triPort, inletLaunches: inlet, portAreas, patches: k % 2 ? null : patches });
+    const t1 = now();
+    const pc = pressureColors(wp.p);
+    const t2 = now();
+    v.setColors(pc.rgb); v.renderNow(); sync();
+    const t3 = now();
+    if (k > 0) { color.push(t3 - t0); parts.push([t1 - t0, t2 - t1, t3 - t2]); }
+    await nextFrame();
+  }
+  out.colorUpdateMs = stats(color);
+  out.colorUpdateParts = { wallPressure: stats(parts.map((p) => p[0])).median, viridis: stats(parts.map((p) => p[1])).median, uploadAndDraw: stats(parts.map((p) => p[2])).median };
+  out.budgets = { frame16: out.frameMs.median <= 16, color80: out.colorUpdateMs.median <= 80 };
+  return out;
+}
+
+main().then((out) => {
+  document.getElementById('perf-out').textContent = JSON.stringify(out, null, 1);
+  status.textContent = 'Done.';
+  document.body.dataset.perfDone = '1';
+}).catch((err) => {
+  document.getElementById('perf-out').textContent = 'Failed: ' + (err && err.message ? err.message : String(err));
+  document.body.dataset.perfDone = '1';
+});
+</script>
+</body>
+</html>

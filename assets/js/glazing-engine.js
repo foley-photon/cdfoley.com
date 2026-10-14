@@ -48,10 +48,25 @@
     };
     var EPS_GLASS = 0.84, K_GLASS = 1.0;
 
+    /* ── Material models ──────────────────────────────────────────────── */
+    // 'classic' is the parametric glass and coating model above. Other models (glazing-open.js) register
+    // themselves here and are chosen per pane: pane(glass, mm, coating, side, 'open').
+    var MODELS = {};
+    function registerModel(name, model) {
+        if (!name || name === 'classic' || !model || typeof model.pane !== 'function') throw new Error('GlazingEngine: invalid material model "' + name + '"');
+        MODELS[name] = model;
+    }
+    function modelOf(name) {
+        if (!name || name === 'classic') return null;
+        if (!MODELS[name]) throw new Error('GlazingEngine: material model "' + name + '" is not loaded');
+        return MODELS[name];
+    }
+
     function arr() { return new Float64Array(N); }
 
     // Bare or coated generic pane. side: 'front' (faces outdoors) or 'back'
-    function pane(glassKey, tmm, coatKey, side) {
+    function pane(glassKey, tmm, coatKey, side, model) {
+        var mod = modelOf(model); if (mod) return mod.pane(glassKey, tmm, coatKey, side);
         var g = GLASS[glassKey], c = coatKey && coatKey !== 'none' ? COATINGS[coatKey] : null;
         var T = arr(), Rf = arr(), Rb = arr();
         for (var i = 0; i < N; i++) {
@@ -263,10 +278,12 @@
     }
 
     // Full evaluation of a glazing system
-    function evaluate(layers, gaps, H) {
+    function evaluate(layers, gaps, H, opts) {
+        var WS = (opts && opts.solar) || Wt.solar;   // solar weights: default ASTM G173 (glazing-weights.js)
+        if (WS.length !== N) throw new Error('GlazingEngine: opts.solar must have ' + N + ' weights');
         var sys = system(layers);
-        var Tsol = avg(sys.T, Wt.solar), Rsol = avg(sys.Rf, Wt.solar), RsolIn = avg(sys.Rb, Wt.solar);
-        var Asol = sys.A.map(function (a) { return avg(a, Wt.solar); });
+        var Tsol = avg(sys.T, WS), Rsol = avg(sys.Rf, WS), RsolIn = avg(sys.Rb, WS);
+        var Asol = sys.A.map(function (a) { return avg(a, WS); });
         var w = thermal(layers, gaps, CONDITIONS.winter, null, H);
         var U = -w.qRoom / (CONDITIONS.winter.Ti - CONDITIONS.winter.To);
         var sc = CONDITIONS.summer;
@@ -276,14 +293,15 @@
         return {
             sys: sys, Tvis: avg(sys.T, Wt.vis), Rvis: avg(sys.Rf, Wt.vis), RvisIn: avg(sys.Rb, Wt.vis),
             Tsol: Tsol, Rsol: Rsol, RsolIn: RsolIn, Asol: Asol,
-            Tuv: rangeAvg(sys.T, Wt.solar, 300, 380),
+            Tuv: rangeAvg(sys.T, WS, 300, 380),
             U: U, SHGC: shgc, winter: w, summer: sunny,
             colorT: color(sys.T), colorR: color(sys.Rf), colorRin: color(sys.Rb)
         };
     }
 
     var api = { LAM: LAM, GLASS: GLASS, COATINGS: COATINGS, FILLS: FILLS, CONDITIONS: CONDITIONS, EPS_GLASS: EPS_GLASS,
-        pane: pane, imported: imported, system: system, avg: avg, color: color, thermal: thermal, evaluate: evaluate };
+        pane: pane, imported: imported, system: system, avg: avg, color: color, thermal: thermal, evaluate: evaluate,
+        registerModel: registerModel, MODELS: MODELS };
     root.GlazingEngine = api;
     if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
