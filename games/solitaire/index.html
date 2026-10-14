@@ -118,7 +118,7 @@
         </div>
         <div class="game-stage">
             <div class="felt" id="table" aria-label="Solitaire table"></div>
-            <div class="game-overlay" id="overlay" hidden><h2>You won!</h2><p id="ov-text"></p><button class="btn btn-primary" type="button" id="again">Deal again</button></div>
+            <div class="game-overlay" id="overlay" hidden><h2 id="ov-head">You won!</h2><p id="ov-text"></p><div class="game-actions"><button class="btn btn-primary" type="button" id="again">Deal again</button><button class="btn btn-secondary" type="button" id="keep" hidden>Keep playing</button></div></div>
         </div>
         <p class="game-help"><strong>Drag</strong> cards to move them, or <strong>tap</strong> a card to send it to the best legal spot (foundations first). Tap the deck to draw; tap the empty deck to turn the waste pile over. Face-down cards flip automatically when uncovered. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.</p>
     </div>
@@ -201,6 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const record = !prev || secs < prev;
         if (record) { try { localStorage.setItem(key, secs); } catch (e) { /* ignore */ } }
         showBest();
+        $('ov-head').textContent = 'You won!'; $('keep').hidden = true;
         $('ov-text').textContent = moves + ' moves in ' + fmtTime(secs) + (record ? ' — a new best for draw ' + $('draw').value + '.' : '.');
         setTimeout(() => { $('overlay').hidden = false; }, 350);
     }
@@ -321,8 +322,22 @@ document.addEventListener('DOMContentLoaded', () => {
     $('undo').addEventListener('click', undo);
     document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); } });
     $('new').addEventListener('click', () => { deal(); render(); update(); });
-    $('again').addEventListener('click', () => { deal(); render(); update(); });
-    $('draw').addEventListener('change', () => { try { localStorage.setItem('sol-draw', $('draw').value); } catch (e) { /* ignore */ } deal(); render(); update(); });
+    $('again').addEventListener('click', () => { if (pendingDraw) { $('draw').value = pendingDraw; pendingDraw = null; saveDraw(); } deal(); render(); update(); });
+    // Changing the draw mode deals a new game, so a game in progress asks first (the select shows the current mode until confirmed).
+    let pendingDraw = null;
+    const saveDraw = () => { try { localStorage.setItem('sol-draw', $('draw').value); } catch (e) { /* ignore */ } };
+    $('draw').addEventListener('change', () => {
+        const v = $('draw').value;
+        if (moves > 0 && !won) {
+            pendingDraw = v; $('draw').value = v === '1' ? '3' : '1';
+            $('ov-head').textContent = 'Start a new game?';
+            $('ov-text').textContent = 'Switching to Draw ' + v + ' deals a new game. This one (' + moves + (moves === 1 ? ' move' : ' moves') + ') will be lost.';
+            $('keep').hidden = false; $('overlay').hidden = false; $('keep').focus();
+            return;
+        }
+        saveDraw(); deal(); render(); update();
+    });
+    $('keep').addEventListener('click', () => { pendingDraw = null; $('overlay').hidden = true; $('draw').focus(); });
     $('hint').addEventListener('click', () => {
         const h = findHint();
         if (h === 'stock') { L.slots.stock.animate([{ opacity: 1 }, { opacity: 0.3 }, { opacity: 1 }], { duration: 500 }); const t = S.stock[S.stock.length - 1]; if (t) els[t.id].animate([{ filter: 'brightness(1)' }, { filter: 'brightness(1.6)' }, { filter: 'brightness(1)' }], { duration: 500 }); }
