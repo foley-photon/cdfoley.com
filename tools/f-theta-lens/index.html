@@ -102,7 +102,7 @@
             <dt>Galvo scanner</dt><dd>Two small mirrors, each turned by a fast galvanometer motor, that steer the laser beam in x and y before it enters the lens.</dd>
             <dt>F-theta lens</dt><dd>A scan lens designed so the spot moves the same distance for every degree the beam is turned, and stays in focus on a flat plane. Focal lengths of about 100–250&nbsp;mm are common; a longer lens gives a larger field and a larger spot.</dd>
             <dt>Optical angle</dt><dd>How far the beam itself is turned. A mirror that rotates by 10° turns the beam by 20°, so the optical angle is twice the mechanical (mirror) angle.</dd>
-            <dt>Scan field</dt><dd>The square area on the work surface that the spot can reach. Its side is 2fθ: twice the focal length times the optical half-angle in radians.</dd>
+            <dt>Scan field</dt><dd>The square area on the work surface that the spot can reach. Its side is twice the focal length times the optical half-angle in radians.</dd>
             <dt>Spot diameter (1/e²)</dt><dd>The diameter of the focused beam where the intensity falls to 13.5&nbsp;% of its center value. Marking lenses typically focus to a few tens of micrometers.</dd>
             <dt>Beam quality, M²</dt><dd>How close the beam is to an ideal Gaussian beam, for which M²&nbsp;=&nbsp;1. The spot grows in proportion to M², so take the value from the laser datasheet.</dd>
             <dt>Depth of focus</dt><dd>The height range over which the spot stays within the size tolerance you set, half above and half below best focus.</dd>
@@ -135,12 +135,13 @@
                 <div class="field">
                     <label for="d">Beam diameter at the lens (1/e²) <span class="sym">D</span></label>
                     <div class="input-unit"><input id="d" name="d" value="10" inputmode="decimal" data-positive><select data-dim="length" data-units="mm,µm,cm" data-default="mm"></select></div>
-                    <p class="hint">1/e² diameter of the beam reaching the scan mirrors, after any beam expander. It must fit through the scan head's aperture, for example 10&nbsp;mm or 14&nbsp;mm.</p>
+                    <p class="hint">1/e² diameter of the beam reaching the scan mirrors, after any beam expander. It must fit through the scan head’s aperture, for example 10&nbsp;mm or 14&nbsp;mm.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
                         <label for="wl">Wavelength <span class="sym">λ</span></label>
                         <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                        <p class="hint">Vacuum wavelength from the laser datasheet.</p>
                     </div>
                     <div class="field">
                         <label for="m2">Beam quality <span class="sym">M²</span></label>
@@ -150,14 +151,14 @@
                 </div>
                 <div class="field-row">
                     <div class="field">
-                        <label for="tol">DOF tolerance</label>
+                        <label for="tol">Depth-of-focus tolerance</label>
                         <div class="input-unit"><input id="tol" name="tol" value="5" inputmode="decimal" data-positive data-label="DOF tolerance"><span class="unit">% growth</span></div>
                         <p class="hint">How much the spot diameter may grow. 41.4&nbsp;% (√2) gives the classic ±z<sub>R</sub> depth of focus.</p>
                     </div>
                     <div class="field">
                         <label for="bits">Galvo command resolution</label>
                         <div class="input-unit"><input id="bits" name="bits" value="16" inputmode="numeric" data-optional data-positive data-max="32" data-label="galvo command resolution" placeholder="optional"><span class="unit">bits</span></div>
-                        <p class="hint">Resolution of the scanner's command signal, from the scan head or controller datasheet. 16&nbsp;bits is common.</p>
+                        <p class="hint">Resolution of the scanner’s command signal, from the scan head or controller datasheet. 16&nbsp;bits is common.</p>
                     </div>
                 </div>
             </div>
@@ -171,14 +172,14 @@
                     <div class="result"><span class="result-label">Field diagonal</span><output class="result-value" data-out="diag">—</output></div>
                     <div class="result"><span class="result-label">Field area</span><output class="result-value" data-out="area">—</output></div>
                     <div class="result"><span class="result-label">Optical scan half-angle<span class="sym">θ</span></span><output class="result-value" data-out="theta">—</output><span class="result-note" id="theta-note" hidden>Wider than most f-theta lenses accept (about ±20° optical per axis). Check the optical/mechanical setting and that this is the half-angle.</span></div>
-                    <div class="result"><span class="result-label">Field angle at the corners<span class="sym">√2θ</span></span><output class="result-value" data-out="corner">—</output><span class="result-note">The angle the lens must accept at the field corners. A lens datasheet's single scan angle may be this one.</span></div>
+                    <div class="result"><span class="result-label">Field angle at the corners<span class="sym">√2θ</span></span><output class="result-value" data-out="corner">—</output><span class="result-note">The f-theta field angle the lens must accept at the field corners, which lie √2 times farther from the axis than the edges. A lens datasheet’s single scan angle may be this one.</span></div>
                     <div class="result"><span class="result-label">Focused spot diameter (1/e², untruncated)<span class="sym">d<sub>F</sub></span></span><output class="result-value" data-out="spot">—</output></div>
                     <div class="result"><span class="result-label">Rayleigh range<span class="sym">z<sub>R</sub></span></span><output class="result-value" data-out="zr">—</output></div>
                     <div class="result"><span class="result-label" id="dof-label">Depth of focus, total (5&nbsp;% spot growth)</span><output class="result-value" data-out="dof">—</output><span class="result-note">Compare it with how flat your parts and fixture are. More height range needs a z-axis (dynamic focus) or a longer focal length, which also enlarges the spot.</span></div>
                     <div class="result"><span class="result-label">Resolvable spots across the field</span><output class="result-value" data-out="spots">—</output></div>
                     <div class="result"><span class="result-label">Edge error of an f·tanθ lens</span><output class="result-value" data-out="tanerr">—</output><span class="result-note">How far a standard lens would misplace the spot at the field edge. The f-theta design removes this.</span></div>
-                    <div class="result"><span class="result-label">Lateral shift per 1&nbsp;mm height error at the edge (non-telecentric)</span><output class="result-value" data-out="shift">—</output><span class="result-note">Assumes the beam lands at the scan angle θ. The lens datasheet's landing (telecentricity) angle gives the actual value; a telecentric lens makes it nearly zero.</span></div>
-                    <div class="result"><span class="result-label">Lateral shift per 1&nbsp;mm height error at a corner (non-telecentric)</span><output class="result-value" data-out="shiftc">—</output></div>
+                    <div class="result"><span class="result-label">Lateral shift per 1&nbsp;mm height error at the edge (non-telecentric)</span><output class="result-value" data-out="shift">—</output><span class="result-note">Assumes the beam lands at the scan angle θ. The lens datasheet’s landing (telecentricity) angle gives the actual value; a telecentric lens makes it nearly zero.</span></div>
+                    <div class="result"><span class="result-label">Lateral shift per 1&nbsp;mm height error at a corner (non-telecentric)</span><output class="result-value" data-out="shiftc">—</output><span class="result-note">√2 times the edge value: the slope at which the beam lands grows in proportion to the distance from the axis.</span></div>
                     <div class="result"><span class="result-label">Positioning resolution (1 LSB)</span><output class="result-value" data-out="lsb">—</output><span class="result-note">The size of one command step. Drift, noise, and calibration limit the absolute accuracy, which is usually much coarser.</span></div>
                 </div>
             </div>
@@ -193,10 +194,10 @@
         <p>The spot size and depth of focus follow Gaussian-beam optics for a collimated beam focused by the lens:</p>
         <div class="formula">\[ \begin{gathered} d_F = \frac{4M^2\lambda f}{\pi D}, \quad z_R = \frac{\pi d_F^2}{4M^2\lambda}, \\[8pt] \mathrm{DOF} = 2z_R\sqrt{(1+\varepsilon)^2-1}, \end{gathered} \]</div>
         <p>where \(\varepsilon\) is the allowed fractional growth of the spot diameter (the DOF tolerance, so 5&nbsp;% is 0.05). DOF is the total range, half on each side of best focus. These formulas assume the beam is not clipped by the galvo mirrors. Scanner apertures are small, so truncation is common. Use the <a href="/tools/focused-spot/">focused spot tool</a> with the scanner aperture as \(D_t\) to include it.</p>
-        <p>Galvo positioning resolution is the full optical scan range divided by the number of command steps: \(\Delta y = f \cdot 2\theta / 2^{N}\) for an \(N\)-bit command. This assumes the full command range spans ±θ. If the scanner's range is wider than the field you use, each step is larger in proportion.</p>
+        <p>Galvo positioning resolution is the full optical scan range divided by the number of command steps: \(\Delta y = f \cdot 2\theta / 2^{N}\) for an \(N\)-bit command. This assumes the full command range spans ±θ. If the scanner’s range is wider than the field you use, each step is larger in proportion.</p>
 
         <h2>Example lenses</h2>
-        <p>The four 1064&nbsp;nm lenses below each have one datasheet scan angle and a square field. Twice the focal length times that angle gives the field diagonal (the vendor's “scan length”), not its side, so the datasheet angle is the corner angle. Dividing it by √2 gives the per-axis half-angle this tool expects, and 2fθ then reproduces the quoted field.</p>
+        <p>The four 1064&nbsp;nm lenses below each have one datasheet scan angle and a square field. Twice the focal length times that angle gives the field diagonal (the vendor’s “scan length”), not its side, so the datasheet angle is the corner angle. Dividing it by √2 gives the per-axis half-angle this tool expects, and 2fθ then reproduces the quoted field.</p>
         <table class="ft-ex">
             <thead><tr><th class="num">Focal length</th><th class="num">Datasheet scan angle</th><th class="num">2f × datasheet angle (diagonal)</th><th class="num">Datasheet field</th><th class="num">θ to enter here (÷&nbsp;√2)</th><th class="num">Field side 2fθ</th></tr></thead>
             <tbody>
@@ -209,7 +210,7 @@
         <p>Data: Thorlabs FTH-series lens specifications (see the references). Scan heads are specified in optical angle instead: one compact head lists a typical scan angle of ±0.35&nbsp;rad (±20° optical) and a 10&nbsp;mm aperture.</p>
 
         <h2>Telecentricity and height errors</h2>
-        <p>In a non-telecentric f-theta lens the beam reaches the work surface at an angle close to the scan angle; the exact landing angle depends on the lens design and on where the mirrors sit. A part that sits \(\Delta z\) above or below the focal plane is therefore marked at a position shifted by about \(\Delta z\tan\theta\). It is also out of focus. At a 20° field edge, a 1&nbsp;mm height error moves the mark by about 0.36&nbsp;mm. The corners are \(\sqrt{2}\) times farther from the axis, so the shift there is about \(\sqrt{2}\) times larger (0.51&nbsp;mm).</p>
+        <p>In a non-telecentric f-theta lens the beam reaches the work surface at an angle close to the scan angle; the exact landing angle depends on the lens design and on where the mirrors sit. A part that sits \(\Delta z\) above or below the focal plane is therefore marked at a position shifted by about \(\Delta z\tan\theta\). It is also out of focus. At a 20° field edge, a 1&nbsp;mm height error moves the mark by about 0.36&nbsp;mm. The corners are \(\sqrt{2}\) times farther from the axis, and the landing slope grows in proportion to that distance, so the shift there is \(\sqrt{2}\) times larger: \(\sqrt{2}\tan 20^\circ = 0.51\)&nbsp;mm per millimeter of height error. That slope is a landing angle of 27.2°, a little less than the 28.3° corner field angle (\(\sqrt{2}\,\theta\)) in the results, because the f-theta mapping scales the angle itself with distance from the axis, while the landing geometry scales its tangent.</p>
         <p><strong>Telecentric</strong> f-theta lenses keep the chief ray nearly perpendicular to the work surface across the field. This removes most of the height-dependent position error and makes hole walls and scribe edges consistent from center to edge. The cost: the last lens element must be larger than the scan field, so these lenses are larger and more expensive, and they are usually limited to smaller fields.</p>
 
         <h2>Worked example</h2>
@@ -222,9 +223,9 @@
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>Ideal f-theta mapping.</strong> Real lenses deviate slightly from \(y = f\theta\) (the datasheet's f-theta distortion: 0.1–1.3&nbsp;% for the lenses in the table). Scanner software corrects the residual, and the field distortion that comes from the two mirrors turning about separate axes, with a field-correction (calibration) table.</li>
+            <li><strong>Ideal f-theta mapping.</strong> Real lenses deviate slightly from \(y = f\theta\) (the datasheet’s f-theta distortion: 0.1–1.3&nbsp;% for the lenses in the table). Scanner software corrects the residual, and the field distortion that comes from the two mirrors turning about separate axes, with a field-correction (calibration) table.</li>
             <li><strong>Scan angle.</strong> F-theta lenses typically accept up to about ±20° optical per axis, about ±28° at the corners (see the table). Above 30° the tool shows a warning: such values usually mean an optical angle was marked as mechanical, or a full angle was entered as the half-angle.</li>
-            <li><strong>Spot size at field center, untruncated.</strong> Aberrations and field curvature usually enlarge the spot toward the edge. Vendors specify the spot size and telecentricity across the field. With a non-telecentric lens the beam also lands obliquely, so on a flat part the spot is stretched by about \(1/\cos\theta\) in the radial direction (6&nbsp;% at 20°, more at the corners). Datasheet spot sizes can include clipping: the 100&nbsp;mm lens in the table is quoted at 16&nbsp;µm for a 12&nbsp;mm beam at 1064&nbsp;nm. That matches \(1.83\,\lambda f/D\), the vendor's formula for a beam cut off at its 1/e² diameter, while this tool gives the unclipped \(4\lambda f/(\pi D) = 11.3\)&nbsp;µm. The <a href="/tools/focused-spot/">focused spot tool</a> computes the clipped case.</li>
+            <li><strong>Spot size at field center, untruncated.</strong> Aberrations and field curvature usually enlarge the spot toward the edge. Vendors specify the spot size and telecentricity across the field. With a non-telecentric lens the beam also lands obliquely, so on a flat part the spot is stretched by about \(1/\cos\theta\) in the radial direction (6&nbsp;% at 20°, more at the corners). Datasheet spot sizes can include clipping: the 100&nbsp;mm lens in the table is quoted at 16&nbsp;µm for a 12&nbsp;mm beam at 1064&nbsp;nm. That matches \(1.83\,\lambda f/D\), the vendor’s formula for a beam cut off at its 1/e² diameter, while this tool gives the unclipped \(4\lambda f/(\pi D) = 11.3\)&nbsp;µm. The <a href="/tools/focused-spot/">focused spot tool</a> computes the clipped case.</li>
             <li><strong>Working distance is not \(f\).</strong> The back focal distance from the last lens surface depends on the lens design. Use the lens datasheet.</li>
             <li><strong>Digital resolution is not accuracy.</strong> Galvo drift, servo noise, thermal effects, and calibration limit absolute accuracy, which is usually much coarser than the command resolution, especially for 18–20-bit controllers. One compact 16-bit scan head, for example, lists an 11&nbsp;µrad step and 2&nbsp;µrad repeatability, but up to 100&nbsp;µrad of offset drift over 8 hours and gain and offset errors of up to 5&nbsp;mrad before calibration. With a 163&nbsp;mm lens those are 16&nbsp;µm and 0.8&nbsp;mm on the work surface.</li>
         </ul>
@@ -243,9 +244,9 @@
         </ol>
         <h3>Free introductions</h3>
         <ul class="refs">
-            <li>R. Paschotta, “Scanning lenses,” <em>RP Photonics Encyclopedia</em>, <a href="https://www.rp-photonics.com/scanning_lenses.html" target="_blank" rel="noopener">rp-photonics.com/scanning_lenses.html</a> (flat-field, f-theta, and telecentric scan lenses, and where the mirrors must sit).</li>
+            <li>R. Paschotta, “Scanning lenses,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/2kq" target="_blank" rel="noopener">doi:10.61835/2kq</a> (flat-field, f-theta, and telecentric scan lenses, and where the mirrors must sit).</li>
             <li>Thorlabs, “F-Theta Lenses Tutorial,” <a href="https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=10766" target="_blank" rel="noopener">thorlabs.com</a> (why an f-theta lens has barrel distortion, the scan-field and spot-size formulas, and field curvature).</li>
-            <li>Novanta, “What is the Difference? Beam Size vs. Clear Aperture,” <a href="https://novanta.com/precision-manufacturing/articles/article/what-is-the-difference-beam-size-vs-clear-aperture/" target="_blank" rel="noopener">novanta.com</a> (why the beam must be smaller than a scan head's aperture, and what clipped power does inside the head).</li>
+            <li>Novanta, “What is the Difference? Beam Size vs. Clear Aperture,” <a href="https://novanta.com/precision-manufacturing/articles/article/what-is-the-difference-beam-size-vs-clear-aperture/" target="_blank" rel="noopener">novanta.com</a> (why the beam must be smaller than a scan head’s aperture, and what clipped power does inside the head).</li>
         </ul>
     </article>
 

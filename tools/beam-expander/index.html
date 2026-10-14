@@ -162,7 +162,7 @@
                 <div class="field">
                     <label for="din">Input beam diameter (1/e²) <span class="sym">D<sub>in</sub></span></label>
                     <div class="input-unit"><input id="din" name="din" value="3" inputmode="decimal" data-positive><select data-dim="length" data-units="µm,mm,cm,in" data-default="mm"></select></div>
-                    <p class="hint">From the laser datasheet. A FWHM diameter is 0.59 times the 1/e² diameter.</p>
+                    <p class="hint">From the laser datasheet. A FWHM (full width at half maximum) diameter is 0.59 times the 1/e² diameter.</p>
                 </div>
                 <div class="field">
                     <label for="divin">Input divergence, full angle <span class="sym">Θ<sub>in</sub></span></label>
@@ -199,12 +199,12 @@
                     <div class="result"><span class="result-label">Output beam diameter<span class="sym">D<sub>out</sub></span></span><output class="result-value" data-out="dout">—</output></div>
                     <div class="result"><span class="result-label">Output divergence, full angle<span class="sym">Θ<sub>out</sub></span></span><output class="result-value" data-out="divout">—</output></div>
                     <div class="result"><span class="result-label">Effective M² of the input beam</span><output class="result-value" data-out="m2eff">—</output><span class="result-note" id="m2note"></span></div>
-                    <div class="result"><span class="result-label">Output Rayleigh range (collimated length)</span><output class="result-value" data-out="zrout">—</output><span class="result-note">Distance from the output waist at which the beam has grown by √2 (41&nbsp;%). It is |M|² times the input Rayleigh range.</span></div>
+                    <div class="result"><span class="result-label">Output Rayleigh range (collimated length)</span><output class="result-value" data-out="zrout">—</output><span class="result-note">Distance from the output waist at which the beam has grown by √2 (41&nbsp;%). It is the magnification squared times the input Rayleigh range.</span></div>
                     <div class="result"><span class="result-label">Internal focus diameter (Keplerian)</span><output class="result-value" data-out="dint">—</output></div>
-                    <div class="result"><span class="result-label">Suggested pinhole (≈ 1.5 × focus)</span><output class="result-value" data-out="pin">—</output><span class="result-note">Passes 98.9&nbsp;% of a TEM₀₀ beam. Vendors suggest 1.5 to 2 times the focus diameter (see Galilean or Keplerian below).</span></div>
+                    <div class="result"><span class="result-label">Suggested pinhole (≈ 1.5 × focus)</span><output class="result-value" data-out="pin">—</output><span class="result-note">Passes 98.9&nbsp;% of a TEM₀₀ beam, slightly tighter than the π/2 ≈ 1.57 to 2 times the focus diameter that vendors suggest (see Galilean or Keplerian below).</span></div>
                     <div class="result"><span class="result-label">Focused spot without expander</span><output class="result-value" data-out="spot0">—</output></div>
                     <div class="result"><span class="result-label">Focused spot with expander</span><output class="result-value" data-out="spot1">—</output><span class="result-note" id="spotnote"></span></div>
-                    <div class="result"><span class="result-label">Rayleigh range at focus, with expander</span><output class="result-value" data-out="zrf">—</output><span class="result-note">The price of the smaller spot: the depth of focus falls as 1/|M|².</span></div>
+                    <div class="result"><span class="result-label">Rayleigh range at focus, with expander</span><output class="result-value" data-out="zrf">—</output><span class="result-note">The price of the smaller spot: the depth of focus shrinks by the magnification squared (to one-ninth with a 3× expander).</span></div>
                 </div>
             </div>
         </section>
@@ -238,10 +238,10 @@
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>Thin, aberration-free lenses.</strong> Real expanders have a lens spacing that differs slightly from \(f_1 + f_2\) because of principal-plane positions, and many have a divergence (collimation) adjustment to set it. Use the vendor's mechanical data.</li>
+            <li><strong>Thin, aberration-free lenses.</strong> Real expanders have a lens spacing that differs slightly from \(f_1 + f_2\) because of principal-plane positions, and many have a divergence (collimation) adjustment to set it. Use the vendor’s mechanical data.</li>
             <li><strong>Alignment and pointing.</strong> An expander divides angular pointing jitter by \(|M|\) but multiplies any lateral offset of the beam by \(|M|\), and an expander tilted to the beam adds coma and astigmatism.</li>
-            <li><strong>Collimated input.</strong> If the input beam's waist is far from the expander, the output waist moves too. The divergence ratio still holds, but the location of the minimum spot does not. The M² and divergence relations also treat \(D_\text{in}\) as the waist diameter. If the expander is more than a small fraction of the input Rayleigh range (about \(D_\text{in}/\Theta_\text{in}\)) from the laser's waist, the implied M² comes out too high and the M²-based divergence too low. See <a href="/tools/gaussian-beam/">Gaussian beam propagation</a>.</li>
-            <li><strong>No clipping.</strong> Both lenses and every downstream aperture must be at least about 1.6× the local 1/e² beam diameter (π times the 1/e² radius, which passes 99.3&nbsp;% of the power). See <a href="/tools/aperture-transmission/">beam clipping</a>.</li>
+            <li><strong>Collimated input.</strong> If the input beam’s waist is far from the expander, the output waist moves too. The divergence ratio still holds, but the location of the minimum spot does not. The M² and divergence relations also treat \(D_\text{in}\) as the waist diameter. If the expander is more than a small fraction of the input Rayleigh range (about \(D_\text{in}/\Theta_\text{in}\)) from the laser’s waist, the implied M² comes out too high and the M²-based divergence too low. See <a href="/tools/gaussian-beam/">Gaussian beam propagation</a>.</li>
+            <li><strong>No clipping.</strong> Both lenses and every downstream aperture must be at least π/2 ≈ 1.57 times the local 1/e² beam diameter (π times the 1/e² radius, which passes 99.3&nbsp;% of the power). See <a href="/tools/aperture-transmission/">beam clipping</a>.</li>
             <li><strong>Focused-spot estimate assumes an untruncated beam</strong> with no lens aberrations, paraxial focusing (the results flag a convergence half-angle above 0.15&nbsp;rad), and the focal plane close to the beam waist.</li>
         </ul>
 
@@ -258,7 +258,7 @@
         <h3>Free introductions</h3>
         <ul class="refs">
             <li>Edmund Optics, “Laser Beam Expanders,” application note, <a href="https://www.edmundoptics.com/knowledge-center/application-notes/lasers/beam-expanders/" target="_blank" rel="noopener">edmundoptics.com</a> (Galilean and Keplerian designs, divergence, and why high-power expanders avoid an internal focus).</li>
-            <li>R. Paschotta, “Beam expanders,” <em>RP Photonics Encyclopedia</em>, <a href="https://www.rp-photonics.com/beam_expanders.html" target="_blank" rel="noopener">rp-photonics.com/beam_expanders.html</a> (design types, divergence adjustment, and effects on pointing).</li>
+            <li>R. Paschotta, “Beam expanders,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/r74" target="_blank" rel="noopener">doi:10.61835/r74</a> (design types, divergence adjustment, and effects on pointing).</li>
             <li>Edmund Optics, “Understanding Spatial Filters,” application note, <a href="https://www.edmundoptics.com/knowledge-center/application-notes/lasers/understanding-spatial-filters/" target="_blank" rel="noopener">edmundoptics.com</a> (choosing the pinhole for a Keplerian spatial filter).</li>
         </ul>
     </article>

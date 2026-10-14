@@ -146,7 +146,7 @@
                     <div class="field"><div class="input-unit"><input name="od3" value="0.5" inputmode="decimal" data-optional data-nonneg data-label="filter 3 OD" aria-label="Filter 3 OD"><span class="unit">OD</span></div></div>
                     <div class="field"><div class="input-unit"><input name="od4" value="" inputmode="decimal" data-optional data-nonneg data-label="filter 4 OD" aria-label="Filter 4 OD"><span class="unit">OD</span></div></div>
                 </div>
-                <p class="hint od-filters-hint">Catalog filters run from about OD 0.1 to 4 (metal-coated) or 8 (absorptive glass). The OD marked on each filter applies at its design wavelength; check the vendor's curve at yours.</p>
+                <p class="hint od-filters-hint">Catalog filters run from about OD 0.1 to 4 (metal-coated) or 8 (absorptive glass). The OD marked on each filter applies at its design wavelength; check the vendor’s curve at yours.</p>
                 <div class="field" style="margin-top:.95rem">
                     <label for="pin">Input power</label>
                     <div class="input-unit"><input id="pin" name="pin" value="2" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="input power"><select data-dim="power" data-units="µW,mW,W,kW" data-default="W"></select></div>
@@ -155,7 +155,7 @@
                 <div class="field">
                     <label for="ptg">Target power after filters</label>
                     <div class="input-unit"><input id="ptg" name="ptg" value="1" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="target power"><select data-dim="power" data-units="nW,µW,mW,W" data-default="mW"></select></div>
-                    <p class="hint">The most your sensor can take, for example a camera's saturation power or a power meter's range, from its datasheet.</p>
+                    <p class="hint">The most your sensor can take, for example a camera’s saturation power or a power meter’s range, from its datasheet.</p>
                 </div>
             </div>
         </form>
@@ -201,17 +201,17 @@
         <div class="formula">\[ \mathrm{OD} = \mathrm{OD}_\text{int} - \log_{10}P, \qquad \mathrm{OD}_\text{int} = \frac{\alpha d}{\ln 10}, \qquad P \approx \frac{2n}{n^2+1}. \]</div>
         <p>The internal part grows in proportion to the thickness \(d\) (the Beer–Lambert law, with absorption coefficient \(\alpha\)), which is how one glass gives a range of ODs. The reflection factor \(P\) of two uncoated surfaces is 0.92 at \(n = 1.5\), about OD 0.035. A <strong>reflective</strong> ND filter (a thin metal or dielectric coating) reflects much of the light; a metal coating such as Inconel also absorbs part of it. Its OD describes transmission only. The “missing” power goes partly back toward the source, where it can disturb the laser or create ghost beams. In spectroscopy, absorbance \(A = -\log_{10}(I/I_0)\) is the same logarithm, measured against a reference so that it leaves out reflection at the cell walls.</p>
 
-        <h2>Practical cautions</h2>
+        <h2>Worked example</h2>
+        <p>The default inputs: a 2&nbsp;W beam needs to be at or below 1&nbsp;mW for a camera. The required OD is \(\log_{10}(2\,\text{W}/1\,\text{mW}) = 3.30\). Stacking OD 1 + OD 2 + OD 0.5 = OD 3.5 transmits \(2\,\text{W}\times10^{-3.5} = 0.63\)&nbsp;mW, which meets the target. The stack absorbs or reflects 1.999&nbsp;W, and the first filter in the beam (OD 1) takes 1.8&nbsp;W of that. That is a lot for an ND filter: check its damage threshold for your beam size, or pick off a small fraction of the beam first.</p>
+
+        <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>OD depends on wavelength.</strong> The OD of absorptive ND glass can change by a factor of two or more between the visible and the near-infrared: 1&nbsp;mm of SCHOTT NG9 glass has an internal OD of 1.38 at 550&nbsp;nm, 0.92 at 1060&nbsp;nm, and 0.49 at 1550&nbsp;nm. Metal-coated reflective filters are flatter, but only over their stated range. Use the vendor's curve at your wavelength rather than the nominal value, and calibrate a filter in your own setup when the number matters.</li>
-            <li><strong>Stacking reflective filters</strong> creates multiple reflections between them. Light bouncing between two parallel filters adds to the transmitted beam: with reflectances \(R_1\) and \(R_2\) facing each other, the pair transmits \(T_1T_2/(1 - R_1R_2)\) instead of \(T_1T_2\), so two filters that each reflect 50&nbsp;% pass a third more than the summed OD predicts. With laser light the gap can act as a resonator. Tilt the filters by a few degrees so back-reflections leave the beam path, and don't let them return into the laser.</li>
+            <li><strong>OD depends on wavelength.</strong> The OD of absorptive ND glass can change by a factor of two or more between the visible and the near-infrared: 1&nbsp;mm of SCHOTT NG9 glass has an internal OD of 1.38 at 550&nbsp;nm, 0.92 at 1060&nbsp;nm, and 0.49 at 1550&nbsp;nm. Metal-coated reflective filters are flatter, but only over their stated range. Use the vendor’s curve at your wavelength rather than the nominal value, and calibrate a filter in your own setup when the number matters.</li>
+            <li><strong>Stacking reflective filters</strong> creates multiple reflections between them. Light bouncing between two parallel filters adds to the transmitted beam: with reflectances \(R_1\) and \(R_2\) facing each other, the pair transmits \(T_1T_2/(1 - R_1R_2)\) instead of \(T_1T_2\), so two filters that each reflect 50&nbsp;% pass a third more than the summed OD predicts. With laser light the gap can act as a resonator. Tilt the filters by a few degrees so back-reflections leave the beam path, and don’t let them return into the laser.</li>
             <li><strong>High power.</strong> ND filters are generally not high-power attenuators. An absorptive filter at the front of a stack absorbs most of the power and can crack or thermally lens, and a metal-coated reflective filter also absorbs part of the light, in a very thin film. For watts, pick off a small fraction with a beam sampler or wedge, send the rest into a beam dump, and keep every filter below its damage threshold.</li>
             <li><strong>Ultrashort pulses.</strong> At the peak intensities of picosecond and femtosecond pulses, glass, polymer, and interference filters can show nonlinear effects such as saturable absorption that lower their OD; ANSI Z136.1 warns of this for eyewear filters. Attenuate where the beam is large, and ask the vendor for data at your pulse duration.</li>
             <li><strong>High OD is hard to verify.</strong> At OD 5 a filter passes only 10⁻⁵ of the light, so a little light that scatters or leaks around it can exceed what goes through. Block every path around the filters before trusting a measured high OD.</li>
         </ul>
-
-        <h2>Worked example</h2>
-        <p>The default inputs: a 2&nbsp;W beam needs to be at or below 1&nbsp;mW for a camera. The required OD is \(\log_{10}(2\,\text{W}/1\,\text{mW}) = 3.30\). Stacking OD 1 + OD 2 + OD 0.5 = OD 3.5 transmits \(2\,\text{W}\times10^{-3.5} = 0.63\)&nbsp;mW, which meets the target. The stack absorbs or reflects 1.999&nbsp;W, and the first filter in the beam (OD 1) takes 1.8&nbsp;W of that. That is a lot for an ND filter: check its damage threshold for your beam size, or pick off a small fraction of the beam first.</p>
 
         <h2>References</h2>
         <h3>Primary sources and standards</h3>
@@ -226,7 +226,7 @@
         </ol>
         <h3>Free introductions</h3>
         <ul class="refs">
-            <li>R. Paschotta, “Neutral density filters,” <em>RP Photonics Encyclopedia</em>, <a href="https://www.rp-photonics.com/neutral_density_filters.html" target="_blank" rel="noopener">rp-photonics.com/neutral_density_filters.html</a> (absorbing and metal-coated filters, their power limits, and resonances between stacked filters).</li>
+            <li>R. Paschotta, “Neutral density filters,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/8mr" target="_blank" rel="noopener">doi:10.61835/8mr</a> (absorbing and metal-coated filters, their power limits, and resonances between stacked filters).</li>
             <li>Edmund Optics, “What is the difference between using an absorptive ND filter and a reflective ND filter?” <a href="https://www.edmundoptics.com/knowledge-center/frequently-asked-questions/optics/optical-filters/what-is-the-difference-between-using-an-absorptive-nd-filter-and-a-reflective-nd-filter/" target="_blank" rel="noopener">edmundoptics.com</a> (back reflections, heating, OD set by glass thickness, and tilting stacked reflective filters).</li>
             <li>OSHA, <em>OSHA Technical Manual</em>, sec. III, ch. 6, “Laser Hazards,” <a href="https://www.osha.gov/otm/section-3-health-hazards/chapter-6" target="_blank" rel="noopener">osha.gov</a> (how eyewear OD follows from the exposure and the MPE, with a worked example; its MPE values come from an older edition of ANSI Z136.1).</li>
         </ul>
