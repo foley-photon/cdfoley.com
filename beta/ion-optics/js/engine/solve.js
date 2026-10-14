@@ -7,15 +7,21 @@
    automatically. Stop rule: estimated algebraic error <= tol and scaled
    residual <= 10 tol.
 
+   Poisson term: opts.source (a level-0 nodal source, h^2 scaling) enters
+   the smoothers, residuals and the SOR sweeps of the fine level; the coarse
+   levels keep solving the correction equation. solveBasis(H, CHARGE_BASIS)
+   returns the particular solution with every electrode at 0 V.
+
    Sources: Briggs, Henson & McCormick, A Multigrid Tutorial, 2nd ed. (SIAM,
    2000); Trottenberg, Oosterlee & Schueller, Multigrid (Academic Press,
    2001); van der Vorst, SIAM J. Sci. Stat. Comput. 13, 631 (1992)
    (BiCGSTAB); Carre, Comput. J. 4, 73 (1961) and Hageman & Young, Applied
-   Iterative Methods (Academic Press, 1981), ch. 9 (adaptive SOR).
+   Iterative Methods (Academic Press, 1981), ch. 9 (adaptive SOR); Press et
+   al., Numerical Recipes, 3rd ed. (2007), section 20.5 (source terms).
    ========================================================================== */
-import { gsColor, gsColorF, sorColor, residualInto, applyA, basisSetup, voltageSetup, newRhs } from './operator.js';
+import { gsColor, gsColorF, sorColor, residualInto, applyA, basisSetup, voltageSetup, newRhs, CHARGE_BASIS } from './operator.js';
 
-const DEFAULTS = { method: 'auto', tol: 1e-10, maxCycles: 60, maxIterations: 200, maxSweeps: 100000, initial: null, timeLimitMs: Infinity };
+const DEFAULTS = { method: 'auto', tol: 1e-10, maxCycles: 60, maxIterations: 200, maxSweeps: 100000, initial: null, timeLimitMs: Infinity, source: null };
 
 function engineError(code, message, detail) {
     const e = new Error(message);
@@ -186,6 +192,7 @@ function normOpts(opts) {
     o.tol = Math.max(1e-12, Number.isFinite(o.tol) && o.tol > 0 ? o.tol : 1e-10);
     if (!(o.scale > 0)) o.scale = 1;
     o.tolAbs = o.tol * o.scale;
+    o.source = o.source instanceof Float64Array ? o.source : null;
     return o;
 }
 
@@ -201,7 +208,7 @@ function normOpts(opts) {
  * @returns {object} stage statistics (SolveStats fields plus switchReason)
  */
 export function multigridSolve(H, u, b, opts = {}, hooks = {}) {
-    const o = normOpts(opts), op = H[0], tol = o.tolAbs, t0 = performance.now();
+    const o = normOpts(opts), op = H[0], tol = o.tolAbs, t0 = performance.now(), f = o.source;
     const rep = makeReporter(hooks, t0);
     const W = work(op);
     if (!W.prev) W.prev = new Float64Array(op.N);
@@ -210,13 +217,13 @@ export function multigridSolve(H, u, b, opts = {}, hooks = {}) {
     const floor = Math.max(1e-3 * tol, 1.5e-14 * o.scale);
     for (cycle = 1; cycle <= o.maxCycles; cycle++) {
         prev.set(u);
-        vcycle(H, 0, u, b, null);
+        vcycle(H, 0, u, b, f);
         const delta = maxAbsDiff(u, prev);
         if (!(delta === delta) || !Number.isFinite(delta)) { switchReason = 'nan'; break; }
         hist.push(delta);
         rho = rateOf(hist, cycle);
         est = estimateErr(delta, rho, floor);
-        if (est <= tol) { res = residualInto(op, u, b, null, null); if (res <= 10 * tol) { converged = true; break; } }
+        if (est <= tol) { res = residualInto(op, u, b, f, null); if (res <= 10 * tol) { converged = true; break; } }
         if (o.allowSwitch) {
             if (cycle >= 4 && rho > 0.5) { switchReason = 'slow'; break; }
             if (cycle >= 2 && rho >= 1 && delta > floor) { switchReason = 'stalled'; break; }
@@ -227,7 +234,7 @@ export function multigridSolve(H, u, b, opts = {}, hooks = {}) {
         rep.tick({ cycle, iteration: 0, sweep: 0, estErr: est, scaledResidual: res, omega: 1 }, tol);
     }
     if (!converged && !switchReason) switchReason = 'maxCycles';
-    if (!Number.isFinite(res)) res = residualInto(op, u, b, null, null);
+    if (!Number.isFinite(res)) res = residualInto(op, u, b, f, null);
     return { method: 'multigrid', path: ['multigrid'], levels: H.length, cycles: Math.min(cycle, o.maxCycles), iterations: 0, sweeps: 0, omega: 1, rho, estErr: est, scaledResidual: res,
         converged, switchReason, ms: performance.now() - t0, history: hist };
 }
@@ -243,12 +250,12 @@ export function multigridSolve(H, u, b, opts = {}, hooks = {}) {
  * @returns {object} stage statistics (SolveStats fields plus switchReason)
  */
 export function bicgstabMG(H, u, b, opts = {}, hooks = {}) {
-    const o = normOpts(opts), op = H[0], N = op.N, tol = o.tolAbs, t0 = performance.now();
+    const o = normOpts(opts), op = H[0], N = op.N, tol = o.tolAbs, t0 = performance.now(), f = o.source;
     const rep = makeReporter(hooks, t0);
     const r = new Float64Array(N), rh = new Float64Array(N), p = new Float64Array(N), v = new Float64Array(N), t = new Float64Array(N), ph = new Float64Array(N), sh = new Float64Array(N);
     const precond = (src, dst) => { dst.fill(0); vcycle(H, 0, dst, null, src); };
     const dot = (a, c) => { let s = 0; for (let k = 0; k < N; k++) s += a[k] * c[k]; return s; };
-    residualInto(op, u, b, null, r);
+    residualInto(op, u, b, f, r);
     rh.set(r);
     let rho = 1, alpha = 1, omega = 1, it = 0, breakdowns = 0, est = Infinity, res = scaledMax(op, r), bestRes = res, sinceBest = 0, converged = false, switchReason = null, rate = NaN;
     const hist = [];
@@ -281,10 +288,10 @@ export function bicgstabMG(H, u, b, opts = {}, hooks = {}) {
             let dmax = 0;
             for (let k = 0; k < N; k++) { const d = alpha * ph[k]; u[k] += d; const a = d < 0 ? -d : d; if (a > dmax) dmax = a; }
             hist.push(dmax);
-            res = residualInto(op, u, b, null, null);
+            res = residualInto(op, u, b, f, null);
             if (res <= 10 * tol) { converged = true; est = dmax; break; }
             if (++breakdowns > 3) { switchReason = 'breakdown'; break; }
-            residualInto(op, u, b, null, r); rh.set(r); rho = 1; alpha = 1; omega = 1; p.fill(0); v.fill(0);
+            residualInto(op, u, b, f, r); rh.set(r); rho = 1; alpha = 1; omega = 1; p.fill(0); v.fill(0);
             continue;
         }
         omega = dot(t, r) / tt;
@@ -303,9 +310,9 @@ export function bicgstabMG(H, u, b, opts = {}, hooks = {}) {
         est = estimateErr(dmax, rate, floor);
         res = scaledMax(op, r);
         if (est <= tol && res <= 10 * tol) {
-            const trueRes = residualInto(op, u, b, null, null);
+            const trueRes = residualInto(op, u, b, f, null);
             if (trueRes <= 10 * tol) { res = trueRes; converged = true; break; }
-            residualInto(op, u, b, null, r);   // recursive residual drifted: restart from the true one
+            residualInto(op, u, b, f, r);   // recursive residual drifted: restart from the true one
         }
         if (res < bestRes) { bestRes = res; sinceBest = 0; } else if (++sinceBest >= 20) { switchReason = 'stagnation'; break; }
         if (performance.now() - t0 > o.timeLimitMs) { switchReason = 'time'; break; }
@@ -313,7 +320,7 @@ export function bicgstabMG(H, u, b, opts = {}, hooks = {}) {
     }
     if (!converged && !switchReason) switchReason = 'maxIterations';
     return { method: 'krylov', path: ['krylov'], levels: H.length, cycles: 0, iterations: Math.min(it, o.maxIterations), sweeps: 0, omega: 1, rho: rate, estErr: est,
-        scaledResidual: converged ? res : residualInto(op, u, b, null, null), converged, switchReason, ms: performance.now() - t0, history: hist };
+        scaledResidual: converged ? res : residualInto(op, u, b, f, null), converged, switchReason, ms: performance.now() - t0, history: hist };
 }
 
 // ---------------------------------------------------------------- Carre adaptive SOR
@@ -328,7 +335,7 @@ export function bicgstabMG(H, u, b, opts = {}, hooks = {}) {
  * @returns {object} stage statistics (SolveStats fields plus switchReason, updates)
  */
 export function carreSOR(op, u, b, opts = {}, hooks = {}) {
-    const o = normOpts(opts), tol = o.tolAbs, t0 = performance.now();
+    const o = normOpts(opts), tol = o.tolAbs, t0 = performance.now(), f = o.source;
     const rep = makeReporter(hooks, t0);
     const wBox = omegaBox(op.grid);
     const adapt = o.adapt !== false;
@@ -344,8 +351,8 @@ export function carreSOR(op, u, b, opts = {}, hooks = {}) {
     const roundoff0 = 1.5e-14 * o.scale;
     while (sweeps < o.maxSweeps) {
         acc[0] = 0; acc[1] = 0;
-        sorColor(op, u, b, null, 0, w, acc);
-        sorColor(op, u, b, null, 1, w, acc);
+        sorColor(op, u, b, f, 0, w, acc);
+        sorColor(op, u, b, f, 1, w, acc);
         sweeps++; sinceUpdate++;
         const dmax = acc[0], d2 = Math.sqrt(acc[1]);
         if (!(dmax === dmax)) throw engineError('E_NAN', 'The SOR iteration produced NaN.');
@@ -383,7 +390,7 @@ export function carreSOR(op, u, b, opts = {}, hooks = {}) {
         if (lam < w - 1) lam = w - 1;
         est = lam < 1 ? amp * lam / (1 - lam) : Infinity;
         if (sweeps >= 32 && amp32 <= roundoff0 && amp32 < est) est = amp32;   // changes at round-off for 32 sweeps
-        if (est <= tol) { res = residualInto(op, u, b, null, null); if (res <= 10 * tol) { converged = true; break; } }
+        if (est <= tol) { res = residualInto(op, u, b, f, null); if (res <= 10 * tol) { converged = true; break; } }
         // stagnation: the honest estimate has not halved for max(1000, sweeps/4) sweeps (round-off plateau,
         // typically when omega is close to 2 and tol is near 1e-12); stop instead of running to maxSweeps
         if (est < 0.5 * bestEst) { bestEst = est; lastGain = sweeps; } else if (sweeps - lastGain > Math.max(1000, sweeps >> 2)) { stagnated = true; break; }
@@ -391,7 +398,7 @@ export function carreSOR(op, u, b, opts = {}, hooks = {}) {
         if (performance.now() - t0 > o.timeLimitMs) { timedOut = true; break; }
         rep.tick({ cycle: 0, iteration: 0, sweep: sweeps, estErr: est, scaledResidual: res, omega: w }, tol);
     }
-    if (!Number.isFinite(res) || !converged) res = residualInto(op, u, b, null, null);
+    if (!Number.isFinite(res) || !converged) res = residualInto(op, u, b, f, null);
     if (!converged && bestEst < est) est = bestEst;
     return { method: 'sor', path: ['sor'], levels: 1, cycles: 0, iterations: 0, sweeps, omega: w, rho: lambda, estErr: est, scaledResidual: res, converged,
         switchReason: converged ? null : (timedOut ? 'time' : stagnated ? 'stagnation' : 'maxSweeps'), ms: performance.now() - t0, updates };
@@ -444,6 +451,7 @@ function runChain(H, u, b, opts, hooks) {
  * @returns {{phi: Float64Array, stats: object}} SolveStats
  */
 export function solveBasis(H, k, opts = {}, hooks = {}) {
+    if (k === CHARGE_BASIS) return solveCharge(H, opts, hooks);
     const op = H[0], u = new Float64Array(op.N), b = newRhs(op);
     basisSetup(op, k, u, b);
     if (opts.initial) { const mask = op.mask, ini = opts.initial; for (let q = 0; q < op.N; q++) if (mask[q] !== 1) u[q] = ini[q]; }
@@ -451,11 +459,84 @@ export function solveBasis(H, k, opts = {}, hooks = {}) {
     return { phi: u, stats };
 }
 
+function noneStats(H) {
+    const op = H[0], r = op.raster.stats;
+    return { method: 'none', path: [], levels: H.length, cycles: 0, iterations: 0, sweeps: 0, omega: 1, rho: 0, estErr: 0, scaledResidual: 0, converged: true, ms: 0, nodes: op.N, free: r.free, irregular: r.irregular, warnings: [] };
+}
+
 /**
- * Direct solve with electrode voltages volts[e] (tests, single-shot use); tol is per volt of max |V|.
+ * Voltage scale of a Poisson source for the relative stop rule. A source of at most m = max |f| (h² scaling) gives a
+ * potential no larger than m times that of the unit source with the same edges (comparison principle; electrodes
+ * inside only lower it), and in a direction whose two edges are not both open that is bounded by the one-dimensional
+ * solution: n²/8 between two Dirichlet edges n cells apart, n²/2 with one open (Neumann) edge; radially in a cylinder
+ * with a Dirichlet outer edge, R²/4 (R in cells). A box with Dirichlet edges all round keeps the earlier bound n²/8 on
+ * its shorter side. The scale is the smallest bound; with open edges all round only the electrodes bound the
+ * potential and n²/2 of the longer side is used. solveCharge re-scales to the computed potential when it is more than
+ * 4× off this estimate (a localized charge, or electrodes far inside an open box).
+ * @param {object} op level-0 Operator
+ * @param {Float64Array} f nodal source
+ * @returns {number} V
+ */
+export function chargeScale(op, f) {
+    let m = 0;
+    const mask = op.mask;
+    for (let k = 0; k < op.N; k++) { if (mask[k] === 1) continue; const a = f[k] < 0 ? -f[k] : f[k]; if (a > m) m = a; }
+    const e = (op.grid && op.grid.edges) || {};
+    const open = (key) => { const bc = e[key] && e[key].bc; return bc === 'neumann' || bc === 'axis'; };
+    const nX = Math.max(1, op.nx - 1), nY = Math.max(1, op.ny - 1);
+    const ox0 = open('xmin'), ox1 = open('xmax'), oy0 = !!op.cyl || open('ymin'), oy1 = open('ymax');
+    if (!ox0 && !ox1 && !oy0 && !oy1) { const n = Math.min(nX, nY); return m * n * n / 8; }
+    if (op.cyl && !ox0 && !ox1 && !oy1) { const n = Math.min(nX, nY); return m * n * n / 8; }   // closed cylinder: as before
+    const along = (n, a, b) => (a && b ? Infinity : (a || b ? n * n / 2 : n * n / 8));
+    let bound = along(nX, ox0, ox1);
+    bound = Math.min(bound, op.cyl ? (oy1 ? Infinity : nY * nY / 4) : along(nY, oy0, oy1));
+    if (!(bound < Infinity)) bound = Math.max(nX, nY) ** 2 / 2;
+    return m * bound;
+}
+
+function maxAbsFree(op, u) {
+    let a = 0;
+    const mask = op.mask;
+    for (let k = 0; k < op.N; k++) { if (mask[k] === 1) continue; const v = u[k] < 0 ? -u[k] : u[k]; if (v > a) a = v; }
+    return a;
+}
+
+/**
+ * Particular solution of the Poisson problem: the source of the hierarchy (H[0].source, set by buildHierarchy from the
+ * domain's charge density) with every electrode and Dirichlet edge at 0 V. Added with weight 1 to the voltage
+ * superposition it gives the potential with space charge (uniqueness, Griffiths section 3.1). tol is per volt of the
+ * potential's scale: chargeScale(), or the computed max |φ| when that differs from it by more than 4× (the solve then
+ * continues from its result at that scale; stats.scale is the scale used last). Without a source the result is zero
+ * with method 'none'.
+ * @param {object[]} H Operator hierarchy
+ * @param {object} [opts] as solveBasis
+ * @param {object} [hooks] as solveBasis
+ * @returns {{phi: Float64Array, stats: object}}
+ */
+export function solveCharge(H, opts = {}, hooks = {}) {
+    const op = H[0], u = new Float64Array(op.N), b = newRhs(op);
+    const f = op.source instanceof Float64Array ? op.source : null;
+    let scale = f ? chargeScale(op, f) : 0;
+    if (!(scale > 0)) return { phi: u, stats: { ...noneStats(H), source: false } };
+    if (opts.initial) { const mask = op.mask, ini = opts.initial; for (let q = 0; q < op.N; q++) if (mask[q] !== 1) u[q] = ini[q]; }
+    let stats = runChain(H, u, b, { ...opts, scale, source: f }, hooks);
+    const a = maxAbsFree(op, u);
+    if (a > 0 && Number.isFinite(a) && (a > 4 * scale || a < scale / 4)) {
+        const first = stats;
+        scale = a;
+        stats = runChain(H, u, b, { ...opts, scale, source: f }, hooks);
+        stats = { ...stats, path: [...first.path, ...stats.path], cycles: first.cycles + stats.cycles, iterations: first.iterations + stats.iterations,
+            sweeps: first.sweeps + stats.sweeps, ms: first.ms + stats.ms, rescaled: true };
+    }
+    return { phi: u, stats: { ...stats, source: true, scale } };
+}
+
+/**
+ * Direct solve with electrode voltages volts[e] (tests, single-shot use); tol is per volt of max |V| (and of the
+ * charge scale). A Poisson source of the hierarchy is included unless opts.charge === false.
  * @param {object[]} H Operator hierarchy
  * @param {ArrayLike<number>} volts by electrode index (gnd = 0)
- * @param {object} [opts] as solveBasis
+ * @param {object} [opts] as solveBasis, plus charge (default true)
  * @param {object} [hooks] as solveBasis
  * @returns {{phi: Float64Array, stats: object}}
  */
@@ -464,12 +545,11 @@ export function solveVoltages(H, volts, opts = {}, hooks = {}) {
     voltageSetup(op, volts, u, b);
     let scale = 0;
     for (let e = 0; e < volts.length; e++) scale = Math.max(scale, Math.abs(+volts[e] || 0));
+    const f = opts.charge === false ? null : (op.source instanceof Float64Array ? op.source : null);
+    if (f) scale = Math.max(scale, chargeScale(op, f));
     if (opts.initial) { const mask = op.mask, ini = opts.initial; for (let q = 0; q < op.N; q++) if (mask[q] !== 1) u[q] = ini[q]; }
-    if (scale === 0) {
-        const r = op.raster.stats;
-        return { phi: u, stats: { method: 'none', path: [], levels: H.length, cycles: 0, iterations: 0, sweeps: 0, omega: 1, rho: 0, estErr: 0, scaledResidual: 0, converged: true, ms: 0, nodes: op.N, free: r.free, irregular: r.irregular, warnings: [] } };
-    }
-    const stats = runChain(H, u, b, { ...opts, scale }, hooks);
+    if (scale === 0) return { phi: u, stats: noneStats(H) };
+    const stats = runChain(H, u, b, { ...opts, scale, source: f }, hooks);
     return { phi: u, stats };
 }
 

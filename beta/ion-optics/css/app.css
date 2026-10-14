@@ -109,7 +109,11 @@
 .io-panel-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 0.15rem 0 0.6rem; }
 
 /* lists in the rail */
-.io-list { list-style: none; margin: 0 0 0.6rem; padding: 0; display: grid; gap: 0.35rem; }
+.io-list { list-style: none; margin: 0 0 0.6rem; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.35rem; }
+/* rail items never grow past the rail: grid items and text inputs shrink below their intrinsic widths */
+.io-list > .io-item { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+.io-item .input-unit, .io-item .input-unit input, .io-item .input { min-width: 0; }
+.io-item .input-unit input { width: 100%; }
 .io-item {
     display: grid; gap: 0.35rem; padding: 0.45rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm);
     background: var(--surface); position: relative;
@@ -187,9 +191,10 @@
 /* ── Centre: view bar, canvas, status bar ───────────────────────────────── */
 .io-centre { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--surface-2); }
 .io-viewbar {
-    display: flex; align-items: center; gap: 0.3rem 0.3rem; flex-wrap: wrap; position: relative;
+    display: flex; align-items: center; gap: 0.3rem 0.25rem; flex-wrap: wrap; position: relative;
     padding: 0.28rem 0.45rem; background: var(--surface); border-bottom: 1px solid var(--border); min-height: 42px;
 }
+.io-viewbar .io-elsel { max-width: 8.5rem; }
 .io-viewbar .io-sep { width: 1px; height: 22px; background: var(--border); margin: 0 0.15rem; flex-shrink: 0; }
 .io-viewbar .btn-sm { padding: 0.28rem 0.55rem; font-size: 0.8rem; }
 .io-toolgroup { display: inline-flex; gap: 1px; flex-shrink: 0; }
@@ -212,6 +217,28 @@
 .io-time[hidden] { display: none; }
 .io-time input { width: 120px; accent-color: var(--accent); }
 .io-time-out { font-family: var(--mono); font-size: 0.75rem; min-width: 5.5rem; }
+/* teaching visuals: surface relief (Layers menu), vertical stretch, trajectory replay */
+.io-popover .io-relief { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--text-2); margin: 0.2rem 0 0.1rem; }
+.io-popover .io-relief[hidden] { display: none; }
+.io-popover .io-relief input { flex: 1 1 auto; min-width: 0; margin: 0; accent-color: var(--accent); }
+.io-relief-out { font-family: var(--mono); font-size: 0.75rem; min-width: 2.6rem; text-align: right; }
+.io-popover .io-aspect-row { margin-top: 0.45rem; }
+.io-popover .io-aspect { width: auto; margin-top: 0; flex-shrink: 0; }
+.io-replay-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.io-replay-btn[hidden] { display: none; }
+/* the replay transport floats over the canvas bottom while a replay is on */
+.io-replay-bar {
+    position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 5;
+    display: inline-flex; align-items: center; gap: 0.3rem; max-width: calc(100% - 16px);
+    padding: 0.22rem 0.45rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 999px; box-shadow: var(--shadow);
+}
+.io-replay-bar[hidden] { display: none; }
+.io-replay-range { width: 120px; margin: 0; accent-color: var(--accent); }
+.io-replay-out { font-family: var(--mono); font-size: 0.75rem; color: var(--text-2); min-width: 5.4rem; white-space: nowrap; }
+.io-replay-bar .io-toolbtn { width: 30px; height: 30px; }
+.io-replay-speed { padding: 0.2rem 0.3rem; }
+.io-canvas[data-surface="true"] { cursor: grab; }
+.io-canvas[data-surface="true"].io-rotating { cursor: grabbing; }
 .io-canvas-wrap { position: relative; flex: 1 1 auto; min-height: 140px; overflow: hidden; }
 .io-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; outline: 0; background: var(--surface-2); }
 .io-canvas:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
@@ -407,6 +434,10 @@
     .io-sheet.io-sheet-folded .io-sheet-body { display: none; }
     body { padding-bottom: 52px; }
     .io-viewbar select, .io-viewbar .io-toolbtn, .io-viewbar .btn, .io-viewbar .icon-btn { min-height: 40px; min-width: 40px; }
+    .io-replay-bar { bottom: 8px; gap: 0.2rem; }
+    .io-replay-range { min-height: 40px; width: 72px; }
+    .io-replay-out { min-width: 0; }
+    .io-replay-bar .io-toolbtn { width: 40px; height: 40px; }
     .io-status { font-size: 0.68rem; white-space: normal; }
     .io-toolbtn { width: 40px; height: 40px; }
     .io-dialog-body { max-height: calc(100vh - 170px); }

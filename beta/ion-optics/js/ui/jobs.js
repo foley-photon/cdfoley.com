@@ -11,10 +11,21 @@
    - runs: particles generated in the workers by index range, chunks of
      clamp(ceil(n/(4W)), 16, 512), merged in index order (bitwise independent
      of worker count and chunking); Stop keeps finished chunks as "partial";
-   - live preview: the first particles of each source on the reserved worker,
-     superseded (dropped from the queue, never interrupted) by newer edits;
+   - live preview: the first particles of each source on the reserved worker
+     (fewer when the steps per particle are many, so a preview stays near
+     PREVIEW_BUDGET_MS), superseded by newer edits (dropped from the queue;
+     one that has run for over PREVIEW_INTERRUPT_MS is interrupted); Stop and
+     Esc cancel a preview in flight (previewing(), cancelPreview());
    - estimate(): nodes, levels, memory and times before every solve and run;
-     over-budget jobs are refused and the worker count is lowered first.
+     over-budget jobs are refused and the worker count is lowered first;
+   - space charge (tracer.spaceCharge): the whole run is one batch on one
+     worker (direct pair forces are O(n²) and need every particle together);
+     previews trace the same fraction of every source with the charge factor
+     scaled by total/subset to keep the total charge; a Stop before the batch
+     ends keeps the previous result; explicit rows given to traceBatch (lens tool, image finder)
+     measure the field and skip the pair forces; the estimate counts the pair
+     work;
+   - a charge density (domain.charge) adds one basis field (CHARGE_BASIS).
    Public methods used by the interface (solve, run, ensureSolution,
    ensureField, preview) never reject: failures land in the store's solve and
    run states (or its 'error' event) and the promise resolves with null.
@@ -26,11 +37,12 @@ import { ENGINE_VERSION } from '../engine/version.js';
 import { estimate as solveEstimate } from '../engine/solve.js';
 import { compileGeometry, geometryWarnings } from '../engine/geometry.js';
 import { unpackRaster } from '../engine/raster.js';
-import { buildField, displayPotential, basisElectrodes } from '../engine/pipeline.js';
+import { buildField, displayPotential, basisElectrodes, spaceChargeOf, hasChargeDensity } from '../engine/pipeline.js';
 import { generate } from '../engine/particles.js';
 import { mergeResults } from '../engine/trace.js';
 import { summarize } from '../engine/analysis.js';
 import { speedFromKE } from '../engine/constants.js';
+import { createGasModel, dragTimeConstant, K_B } from '../engine/gas.js';
 import { P_STRIDE } from '../engine/layout.js';
 import { createPool } from './pool.js';
 
@@ -49,11 +61,19 @@ export const CALIBRATION = {
     stepsPerSec: { cubic: 0.55e6, linear: 0.8e6 },
     particleMs: 0.3,                              // per-particle overhead (generation, events, recording)
     runOverheadMs: 5,                             // per run and worker (messages, field set-up)
+    pairNs: 7,                                    // space charge: one pair force evaluation (4 per lockstep step); measured 5.3-6.7 ns
+    lockstepParticleNs: 1500,                     // space charge: per particle and lockstep step (4 field evaluations, events)
+    gasStepsPerCollision: 11,                     // gas: steps per collision (≤ a tenth of the mean free time per step, plus the collision landing)
+    dragStepTaus: 2,                              // Stokes drag: typical step in relaxation times τ (explicit Dormand–Prince on the stiff drag term)
+    pointMergeNs: 200,                            // per stored trajectory point: transfer from the workers, merge and summary (main thread)
+    particlePostUs: 6,                            // per particle: summary, statistics and the panels after a run (main thread)
 };
 
 const MB = 1024 * 1024;
 const HOLD_BASES_BYTES = 64 * MB;
 const AUTO_SOLVE_MS = 1500;
+const PREVIEW_BUDGET_MS = 1500;      // a live preview aims at about this much tracing on its worker
+const PREVIEW_INTERRUPT_MS = 1000;   // a newer edit interrupts a preview that has run this long (instead of queuing behind it)
 const PROGRESS_MS = 100;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -218,7 +238,11 @@ export function sourceSteps(r, s) {
             if (pl.kind === 'x' && Math.abs(u[0]) > 1e-9) dist = (pl.at - p0[0]) / u[0];
             else if (pl.kind === 'y' && Math.abs(u[1]) > 1e-9) dist = (pl.at - p0[1]) / u[1];
             else if (pl.kind === 'z' && Math.abs(u[2]) > 1e-9) dist = (pl.at - p0[2]) / u[2];
-            else if (pl.kind === 'segment') {
+            else if (pl.kind === 'sphere') {
+                // spherical test surface: the distance from the start to the surface along the radius
+                const c = Array.isArray(pl.center) ? pl.center : [0, 0, 0];
+                dist = Math.abs(Math.hypot(c[0] - p0[0], c[1] - p0[1], c[2] - p0[2]) - pl.at);
+            } else if (pl.kind === 'segment') {
                 // ahead of the start: the straight distance to its middle (paths to segments are often curved)
                 const mx = 0.5 * (pl.p0[0] + pl.p1[0]) - p0[0], my = 0.5 * (pl.p0[1] + pl.p1[1]) - p0[1];
                 dist = mx * u[0] + my * u[1] > 0 ? Math.hypot(mx, my) : -1;
@@ -237,7 +261,58 @@ export function sourceSteps(r, s) {
         const T = slow ? tMax : Math.min(tMax, path / v);
         steps = Math.max(steps, T * fMax * q.rfStepsPerPeriod);
     }
+    steps += pluginSteps(r, { path, ke, mass: Number.isFinite(mMin) ? mMin : 1, charge: qMax || 1, field: vScale / Math.max(Lx, Ly, 1e-9) });
     return Math.max(20, Math.min(steps, (r.tracer && r.tracer.maxSteps) || 5e5));
+}
+
+/**
+ * Extra integration steps of one particle from the physics plug-ins (a cold estimate; capped by the caller at maxSteps):
+ * - gas collisions: the tracer takes about CALIBRATION.gasStepsPerCollision steps per collision. A particle that
+ *   crosses its path in fewer collisions than it needs to slow down to the gas temperature (energy loss 2mM/(m + M)²
+ *   per collision) makes path/λ collisions; otherwise the slowed-down part of the path is counted as that fraction of
+ *   tMax at the thermal collision rate;
+ * - Stokes drag: when the relaxation time τ is shorter than the flight time, the stiff drag term limits the step to
+ *   about DRAG_STEP_TAUS·τ over the drift time.
+ * @param {object} r resolved project
+ * @param {{ path: number, ke: number, mass: number, charge: number, field: number }} o path mm, energy eV, mass u, |charge| e, typical field V/mm
+ * @returns {number}
+ */
+export function pluginSteps(r, o) {
+    const tr = (r && r.tracer) || {};
+    const tMax = tr.tMax || 1000;
+    const path = Math.max(o.path, 1e-9), m = Math.max(o.mass, 1e-6), q = Math.max(Math.abs(o.charge), 1e-9);
+    let extra = 0;
+    const v0 = speedFromKE(Math.max(o.ke, 1e-3), m, false);
+    const g = tr.gas;
+    if (g && g.enabled !== false && g.pressure > 0 && g.temperature > 0 && g.mass > 0 && g.diameter > 0) {
+        try {
+            const gm = createGasModel(g);
+            const sp = gm.species(m);
+            const lambda = gm.meanFreePath(sp, v0);
+            const kT = K_B * g.temperature / 1.602176634e-19;
+            const loss = 2 * m * g.mass / ((m + g.mass) * (m + g.mass));
+            const toThermal = Math.log(Math.max(o.ke, kT) / Math.max(kT, 1e-12)) / Math.max(loss, 1e-9);
+            const nPass = path / lambda;
+            let collisions;
+            if (nPass <= toThermal) collisions = nPass;
+            else {
+                // slowed down before the end of its path: the rest is slow drift and diffusion in fields that are mostly weak
+                // (measured on the Einzel lens: close to tMax), so the thermalized fraction of the path is taken to last
+                // that fraction of tMax, colliding at the thermal rate (an upper estimate)
+                const frac = 1 - toThermal / nPass;
+                collisions = toThermal + gm.rate(sp, 0, 0, 0) * frac * tMax;
+            }
+            extra += CALIBRATION.gasStepsPerCollision * collisions;
+        } catch (e) { /* no estimate */ }
+    }
+    const d = tr.drag;
+    if (d && d.type === 'stokes' && d.mobility > 0) {
+        const tau = dragTimeConstant(d.mobility, m, q);                    // µs
+        const vd = 1e-4 * d.mobility * Math.max(o.field, 0);
+        const T = Math.min(tMax, vd > 0 ? path / Math.min(vd, v0) : path / v0 + tMax);
+        if (tau > 0 && T > tau) extra += T / (CALIBRATION.dragStepTaus * tau);
+    }
+    return extra;
 }
 
 /**
@@ -269,13 +344,16 @@ export function estimateProject(r, o = {}) {
     const lim = mobile ? LIMITS.mobile : LIMITS.desktop;
     const Wall = Math.max(1, o.workers || 1);
     const out = { nodes: 0, levels: 0, bases: 0, channels: 0, memMB: 0, solveMemMB: 0, runMemMB: 0, solveMs: 0, fieldMs: 0, runMs: 0,
-        particles: 0, stepsPerParticle: 0, stepsPerSec: 0, measured: false, fixedFraction: 0, solveWorkers: 1, traceWorkers: Wall, warnings: [],
+        postMs: 0, runTotalMs: 0, particles: 0, stepsPerParticle: 0, stepsPerSec: 0, measured: false, fixedFraction: 0, solveWorkers: 1, traceWorkers: Wall, warnings: [],
         blocked: false, blockedSolve: false, blockedRun: false, blockCode: null, blockMessage: null, confirm: false, limits: lim };
     if (!r || !r.domain || !Number.isFinite(r.domain.N)) return out;
     const { nx, ny, N } = r.domain;
-    const K = Math.max(0, (r.electrodes || []).length - 1);
+    // one basis per non-ground electrode, plus the space-charge (Poisson) basis when the domain has a charge density
+    const K = Math.max(0, (r.electrodes || []).length - 1) + (hasChargeDensity(r) ? 1 : 0);
     const C = 1 + (r.channelCount || 0);
+    const spaceCharge = spaceChargeOf(r);
     out.nodes = N; out.bases = K; out.channels = C;
+    out.spaceCharge = !!spaceCharge;
     const maxB = lim.maxMemMB * MB;
     // memory (§3.5): main 8NK + 32NC + 3N + display; solve worker ≤ 100N; trace worker 8NK (if ≤ 64 MB) + 32NC + 3N
     const main = 8 * N * K + 32 * N * C + 3 * N + 8 * N + 6 * N;
@@ -295,7 +373,7 @@ export function estimateProject(r, o = {}) {
     const crossCap = Math.max(1, Math.min(1000, Math.floor(2e6 / Math.max(1, n))));
     const crossRows = n * (nFirst + nAll * crossCap);
     const results = n * 24 * 8 + pts * 16 * 2 + crossRows * 14 * 8 * 2;
-    let Wt = Wall;
+    let Wt = spaceCharge ? 1 : Wall;   // space charge: every particle in one lockstep batch on one worker
     const runMem = (w) => main + w * perTrace + results;
     while (runMem(Wt) > maxB && Wt > 1) Wt--;
     out.solveWorkers = Ws; out.traceWorkers = Wt;
@@ -326,9 +404,19 @@ export function estimateProject(r, o = {}) {
         : (r.tracer && r.tracer.fieldInterp === 'linear' ? CALIBRATION.stepsPerSec.linear : CALIBRATION.stepsPerSec.cubic);
     out.stepsPerSec = rate;
     const busy = Math.min(Wt, Math.max(1, Math.ceil(n / 16)));
-    out.runMs = n > 0 ? CALIBRATION.runOverheadMs + n * (out.stepsPerParticle / rate * 1000 + CALIBRATION.particleMs) / busy : 0;
+    if (spaceCharge) {
+        // lockstep: about stepsPerParticle common steps, each with n field evaluations and n(n − 1)/2 pair forces per stage (4 stages)
+        const steps = out.stepsPerParticle;
+        out.runMs = n > 0 ? CALIBRATION.runOverheadMs + steps * (n * CALIBRATION.lockstepParticleNs + 4 * 0.5 * n * (n - 1) * CALIBRATION.pairNs) * 1e-6 + n * CALIBRATION.particleMs : 0;
+    } else out.runMs = n > 0 ? CALIBRATION.runOverheadMs + n * (out.stepsPerParticle / rate * 1000 + CALIBRATION.particleMs) / busy : 0;
+    // main thread after the workers: trajectory points arrive, are merged (thinned to the point budget) and summarized
+    const storedPts = trj.store === false ? 0 : Math.min(n * Math.min(trj.maxPoints || 2000, out.stepsPerParticle + 2), lim.pointBudget);
+    // (runMs is the tracing on the workers; runTotalMs adds this main-thread part and is what the confirmation shows)
+    out.postMs = n > 0 ? storedPts * CALIBRATION.pointMergeNs * 1e-6 + n * CALIBRATION.particlePostUs * 1e-3 : 0;
+    out.runTotalMs = out.runMs + out.postMs;
     // limits
-    if (Wt < Wall) out.warnings.push(note('W_FEWER_WORKERS', `Memory limits the run to ${Wt} worker${Wt === 1 ? '' : 's'}.`));
+    if (spaceCharge && n > 0) out.warnings.push(note('W_SPACE_CHARGE', 'Space charge: the particles are traced together on one worker (direct pair forces, an onset estimator).'));
+    if (Wt < Wall && !spaceCharge) out.warnings.push(note('W_FEWER_WORKERS', `Memory limits the run to ${Wt} worker${Wt === 1 ? '' : 's'}.`));
     if (N > lim.maxNodes) { out.blockedSolve = true; out.blockCode = 'E_GRID_TOO_LARGE'; out.blockMessage = `The grid has ${N.toLocaleString('en-US')} nodes; the limit${mobile ? ' on phones' : ''} is ${lim.maxNodes.toLocaleString('en-US')}.`; }
     else if (solveMem(Ws) > maxB) { out.blockedSolve = true; out.blockCode = 'E_MEMORY'; out.blockMessage = `Solving needs about ${Math.round(out.solveMemMB)} MB; the limit${mobile ? ' on phones' : ''} is ${lim.maxMemMB} MB.`; }
     if (out.blockedSolve) out.blockedRun = true;
@@ -338,7 +426,7 @@ export function estimateProject(r, o = {}) {
     if (!out.blocked && out.memMB > lim.warnMemMB) out.warnings.push(note('W_MEMORY', `This job needs about ${Math.round(out.memMB)} MB.`));
     if (N > lim.warnNodes && !out.blockedSolve) out.warnings.push(note('W_GRID_LARGE', `${N.toLocaleString('en-US')} nodes: solving will take a while.`));
     if (out.blocked) out.warnings.push(note(out.blockCode, out.blockMessage));
-    out.confirm = !out.blocked && (out.solveMs > 5000 || out.runMs > 5000 || out.memMB > 0.7 * lim.maxMemMB);
+    out.confirm = !out.blocked && (out.solveMs > 5000 || out.runTotalMs > 5000 || out.memMB > 0.7 * lim.maxMemMB);
     return out;
 }
 
@@ -377,6 +465,7 @@ export function createJobs(store, pool, persist = null, opts = {}) {
     let epoch = 0, runSeq = 0, tmpSeq = 0, idSeq = 0;
     let autoTimer = null, previewTimer = null;
     let fullRun = null;   // { runId, group, cancelled }
+    let previewInflight = null;   // { t0, epoch, cancelled } of the live preview being traced
     let lastKeys = { ...store.get().keys };
     let destroyed = false;
 
@@ -409,6 +498,11 @@ export function createJobs(store, pool, persist = null, opts = {}) {
         const st = store.get();
         const res = st.run && st.run.result;
         if (!res || !st.keys || res.fieldKey !== st.keys.fieldKey || !res.stats || !(res.n > 0) || !(res.stats.steps > 0)) return null;
+        // other tracer settings (gas, drag, space charge, accuracy, limits) change the steps per particle: not comparable
+        const a = res.resolvedSnapshot && res.resolvedSnapshot.tracer, b = st.resolved && st.resolved.tracer;
+        if (a && b && a !== b) { try { if (JSON.stringify(a) !== JSON.stringify(b)) return null; } catch (e) { return null; } }
+        // a lockstep (space-charge) result counts common steps, not steps per particle
+        if (res.stats.lockstep) return { stepsPerParticle: res.stats.steps, stepsPerSec: 0, lockstep: true };
         return { stepsPerParticle: res.stats.steps / res.n, stepsPerSec: res.stats.ms > 0 ? res.stats.steps / res.stats.ms * 1000 : 0 };
     }
 
@@ -495,8 +589,9 @@ export function createJobs(store, pool, persist = null, opts = {}) {
                     let f = done;
                     for (const [k, v] of fr) if (!bases.has(k)) f += v;
                     const frac = ks.length ? f / ks.length : 1;
+                    const what = m.k < 0 ? `space-charge term (${Math.min(ks.length, done + 1)}/${ks.length})` : `electrode ${Math.min(ks.length, done + 1)}/${ks.length}`;
                     const text = m.phase === 'raster' ? 'Solving fields: preparing the grid'
-                        : `Solving fields: electrode ${Math.min(ks.length, done + 1)}/${ks.length}${m.cycle ? ` · cycle ${m.cycle}` : ''}${m.estErr ? ` · est. error ${fmtSci(m.estErr)}` : ''}`;
+                        : `Solving fields: ${what}${m.cycle ? ` · cycle ${m.cycle}` : ''}${m.estErr ? ` · est. error ${fmtSci(m.estErr)}` : ''}`;
                     const p = { frac: clamp(frac, 0, 1), done, total: ks.length, k: m.k, phase: m.phase, cycle: m.cycle, estErr: m.estErr, text };
                     c.setSolve({ progress: p });
                     emit('solve:progress', p);
@@ -628,7 +723,9 @@ export function createJobs(store, pool, persist = null, opts = {}) {
         if (particles) {
             const n = Math.floor(particles.length / P_STRIDE);
             const W = priority === 0 ? 1 : workers();
-            const chunk = clamp(Math.ceil(n / (4 * W)), 16, 512);
+            // space charge: the batch stays whole (the pair forces need every particle together)
+            const pairForces = spaceChargeOf(c.resolved) && !(overrides && overrides.spaceCharge === false);
+            const chunk = pairForces ? Math.max(1, n) : clamp(Math.ceil(n / (4 * W)), 16, 512);
             for (let a = 0; a < n; a += chunk) {
                 const b = Math.min(n, a + chunk);
                 const part = particles.slice(a * P_STRIDE, b * P_STRIDE);
@@ -649,7 +746,8 @@ export function createJobs(store, pool, persist = null, opts = {}) {
         return { result: mergeResults(parts), partial, parts: parts.length, traced: doneAll, finished: finishedAll };
     }
 
-    function chunkRanges(n, W, offset = 0) {
+    function chunkRanges(r, n, W, offset = 0) {
+        if (spaceChargeOf(r)) return n > 0 ? [[offset, offset + n]] : [];   // one lockstep batch
         const chunk = clamp(Math.ceil(n / (4 * Math.max(1, W))), 16, 512);
         const out = [];
         for (let a = 0; a < n; a += chunk) out.push([offset + a, offset + Math.min(n, a + chunk)]);
@@ -691,6 +789,7 @@ export function createJobs(store, pool, persist = null, opts = {}) {
         const W = est.traceWorkers;
         const t0 = now();
         let lastProgress = -Infinity, trailing = null, pendingDone = 0, pendingFinished = 0;
+        const before = store.get().run || {};   // restored when a Stop keeps nothing
         store.setRun({ status: 'running', progress: { done: 0, total: n, etaMs: null, text: `0/${n} particles` }, live: false, runKey: c.keys.runKey, epoch: myEpoch, error: null });
         const publish = (done) => {
             const t = now();
@@ -707,7 +806,7 @@ export function createJobs(store, pool, persist = null, opts = {}) {
         let out;
         try {
             out = await traceRun(c, {
-                ranges: chunkRanges(n, W), total: n, priority: 1, group, limit: W, stop: () => token.cancelled,
+                ranges: chunkRanges(r, n, W), total: n, priority: 1, group, limit: W, stop: () => token.cancelled,
                 onProgress: (done, finished = done) => {
                     pendingFinished = finished;
                     if (token.cancelled) return;
@@ -734,6 +833,15 @@ export function createJobs(store, pool, persist = null, opts = {}) {
         const superseded = fullRun !== null && fullRun !== token;   // a newer full run owns the run state
         if (fullRun === token) fullRun = null;
         const partial = out.partial || token.cancelled;
+        if (partial && !(out.result.n > 0) && !superseded) {
+            // nothing finished (a space-charge run is one batch): keep the previous result (often the live preview)
+            store.setRun({ status: before.result ? (before.runKey === store.get().keys.runKey ? 'done' : 'stale') : 'none', progress: null, live: !!before.live,
+                runKey: before.runKey || null, epoch: before.epoch, partial: !!before.partial, error: null });
+            const msg = spaceChargeOf(r) ? 'Stopped: a space-charge run traces all particles in one batch, so nothing was kept; the previous result stays.' : 'Stopped before any batch finished; the previous result stays.';
+            emit('log', { level: 'info', message: msg });
+            emit('run:stopped', { kept: 0, message: msg });
+            return null;
+        }
         const summary = summarize(out.result, r);
         // Stop keeps whole finished batches only: say how many particles were kept and how many traced ones were dropped
         const partialNote = partial ? `Stopped: kept the ${out.result.n} particles of the finished batches${out.traced > out.result.n ? `; ${out.traced - out.result.n} particles traced in unfinished batches were discarded` : ''}.` : null;
@@ -768,11 +876,20 @@ export function createJobs(store, pool, persist = null, opts = {}) {
         c = storeCtx();
         if (!c.field || c.field.fieldKey !== c.keys.fieldKey) return null;   // edited meanwhile: a newer preview follows
         const r = c.resolved;
-        const per = clamp(Math.floor(40000 / stepsPerParticle(r)), 4, mobile ? 50 : 200);
+        // particles per source: about 40,000 steps per source, and the preview's time near PREVIEW_BUDGET_MS when the
+        // steps per particle are many (gas collisions, drag, long RF flights: then down to one particle per source)
+        const spp = stepsPerParticle(r);
+        const rate = r.tracer && r.tracer.fieldInterp === 'linear' ? CALIBRATION.stepsPerSec.linear : CALIBRATION.stepsPerSec.cubic;
+        const nSrc = Math.max(1, (r.sources || []).filter((s) => s.count > 0).length);
+        const byBudget = Math.floor(PREVIEW_BUDGET_MS * 1e-3 * rate / (spp * nSrc));
+        const per = clamp(Math.min(Math.floor(40000 / spp), Math.max(byBudget, 1)), spp > 20000 ? 1 : 4, mobile ? 50 : 200);
+        // space charge: the same fraction of every source, so one charge factor total/subset keeps every source's charge
+        const sc = spaceChargeOf(r) && r.particleCount > 0;
+        const frac = sc ? Math.min(1, (per * nSrc) / r.particleCount) : 1;
         const chunks = [];
         let n = 0;
         for (const s of r.sources) {
-            const m = Math.min(per, s.count);
+            const m = sc ? Math.min(s.count, Math.max(s.count > 0 ? 1 : 0, Math.round(s.count * frac))) : Math.min(per, s.count);
             if (m <= 0) continue;
             chunks.push(generate(r.sources, s.firstId, s.firstId + m, { domainType: r.domain.type, relativistic: r.tracer.relativistic !== false }));
             n += m;
@@ -781,9 +898,19 @@ export function createJobs(store, pool, persist = null, opts = {}) {
         let o = 0;
         for (const ch of chunks) { particles.set(ch, o); o += ch.length; }
         pool.cancelQueued('preview');   // older previews that have not started are superseded
+        // one that has been tracing for a while is interrupted, so the new edit does not wait for it
+        if (previewInflight && now() - previewInflight.t0 > PREVIEW_INTERRUPT_MS) { previewInflight.cancelled = true; pool.cancel('preview'); }
         const t0 = now();
-        const out = await traceRun(c, { particles, total: n, priority: 0, group: 'preview' });
-        if (myEpoch !== epoch || destroyed || fullRun || out.partial) return null;   // superseded: ignored
+        // space charge: the preview subset carries the charge of the whole run (charge factor scaled by total/subset)
+        const overrides = sc && n > 0 && r.particleCount > n ? { factorScale: r.particleCount / n } : {};
+        const token = { t0, epoch: myEpoch, cancelled: false };
+        previewInflight = token;
+        emit('preview:busy', true);
+        let out;
+        try { out = await traceRun(c, { particles, total: n, priority: 0, group: 'preview', overrides }); }
+        catch (e) { if (token.cancelled && isCancel(e)) return null; throw e; }
+        finally { if (previewInflight === token) { previewInflight = null; emit('preview:busy', false); } }
+        if (token.cancelled || myEpoch !== epoch || destroyed || fullRun || out.partial) return null;   // superseded or stopped: ignored
         const summary = summarize(out.result, r);
         const result = { ...out.result, runId: null, epoch: myEpoch, fieldKey: c.keys.fieldKey, runKey: c.keys.runKey, live: true, partial: false,
             resolvedSnapshot: r, wallMs: now() - t0, workers: 1 };
@@ -791,6 +918,18 @@ export function createJobs(store, pool, persist = null, opts = {}) {
         emit('preview:done', result);
         emit('preview', result);
         return result;
+    }
+
+    /** True while a live preview is tracing (Stop and Esc can cancel it). */
+    function previewing() { return !!previewInflight; }
+    /** Cancels the live preview in flight (its worker is interrupted); the shown result stays. */
+    function cancelPreview() {
+        if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; }
+        if (!previewInflight) return false;
+        previewInflight.cancelled = true;
+        pool.cancel('preview');
+        emit('log', { level: 'info', message: 'Live preview stopped; the next edit starts a new one (or press Run).' });
+        return true;
     }
 
     function schedulePreview() {
@@ -924,8 +1063,8 @@ export function createJobs(store, pool, persist = null, opts = {}) {
                 const r0 = range ? range[0] : 0, r1 = range ? range[1] : res.resolved.particleCount;
                 const n = particles ? Math.floor(particles.length / P_STRIDE) : 0;
                 const out = particles
-                    ? await traceRun(tc, { particles, total: n, overrides, priority: 1, group: prefix + 'trace' })
-                    : await traceRun(tc, { ranges: chunkRanges(r1 - r0, W(), r0), total: res.resolved.particleCount, overrides, priority: 1, group: prefix + 'trace' });
+                    ? await traceRun(tc, { particles, total: n, overrides: { spaceCharge: false, ...overrides }, priority: 1, group: prefix + 'trace' })
+                    : await traceRun(tc, { ranges: chunkRanges(res.resolved, r1 - r0, W(), r0), total: res.resolved.particleCount, overrides, priority: 1, group: prefix + 'trace' });
                 if (out.partial) throw cancelled();
                 return out.result;
             },
@@ -933,7 +1072,7 @@ export function createJobs(store, pool, persist = null, opts = {}) {
                 await doField(tc);
                 const n = res.resolved.particleCount;
                 const t0 = now();
-                const out = await traceRun(tc, { ranges: chunkRanges(n, W()), total: n, overrides, priority: 1, group: prefix + 'run' });
+                const out = await traceRun(tc, { ranges: chunkRanges(res.resolved, n, W()), total: n, overrides, priority: 1, group: prefix + 'run' });
                 const result = { ...out.result, partial: out.partial, live: false, fieldKey: keys.fieldKey, runKey: keys.runKey, resolvedSnapshot: res.resolved,
                     wallMs: now() - t0, workers: W() };
                 local.run = { status: out.partial ? 'partial' : 'done', result, summary: summarize(out.result, res.resolved) };
@@ -967,9 +1106,10 @@ export function createJobs(store, pool, persist = null, opts = {}) {
         if (!c2.field || c2.field.fieldKey !== c2.keys.fieldKey) await doField(c2);
         const n = particles ? Math.floor(particles.length / P_STRIDE) : 0;
         const r0 = range ? range[0] : 0, r1 = range ? range[1] : c2.resolved.particleCount;
+        // explicit rows are analysis rays (lens tool, image finder): they measure the field, so no pair forces unless asked
         const out = particles
-            ? await traceRun(c2, { particles, total: n, overrides, priority: 1, group: 'batch' })
-            : await traceRun(c2, { ranges: chunkRanges(r1 - r0, workers(), r0), total: c2.resolved.particleCount, overrides, priority: 1, group: 'batch' });
+            ? await traceRun(c2, { particles, total: n, overrides: { spaceCharge: false, ...overrides }, priority: 1, group: 'batch' })
+            : await traceRun(c2, { ranges: chunkRanges(c2.resolved, r1 - r0, workers(), r0), total: c2.resolved.particleCount, overrides, priority: 1, group: 'batch' });
         if (out.partial) throw cancelled();
         return out.result;
     }
@@ -1029,10 +1169,15 @@ export function createJobs(store, pool, persist = null, opts = {}) {
         cancelBenchmarks,
         /** Starts a live preview now (normally automatic on edits). */
         preview,
+        /** True while a live preview is being traced. */
+        previewing,
+        /** Stops the live preview in flight (Stop, Esc); resolves nothing, the shown result stays. */
+        cancelPreview,
         /** Live mode on or off (ui.live); turning it on starts a preview. */
         setLive,
-        /** Subscribes: 'solve:progress' 'solve:done' 'solve:error' 'solve:pulse' 'run:progress' 'run:done' 'run:error' 'preview:done'
-         * 'preview:error' 'field:error' 'bench:progress' 'bench:result' 'log' 'fallback' 'version' 'versionMismatch' (or '*'). */
+        /** Subscribes: 'solve:progress' 'solve:done' 'solve:error' 'solve:pulse' 'run:progress' 'run:done' 'run:error' 'run:stopped'
+         * 'preview:done' 'preview:busy' 'preview:error' 'field:error' 'bench:progress' 'bench:result' 'log' 'fallback' 'version'
+         * 'versionMismatch' (or '*'). */
         on(evt, fn) {
             if (!listeners.has(evt)) listeners.set(evt, new Set());
             listeners.get(evt).add(fn);

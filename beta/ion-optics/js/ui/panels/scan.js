@@ -87,7 +87,8 @@ export function mount(el, ctx) {
         h('div', { class: 'io-btnrow' }, addVarBtn, h('label', { class: 'io-inline' }, h('span', { text: 'budget' }), evalIn), tuneBtn, tuneApply), tuneOut, tuneChart);
     el.appendChild(h('div', { class: 'io-results io-scan' }, metricRow, status, scanSec, tuneSec));
 
-    let vars = [], stop = false, busy = false, scanRes = null, tuneRes = null, scanBlock = null, tuneBlock = null, filledKey = null;
+    let vars = [], stop = false, busy = false, scanRes = null, tuneRes = null, scanBlock = null, tuneBlock = null, filledKey = null, applied = null;
+    const runKeyNow = () => (ctx.store.get().keys || {}).runKey || null;
     // which project the defaults were set for (a new preset or project resets them)
     const projectKey = () => { const m = (ctx.store.get().project || {}).meta || {}; return `${m.preset || ''}|${m.created || ''}`; };
     const num = (s) => Number(String(s).replace('−', '-'));
@@ -109,6 +110,8 @@ export function mount(el, ctx) {
         speciesSel.replaceChildren(h('option', { value: '', text: 'all' }), ...[...labels].map((l) => h('option', { value: l, text: l })));
         if (labels.has(cs)) speciesSel.value = cs;
         const key = projectKey();
+        if (key !== filledKey && filledKey !== null) clearResults();   // another project or preset: its results do not apply
+        else markStale();
         if (key !== filledKey && vars.length) {
             filledKey = key;
             const d = scanDefaults(p, r);
@@ -121,6 +124,23 @@ export function mount(el, ctx) {
             else setRange();
         } else if (!fromIn.value && vars.length) setRange();
         for (const row of tuneRows.children) row.__refresh && row.__refresh();
+    }
+    /** Results of an earlier project or preset are removed (they may name variables that do not exist here). */
+    function clearResults() {
+        scanRes = null; tuneRes = null; applied = null;
+        applyBtn.disabled = true; tuneApply.disabled = true;
+        status.textContent = ''; tuneOut.textContent = '';
+        if (scanBlock) { scanBlock.destroy(); scanBlock = null; }
+        if (tuneBlock) { tuneBlock.destroy(); tuneBlock = null; }
+    }
+    /** After an edit of the same project (other than applying the result) the shown values were computed for earlier settings. */
+    function markStale() {
+        const k = (ctx.store.get().keys || {}).runKey || null;
+        for (const [res, out] of [[scanRes, status], [tuneRes, tuneOut]]) {
+            if (!res || !res.runKey || res.staleNoted) continue;
+            if (applied && applied.res === res) { if (k !== applied.key) { res.runKey = k; applied = null; } continue; }
+            if (k !== res.runKey) { res.staleNoted = true; out.textContent = `${out.textContent} The project changed since; these values were computed for the earlier settings.`; }
+        }
     }
     function setRange() {
         const st = ctx.store.get(), v = vars[+varSel.value || 0];
@@ -166,6 +186,7 @@ export function mount(el, ctx) {
                 status.textContent = `Point ${i + 1}/${values.length}: ${v.label} = ${fmtNum(x)} → ${fmtNum(m)}`;
                 scanBlock.update({ plot: draw() });
             }, () => stop);
+            scanRes.runKey = runKeyNow();
             if (scanRes.best) {
                 status.textContent = `Best: ${v.label} = ${fmtNum(scanRes.best.value)} (${mdef.label} ${fmtNum(scanRes.best.metric)}).${stop ? ' Stopped.' : ''}`;
                 applyBtn.disabled = false;
@@ -178,6 +199,7 @@ export function mount(el, ctx) {
     applyBtn.addEventListener('click', () => {
         if (!scanRes || !scanRes.best) return;
         const v = vars[+varSel.value];
+        applied = { res: scanRes, key: runKeyNow() };
         ctx.store.update((p) => { const q = applyVariable(p, v, scanRes.best.value); Object.assign(p, q); }, { label: `Apply best ${v.label}` });
         status.textContent = `Applied ${v.label} = ${fmtNum(scanRes.best.value)}.`;
     });
@@ -226,6 +248,7 @@ export function mount(el, ctx) {
             tuneRes = await optimizeJob(ctx, { variables: defs.map((d) => ({ kind: d.v.kind, id: d.v.id, lower: d.lower, upper: d.upper, step: d.step > 0 ? d.step : null })), metric, goal: goalSel.value, maxEval: Math.max(5, Math.round(num(evalIn.value) || 60)) },
                 (it) => { evals.push(it.nEval); best.push(sign * it.fx); tuneOut.textContent = `Evaluation ${it.nEval}: best ${mdef.label} ${fmtNum(sign * it.fx)} at ${it.x.map((x) => fmtNum(x)).join(', ')}`; tuneBlock.update({ plot: draw() }); },
                 () => stop);
+            tuneRes.runKey = runKeyNow();
             tuneOut.textContent = `Result after ${tuneRes.nEval} evaluations: ${defs.map((d, i) => `${d.v.label} = ${fmtNum(tuneRes.x[i])}`).join(', ')}; ${mdef.label} ${fmtNum(tuneRes.value)}.`;
             tuneApply.disabled = false;
             if (ctx.ui.announce) ctx.ui.announce(tuneOut.textContent);
@@ -235,6 +258,7 @@ export function mount(el, ctx) {
     tuneApply.addEventListener('click', () => {
         if (!tuneRes) return;
         const defs = [...tuneRows.children].map((r) => r.__read()).filter((d) => d.v);
+        applied = { res: tuneRes, key: runKeyNow() };
         ctx.store.update((p) => { let q = p; defs.forEach((d, i) => { q = applyVariable(q, d.v, tuneRes.x[i]); }); Object.assign(p, q); }, { label: 'Apply tuned values' });
     });
 

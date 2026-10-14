@@ -13,11 +13,25 @@
    circular current loop", NASA Technical Report (2001); complete elliptic
    integrals K(m), E(m) by the arithmetic-geometric mean, Abramowitz & Stegun,
    Handbook of Mathematical Functions, §17.6. Units: mm, A, T.
+
+   Pole pieces (type 'poles'): infinitely permeable pieces are equipotentials
+   of a magnetic scalar potential ψ (T·mm) with B = −∇ψ in the current-free
+   gap (Jackson, Classical Electrodynamics, 3rd ed., §5.9; Griffiths §6.4 for
+   H = −∇ψ in linear media). ψ is solved on the domain grid with the same
+   Laplace machinery as the electric potential (pieces as Dirichlet
+   "electrodes", Neumann or ψ = 0 on the open edges, the domain's mirror and
+   anti-mirror planes inherited) and B comes from the C1 Hermite field grid.
+   Pieces are not obstacles for particles; B = 0 inside them.
    ========================================================================== */
 import { MU0 } from './constants.js';
+import { compileGeometry } from './geometry.js';
+import { buildHierarchy } from './operator.js';
+import { solveVoltages } from './solve.js';
+import { createFieldGrid } from './field.js';
 
 const MU0_MM = MU0 * 1e3;   // T·mm/A
 const DEG = Math.PI / 180;
+const num = (v, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 
 // Elliptic-integral scratch (typed, so field evaluation never allocates).
 const KE2 = new Float64Array(2);
@@ -110,20 +124,79 @@ function regionTest(region) {
     return () => false;
 }
 
+/** A pole-piece region as a shape of the ψ pseudo project (the region types share the shape parameter names). */
+function regionShape(region, electrode) {
+    const r = region || {};
+    const type = r.type || (Array.isArray(r.points) ? 'polygon' : (r.rOut !== undefined ? 'annulus' : 'box'));
+    if (type === 'polygon') return { type, electrode, points: (r.points || []).map((p) => [+p[0], +p[1]]) };
+    if (type === 'annulus') return { type, electrode, cx: +r.cx || 0, cy: +r.cy || 0, rIn: Math.max(0, +r.rIn || 0), rOut: +r.rOut, a0: r.a0 === undefined ? 0 : +r.a0, a1: r.a1 === undefined ? 360 : +r.a1 };
+    return { type: 'box', electrode, x0: Math.min(+r.x0, +r.x1), x1: Math.max(+r.x0, +r.x1), y0: Math.min(+r.y0, +r.y1), y1: Math.max(+r.y0, +r.y1) };
+}
+
+/**
+ * Solves the magnetic scalar potential of one 'poles' magnet on the domain grid and wraps it in a field grid.
+ * Returns null (with a warning) when no grid is available or the magnet has no pieces.
+ * @param {object} m resolved magnet { boundary: 'neumann'|'zero', pieces: [{ region, psi }] }
+ * @param {boolean} cyl @param {object|null} dom resolved domain @param {object[]} warnings @param {string} label
+ */
+function compilePoles(m, cyl, dom, warnings, label) {
+    const h = dom ? num(dom.h, num(dom.cell, 0)) : 0;
+    if (!dom || !Array.isArray(dom.x) || !Array.isArray(dom.y) || !(h > 0)) {
+        warnings.push({ path: 'magnets.' + label, code: 'W_POLES_NO_GRID', message: 'Pole pieces need the domain grid to solve their scalar potential; this magnet is ignored.' });
+        return null;
+    }
+    const pieces = (Array.isArray(m.pieces) ? m.pieces : []).filter((p) => p && p.region);
+    if (!pieces.length) return null;
+    const edge = m.boundary === 'zero' ? { bc: 'dirichlet', electrode: 'gnd' } : { bc: 'neumann' };
+    const domain = { type: cyl ? 'cyl2d' : 'planar2d', h, cell: h, x: dom.x.slice(), y: dom.y.slice(),
+        edges: { xmin: edge, xmax: edge, ymin: cyl ? { bc: 'axis' } : edge, ymax: edge },
+        mirror: { x: !!(dom.mirror && dom.mirror.x), y: !!(dom.mirror && dom.mirror.y) }, antimirror: { x: !!(dom.antimirror && dom.antimirror.x), y: !!(dom.antimirror && dom.antimirror.y) } };
+    if (typeof dom.nx === 'number') domain.nx = dom.nx;
+    if (typeof dom.ny === 'number') domain.ny = dom.ny;
+    const res = {
+        domain,
+        electrodes: [{ id: 'gnd', index: 0 }, ...pieces.map((p, i) => ({ id: 'pole' + i, index: i + 1 }))],
+        shapes: pieces.map((p, i) => ({ id: 'pole' + i, enabled: true, ...regionShape(p.region, 'pole' + i) })),
+        solver: { boundary: 'subgrid' },
+    };
+    const geo = compileGeometry(res);
+    const H = buildHierarchy(geo, res, {});
+    const psi = new Float64Array(pieces.length + 1);
+    for (let i = 0; i < pieces.length; i++) psi[i + 1] = +pieces[i].psi || 0;
+    const { phi, stats } = solveVoltages(H, psi, { tol: 1e-10 });
+    if (!stats.converged) warnings.push({ path: 'magnets.' + label, code: 'W_POLES_NOT_CONVERGED', message: 'The scalar-potential solve of the pole pieces did not converge.' });
+    const grid = createFieldGrid(H[0].raster, geo, { interp: 'cubic' });
+    grid.setChannels([phi], [psi]);
+    // the largest |∇ψ| on the free nodes bounds |B| (the tracer's gyration step cap)
+    let bMax = 0;
+    const cls = H[0].raster.cls;
+    for (let k = 0; k < H[0].N; k++) {
+        if (cls[k] !== -1) continue;
+        const nd = grid.nodal(k), b = Math.hypot(nd.px, nd.py);
+        if (b > bMax) bMax = b;
+    }
+    const g = H[0].grid, mx = !!g.mirror.x, my = !!g.mirror.y, amx = !!(g.antimirror && g.antimirror.x), amy = !!(g.antimirror && g.antimirror.y);
+    return { grid, bMax, mx, my, amx, amy, fx: mx || amx, fy: my || amy, stats, nodes: H[0].N };
+}
+
 /**
  * Compiles the enabled magnets of a resolved project.
  * add(x, y, z, out3, sig) adds B (T) at (x, y, z); with sig ≥ 0 the region membership is taken from the
  * signature bits instead of the position (used by the tracer to keep one field across a step).
- * @param {Array<object>} resolvedMagnets @param {'planar2d'|'cyl2d'} domainType
+ * 'poles' magnets need the resolved domain (grid, edges, symmetry planes) for their scalar-potential solve.
+ * @param {Array<object>} resolvedMagnets @param {'planar2d'|'cyl2d'} domainType @param {object|null} [domain] resolved domain
  */
-export function compileMagnets(resolvedMagnets, domainType) {
+export function compileMagnets(resolvedMagnets, domainType, domain = null) {
     const cyl = domainType === 'cyl2d';
     const list = (resolvedMagnets || []).filter((m) => m && m.enabled !== false);
     const warnings = [];
     let ubx = 0, uby = 0, ubz = 0, haveUniform = false;
-    const regions = [], loops = [];
+    const regions = [], loops = [], poles = [];
     for (const m of list) {
-        if (m.type === 'uniform') {
+        if (m.type === 'poles') {
+            const p = compilePoles(m, cyl, domain, warnings, m.id || String(poles.length));
+            if (p) poles.push(p);
+        } else if (m.type === 'uniform') {
             const B = vec3(m.B); ubx += B[0]; uby += B[1]; ubz += B[2]; haveUniform = haveUniform || B[0] !== 0 || B[1] !== 0 || B[2] !== 0;
         } else if (m.type === 'region') {
             const B = vec3(m.B);
@@ -152,8 +225,10 @@ export function compileMagnets(resolvedMagnets, domainType) {
     for (let i = 0; i < nR; i++) regMax = Math.max(regMax, Math.sqrt(rbx[i] * rbx[i] + rby[i] * rby[i] + rbz[i] * rbz[i]));
     bMax += regMax;
     for (const L of loops) if (L.a > 0) bMax += Math.abs(MU0_MM * L.turns * L.current / (2 * L.a));
-    const any = haveUniform || nR > 0 || nL > 0;
-    const out2 = new Float64Array(2);
+    const nP = poles.length;
+    for (const P of poles) bMax += P.bMax;
+    const any = haveUniform || nR > 0 || nL > 0 || nP > 0;
+    const out2 = new Float64Array(2), out3p = new Float64Array(3);
 
     const sigAt = (x, y, z) => {
         if (nR === 0) return 0;
@@ -181,10 +256,26 @@ export function compileMagnets(resolvedMagnets, domainType) {
             out3[0] += out2[1] * L.nx; out3[1] += out2[1] * L.ny; out3[2] += out2[1] * L.nz;
             if (rho > 0 && out2[0] !== 0) { const s = out2[0] / rho; out3[0] += s * px; out3[1] += s * py; out3[2] += s * pz; }
         }
+        // pole pieces: B = −∇ψ from the Hermite grid in plane coordinates, folded and sign-flipped at the symmetry planes
+        // (ψ even across a mirror: B_normal odd; ψ odd across an anti-mirror: B_tangential odd), zero outside the grid
+        for (let i = 0; i < nP; i++) {
+            const P = poles[i];
+            const X = P.fx && x < 0 ? -x : x;
+            let Y, rho = 0;
+            if (cyl) { rho = Math.sqrt(y * y + z * z); Y = rho; } else Y = P.fy && y < 0 ? -y : y;
+            if (P.grid.evalChannels(X, Y, out3p) === 3) continue;
+            let bx = out3p[1], bt = out3p[2];
+            if (P.mx && x < 0) bx = -bx;
+            if (P.amx && x < 0) bt = -bt;
+            if (!cyl) { if (P.my && y < 0) bt = -bt; if (P.amy && y < 0) bx = -bx; }
+            out3[0] += bx;
+            if (cyl) { if (rho >= 1e-12) { const s = bt / rho; out3[1] += s * y; out3[2] += s * z; } } else out3[1] += bt;
+        }
         return out3;
     };
     const PV = new Float64Array(4);
     const add = (x, y, z, out3, sig = -1) => { PV[1] = x; PV[2] = y; PV[3] = z; return addV(PV, out3, sig); };
 
-    return { any, hasRegions: nR > 0, nRegions: nR, bMax, uniform: [ubx, uby, ubz], add, addV, regionSig: sigAt, warnings };
+    return { any, hasRegions: nR > 0, nRegions: nR, nPoles: nP, bMax, uniform: [ubx, uby, ubz], add, addV, regionSig: sigAt, warnings,
+        poles: poles.map((P) => ({ bMax: P.bMax, nodes: P.nodes, stats: P.stats })) };
 }

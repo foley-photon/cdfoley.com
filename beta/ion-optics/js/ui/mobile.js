@@ -4,7 +4,7 @@
    Run, menu), canvas at 55vh with one-finger pan, pinch zoom and long-press
    probe, and a bottom sheet with Voltages (electrode and parameter
    sliders), Beam (count, energy, species), Results (Summary, TOF, Planes)
-   and More (Benchmarks, Share, Help). Drawing tools are hidden ("Geometry
+   and More (Presets, Share, Help, pinned runs, Benchmarks). Drawing tools are hidden ("Geometry
    editing needs a larger screen"); parameters stay editable.
    ========================================================================== */
 import { h, icon, clear } from './dom.js';
@@ -107,9 +107,37 @@ export function createMobile(ctx, app) {
             det.appendChild(box);
             let done = false;
             det.addEventListener('toggle', () => { if (det.open && !done) { done = true; if (app.mountPanelInto) app.mountPanelInto('bench', box); } });
-            host.append(h('div', { class: 'io-btnrow' }, presets, share, help), det,
+            host.append(h('div', { class: 'io-btnrow' }, presets, share, help), pinnedCard(), det,
                 h('p', { class: 'io-sheet-note', text: 'Geometry editing, the inspector and the other result tabs need a larger screen. Everything runs in this browser.' }));
         }
+    }
+    /**
+     * Runs pinned on a larger screen (saved in this browser) are drawn as dashed ghosts here too: the phone has no Compare
+     * tab, so this card hides them or unpins them all.
+     */
+    function pinnedCard() {
+        const card = h('div', { class: 'io-card io-phone-pins' });
+        const txt = h('p', { class: 'io-sheet-note' });
+        const hideB = h('button', { type: 'button', class: 'btn btn-secondary btn-sm' });
+        const unpinB = h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Unpin all' });
+        card.append(txt, h('div', { class: 'io-btnrow' }, hideB, unpinB));
+        const pins = () => store.get().runs || [];
+        const sync = () => {
+            const ps = pins(), shown = ps.filter((p) => p.visible !== false).length;
+            card.hidden = !ps.length;
+            txt.textContent = `${ps.length === 1 ? '1 pinned run' : `${ps.length} pinned runs`} (from the Compare tab on a larger screen); ${shown ? `${shown} drawn as dashed ghosts on the canvas when the geometry matches` : 'hidden on the canvas'}.`;
+            hideB.textContent = shown ? 'Hide on the canvas' : 'Show on the canvas';
+        };
+        hideB.addEventListener('click', () => { const show = !pins().some((p) => p.visible !== false); for (const p of pins()) store.pinRun({ ...p, visible: show }); });
+        unpinB.addEventListener('click', async () => {
+            const n = pins().length;
+            const ok = ctx.ui && ctx.ui.openDialog ? await ctx.ui.openDialog({ title: 'Unpin all runs', body: `Remove all ${n} pinned runs from this browser?`, actions: [{ label: 'Cancel', value: false }, { label: 'Unpin all', value: true, primary: true }] }) : true;
+            if (ok !== true) return;
+            for (const p of pins()) store.unpinRun(p.id);
+        });
+        store.on('runs', sync);
+        sync();
+        return card;
     }
     function beamPanel(host) {
         const box = h('div');

@@ -63,9 +63,10 @@ test('panel registry, context and coach-mark targets (§2.5)', async () => {
     const dock = Object.fromEntries(M.DOCK_PANELS.map((p) => [p.id, p.path]));
     assert.deepEqual(dock, {
         summary: './panels/results.js', hits: './panels/hits.js', planes: './panels/planes.js', tof: './panels/tof.js', lens: './panels/lens.js',
-        profile: './panels/profile.js', scan: './panels/scan.js', compare: './panels/compare.js', bench: './panels/benchmarks.js', log: './panels/log.js',
+        profile: './panels/profile.js', charges: './panels/charges.js', scan: './panels/scan.js', compare: './panels/compare.js', bench: './panels/benchmarks.js', log: './panels/log.js',
     });
-    assert.equal(M.DOCK_PANELS.find((p) => p.id === 'compare').planned, true);
+    assert.equal(M.DOCK_PANELS.find((p) => p.id === 'compare').planned, undefined, 'Compare is no longer planned');
+    assert.ok(M.DOCK_PANELS.every((p) => !p.planned), 'no planned dock panels remain');
     assert.equal(M.DOCK_PANELS.find((p) => p.id === 'scan').title, 'Scan & tune');
     assert.equal(M.DIALOG_MODULES.presets, './panels/presets.js');
     assert.equal(M.DIALOG_MODULES.guide, './panels/guide.js');

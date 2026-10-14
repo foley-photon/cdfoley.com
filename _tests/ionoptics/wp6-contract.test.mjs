@@ -13,6 +13,7 @@ import * as io from '../../beta/ion-optics/js/engine/io.js';
 import * as gallery from '../../beta/ion-optics/js/ui/panels/presets.js';
 import * as guide from '../../beta/ion-optics/js/ui/panels/guide.js';
 import { PRODUCT_NAME } from '../../beta/ion-optics/js/engine/version.js';
+import { BENCHMARKS } from '../../beta/ion-optics/js/engine/bench/cases.js';
 
 const { PRESETS, presetById, TAGS, DEFAULT_PRESET } = presetsIndex;
 const APP = new URL('../../beta/ion-optics/', import.meta.url);
@@ -243,10 +244,15 @@ test('the help page meets the page contract', () => {
     for (const id of ['quick-start', 'units', 'geometry', 'accuracy', 'methods', 'validation', 'shortcuts', 'limitations', 'privacy', 'about', 'references']) {
         assert.match(html, new RegExp(`<h2 id="${id}"`), `section ${id}`);
     }
-    const gates = [...Array(9)].map((_, i) => `K${i + 1}`).concat([...Array(10)].map((_, i) => `S${i + 1}`), [...Array(15)].map((_, i) => `T${i + 1}`), ['L1', 'L2', 'L3', 'L4']);
-    assert.equal(gates.length, 38);
-    for (const g of [...gates, 'L5', 'L6', 'L7', 'P1', 'P2', 'P3', 'P4']) assert.match(html, new RegExp(`<td class="io-id">${g}( |<)`), `case ${g} listed`);
-    for (const topic of ['cubic', 'linear', 'accuracy check', 'cells across the aperture radius', 'quasistatic', 'no space charge', 'fringe fields', 'drifts on', 'is uploaded']) {
+    // every registry case is listed in the validation table, and the counts in the text follow the registry
+    const gates = BENCHMARKS.filter((b) => b.kind === 'gate').map((b) => b.id);
+    assert.ok(gates.length >= 38, `${gates.length} gates`);
+    for (const g of BENCHMARKS.map((b) => b.id)) assert.match(html, new RegExp(`<td class="io-id">${g}( |<)`), `case ${g} listed`);
+    const nInfo = BENCHMARKS.filter((b) => b.kind === 'info').length, nPlanned = BENCHMARKS.filter((b) => b.kind === 'planned').length;
+    assert.ok(text.includes(`${gates.length} gates`), `help says "${gates.length} gates"`);
+    assert.ok(text.includes(`${nInfo} informational`), `help says "${nInfo} informational"`);
+    assert.ok(text.includes(`${nPlanned} planned`), `help says "${nPlanned} planned"`);
+    for (const topic of ['cubic', 'linear', 'accuracy check', 'cells across the aperture radius', 'quasistatic', 'onset estimator', 'particle-in-cell', 'fringe fields', 'drifts on', 'is uploaded']) {
         assert.ok(text.toLowerCase().includes(topic), `help mentions "${topic}"`);
     }
     // links: site assets absolute, everything inside the app relative

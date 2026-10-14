@@ -40,7 +40,7 @@ export function mount(el, ctx) {
             const els = (st.resolved && st.resolved.electrodes) || [];
             solverBox.append(h('h3', { class: 'io-card-title', text: 'Field solve' }), dataTable({
                 columns: ['Basis (electrode)', 'Method path', 'Cycles / iterations / sweeps', 'Estimated error (V/V)', 'Scaled residual', 'Levels', 'Time (ms)', 'Converged'],
-                rows: stats.map((s) => [els[s.k] ? els[s.k].name || els[s.k].id : String(s.k), (s.path || []).join(' → '), [s.cycles, s.iterations, s.sweeps].map((v) => v || 0).join(' / '), s.estErr, s.scaledResidual, s.levels, Math.round(s.ms || 0), s.converged === false ? 'no' : 'yes']),
+                rows: stats.map((s) => [els[s.k] ? els[s.k].name || els[s.k].id : (s.k < 0 ? 'Space charge' : String(s.k)), (s.path || []).join(' → '), [s.cycles, s.iterations, s.sweeps].map((v) => v || 0).join(' / '), s.estErr, s.scaledResidual, s.levels, Math.round(s.ms || 0), s.converged === false ? 'no' : 'yes']),
                 caption: 'Solver statistics per basis field',
             }));
         } else {

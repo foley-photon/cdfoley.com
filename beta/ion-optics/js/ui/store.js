@@ -272,11 +272,13 @@ export function createStore(project, opts = {}) {
             refreshStaleness();
             emit('run');
         },
-        /** Pins a run for comparison (at most 8). */
+        /** Pins a run for comparison (at most 8): a pin with a known id is replaced in place (its number and color stay). */
         pinRun(run) {
             if (!run) return;
-            const runs = state.runs.filter((r) => r.id !== run.id);
-            runs.push(run);
+            const runs = state.runs.slice();
+            const k = runs.findIndex((r) => r.id === run.id);
+            if (k >= 0) runs[k] = run;
+            else runs.push(run);
             while (runs.length > 8) runs.shift();
             state.runs = runs;
             emit('runs');

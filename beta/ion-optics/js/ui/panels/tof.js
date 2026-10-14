@@ -3,8 +3,9 @@
    Time-of-flight histogram per species at a plane, a peak table (mean, σ,
    resolving power from the rms width R = t̄/(2·2.3548σ) with its bootstrap
    range, from the narrowest 76.1% of the arrivals, and from the FWHM of
-   interpolated half-maximum crossings, flagged when the peak is narrower
-   than the histogram resolution) and the calibration t = a·√(m/q) + b
+   interpolated half-maximum crossings, marked unreliable unless it spans
+   ≥ 4 bins and is stable over a 50-resample bootstrap, with a per-peak
+   caveat for cusp-shaped peaks) and the calibration t = a·√(m/q) + b
    (Wiley & McLaren, Rev. Sci. Instrum. 26, 1150 (1955)).
    ========================================================================== */
 import { tofPeaks } from '../analysis-jobs.js';
@@ -42,18 +43,21 @@ export function mount(el, ctx) {
         const series = t.hist.map((hh) => ({ label: hh.label, edges: hh.edges, counts: hh.counts }));
         const rows = [];
         for (const hh of t.hist) for (let i = 0; i < hh.counts.length; i++) rows.push([hh.label, hh.edges[i], hh.edges[i + 1], hh.counts[i]]);
-        blocks.push(chartBlock(chartBox, { title: `Time of flight at ${planes[cur].name || planes[cur].id}`, plot: barsPlot({ series, xLabel: 't (µs)' }), columns: ['species', 'bin_low_us', 'bin_high_us', 'count'], rows, csvName: 'tof-histogram' }));
+        // with source weights other than 1 the bars count Σw (the peak statistics below stay unweighted)
+        const cnt = t.weighted ? 'weighted_count' : 'count', wNote = t.weighted ? ' (weighted)' : '';
+        blocks.push(chartBlock(chartBox, { title: `Time of flight at ${planes[cur].name || planes[cur].id}${wNote}`, plot: barsPlot({ series, xLabel: 't (µs)' }), columns: ['species', 'bin_low_us', 'bin_high_us', cnt], rows, csvName: 'tof-histogram' }));
         // one zoomed chart per peak: mean ± 4σ (or ± 2·FWHM), with the half-maximum width marked
         const grid = h('div', { class: 'io-plane-hists' });
         chartBox.appendChild(grid);
         for (const p of t.peaks) {
             if (!(p.stats.n > 1)) continue;
             const half = Math.max(4 * p.stats.std, 2 * p.stats.fwhm) || Math.abs(p.stats.mean) * 1e-6 || 1e-9;
-            const inside = p.t.filter((x) => Math.abs(x - p.stats.mean) <= half);
-            const hh = displayHistogram(inside, 't (µs)', { minBins: 12, maxBins: 60, offsetBelow: 0.05 });
+            const keep = p.t.map((x) => Math.abs(x - p.stats.mean) <= half);
+            const inside = p.t.filter((x, i) => keep[i]);
+            const hh = displayHistogram(inside, 't (µs)', { minBins: 12, maxBins: 60, offsetBelow: 0.05, weights: p.w ? p.w.filter((x, i) => keep[i]) : null });
             const vl = Number.isFinite(p.stats.fwhm) ? [{ x: p.stats.tPeak - p.stats.fwhm / 2 - hh.offset, label: 'FWHM' }, { x: p.stats.tPeak + p.stats.fwhm / 2 - hh.offset }] : [];
             blocks.push(chartBlock(grid, { title: `${p.label}: R ≈ ${fmtNum(p.stats.resolvingPowerRms, 2)} (rms width)`, plot: barsPlot({ series: [{ label: p.label, edges: hh.edges, counts: hh.counts }], xLabel: hh.label, vlines: vl }), height: 170,
-                columns: ['bin_low_us', 'bin_high_us', 'count'], rows: hh.counts.map((c, i) => [hh.edges[i] + hh.offset, hh.edges[i + 1] + hh.offset, c]), csvName: `tof-peak-${p.label}` }));
+                columns: ['bin_low_us', 'bin_high_us', cnt], rows: hh.counts.map((c, i) => [hh.edges[i] + hh.offset, hh.edges[i + 1] + hh.offset, c]), csvName: `tof-peak-${p.label}` }));
         }
         // R to two significant figures: with a few hundred ions the statistical spread is ±5-15%
         const r2 = (v) => (Number.isFinite(v) ? parseFloat(v.toPrecision(2)) : v);
@@ -71,7 +75,8 @@ export function mount(el, ctx) {
         peaksBox.append(h('h3', { class: 'io-card-title', text: 'Peaks' }), dataTable({ columns: cols, rows: prow, caption: 'Peak statistics' }), csv,
             h('p', { class: 'io-note', text: 'R (rms) uses the FWHM of a Gaussian with the same rms width; it is the robust value that Scan & tune optimizes. '
                 + 'For peaks that are not Gaussian (a steep leading edge is common after a mirror) the three values differ, and the FWHM value depends on the number of ions. '
-                + 'The FWHM of a sharply peaked (cusp-shaped) distribution is biased high by up to about a quarter, so its R (FWHM) reads low; compare R (rms) and R (narrowest 76%). '
+                + 'R (FWHM) is marked "not reliable" unless the half-maximum width spans at least 4 histogram bins and, over a bootstrap of 50 resamples of the arrivals, neither follows the bin width nor varies by more than 30%; '
+                + 'a sharply peaked (cusp-shaped) peak that passes is noted, because its FWHM from the smoothed histogram is biased high by up to about a quarter. '
                 + 'The range is a 68% bootstrap interval from the finite number of ions.'
                 + (mixedFlags ? ' The FWHM reliability mark differs between the species of this run: the mark is itself a statistical test on a few hundred ions, so treat the FWHM values of all species with the same caution.' : '') }));
         // separation of neighbouring peaks in units of their rms-based width (2.3548σ)

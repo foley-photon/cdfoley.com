@@ -25,9 +25,9 @@ function makeCanvas(w, hgt) {
  * setSource() takes the displayed potential on the level-0 grid; the getters build lazily and cache.
  */
 export function createFieldLayer() {
-    let src = null;            // { key, phi, nx, ny, x0, y0, h, mirrorX, mirrorY, cyl }
+    let src = null;            // { key, phi, nx, ny, x0, y0, h, mirrorX, mirrorY, oddX?, oddY?, cyl }; odd = anti-mirror (φ changes sign)
     let range = null;          // { vmin, vmax }
-    let img = null, imgKey = '';
+    let img = null, imgKey = '', imgNeg = null, imgNegKey = '';
     let emagImg = null, emagKey = '';
     let cont = null, contKey = '';
     let bic = null, bicKey = '';
@@ -43,6 +43,8 @@ export function createFieldLayer() {
             if (!(lo <= hi)) { lo = 0; hi = 0; }
             if (lo > 0) lo = Math.min(lo, 0);
             if (hi < 0) hi = Math.max(hi, 0);
+            // an anti-mirrored half shows −φ, so the displayed range is symmetric
+            if (s.oddX || s.oddY) { const a = Math.max(-lo, hi); lo = -a; hi = a; }
             range = { vmin: lo, vmax: hi };
         }
     }
@@ -55,22 +57,25 @@ export function createFieldLayer() {
         return { name, lo: nz.lo, hi: nz.hi, vmin: range.vmin, vmax: range.vmax, t: nz.t };
     }
 
-    /** nx × ny canvas of the potential (row 0 = top = highest j). */
-    function potentialImage(setting) {
+    /** nx × ny canvas of the potential (row 0 = top = highest j); sign −1 gives the image of −φ for an anti-mirrored half. */
+    function potentialImage(setting, sign = 1) {
         if (!src) return null;
         const m = mapping(setting);
-        const key = src.key + '|' + m.name + '|' + m.lo + '|' + m.hi;
-        if (img && imgKey === key) return { canvas: img, map: m };
+        const neg = sign < 0;
+        const key = src.key + '|' + m.name + '|' + m.lo + '|' + m.hi + (neg ? '|neg' : '');
+        if (!neg && img && imgKey === key) return { canvas: img, map: m };
+        if (neg && imgNeg && imgNegKey === key) return { canvas: imgNeg, map: m };
         const { nx, ny, phi } = src;
-        const c = (img && img.width === nx && img.height === ny) ? img : makeCanvas(nx, ny);
+        const old = neg ? imgNeg : img;
+        const c = (old && old.width === nx && old.height === ny) ? old : makeCanvas(nx, ny);
         const ctx = c.getContext('2d');
         const id = ctx.createImageData(nx, ny);
         const d = id.data, lut = getLut(m.name);
-        const inv = 255 / (m.hi - m.lo), lo = m.lo;
+        const inv = 255 / (m.hi - m.lo), lo = m.lo, sg = neg ? -1 : 1;
         for (let j = 0; j < ny; j++) {
             const row = (ny - 1 - j) * nx;
             for (let i = 0; i < nx; i++) {
-                const v = phi[j * nx + i];
+                const v = sg * phi[j * nx + i];
                 let q = v !== v ? 128 : Math.round((v - lo) * inv);
                 q = q < 0 ? 0 : q > 255 ? 255 : q;
                 const o = 4 * (row + i);
@@ -78,8 +83,8 @@ export function createFieldLayer() {
             }
         }
         ctx.putImageData(id, 0, 0);
-        img = c; imgKey = key;
-        return { canvas: img, map: m };
+        if (neg) { imgNeg = c; imgNegKey = key; } else { img = c; imgKey = key; }
+        return { canvas: c, map: m };
     }
 
     /** nx × ny canvas of log10 |E| (central differences; masked nodes transparent). */
@@ -170,26 +175,27 @@ export function createFieldLayer() {
         const m = mapping(setting);
         const pw = Math.round(view.W * view.dpr), ph = Math.round(view.H * view.dpr);
         if (pw * ph > 8e6) return null;
-        const key = [src.key, m.name, m.lo, m.hi, view.cx, view.cy, view.scale, pw, ph, src.mirrorX, src.mirrorY].join('|');
+        const key = [src.key, m.name, m.lo, m.hi, view.cx, view.cy, view.scale, pw, ph, src.mirrorX, src.mirrorY, !!src.oddX, !!src.oddY].join('|');
         if (bic && bicKey === key) return bic;
         const c = (bic && bic.width === pw && bic.height === ph) ? bic : makeCanvas(pw, ph);
         const ctx = c.getContext('2d');
         const id = ctx.createImageData(pw, ph), d = id.data;
         const lut = getLut(m.name), inv = 255 / (m.hi - m.lo), lo = m.lo;
         const { nx, ny, x0, y0, h, phi, mirrorX, mirrorY } = src;
+        const oddX = !!src.oddX, oddY = !!src.oddY;
         const s = view.scale * view.dpr, ih = 1 / h;
         const X1 = x0 + (nx - 1) * h, Y1 = y0 + (ny - 1) * h;
         const wx = new Float64Array(4), wy = new Float64Array(4);
         for (let py = 0; py < ph; py++) {
-            let y = view.cy - (py + 0.5 - ph / 2) / s;
-            if (mirrorY && y < 0) y = -y;
+            let y = view.cy - (py + 0.5 - ph / 2) / s, sy = 1;
+            if (mirrorY && y < 0) { y = -y; if (oddY) sy = -1; }
             const fy = (y - y0) * ih;
             if (!(y >= y0 - 0.5 * h && y <= Y1 + 0.5 * h)) continue;
             let j = Math.floor(fy); const ty = fy - j;
             keys(ty, wy);
             for (let px = 0; px < pw; px++) {
-                let x = view.cx + (px + 0.5 - pw / 2) / s;
-                if (mirrorX && x < 0) x = -x;
+                let x = view.cx + (px + 0.5 - pw / 2) / s, sg = sy;
+                if (mirrorX && x < 0) { x = -x; if (oddX) sg = -sg; }
                 if (!(x >= x0 - 0.5 * h && x <= X1 + 0.5 * h)) continue;
                 const fx = (x - x0) * ih;
                 const i = Math.floor(fx), tx = fx - i;
@@ -205,6 +211,7 @@ export function createFieldLayer() {
                     }
                     v += wy[b] * acc;
                 }
+                v *= sg;
                 let q = Math.round((v - lo) * inv); q = q < 0 ? 0 : q > 255 ? 255 : q;
                 const o = 4 * (py * pw + px);
                 d[o] = lut[3 * q]; d[o + 1] = lut[3 * q + 1]; d[o + 2] = lut[3 * q + 2]; d[o + 3] = 255;

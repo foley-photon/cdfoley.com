@@ -65,7 +65,8 @@ export function table(results) {
 }
 
 function goldenOf(results, level, prev = {}) {
-    const g = { engineVersion: ENGINE_VERSION, note: 'Check values of the validation suite; bench.mjs --update-golden rewrites the level that was run.', ...prev };
+    // the engine version of the file follows the engine that wrote it last (an earlier file's version must not win)
+    const g = { ...prev, engineVersion: ENGINE_VERSION, note: 'Check values of the validation suite; bench.mjs --update-golden rewrites the level that was run.' };
     g[level] = {};
     for (const r of results) {
         if (!r.checks || !r.checks.length) continue;

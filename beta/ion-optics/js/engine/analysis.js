@@ -33,6 +33,7 @@ import {
     C_STRIDE, C_ID, C_PLANE, C_X, C_Y, C_Z, C_VX, C_VY, C_VZ, C_DIR, C_KIND,
     STATUS, STATUS_NAMES, FLAG,
 } from './layout.js';
+import { weightedSummary } from './particles.js';
 
 const AXIS = { x: C_X, y: C_Y, z: C_Z };
 const VAXIS = { x: C_VX, y: C_VY, z: C_VZ };
@@ -55,10 +56,13 @@ function axisCol(a) {
  *   bySpecies: Array<{ source: number, species: number, label: string|null, mass: number|null, charge: number|null, launched: number, detected: number, transmission: number }>,
  *   transmission: { overall: number, byPlane: Array<{ index: number, id: string|null, name: string|null, detected: number, fraction: number }> },
  *   energy: { maxEnd: number, medianEnd: number, maxEndRel: number, maxPath: number, maxWork: number, warned: number,
- *     warnedHit: number, warnedBand: number } }}
+ *     warnedHit: number, warnedBand: number, notChecked: null|'plugins'|'time'|'outside' }, weighted: object }}
+ * weighted is particles.weightedSummary: Σw launched and detected, the weighted transmission, per plane and per source.
  * energy.maxEndRel is relative to max(KE at the start, KE at the end, |q|·(largest − smallest electrode voltage)); warned counts
  * the flagged particles that did not end on an electrode (warnedHit those that did), warnedBand those among them whose error
  * comes from the field in cells cut by electrodes (time spent there, integrator work error under 1% of the energy error).
+ * energy.notChecked says why no particle has an energy error (null when some do): 'plugins' (drag, gas collisions or
+ * space charge change the energy), 'time' (time-dependent fields), 'outside' (every particle ended outside the grid).
  */
 export function summarize(result, resolved = null) {
     const n = result ? result.n : 0;
@@ -162,6 +166,14 @@ export function summarize(result, resolved = null) {
     }
     dEnds.sort((a, b) => a - b);
     const medianEnd = dEnds.length ? (dEnds.length % 2 ? dEnds[(dEnds.length - 1) / 2] : 0.5 * (dEnds[dEnds.length / 2 - 1] + dEnds[dEnds.length / 2])) : NaN;
+    let notChecked = null;
+    if (!dEnds.length && n > 0) {
+        const tr = (resolved && resolved.tracer) || {};
+        const gasOn = !!(tr.gas && tr.gas.enabled !== false && tr.gas.pressure > 0);
+        let td = false;
+        for (let i = 0; i < n && !td; i++) if ((S[i * S_STRIDE + S_FLAGS] & FLAG.TD_FIELDS) !== 0) td = true;
+        notChecked = tr.spaceCharge || tr.drag || gasOn ? 'plugins' : (td ? 'time' : 'outside');
+    }
     const bySpecies = [...spMap.values()].sort((a, b) => a.source - b.source || a.species - b.species);
     for (const r of bySpecies) r.transmission = r.launched > 0 ? r.detected / r.launched : 0;
     const traced = n - byStatus.CANCELLED;
@@ -171,7 +183,10 @@ export function summarize(result, resolved = null) {
             overall: n > 0 ? detected / n : 0,
             byPlane: byPlane.filter((p) => p.terminate || p.detected > 0).map((p) => ({ index: p.index, id: p.id, name: p.name, detected: p.detected, fraction: n > 0 ? p.detected / n : 0 })),
         },
-        energy: { maxEnd: dEnds.length ? maxEnd : NaN, medianEnd, maxEndRel: dEnds.length ? maxEndRel : NaN, maxPath, maxWork, warned, warnedHit, warnedBand },
+        energy: { maxEnd: dEnds.length ? maxEnd : NaN, medianEnd, maxEndRel: dEnds.length ? maxEndRel : NaN, maxPath, maxWork, warned, warnedHit, warnedBand, notChecked },
+
+        // the counts above with every particle carrying its source's statistical weight (1 by default)
+        weighted: weightedSummary(result, resolved),
     };
 }
 
@@ -283,16 +298,21 @@ export function waist(rows, axis = 'x') {
  * (source, species) and the waist is found per group, because a dispersive device (a mass spectrometer) images each
  * species in its own spot: the pooled rms would be dominated by the spot separation and its minimum would land where
  * the species lines happen to cross. The reported position is the particle-weighted mean of the group waists and the
- * rms is the within-group rms there; `groups` lists each group. The waist is reported only when it is meaningful: rays
- * continue as straight lines from the plane, so the straight path from the plane back (or on) to every group's waist
- * must be field-free (|E| ≤ 1e-4 of the largest electrode voltage per cell, sampled along the group centroid at
+ * rms is the within-group rms there; `groups` lists each group with its centroid at the plane. When groups of different
+ * species land in separate spots (centroid distance at the plane larger than the largest within-group rms, at the plane
+ * or at the waist, of the pair), the beam is dispersed and no single waist is reported (`dispersed`, ok false): the
+ * per-group waists in `groups` are then the images of the species. The waist is reported only when it is meaningful:
+ * rays continue as straight lines from the plane, so the straight path from the plane back (or on) to every group's
+ * waist must be field-free (|E| ≤ 1e-4 of the largest electrode voltage per cell, sampled along the group centroid at
  * t = 0 and, for time-dependent fields, a quarter period later; no magnetic field there either); every group waist must
  * lie inside the domain or in a drift region beyond it; and the within-group rms size must change by more than 1%
  * between the plane and the waist (else the beam is parallel).
  * @param {object} result TraceResult @param {object} resolved @param {object|null} [model] FieldModel for the field test
  * @returns {null|{ plane: number, id: string|null, name: string, axis: 'x'|'y'|'z', position: number, rms: number, rmsAtPlane: number,
- *   spread: number, groups: { label: string, n: number, position: number, rms: number, rmsAtPlane: number }[], ok: boolean, reason: string|null }}
- *   ok false with a reason when a waist was found but is not meaningful; `spread` = largest − smallest group position (0 for one group)
+ *   spread: number, dispersed: boolean, groups: { label: string, species: string, n: number, position: number, rms: number, rmsAtPlane: number, centroid: number[] }[],
+ *   ok: boolean, reason: string|null }}
+ *   ok false with a reason when a waist was found but is not meaningful (or the beam is dispersed); `spread` = largest − smallest
+ *   group position (0 for one group); `centroid` = the group's mean transverse position at the plane (the two coordinates other than the axis)
  */
 export function beamWaist(result, resolved, model = null) {
     if (!result || !resolved || !(result.nCross > 0)) return null;
@@ -322,14 +342,17 @@ export function beamWaist(result, resolved, model = null) {
         if (!g) {
             const s = sources[src], spec = s && s.species ? s.species[sp] : null;
             const label = (spec && spec.label) || (spec ? `${spec.mass} u` : `species ${sp}`);
-            g = { label: sources.length > 1 && s ? `${s.name || s.id}: ${label}` : label, idx: [] };
+            // the same ion from two sources is one species; different ions are what a mass spectrometer disperses
+            const species = spec && Number.isFinite(spec.mass) ? `${spec.mass}/${spec.charge}` : `s${src}:${sp}`;
+            g = { label: sources.length > 1 && s ? `${s.name || s.id}: ${label}` : label, species, idx: [] };
             groups.set(key, g);
         }
         g.idx.push(i);
     }
-    const out = { plane: k, id: plane.id ?? null, name: plane.name || plane.id || `plane ${k}`, axis, position: NaN, rms: NaN, rmsAtPlane: NaN, spread: 0, groups: [], ok: true, reason: null };
+    const out = { plane: k, id: plane.id ?? null, name: plane.name || plane.id || `plane ${k}`, axis, position: NaN, rms: NaN, rmsAtPlane: NaN, spread: 0, dispersed: false, groups: [], ok: true, reason: null };
     const fail = (reason) => { out.ok = false; out.reason = reason; return out; };
     const d = resolved.domain || {}, ai = { x: 0, y: 1, z: 2 }[axis];
+    const COLS = [C_X, C_Y, C_Z], tcols = [0, 1, 2].filter((a) => a !== ai);
     const box = model && model.box ? [[model.box.xmin, model.box.xmax], [model.box.ymin, model.box.ymax], [model.box.zmin, model.box.zmax]][ai] : null;
     const e4 = new Float64Array(4), b3 = new Float64Array(3);
     const thr = model ? 1e-4 * Math.max(model.vSpan > 0 ? model.vSpan : 0, 1e-12) / (model.h > 0 ? model.h : 1) : 0;
@@ -341,7 +364,10 @@ export function beamWaist(result, resolved, model = null) {
         g.idx.forEach((i, j) => rows.set(all.subarray(i * C_STRIDE, (i + 1) * C_STRIDE), j * C_STRIDE));
         const w = waist(rows, axis);
         if (!(Number.isFinite(w.position) && Number.isFinite(w.rms)) || w.n < 2) continue;
-        out.groups.push({ label: g.label, n: w.n, position: w.position, rms: w.rms, rmsAtPlane: w.rmsAtPlane });
+        // the group's centroid at the plane: the transverse pair is its spot, the axial coordinate the plane itself
+        const n = g.idx.length, p = [0, 0, 0];
+        for (let j = 0; j < n; j++) for (let a = 0; a < 3; a++) p[a] += rows[j * C_STRIDE + COLS[a]] / n;
+        out.groups.push({ label: g.label, species: g.species, n: w.n, position: w.position, rms: w.rms, rmsAtPlane: w.rmsAtPlane, centroid: tcols.map((a) => p[a]) });
         nTot += w.n; posSum += w.n * w.position; r2Sum += w.n * w.rms * w.rms; a2Sum += w.n * w.rmsAtPlane * w.rmsAtPlane;
         posMin = Math.min(posMin, w.position); posMax = Math.max(posMax, w.position);
         // inside the domain, or beyond an edge where particles drift
@@ -351,8 +377,6 @@ export function beamWaist(result, resolved, model = null) {
         }
         // field-free straight path between the plane and this group's waist, along the group centroid
         if (out.ok && model && typeof model.E === 'function') {
-            const n = g.idx.length, p = [0, 0, 0];
-            for (let j = 0; j < n; j++) for (let a = 0; a < 3; a++) p[a] += rows[j * C_STRIDE + [C_X, C_Y, C_Z][a]] / n;
             for (let m = 0; m <= 24 && out.ok; m++) {
                 p[ai] = w.planePosition + (w.position - w.planePosition) * m / 24;
                 for (const t of times) {
@@ -368,6 +392,14 @@ export function beamWaist(result, resolved, model = null) {
     }
     if (!out.groups.length || nTot < 3) return null;
     out.position = posSum / nTot; out.rms = Math.sqrt(r2Sum / nTot); out.rmsAtPlane = Math.sqrt(a2Sum / nTot); out.spread = posMax - posMin;
+    // dispersed beam: two species land in separate spots (centroids further apart than the larger of their within-group rms)
+    const G = out.groups;
+    for (let a = 0; a < G.length && !out.dispersed; a++) for (let b = a + 1; b < G.length; b++) {
+        if (G[a].species === G[b].species) continue;
+        const dist = Math.hypot(G[a].centroid[0] - G[b].centroid[0], G[a].centroid[1] - G[b].centroid[1]);
+        if (dist > Math.max(G[a].rmsAtPlane, G[b].rmsAtPlane, G[a].rms, G[b].rms, 1e-9)) { out.dispersed = true; break; }
+    }
+    if (out.ok && out.dispersed) fail('the beam is dispersed into separate species spots, so there is no single waist; each species is imaged on its own');
     if (!out.ok) return out;
     if (!(out.rmsAtPlane > 0) || Math.abs(out.rmsAtPlane - out.rms) <= 0.01 * out.rmsAtPlane) return fail('parallel beam: the rms size hardly changes');
     return out;
@@ -523,22 +555,30 @@ function bootstrapHalfMax(values, lo, hi, nb, reps) {
  * narrowest interval holding 76.1% of the values (w76, the FWHM of a Gaussian) with R = t̄/(2·w76) (resolvingPower76).
  * The half-maximum width comes from a histogram padded by empty bins (so both crossings exist) and re-binned (keeping
  * ≥ 5 values per bin on average) until it spans ≥ 5 bins; it is then corrected in quadrature for the bin and smoothing
- * widths. It counts as resolved (`fwhmResolved`) when it spans ≥ 2 bins and, over a deterministic bootstrap of the
- * values, halving the bin width changes its median by < 25% and its 16–84% spread is < 30% of its median (a single
- * histogram at ≈ 5 values per bin is too noisy for that decision); otherwise (a peak with a steep edge, whose
- * half-maximum width shrinks with the bin width, or too few values) the note says so. The FWHM of a sharply peaked
- * (cusp-shaped) distribution is biased high by up to about a quarter, because the smoothing broadens a cusp by more
- * than the Gaussian-equivalent width that is removed; the rms-based and 76% values are the ones to compare.
+ * widths. It counts as resolved (`fwhmResolved`) when it spans ≥ 4 bins and, over a deterministic bootstrap of 50
+ * resamples of the values (20 above 50,000 values), halving the bin width changes its median by < 25% and its 16–84%
+ * spread is < 30% of its median (a single histogram at ≈ 5 values per bin is too noisy for that decision); otherwise
+ * (a peak with a steep edge, whose half-maximum width shrinks with the bin width, or too few values) the note says so.
+ * Measured on 200 seeds per size: a peak with density ∝ 1/√(t − t₀) (no finite half-maximum width) is marked resolved
+ * in 0 of 200 cases at n = 100–4000 (its width spans fewer than 4 bins), Gaussians in 96–100% at n ≥ 250 and 38% at
+ * n = 100. Crossings on the unsmoothed counts were tried and rejected: at ≈ 5 values per bin they halve the Gaussian
+ * resolve rate at n = 250 and leave the cusp bias in place, so a resolved peak that is much narrower than its
+ * narrowest-76% width (FWHM < 0.75·w76: a cusp or long tails) carries the caveat instead: the FWHM of a sharply
+ * peaked (cusp-shaped) distribution from the smoothed histogram is biased high by up to about a quarter (the smoothing
+ * broadens a cusp by more than the Gaussian-equivalent width that is removed), so the rms-based and 76% values are the
+ * ones to compare. A resolved width spanning 4–5 bins is uncorrected and noted (about a tenth high).
  * Below 30 values the FWHM is 2.3548σ (noted).
  * @param {ArrayLike<number>} values
  * @returns {{ n: number, mean: number, std: number, fwhm: number, tPeak: number, resolvingPower: number, resolvingPowerRms: number,
- *   w76: number, resolvingPower76: number, binWidth: number, fwhmResolved: boolean, fwhmRatio: number, fwhmSpread: number, note: string|null }}
- *   fwhmRatio: median FWHM(2× bins)/FWHM over the bootstrap; fwhmSpread: its 16–84% relative spread (NaN below 30 values)
+ *   w76: number, resolvingPower76: number, binWidth: number, fwhmBins: number, fwhmResolved: boolean, cuspLike: boolean, fwhmRatio: number,
+ *   fwhmSpread: number, note: string|null }}
+ *   fwhmBins: bins spanned by the (uncorrected) half-maximum width; cuspLike: FWHM < 0.75·w76; fwhmRatio: median
+ *   FWHM(2× bins)/FWHM over the bootstrap; fwhmSpread: its 16–84% relative spread (NaN below 30 values)
  */
 export function peakStats(values) {
     const v = finiteValues(values);
     const n = v.length;
-    if (n === 0) return { n: 0, mean: NaN, std: NaN, fwhm: NaN, tPeak: NaN, resolvingPower: NaN, resolvingPowerRms: NaN, w76: NaN, resolvingPower76: NaN, binWidth: NaN, fwhmResolved: false, fwhmRatio: NaN, fwhmSpread: NaN, note: 'no values' };
+    if (n === 0) return { n: 0, mean: NaN, std: NaN, fwhm: NaN, tPeak: NaN, resolvingPower: NaN, resolvingPowerRms: NaN, w76: NaN, resolvingPower76: NaN, binWidth: NaN, fwhmBins: NaN, fwhmResolved: false, cuspLike: false, fwhmRatio: NaN, fwhmSpread: NaN, note: 'no values' };
     let s = 0;
     for (const x of v) s += x;
     const mean = s / n;
@@ -551,8 +591,8 @@ export function peakStats(values) {
     const w76 = shortestInterval(v, 0.761);
     if (n < 30 || !(std > 0)) {
         const fwhm = FWHM_PER_SIGMA * std;
-        return { n, mean, std, fwhm, tPeak: mean, resolvingPower: rPow(fwhm), resolvingPowerRms, w76, resolvingPower76: rPow(w76), binWidth: NaN, fwhmResolved: false,
-            fwhmRatio: NaN, fwhmSpread: NaN, note: n < 30 ? 'FWHM = 2.3548 sigma (fewer than 30 values)' : null };
+        return { n, mean, std, fwhm, tPeak: mean, resolvingPower: rPow(fwhm), resolvingPowerRms, w76, resolvingPower76: rPow(w76), binWidth: NaN, fwhmBins: NaN, fwhmResolved: false,
+            cuspLike: false, fwhmRatio: NaN, fwhmSpread: NaN, note: n < 30 ? 'FWHM = 2.3548 sigma (fewer than 30 values)' : null };
     }
     const lo = v[0], hi = v[n - 1];
     let nb = fdBins(v, lo, hi, 10);
@@ -566,11 +606,22 @@ export function peakStats(values) {
     const fwhm = correctedFwhm(r);
     // convergence test: a true half-maximum width does not follow the bin width, and a converged one is statistically stable
     const bs = bootstrapHalfMax(v, lo, hi, nb, n > 50000 ? 20 : 50);
-    const fwhmResolved = r.fwhm >= 2 * r.w && Math.abs(bs.ratio - 1) < 0.25 && bs.spread < 0.30;
-    const note = fwhmResolved ? null
-        : (bs.spread >= 0.25 && Math.abs(bs.ratio - 1) < 0.25) ? 'the half-maximum width is statistically unstable with this number of values, so R from the FWHM is not reliable; use the rms-based R'
-            : 'the half-maximum width follows the histogram bin width (a peak with a steep edge), so R from the FWHM is not reliable; use the rms-based R';
-    return { n, mean, std, fwhm, tPeak: r.tPeak, resolvingPower: rPow(fwhm), resolvingPowerRms, w76, resolvingPower76: rPow(w76), binWidth: r.w, fwhmResolved, fwhmRatio: bs.ratio, fwhmSpread: bs.spread, note };
+    const fwhmBins = r.fwhm / r.w;
+    // every false positive of the 1/√ edge peak spans fewer than 4 bins; Gaussians of ≥ 250 values span ≥ 5
+    const fwhmResolved = fwhmBins >= 4 && Math.abs(bs.ratio - 1) < 0.25 && bs.spread < 0.30;
+    const cuspLike = fwhmResolved && w76 > 0 && fwhm < 0.75 * w76;
+    let note = null;
+    if (!fwhmResolved) {
+        note = fwhmBins < 4 ? 'the half-maximum width spans fewer than 4 histogram bins (a peak with a steep edge), so R from the FWHM is not reliable; use the rms-based R'
+            : (bs.spread >= 0.25 && Math.abs(bs.ratio - 1) < 0.25) ? 'the half-maximum width is statistically unstable with this number of values, so R from the FWHM is not reliable; use the rms-based R'
+                : 'the half-maximum width follows the histogram bin width (a peak with a steep edge), so R from the FWHM is not reliable; use the rms-based R';
+    } else {
+        const caveats = [];
+        if (cuspLike) caveats.push('the peak is much narrower than its narrowest-76% width (a cusp-shaped or long-tailed peak): the FWHM from the smoothed histogram is biased high by up to about a quarter, so R (FWHM) reads low; compare R (rms) and R (narrowest 76%)');
+        if (fwhmBins < 5) caveats.push('the half-maximum width spans fewer than 5 bins, so it is not corrected for the bin width and reads about a tenth high');
+        if (caveats.length) note = caveats.join('; ');
+    }
+    return { n, mean, std, fwhm, tPeak: r.tPeak, resolvingPower: rPow(fwhm), resolvingPowerRms, w76, resolvingPower76: rPow(w76), binWidth: r.w, fwhmBins, fwhmResolved, cuspLike, fwhmRatio: bs.ratio, fwhmSpread: bs.spread, note };
 }
 
 /**

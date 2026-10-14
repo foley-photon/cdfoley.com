@@ -67,7 +67,10 @@ export const FALLBACK_META = Object.freeze({
     'shape.polyline': [{ key: 'points', label: 'Points (x, y per line)', kind: 'points', dims: ['length', 'length'], minItems: 2, help: 'Zero thickness: a sheet or a mesh line.' }],
     'shape.quadric': [N('A', 'A', 'none'), N('B', 'B', 'none'), N('C', 'C', 'none', { help: 'Inside: A(x−cx)² + B(y−cy)² ≥ C within the clip box.' }), L('cx', 'Center x'), L('cy', 'Center y'), { key: 'clip', label: 'Clip box [x0, x1, y0, y1]', kind: 'vec4', dim: 'length' }],
     transform: [V2('translate', 'Translate [dx, dy]', 'length'), N('rotate', 'Rotate', 'angle'), V2('about', 'Pivot [x, y]', 'length'), SEL('mirror', 'Mirror', [{ value: 'none', label: 'None' }, { value: 'x', label: 'Flip x' }, { value: 'y', label: 'Flip y' }, { value: 'xy', label: 'Flip both' }])],
-    magnet: [TXT('name', 'Name', { optional: true }), BOOL('enabled', 'Enabled'), SEL('type', 'Type', [{ value: 'uniform', label: 'Uniform field' }, { value: 'region', label: 'Field region (sharp edges)' }, { value: 'loop', label: 'Current loop' }])],
+    magnet: [TXT('name', 'Name', { optional: true }), BOOL('enabled', 'Enabled'), SEL('type', 'Type', [{ value: 'uniform', label: 'Uniform field' }, { value: 'region', label: 'Field region (sharp edges)' }, { value: 'loop', label: 'Current loop' }, { value: 'poles', label: 'Pole pieces (scalar potential)' }])],
+    'magnet.poles': [SEL('boundary', 'Domain edges', [{ value: 'neumann', label: 'Zero normal field (Neumann)' }, { value: 'zero', label: 'ψ = 0' }])],
+    pole: [SEL('region.type', 'Piece shape', [{ value: 'box', label: 'Box' }, { value: 'polygon', label: 'Polygon' }, { value: 'annulus', label: 'Annulus sector' }]),
+        N('psi', 'Scalar potential ψ', 'none', { help: 'B = −∇ψ: a gap g between pieces at ψ₁ and ψ₂ carries |B| ≈ |ψ₁ − ψ₂|/g.' })],
     'magnet.uniform': [V3('B', 'B [Bx, By, Bz]', 'flux')],
     'magnet.region': [V3('B', 'B [Bx, By, Bz]', 'flux', { help: 'Cylindrical domains allow Bx only.' })],
     'region.box': [L('x0', 'x start'), L('x1', 'x end'), L('y0', 'y start'), L('y1', 'y end')],
@@ -102,8 +105,8 @@ export const FALLBACK_META = Object.freeze({
     'time.uniform': [N('t0', 'From', 'time'), N('t1', 'To', 'time'), INT('n', 'Times (grid)')],
     'time.rfPhase': [N('freq', 'RF frequency', 'freq', { gt: 0 }), INT('n', 'Phases (grid)')],
     'time.list': [{ key: 'values', label: 'Birth times', kind: 'list', dim: 'time', minItems: 1 }],
-    plane: [TXT('name', 'Name'), SEL('kind', 'Kind', [{ value: 'x', label: 'x = const' }, { value: 'y', label: 'y = const' }, { value: 'z', label: 'z = const' }, { value: 'r', label: 'Cylinder r = const' }, { value: 'segment', label: 'Segment' }]),
-        L('at', 'Position'), V2('p0', 'Segment start [x, y]', 'length'), V2('p1', 'Segment end [x, y]', 'length'),
+    plane: [TXT('name', 'Name'), SEL('kind', 'Kind', [{ value: 'x', label: 'x = const' }, { value: 'y', label: 'y = const' }, { value: 'z', label: 'z = const' }, { value: 'r', label: 'Cylinder r = const' }, { value: 'segment', label: 'Segment' }, { value: 'sphere', label: 'Sphere r = const' }]),
+        L('at', 'Position'), V2('p0', 'Segment start [x, y]', 'length'), V2('p1', 'Segment end [x, y]', 'length'), V3('center', 'Sphere center [x, y, z]', 'length'),
         L('radius', 'Radius limit', { nullable: true, gt: 0 }),
         BOOL('terminate', 'Detector (stops particles)'), SEL('side', 'Direction', [{ value: 'both', label: 'Both' }, { value: 'forward', label: 'Forward' }, { value: 'backward', label: 'Backward' }]),
         SEL('record', 'Record', [{ value: 'first', label: 'First crossing' }, { value: 'all', label: 'All crossings' }])],
@@ -410,25 +413,45 @@ export function displayValue(v) {
 }
 
 /**
- * Parses a list of points ("x, y" per line; separators: comma, semicolon, spaces).
- * @returns {{ ok: true, value: Array<Array<number|string>> } | { ok: false, error: string, line?: number }}
+ * Parses a list of points ("x, y" per line; separators: comma, semicolon, spaces). Blank lines and lines starting with
+ * # are skipped (as in the CSV importer); line numbers in errors count every line of the text. `names` names the
+ * columns in errors ("Line 3, charge: …"); `lines` maps each returned row to its line number.
+ * @returns {{ ok: true, value: Array<Array<number|string>>, lines: number[] } | { ok: false, error: string, line?: number }}
  */
-export function parsePoints(text, dims = ['length', 'length'], ctx = {}, minCount = 1) {
-    const lines = String(text).split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-    const out = [];
-    for (let li = 0; li < lines.length; li++) {
-        const toks = lines[li].replace(/[[\]()]/g, ' ').split(/\s*[,;]\s*|\s+(?=[-+.\d])/).filter(Boolean);
-        if (toks.length !== dims.length) return { ok: false, error: `Line ${li + 1}: expected ${dims.length} values.`, line: li + 1 };
+export function parsePoints(text, dims = ['length', 'length'], ctx = {}, minCount = 1, names = null) {
+    const all = String(text).split(/\r?\n/);
+    const out = [], lines = [];
+    const colName = (c) => (names && names[c] ? names[c] : `value ${c + 1}`);
+    for (let li = 0; li < all.length; li++) {
+        const t = all[li].trim();
+        if (!t || t.startsWith('#')) continue;
+        const toks = t.replace(/[[\]()]/g, ' ').split(/\s*[,;\t]\s*|\s+(?=[-+.\d])/).filter(Boolean);
+        if (toks.length !== dims.length) return { ok: false, error: `Line ${li + 1}: expected ${dims.length} values${names ? ` (${names.slice(0, dims.length).join(', ')})` : ''}, found ${toks.length}.`, line: li + 1 };
         const row = [];
         for (let c = 0; c < dims.length; c++) {
             const r = parseScalar({ kind: 'number', dim: dims[c] }, toks[c], { ...ctx, dim: dims[c] });
-            if (!r.ok) return { ok: false, error: `Line ${li + 1}: ${r.error}`, line: li + 1 };
+            // "at column k" of an expression error counts characters within the cell: name the column instead
+            if (!r.ok) return { ok: false, error: `Line ${li + 1}, ${colName(c)}: ${String(r.error).replace(/ at column \d+\.?$/, '')}${/\.$/.test(r.error) ? '' : '.'}`.replace(/\.\.$/, '.'), line: li + 1 };
             row.push(r.value);
         }
         out.push(row);
+        lines.push(li + 1);
     }
     if (out.length < minCount) return { ok: false, error: `At least ${minCount} point${minCount === 1 ? '' : 's'} needed.` };
-    return { ok: true, value: out };
+    return { ok: true, value: out, lines };
+}
+
+/**
+ * A validation error of a list field ("sources[0].rows[3][1]: The value must not be zero.") as "Line 5, charge: …"
+ * (pure): `lines` maps rows to text lines, `names` the columns. Other errors are returned unchanged.
+ */
+export function listErrorText(error, path, lines = null, names = null) {
+    const m = /\[(\d+)\](?:\[(\d+)\])?$/.exec(String(path || ''));
+    if (!m) return error;
+    const i = +m[1], line = lines && lines[i] ? lines[i] : i + 1;
+    const col = m[2] === undefined ? null : +m[2];
+    const name = col === null ? null : (names && names[col] ? names[col] : `value ${col + 1}`);
+    return `Line ${line}${name ? `, ${name}` : ''}: ${error}`;
 }
 
 /** Text of a point list for the textarea. */
@@ -686,9 +709,14 @@ export function createField(desc, opts = {}) {
         input.setAttribute('aria-describedby', describedBy);
         input.addEventListener('change', () => {
             if (desc.kind === 'textarea') { send(input.value, {}); return; }
-            const r = parsePoints(input.value, desc.dims || ['length', 'length'], evalCtx, desc.minItems || 1);
+            const r = parsePoints(input.value, desc.dims || ['length', 'length'], evalCtx, desc.minItems || 1, desc.names || null);
             if (!r.ok) { setError(r.error); return; }
-            send(r.value, {});
+            // a refusal by the validator names the line and the column of the first bad value
+            if (opts.onCommit) {
+                const res = opts.onCommit(r.value, {});
+                if (res && res.ok === false) { setError(listErrorText(res.error || 'This value is not allowed.', res.path, r.lines, desc.names || null)); return; }
+                current = r.value; setError(null);
+            } else send(r.value, {});
         });
         wrap.append(label, input, msg);
     } else if (desc.kind === 'list') {
@@ -759,7 +787,10 @@ export function createField(desc, opts = {}) {
     }
 
     function sync(value, number, issue) {
-        if (value === undefined && (desc.kind === 'bool' || desc.kind === 'select') && Object.prototype.hasOwnProperty.call(IMPLIED_DEFAULTS, desc.key)) value = IMPLIED_DEFAULTS[desc.key];
+        if (value === undefined && (desc.kind === 'bool' || desc.kind === 'select')) {
+            const imp = opts.implied && Object.prototype.hasOwnProperty.call(opts.implied, desc.key) ? opts.implied : IMPLIED_DEFAULTS;
+            if (Object.prototype.hasOwnProperty.call(imp, desc.key)) value = imp[desc.key];
+        }
         const keepEntry = localErr && sameValue(value, current);
         current = value;
         const focused = (el) => el && document.activeElement === el;
@@ -800,6 +831,8 @@ function colorValue(v) { return /^#[0-9a-f]{6}$/i.test(v || '') ? v : '#888888';
 
 /** Values that a missing key stands for (the schema's defaults for optional switches and choices). */
 export const IMPLIED_DEFAULTS = Object.freeze({ enabled: true, locked: false, relativistic: true, terminate: false, store: true, kind: 'solid', sampling: 'random', side: 'both', record: 'first', mirror: 'none', fill: 'solid' });
+/** Implied values that depend on the kind of object (the key 'type' means different things): a source without a type is sampled. */
+export const KIND_IMPLIED = Object.freeze({ source: Object.freeze({ type: 'sampled' }) });
 
 function srUnit(u) {
     const s = document.createElement('span');
@@ -822,14 +855,14 @@ function sameValue(a, b) {
  * message or null; refs() gives the reference options; domainType() the current domain type (for `when`).
  * @returns {{ el: HTMLElement, sync(): void, fields: Map<string, object> }}
  */
-export function buildForm(descs, { get, getResolved = () => undefined, commit, issueAt: issueFor = () => null, evalExpr, refs = () => ({}), domainType = () => null, idPrefix = 'io-f', dimOf: dimOfFn = null, className = 'io-form', hide = null } = {}) {
+export function buildForm(descs, { get, getResolved = () => undefined, commit, issueAt: issueFor = () => null, evalExpr, refs = () => ({}), domainType = () => null, idPrefix = 'io-f', dimOf: dimOfFn = null, className = 'io-form', hide = null, implied = null } = {}) {
     const el = document.createElement('div');
     el.className = className;
     const fields = new Map();
     for (const d0 of descs) {
         const d = normaliseDescriptor(d0);
         const f = createField(d, {
-            value: get(d.key), number: getResolved(d.key), evalExpr, refs, idPrefix,
+            value: get(d.key), number: getResolved(d.key), evalExpr, refs, idPrefix, implied,
             dimOf: d.dimFrom ? () => (dimOfFn ? dimOfFn(d) : get(d.dimFrom)) : null,
             onCommit: (v, o) => commit(d.key, v, o),
             wheel: dimOf(d.dim) === 'voltage',
@@ -909,6 +942,7 @@ export function bindForm(ctx, spec) {
         idPrefix: spec.idPrefix || 'io-f',
         className: spec.className || 'io-form',
         hide: spec.hide || null,
+        implied: spec.implied || KIND_IMPLIED[spec.kind] || null,
     });
     return { ...form, exists: () => !!loc() };
 }

@@ -14,13 +14,19 @@
    blends across an electrode or a mesh. SOLID cells: E = 0 and phi = the
    electrode value. Outside the grid: E = 0 and phi = NaN.
 
+   Anti-mirror planes (grid.antimirror): the 0 V plane nodes are free-space
+   nodes for the stencils and the ghost beyond the plane carries the negated
+   value (method of images for an odd potential: Griffiths, Introduction to
+   Electrodynamics, 4th ed., section 3.2), so the cells along the plane keep
+   the C1 Hermite field of the full model.
+
    Sources: bicubic Hermite interpolation (Press, Teukolsky, Vetterling &
    Flannery, Numerical Recipes, 3rd ed. (2007), section 3.6); finite
    differences on non-uniform arms (Shortley & Weller, J. Appl. Phys. 9, 334
    (1938)); 4th-order central differences (Fornberg, Math. Comput. 51, 699
    (1988)).
    ========================================================================== */
-import { CELL } from './raster.js';
+import { CELL, FLAG } from './raster.js';
 
 /**
  * Weighted sum of basis fields, k ascending: out = sum_k w_k phi_k.
@@ -66,6 +72,12 @@ export function createFieldGrid(raster0, geometry, opts = {}) {
     const neuX0 = E.xmin && E.xmin.bc === 'neumann', neuX1 = E.xmax && E.xmax.bc === 'neumann';
     const neuY0 = cyl || (E.ymin && E.ymin.bc === 'neumann'), neuY1 = E.ymax && E.ymax.bc === 'neumann';
     const mirX = !!(g.mirror && g.mirror.x), mirY = !cyl && !!(g.mirror && g.mirror.y);
+    // anti-mirror planes (odd symmetry): the plane nodes (0 V, FLAG.ANTIMIRROR) are free-space nodes for the stencils,
+    // and a ghost beyond the plane carries the negated value (phi and phi_y across x = 0; phi and phi_x across y = 0)
+    const amX = !mirX && !!(g.antimirror && g.antimirror.x), amY = !cyl && !mirY && !!(g.antimirror && g.antimirror.y);
+    const anyAM = amX || amY, flags = raster0.flags;
+    const free = new Uint8Array(N);
+    for (let k = 0; k < N; k++) free[k] = (cls[k] === -1 || (anyAM && flags && (flags[k] & FLAG.ANTIMIRROR) !== 0)) ? 1 : 0;
     const x1 = x0 + (nx - 1) * h, y1 = y0 + (ny - 1) * h;
     const tolN = 1e-9;
 
@@ -85,20 +97,24 @@ export function createFieldGrid(raster0, geometry, opts = {}) {
     const cellPrims = new Map();
 
     // ---- index helpers with mirror ghosts
-    const gx = (i) => (i < 0 ? (neuX0 ? -i : -1) : i > nx - 1 ? (neuX1 ? 2 * (nx - 1) - i : -1) : i);
-    const gy = (j) => (j < 0 ? (neuY0 ? -j : -1) : j > ny - 1 ? (neuY1 ? 2 * (ny - 1) - j : -1) : j);
-    // arm of node k in direction d, seen through ghosts: returns {cut, th, el, nb}
-    const ARM = { cut: false, th: 1, el: -1, nb: -1 };
+    const gx = (i) => (i < 0 ? ((neuX0 || amX) ? -i : -1) : i > nx - 1 ? (neuX1 ? 2 * (nx - 1) - i : -1) : i);
+    const gy = (j) => (j < 0 ? ((neuY0 || amY) ? -j : -1) : j > ny - 1 ? (neuY1 ? 2 * (ny - 1) - j : -1) : j);
+    // sign of a ghost value: -1 beyond an anti-mirror plane, else 1 (the factor 1 leaves every other result unchanged)
+    const sx = (i) => (i < 0 && amX ? -1 : 1), sy = (j) => (j < 0 && amY ? -1 : 1);
+    // arm of node k in direction d, seen through ghosts: returns {cut, th, el, nb, s} (s = sign of the ghost value)
+    const ARM = { cut: false, th: 1, el: -1, nb: -1, s: 1 };
     function arm(i, j, d) {
         const k = j * nx + i;
         let di = DDI[d], dj = DDJ[d];
-        let ii = i + di, jj = j + dj, dd = d;
+        let ii = i + di, jj = j + dj, dd = d, s = 1;
         if (ii < 0 || ii > nx - 1 || jj < 0 || jj > ny - 1) {
-            // ghost: mirror of the opposite arm
+            // ghost: mirror of the opposite arm (negated beyond an anti-mirror plane)
             const gi = di !== 0 ? gx(ii) : ii, gj = dj !== 0 ? gy(jj) : jj;
-            if (gi < 0 || gj < 0) { ARM.cut = false; ARM.th = 1; ARM.el = -1; ARM.nb = -1; return ARM; }
+            if (gi < 0 || gj < 0) { ARM.cut = false; ARM.th = 1; ARM.el = -1; ARM.nb = -1; ARM.s = 1; return ARM; }
+            s = sx(ii) * sy(jj);
             dd = d ^ 1; ii = gi; jj = gj;
         }
+        ARM.s = s;
         if (cutMask[k] & (1 << dd)) { const r = cutRow[k]; ARM.cut = true; ARM.th = armTh[4 * r + dd]; ARM.el = armEl[4 * r + dd]; ARM.nb = -1; } else { ARM.cut = false; ARM.th = 1; ARM.el = -1; ARM.nb = jj * nx + ii; }
         return ARM;
     }
@@ -108,13 +124,13 @@ export function createFieldGrid(raster0, geometry, opts = {}) {
         const r = j * nx;
         const im2 = gx(i - 2), im1 = gx(i - 1), ip1 = gx(i + 1), ip2 = gx(i + 2);
         if (im2 < 0 || im1 < 0 || ip1 < 0 || ip2 < 0) return false;
-        if (cls[r + im2] !== -1 || cls[r + im1] !== -1 || cls[r + ip1] !== -1 || cls[r + ip2] !== -1) return false;
+        if (!free[r + im2] || !free[r + im1] || !free[r + ip1] || !free[r + ip2]) return false;
         return !linkCutX(j, im2, im1) && !linkCutX(j, im1, i) && !linkCutX(j, i, ip1) && !linkCutX(j, ip1, ip2);
     }
     function ok4y(i, j) {
         const jm2 = gy(j - 2), jm1 = gy(j - 1), jp1 = gy(j + 1), jp2 = gy(j + 2);
         if (jm2 < 0 || jm1 < 0 || jp1 < 0 || jp2 < 0) return false;
-        if (cls[jm2 * nx + i] !== -1 || cls[jm1 * nx + i] !== -1 || cls[jp1 * nx + i] !== -1 || cls[jp2 * nx + i] !== -1) return false;
+        if (!free[jm2 * nx + i] || !free[jm1 * nx + i] || !free[jp1 * nx + i] || !free[jp2 * nx + i]) return false;
         return !linkCutY(i, jm2, jm1) && !linkCutY(i, jm1, j) && !linkCutY(i, j, jp1) && !linkCutY(i, jp1, jp2);
     }
 
@@ -126,15 +142,16 @@ export function createFieldGrid(raster0, geometry, opts = {}) {
     for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
             const k = j * nx + i;
-            if (cls[k] !== -1) continue;
+            if (!free[k]) continue;
             const inX = i >= 2 && i <= nx - 3, inY = j >= 2 && j <= ny - 3;
             const m = cutMask[k];
             if (ok4x(i, j)) { if (inX) xCode[k] = 1; else { xCode[k] = 3; genX.push(k); } } else if (!(m & 3) && i >= 1 && i <= nx - 2) xCode[k] = 2; else { xCode[k] = 3; genX.push(k); }
             if (cyl && j === 0) yCode[k] = 0;
             else if (ok4y(i, j)) { if (inY) yCode[k] = 1; else { yCode[k] = 3; genY.push(k); } } else if (!(m & 12) && j >= 1 && j <= ny - 2) yCode[k] = 2; else { yCode[k] = 3; genY.push(k); }
+            // phi_xy vanishes on the axis and on mirror planes (phi_y even in x there); on an anti-mirror plane it does not
             if ((cyl && j === 0) || (mirY && j === 0) || (mirX && i === 0)) xyCode[k] = 0;
             else if (xCode[k] === 1) xyCode[k] = 1;
-            else if (i >= 1 && i <= nx - 2 && cls[k + 1] === -1 && cls[k - 1] === -1 && !(m & 3) && xCode[k] !== 3) xyCode[k] = 2;
+            else if (i >= 1 && i <= nx - 2 && free[k + 1] && free[k - 1] && !(m & 3) && xCode[k] !== 3) xyCode[k] = 2;
             else { xyCode[k] = 3; genXY.push(k); }
         }
     }
@@ -168,9 +185,9 @@ export function createFieldGrid(raster0, geometry, opts = {}) {
             for (let q = 0; q < GX.length; q++) {
                 const k = GX[q], i = k % nx, j = (k - i) / nx, uP = u[k];
                 let px;
-                if (ok4x(i, j)) { const r = j * nx; px = (-u[r + gx(i + 2)] + 8 * u[r + gx(i + 1)] - 8 * u[r + gx(i - 1)] + u[r + gx(i - 2)]) / 12; } else {
-                    const aE = arm(i, j, 0), cE = aE.cut, tE = aE.th, vE = cE ? cutVal(aE, cvo) : (aE.nb >= 0 ? u[aE.nb] : uP);
-                    const aW = arm(i, j, 1), cW = aW.cut, tW = aW.th, vW = cW ? cutVal(aW, cvo) : (aW.nb >= 0 ? u[aW.nb] : uP);
+                if (ok4x(i, j)) { const r = j * nx; px = (-sx(i + 2) * u[r + gx(i + 2)] + 8 * sx(i + 1) * u[r + gx(i + 1)] - 8 * sx(i - 1) * u[r + gx(i - 1)] + sx(i - 2) * u[r + gx(i - 2)]) / 12; } else {
+                    const aE = arm(i, j, 0), cE = aE.cut, tE = aE.th, vE = aE.s * (cE ? cutVal(aE, cvo) : (aE.nb >= 0 ? u[aE.nb] : uP));
+                    const aW = arm(i, j, 1), cW = aW.cut, tW = aW.th, vW = aW.s * (cW ? cutVal(aW, cvo) : (aW.nb >= 0 ? u[aW.nb] : uP));
                     px = (!cE && !cW) ? 0.5 * (vE - vW) : (tW * tW * (vE - uP) + tE * tE * (uP - vW)) / (tE * tW * (tE + tW));
                 }
                 D[(k * C + ch) * 4 + 1] = px;
@@ -178,10 +195,10 @@ export function createFieldGrid(raster0, geometry, opts = {}) {
             for (let q = 0; q < GY.length; q++) {
                 const k = GY[q], i = k % nx, j = (k - i) / nx, uP = u[k];
                 let py;
-                if (ok4y(i, j)) py = (-u[gy(j + 2) * nx + i] + 8 * u[gy(j + 1) * nx + i] - 8 * u[gy(j - 1) * nx + i] + u[gy(j - 2) * nx + i]) / 12;
+                if (ok4y(i, j)) py = (-sy(j + 2) * u[gy(j + 2) * nx + i] + 8 * sy(j + 1) * u[gy(j + 1) * nx + i] - 8 * sy(j - 1) * u[gy(j - 1) * nx + i] + sy(j - 2) * u[gy(j - 2) * nx + i]) / 12;
                 else {
-                    const aN = arm(i, j, 2), cN = aN.cut, tN = aN.th, vN = cN ? cutVal(aN, cvo) : (aN.nb >= 0 ? u[aN.nb] : uP);
-                    const aS = arm(i, j, 3), cS = aS.cut, tS = aS.th, vS = cS ? cutVal(aS, cvo) : (aS.nb >= 0 ? u[aS.nb] : uP);
+                    const aN = arm(i, j, 2), cN = aN.cut, tN = aN.th, vN = aN.s * (cN ? cutVal(aN, cvo) : (aN.nb >= 0 ? u[aN.nb] : uP));
+                    const aS = arm(i, j, 3), cS = aS.cut, tS = aS.th, vS = aS.s * (cS ? cutVal(aS, cvo) : (aS.nb >= 0 ? u[aS.nb] : uP));
                     py = (!cN && !cS) ? 0.5 * (vN - vS) : (tS * tS * (vN - uP) + tN * tN * (uP - vS)) / (tN * tS * (tN + tS));
                 }
                 D[(k * C + ch) * 4 + 2] = py;
@@ -196,14 +213,14 @@ export function createFieldGrid(raster0, geometry, opts = {}) {
             for (let q = 0; q < GXY.length; q++) {
                 const k = GXY[q], i = k % nx, j = (k - i) / nx, r = j * nx;
                 let pxy = 0;
-                if (ok4x(i, j)) pxy = (-PY(r + gx(i + 2)) + 8 * PY(r + gx(i + 1)) - 8 * PY(r + gx(i - 1)) + PY(r + gx(i - 2))) / 12;
+                if (ok4x(i, j)) pxy = (-sx(i + 2) * PY(r + gx(i + 2)) + 8 * sx(i + 1) * PY(r + gx(i + 1)) - 8 * sx(i - 1) * PY(r + gx(i - 1)) + sx(i - 2) * PY(r + gx(i - 2))) / 12;
                 else {
                     const ip1 = gx(i + 1), im1 = gx(i - 1), ip2 = gx(i + 2), im2 = gx(i - 2);
-                    const fE = ip1 >= 0 && cls[r + ip1] === -1 && !linkCutX(j, i, ip1);
-                    const fW = im1 >= 0 && cls[r + im1] === -1 && !linkCutX(j, im1, i);
-                    if (fE && fW) pxy = 0.5 * (PY(r + ip1) - PY(r + im1));
-                    else if (fE && ip2 >= 0 && cls[r + ip2] === -1 && !linkCutX(j, ip1, ip2)) pxy = 0.5 * (-3 * PY(k) + 4 * PY(r + ip1) - PY(r + ip2));
-                    else if (fW && im2 >= 0 && cls[r + im2] === -1 && !linkCutX(j, im2, im1)) pxy = 0.5 * (3 * PY(k) - 4 * PY(r + im1) + PY(r + im2));
+                    const fE = ip1 >= 0 && free[r + ip1] && !linkCutX(j, i, ip1);
+                    const fW = im1 >= 0 && free[r + im1] && !linkCutX(j, im1, i);
+                    if (fE && fW) pxy = 0.5 * (PY(r + ip1) - sx(i - 1) * PY(r + im1));
+                    else if (fE && ip2 >= 0 && free[r + ip2] && !linkCutX(j, ip1, ip2)) pxy = 0.5 * (-3 * PY(k) + 4 * PY(r + ip1) - PY(r + ip2));
+                    else if (fW && im2 >= 0 && free[r + im2] && !linkCutX(j, im2, im1)) pxy = 0.5 * (3 * PY(k) - 4 * sx(i - 1) * PY(r + im1) + sx(i - 2) * PY(r + im2));
                 }
                 D[(k * C + ch) * 4 + 3] = pxy;
             }
@@ -272,7 +289,7 @@ export function createFieldGrid(raster0, geometry, opts = {}) {
         const cv = cellVis[c] !== 0;
         for (let q = 0; q < 4; q++) {
             const k = k00 + CORNER_DI[q] + CORNER_DJ[q] * nx;
-            if (cls[k] !== -1) continue;
+            if (!free[k]) continue;
             if (cv) {
                 const qx = x0 + (i + CORNER_DI[q]) * h, qy = y0 + (j + CORNER_DJ[q]) * h;
                 if (blocked(c, x, y, qx, qy)) continue;
@@ -313,7 +330,7 @@ export function createFieldGrid(raster0, geometry, opts = {}) {
                     const wi = ai + DDI[d], wj = aj + DDJ[d];
                     const oa = (ka * C + ch) * 4;
                     const pa = D[oa], ex = -D[oa + 1] * ih, ey = -D[oa + 2] * ih;
-                    if (wi >= 0 && wi < nx && wj >= 0 && wj < ny && cls[wj * nx + wi] === -1 && !(cutMask[ka] & (1 << d))) {
+                    if (wi >= 0 && wi < nx && wj >= 0 && wj < ny && free[wj * nx + wi] && !(cutMask[ka] & (1 << d))) {
                         const ow = ((wj * nx + wi) * C + ch) * 4;
                         sp += 2 * pa - D[ow]; sx += 2 * ex + D[ow + 1] * ih; sy += 2 * ey + D[ow + 2] * ih;
                     } else {

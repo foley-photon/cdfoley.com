@@ -7,12 +7,14 @@
 import { h, icon, clear } from '../dom.js';
 import { bindForm, locate, nextId, displayValue } from '../forms.js';
 
-const KIND_TEXT = { x: 'x =', y: 'y =', z: 'z =', r: 'r =' };
+const KIND_TEXT = { x: 'x =', y: 'y =', z: 'z =', r: 'r =', sphere: 'sphere r =' };
 
 /** One-line description of a plane. */
 export function planeSummary(p) {
     if (!p) return '';
-    const where = p.kind === 'segment' ? `segment (${(p.p0 || []).map(displayValue).join(', ')}) → (${(p.p1 || []).map(displayValue).join(', ')})` : `${KIND_TEXT[p.kind] || p.kind} ${displayValue(p.at)} mm`;
+    const where = p.kind === 'segment' ? `segment (${(p.p0 || []).map(displayValue).join(', ')}) → (${(p.p1 || []).map(displayValue).join(', ')})`
+        : p.kind === 'sphere' ? `sphere r = ${displayValue(p.at)} mm about (${(p.center || [0, 0, 0]).map(displayValue).join(', ')})`
+            : `${KIND_TEXT[p.kind] || p.kind} ${displayValue(p.at)} mm`;
     return `${where}${p.terminate ? ' · detector' : ''}${p.side && p.side !== 'both' ? ' · ' + p.side : ''}`;
 }
 
@@ -99,15 +101,29 @@ export function mountRecording(host, ctx, app) {
     return { update, destroy: () => offs.forEach((f) => f()) };
 }
 
+/**
+ * Default marker interval: a twentieth of the longest flight of the last run, and at most a twentieth of the period of
+ * the fastest drive (cosine terms, pulse and table periods, RF ideal fields), so the induced-current spectrum is not
+ * aliased.
+ */
 function defaultDt(store) {
     const st = store.get();
     const res = st.run && st.run.result;
+    let dt = 0.1;
     if (res && res.summary && ArrayBuffer.isView(res.summary)) {
         let tmax = 0;
         for (let i = 0; i < res.n; i++) tmax = Math.max(tmax, res.summary[i * 24 + 11] || 0);
-        if (tmax > 0) return parseFloat((tmax / 20).toPrecision(2));
+        if (tmax > 0) dt = tmax / 20;
     }
-    return 0.1;
+    const r = st.resolved || st.lastResolved;
+    let f = 0;
+    for (const e of (r && r.electrodes) || []) for (const t of e.terms || []) {
+        if (t && t.type === 'cos' && t.amp !== 0 && t.freq > f) f = t.freq;
+        else if (t && (t.type === 'pulse' || t.type === 'table') && t.period > 0 && 1 / t.period > f) f = 1 / t.period;
+    }
+    for (const g of (r && r.idealFields) || []) if (g && g.V && g.freq > f) f = g.freq;
+    if (f > 0) dt = Math.min(dt, 1 / (20 * f));
+    return parseFloat(dt.toPrecision(2));
 }
 
 /** Adds an x plane at the view centre and selects it. */
@@ -134,15 +150,17 @@ export function planeEditor(host, ctx, app, id) {
         kind: 'plane', label: 'Edit plane', idPrefix: 'io-pl', locate: locP,
         resolved: (r) => ((r.recording && r.recording.planes) || []).find((x) => x.id === id) || null,
         merge: (key) => (key === 'at' ? 'plane:' + id : null),
-        hide: (key, obj) => (key === 'at' && obj.kind === 'segment') || ((key === 'p0' || key === 'p1') && obj.kind !== 'segment') || (key === 'radius' && (obj.kind === 'segment' || obj.kind === 'r')),
+        hide: (key, obj) => (key === 'at' && obj.kind === 'segment') || ((key === 'p0' || key === 'p1') && obj.kind !== 'segment') || (key === 'center' && obj.kind !== 'sphere')
+            || (key === 'radius' && (obj.kind === 'segment' || obj.kind === 'r' || obj.kind === 'sphere')),
         intercept: (key, value, draft, L) => {
             if (key !== 'kind' || value === L.obj.kind) return false;
             const pl = L.obj;
             const c = ctx.view.getViewState().center;
             pl.kind = value;
             if (value === 'segment') { if (!Array.isArray(pl.p0)) pl.p0 = [round(c[0]), round(c[1] - 5)]; if (!Array.isArray(pl.p1)) pl.p1 = [round(c[0]), round(c[1] + 5)]; }
+            else if (value === 'sphere') { if (!Array.isArray(pl.center)) pl.center = [round(c[0]), round(c[1]), 0]; if (!(pl.at > 0)) pl.at = 5; }
             else if (pl.at === undefined || pl.at === null) pl.at = value === 'x' ? round(c[0]) : value === 'r' ? Math.abs(round(c[1])) || 1 : round(c[1]);
-            if (value === 'r' || value === 'segment') pl.radius = null;
+            if (value === 'r' || value === 'segment' || value === 'sphere') pl.radius = null;
             return true;
         },
     });

@@ -44,10 +44,12 @@ test('lensprops.js and optimize.js: async signatures', async () => {
 });
 
 test('bench registry, targets and runner shapes', async () => {
-    assert.ok(Array.isArray(cases.BENCHMARKS) && cases.BENCHMARKS.length === 45);
+    // the registry's size is asserted in wp5-benchmarks; here only its shape, and that every id is unique
+    assert.ok(Array.isArray(cases.BENCHMARKS) && cases.BENCHMARKS.length >= 45);
+    assert.equal(new Set(cases.BENCHMARKS.map((b) => b.id)).size, cases.BENCHMARKS.length, 'unique ids');
     for (const b of cases.BENCHMARKS) {
         for (const k of ['id', 'group', 'title', 'kind', 'description', 'reference', 'levels', 'timeoutMs']) assert.ok(k in b, `${b.id}.${k}`);
-        assert.ok(['K', 'S', 'T', 'L', 'P'].includes(b.group));
+        assert.ok(['K', 'S', 'T', 'L', 'D', 'I', 'P'].includes(b.group), `${b.id} group ${b.group}`);
         assert.ok(['gate', 'info', 'planned'].includes(b.kind));
         const t = TARGETS[b.id];
         assert.ok(t && 'values' in t && 'units' in t && t.source && (t.source.url || (t.source.url === null && /closed form/.test(t.source.text))) && 'calibration' in t, `${b.id} target shape`);

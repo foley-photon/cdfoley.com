@@ -75,6 +75,13 @@ export function describeScene(state, analysis) {
     const d = r.domain;
     const out = [];
     out.push(`${(p.meta && p.meta.name) || 'Untitled project'}: a ${d.type === 'cyl2d' ? 'cylindrically symmetric domain (revolved about the x axis)' : 'planar domain'} from x = ${formatPretty(d.x[0], 'length', 5)} to ${formatPretty(d.x[1], 'length', 5)} and ${d.type === 'cyl2d' ? 'r' : 'y'} = ${formatPretty(d.y[0], 'length', 5)} to ${formatPretty(d.y[1], 'length', 5)}, cell ${formatPretty(d.h, 'length', 4)} (${d.nx} by ${d.ny} nodes).`);
+    const sym = [];
+    if (d.mirror && d.mirror.x) sym.push('a mirror plane at x = 0');
+    if (d.mirror && d.mirror.y && d.type !== 'cyl2d') sym.push('a mirror plane at y = 0');
+    if (d.antimirror && d.antimirror.x) sym.push('an anti-mirror plane at x = 0 (the other half carries the opposite voltages)');
+    if (d.antimirror && d.antimirror.y) sym.push('an anti-mirror plane at y = 0 (the other half carries the opposite voltages)');
+    if (sym.length) out.push(`Symmetry: ${sym.join(' and ')}.`);
+    if (typeof d.charge === 'string' && d.charge.trim()) out.push(`A space-charge density ρ = ${d.charge.trim()} C/m³ is part of the field solve.`);
     const els = r.electrodes.filter((e) => e.index !== 0);
     if (els.length) out.push(`Electrodes: ${els.map((e) => `${e.name || e.id} at ${formatPretty(e.dc, 'voltage', 5)}${(e.terms || []).length ? ' plus a waveform' : ''}${e.kind === 'grid' ? ' (mesh)' : ''}`).join('; ')}.`);
     else out.push('Only the ground electrode exists, so there is no electric field from electrodes.');
@@ -85,10 +92,18 @@ export function describeScene(state, analysis) {
     if ((r.magnets || []).length) out.push(`${r.magnets.length} magnetic field${r.magnets.length > 1 ? 's' : ''}.`);
     for (const s of r.sources || []) {
         const sp = (s.species || []).map((x) => x.label || `${x.mass} u`).join(', ');
-        out.push(`Source ${s.name || s.id}: ${s.count} particles of ${sp}, ${s.position ? s.position.type : ''} start, ${s.direction ? s.direction.type : ''} direction.`);
+        const wt = s.weight !== undefined && s.weight !== 1 ? `, weight ${formatPretty(s.weight, 'none', 4)}` : '';
+        if (s.type === 'rows') out.push(`Source ${s.name || s.id}: a list of ${s.count} particles of ${sp}${wt}.`);
+        else out.push(`Source ${s.name || s.id}: ${s.count} particles of ${sp}, ${s.position ? s.position.type : ''} start, ${s.direction ? s.direction.type : ''} direction${wt}.`);
     }
     const planes = (r.recording && r.recording.planes) || [];
-    if (planes.length) out.push(`Planes: ${planes.map((q) => `${q.name || q.id} (${q.kind === 'segment' ? 'segment' : `${q.kind} = ${formatPretty(q.at, 'length', 5)}`}${q.terminate ? ', detector' : ''})`).join('; ')}.`);
+    if (planes.length) out.push(`Planes: ${planes.map((q) => `${q.name || q.id} (${q.kind === 'segment' ? 'segment' : q.kind === 'sphere' ? `sphere R = ${formatPretty(q.at, 'length', 5)} about ${(q.center || [0, 0, 0]).map((v) => formatPretty(v, 'length', 4)).join(', ')}` : `${q.kind} = ${formatPretty(q.at, 'length', 5)}`}${q.terminate ? ', detector' : ''})`).join('; ')}.`);
+    const tr = r.tracer || {};
+    const plug = [tr.spaceCharge ? 'space charge (onset estimator)' : null, tr.gas ? 'background gas collisions' : null, tr.drag ? 'Stokes drag' : null].filter(Boolean);
+    if (plug.length) out.push(`Physics plug-ins on: ${plug.join(', ')}.`);
+    const v = p.view || {};
+    if (v.layers && v.layers.surface) out.push('The canvas shows the potential-energy surface (3D view).');
+    else if (v.aspect > 0 && v.aspect !== 1) out.push(`The canvas stretches y by ${formatPretty(v.aspect, 'none', 3)}.`);
     const sv = state.solve || {};
     out.push(sv.status === 'done' ? 'The fields are solved.' : sv.status === 'running' ? 'The fields are being solved.' : sv.status === 'stale' ? 'The fields are stale: the geometry changed since the last solve.' : 'The fields are not solved yet.');
     const res = state.run && state.run.result;

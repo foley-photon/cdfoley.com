@@ -318,9 +318,9 @@ export function statList(items) {
  * values (e.g. kinetic energies of 1000.007 ± 0.001 eV) the bins are taken on value − offset and the label says so.
  * @returns {{ edges: number[], counts: number[], offset: number, label: string }}
  */
-export function displayHistogram(values, label, { minBins = 10, maxBins = 80, offsetBelow = 1e-4 } = {}) {
-    const v = [];
-    for (const x of values) if (Number.isFinite(x)) v.push(x);
+export function displayHistogram(values, label, { minBins = 10, maxBins = 80, offsetBelow = 1e-4, weights = null } = {}) {
+    const v = [], wv = [];
+    for (let i = 0; i < values.length; i++) { const x = values[i]; if (Number.isFinite(x)) { v.push(x); wv.push(weights ? +weights[i] : 1); } }
     if (!v.length) return { edges: [0, 1], counts: [0], offset: 0, label };
     let lo = Infinity, hi = -Infinity, sum = 0;
     for (const x of v) { if (x < lo) lo = x; if (x > hi) hi = x; sum += x; }
@@ -337,7 +337,7 @@ export function displayHistogram(values, label, { minBins = 10, maxBins = 80, of
     const x0 = b > a ? a : a - span / 2;
     const edges = [], counts = new Array(n).fill(0);
     for (let i = 0; i <= n; i++) edges.push(x0 + span * i / n);
-    for (const x of v) { let k = Math.floor((x - offset - x0) / span * n); if (k >= n) k = n - 1; if (k < 0) k = 0; counts[k]++; }
+    for (let i = 0; i < v.length; i++) { let k = Math.floor((v[i] - offset - x0) / span * n); if (k >= n) k = n - 1; if (k < 0) k = 0; counts[k] += wv[i]; }
     return { edges, counts, offset, label: lab };
 }
 

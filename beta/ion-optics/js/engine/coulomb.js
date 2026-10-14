@@ -1,20 +1,40 @@
 /* ==========================================================================
-   Ion optics engine: coulomb.js (stretch, P1b; non-gating)
+   Ion optics engine: coulomb.js (space-charge onset estimator)
    Particle-particle Coulomb interaction by direct summation for small
    bunches (≤ 2000 particles), integrated in lockstep with classical
    Runge-Kutta 4 at the smallest per-particle step cap.
 
-   a_i = K_ACC(q_i/m_i)(E + v_i × B) + K_C q_i Σ_j q_j (x_i − x_j) / (m_i (|x_i − x_j|² + ε²)^{3/2}),
-   K_C = e²/(4π ε0 u) in mm³/µs² (constants.js), ε = 1e-4 mm (Plummer softening;
-   Aarseth, Gravitational N-Body Simulations, Cambridge (2003), §2). The pair
-   time scale √((r² + ε²)^{3/2} / (K_C |q_i q_j| (1/m_i + 1/m_j))) limits the
-   common step. Interactions are electrostatic (quasistatic, no retardation).
+   a_i = K_ACC(q_i/m_i)(E + v_i × B) + K_C q_i Σ_j F q_j (x_i − x_j) / (m_i (|x_i − x_j|² + ε²)^{3/2}),
+   K_C = e²/(4π ε0 u) in mm³/µs² (constants.js), ε the Plummer softening
+   length (Aarseth, Gravitational N-Body Simulations, Cambridge (2003), §2),
+   F the charge factor (each traced particle stands for F real ones; F
+   multiplies the partner charge once per pair; opts.factorBySource scales F
+   per source of the partner, for subsets that carry a whole run's charge).
+   The pair time scale √((r² + ε²)^{3/2} / (K_C F |q_i q_j| (1/m_i + 1/m_j)))
+   limits the common step. Interactions are electrostatic (quasistatic, no
+   retardation) and the particles do not change the electrode charges:
+   superposed pair forces are an estimator of the onset of space-charge
+   effects (Reiser, Theory and Design of Charged Particle Beams, 2nd ed.
+   (2008), ch. 4), not a self-consistent solution; near a
+   space-charge-limited emitter they are order-of-magnitude only.
    Events are located on the straight chord of each step (linear in time):
-   planes, electrode hits and meshes, domain exits. Particles born later join
-   at their birth time; particles that stop leave the interaction.
+   planes (with the same side, extent, limits and radius filters as
+   trace.js), electrode hits and meshes, domain exits. Time markers lie on
+   the cubic Hermite path of each step (end positions and velocities).
+   Stored trajectories are thinned like trace.js: when a particle's buffer
+   is full every other point is dropped (both ends kept) and the minimum
+   spacing doubles. Particles born later join at their birth time;
+   particles that stop leave the interaction.
+   Plug-ins shared with trace.js: Stokes drag (spec §3.12) and hard-sphere gas
+   collisions (gas.js; the collision budget is spent along the step and a
+   collision is applied at the end of the step that exhausts it, the excess
+   exposure carrying over, so the collision rate is exact; steps are capped at
+   a tenth of the mean free time).
    ========================================================================== */
 import { K_ACC, C_MMUS, K_COUL } from './constants.js';
 import { uniform01 } from './rng.js';
+import { createGasModel, gasStream } from './gas.js';
+import { planeAcceptor } from './trace.js';
 import {
     P_STRIDE, P_ID, P_SRC, P_SPECIES, P_MASS, P_CHARGE, P_T0, P_X, P_Y, P_Z, P_WX, P_WY, P_WZ, P_KE,
     S_STRIDE, S_ID, S_STATUS, S_WHERE, S_T, S_X, S_Y, S_Z, S_VX, S_VY, S_VZ, S_KE, S_TOF, S_STEPS, S_PATH,
@@ -26,7 +46,10 @@ import {
 const INV_C2 = 1 / (C_MMUS * C_MMUS);
 const UC2 = C_MMUS * C_MMUS / K_ACC;
 const MESH_A = 0x7f4a7c15;
-const MAX_PARTICLES = 2000;
+/** Largest bunch the direct summation accepts (O(N²) per step). */
+export const MAX_PARTICLES = 2000;
+/** Default softening ε (mm) when none is given. */
+export const DEFAULT_SOFTENING = 1e-4;
 
 function engineError(code, message) { const e = new Error(message); e.name = 'EngineError'; e.code = code; return e; }
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
@@ -37,10 +60,16 @@ const posNum = (v, d) => (typeof v === 'number' && v > 0 && Number.isFinite(v) ?
  * @param {object} model FieldModel
  * @param {Float64Array} particles P_STRIDE rows (≤ 2000)
  * @param {{ relativistic?: boolean, tMax?: number, maxSteps?: number, maxStepCells?: number, nearStepCells?: number,
- *   maxDrift?: number, planes?: object[], beyond?: object, seed?: number, softening?: number, pairStep?: number,
- *   record?: { trajectories?: boolean, maxPoints?: number, minSegCells?: number }, i0?: number }} [opts]
- *   softening: ε in mm (default 1e-4); pairStep: the common step is at most pairStep × the smallest pair time scale (default 0.01).
- * @param {{ shouldStop?: () => boolean }} [hooks]
+ *   maxDrift?: number, planes?: object[], beyond?: object, seed?: number, softening?: number, factor?: number, pairStep?: number,
+ *   factorBySource?: ArrayLike<number>|null,
+ *   drag?: { type: 'stokes', mobility: number, gasVelocity?: number[] } | null, gas?: object | null,
+ *   record?: { trajectories?: boolean, maxPoints?: number, minSegCells?: number, markersDt?: number|null }, i0?: number }} [opts]
+ *   softening: ε in mm (default 1e-4); factor: charge multiplier of the partner in every pair (default 1);
+ *   factorBySource: an extra multiplier of the partner's charge by its source index (P_SRC; missing entries 1), so that a
+ *   subset of each source carries that source's whole charge;
+ *   pairStep: the common step is at most pairStep × the smallest pair time scale (default 0.01);
+ *   record.markersDt: time markers every markersDt µs from each particle's birth (as trace.js).
+ * @param {{ shouldStop?: () => boolean, onProgress?: (p: { done: number, total: number }) => void, progressEveryMs?: number }} [hooks]
  * @returns {object} TraceResult (same layout as traceParticles; S_DE_END/S_DE_MAX are NaN, S_WORK 0)
  */
 export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
@@ -51,35 +80,63 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
     const rel = opts.relativistic !== false;
     const tMax = posNum(opts.tMax, 1000), maxSteps = Math.floor(posNum(opts.maxSteps, 500000)), maxDrift = posNum(opts.maxDrift, 10000);
     const sCell = Math.min(1, posNum(opts.maxStepCells, 0.5)) * h, sNear = Math.min(1, posNum(opts.nearStepCells, 0.1)) * h;
-    const eps2 = Math.pow(posNum(opts.softening, 1e-4), 2);
+    const eps2 = Math.pow(posNum(opts.softening, DEFAULT_SOFTENING), 2);
+    const factor = typeof opts.factor === 'number' && opts.factor >= 0 && Number.isFinite(opts.factor) ? opts.factor : 1;
+    const KC = K_COUL * factor;
+    const bySrc = opts.factorBySource && typeof opts.factorBySource.length === 'number' ? opts.factorBySource : null;
     const pairStep = posNum(opts.pairStep, 0.01);
     const seed = num(opts.seed, 1);
     const beyond = opts.beyond || {};
     const planes = Array.isArray(opts.planes) ? opts.planes : [];
     const nP = planes.length;
+    const accept = planeAcceptor(planes, h, !!model.cyl);
     const rec = opts.record || {};
     const recTraj = rec.trajectories !== false;
     const maxPts = Math.max(2, Math.floor(posNum(rec.maxPoints, 2000)));
     const minSeg = Math.max(0, num(rec.minSegCells, 0.5)) * h;
+    const markersDt = posNum(rec.markersDt, 0), markersOn = markersDt > 0;
     const stop = hooks && typeof hooks.shouldStop === 'function' ? hooks.shouldStop : null;
+    const onProgress = hooks && typeof hooks.onProgress === 'function' ? hooks.onProgress : null;
+    const progressEvery = hooks && hooks.progressEveryMs > 0 ? hooks.progressEveryMs : 100;
     const hasB = !!model.hasB, hitsOn = !!model.hasGeometry;
     const transp = model.transparent || new Uint8Array(0), transm = model.transmission || new Float64Array(0);
+    // plug-ins
+    const drag = opts.drag && opts.drag.type === 'stokes' && opts.drag.mobility > 0 ? opts.drag : null;
+    const KMOB = drag ? 1e-4 * drag.mobility : 0;
+    const gasV = drag && Array.isArray(drag.gasVelocity) ? drag.gasVelocity.map((v) => num(v, 0)) : [0, 0, 0];
+    const gasOpt = opts.gas && opts.gas.enabled !== false && opts.gas.pressure > 0 && opts.gas.temperature > 0 && opts.gas.mass > 0 && opts.gas.diameter > 0 ? opts.gas : null;
+    const gasModel = gasOpt ? createGasModel(gasOpt) : null;
+    const gasOn = gasModel !== null;
 
     // state
-    const X = new Float64Array(3 * n), W = new Float64Array(3 * n), M = new Float64Array(n), Qc = new Float64Array(n), T0 = new Float64Array(n);
+    const X = new Float64Array(3 * n), W = new Float64Array(3 * n), M = new Float64Array(n), invM = new Float64Array(n), Qc = new Float64Array(n), T0 = new Float64Array(n);
     const X0 = new Float64Array(3 * n), W0 = new Float64Array(3 * n), XT = new Float64Array(3 * n), WT = new Float64Array(3 * n);
     const KX = [0, 1, 2, 3].map(() => new Float64Array(3 * n)), KW = [0, 1, 2, 3].map(() => new Float64Array(3 * n));
     const active = new Uint8Array(n), done = new Uint8Array(n);
     const steps = new Float64Array(n), path = new Float64Array(n), drift = new Float64Array(n), ncross = new Float64Array(n), meshCount = new Int32Array(n);
+    const invTau = new Float64Array(n);
+    const gasSp = gasOn ? new Array(n).fill(null) : null, gasRng = gasOn ? new Array(n).fill(null) : null;
+    const gasBudget = gasOn ? new Float64Array(n) : null, gasNu = gasOn ? new Float64Array(n) : null;
     const pCount = new Int32Array(n * Math.max(1, nP));
     const summary = new Float64Array(n * S_STRIDE);
     const cross = [];
     const traj = recTraj ? Array.from({ length: n }, () => []) : null;
-    let pairMin = Infinity, evals = 0, totalSteps = 0;
+    const segMin = recTraj ? new Float64Array(n).fill(minSeg) : null;   // per-particle minimum spacing, doubled at each thinning
+    const marks = markersOn ? Array.from({ length: n }, () => []) : null, markK = markersOn ? new Float64Array(n) : null;
+    // partner charge with the per-source factor (null: every pair uses K_C·F·q_i·q_j as before)
+    const QF = bySrc ? new Float64Array(n) : null;
+    let pairMax = 0, evals = 0, totalSteps = 0, nDone = 0, nColl = 0;
     for (let i = 0; i < n; i++) {
         const b = i * P_STRIDE;
-        M[i] = particles[b + P_MASS]; Qc[i] = particles[b + P_CHARGE]; T0[i] = particles[b + P_T0];
+        M[i] = particles[b + P_MASS]; invM[i] = M[i] > 0 ? 1 / M[i] : 0; Qc[i] = particles[b + P_CHARGE]; T0[i] = particles[b + P_T0];
+        if (QF) { const f = bySrc[particles[b + P_SRC]]; QF[i] = Qc[i] * (typeof f === 'number' && f >= 0 && Number.isFinite(f) ? f : 1); }
         for (let c = 0; c < 3; c++) { X[3 * i + c] = particles[b + P_X + c]; W[3 * i + c] = particles[b + P_WX + c]; }
+        invTau[i] = drag && M[i] > 0 && Qc[i] !== 0 ? K_ACC * Math.abs(Qc[i]) / (KMOB * M[i]) : 0;
+        if (gasOn) {
+            gasSp[i] = gasModel.species(M[i] > 0 ? M[i] : 1);
+            gasRng[i] = gasStream(seed, particles[b + P_ID]);
+            gasBudget[i] = gasModel.budget(gasRng[i]);
+        }
     }
     const PT = new Float64Array(4), ef = new Float64Array(4), bf = new Float64Array(3);
     const Ev = typeof model.Ev === 'function' ? model.Ev : (P, out, s, l) => model.E(P[0], P[1], P[2], P[3], out, s, l);
@@ -95,9 +152,35 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
     function point(i, x, y, z, t, force) {
         if (!recTraj) return;
         const a = traj[i], k = a.length;
-        if (!force && k >= 4) { const dx = x - a[k - 4], dy = y - a[k - 3], dz = z - a[k - 2]; if (dx * dx + dy * dy + dz * dz < minSeg * minSeg) return; }
-        if (k >= 4 * maxPts) { for (let j = 1, o = 4; j < maxPts; j += 2, o += 4) { a[o] = a[4 * j]; a[o + 1] = a[4 * j + 1]; a[o + 2] = a[4 * j + 2]; a[o + 3] = a[4 * j + 3]; } a.length = 4 * Math.ceil(maxPts / 2); }
+        if (!force && k >= 4) { const dx = x - a[k - 4], dy = y - a[k - 3], dz = z - a[k - 2], ms = segMin[i]; if (dx * dx + dy * dy + dz * dz < ms * ms) return; }
+        const m = k >> 2;
+        if (m >= maxPts) {
+            // full: keep the even points and the last one (both ends), then double the minimum spacing (as trace.js)
+            let j = 1;
+            for (let s = 2; s < m - 1; s += 2, j++) { const d = 4 * j, o = 4 * s; a[d] = a[o]; a[d + 1] = a[o + 1]; a[d + 2] = a[o + 2]; a[d + 3] = a[o + 3]; }
+            const d = 4 * j, o = 4 * (m - 1);
+            a[d] = a[o]; a[d + 1] = a[o + 1]; a[d + 2] = a[o + 2]; a[d + 3] = a[o + 3];
+            a.length = 4 * (j + 1);
+            segMin[i] = segMin[i] > 0 ? 2 * segMin[i] : 0.5 * h;
+        }
         a.push(x, y, z, t);
+    }
+    /** Time markers of particle i up to time tLim on the cubic Hermite path of the current step (start X0/V0 at T, end X/V1 after dt). */
+    function stepMarkers(i, tS, dt, tLim, vx0, vy0, vz0, vx1, vy1, vz1) {
+        const o = 3 * i, list = marks[i], id = particles[i * P_STRIDE + P_ID];
+        for (;;) {
+            const tm = T0[i] + markK[i] * markersDt;
+            if (tm > tLim) break;
+            if (tm >= tS) {
+                const s = dt > 0 ? (tm - tS) / dt : 0, s2 = s * s, s3 = s2 * s;
+                const h00 = 2 * s3 - 3 * s2 + 1, h10 = (s3 - 2 * s2 + s) * dt, h01 = -2 * s3 + 3 * s2, h11 = (s3 - s2) * dt;
+                list.push(id, tm,
+                    h00 * X0[o] + h10 * vx0 + h01 * X[o] + h11 * vx1,
+                    h00 * X0[o + 1] + h10 * vy0 + h01 * X[o + 1] + h11 * vy1,
+                    h00 * X0[o + 2] + h10 * vz0 + h01 * X[o + 2] + h11 * vz1);
+            }
+            markK[i]++;
+        }
     }
     function finish(i, status, where, t, x, y, z, wx, wy, wz) {
         const g = gamma(wx, wy, wz), o = i * S_STRIDE, b = i * P_STRIDE;
@@ -108,7 +191,7 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
         summary[o + S_FLAGS] = (rel ? FLAG.RELATIVISTIC : 0) | (model.timeDependent ? FLAG.TD_FIELDS : 0);
         summary[o + S_SRC] = particles[b + P_SRC]; summary[o + S_SPECIES] = particles[b + P_SPECIES]; summary[o + S_KE0] = particles[b + P_KE]; summary[o + S_T0] = T0[i];
         point(i, x, y, z, t, true);
-        active[i] = 0; done[i] = 1;
+        active[i] = 0; done[i] = 1; nDone++;
     }
     // event records of one particle's step and the chord point (position, proper velocity) at parameter u
     const EV_PLANE = 0, EV_MESH = 1, EV_HIT = 2, EV_ABSORB = 3, EV_EXIT = 4, EV_DETECT = 5;
@@ -138,24 +221,11 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
             case 'y': return y - p.at;
             case 'z': return z - p.at;
             case 'r': return Math.sqrt(y * y + z * z) - p.at;
+            case 'sphere': { const c = Array.isArray(p.center) ? p.center : [0, 0, 0], dx = x - num(c[0], 0), dy = y - num(c[1], 0), dz = z - num(c[2], 0); return Math.sqrt(dx * dx + dy * dy + dz * dz) - p.at; }
             case 'segment': { const r = model.cyl ? Math.sqrt(y * y + z * z) : y, dx = p.p1[0] - p.p0[0], dy = p.p1[1] - p.p0[1], L = Math.hypot(dx, dy) || 1; return ((x - p.p0[0]) * dy - (r - p.p0[1]) * dx) / L; }
             default: return x - p.at;
         }
     }
-    function planeOk(p, x, y, z, dir) {
-        if ((p.side === 'forward' && dir < 0) || (p.side === 'backward' && dir > 0)) return false;
-        if (p.kind === 'segment') {
-            const r = model.cyl ? Math.sqrt(y * y + z * z) : y, dx = p.p1[0] - p.p0[0], dy = p.p1[1] - p.p0[1], L2 = dx * dx + dy * dy;
-            const s = ((x - p.p0[0]) * dx + (r - p.p0[1]) * dy) / L2;
-            if (s < -1e-9 || s > 1 + 1e-9) return false;
-        }
-        if (p.radius > 0) {
-            const r2 = p.kind === 'x' ? y * y + z * z : p.kind === 'y' ? x * x + z * z : p.kind === 'z' ? x * x + y * y : 0;
-            if (r2 > p.radius * p.radius) return false;
-        }
-        return true;
-    }
-
     /** Accelerations (dw/dt) at state (xs, ws) and time t into kw; dx/dt into kx. Coulomb over active particles. */
     function accel(t, xs, ws, kx, kw) {
         for (let i = 0; i < n; i++) {
@@ -167,23 +237,44 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
             Ev(PT, ef, -1, false); evals++;
             let fx = ef[0], fy = ef[1], fz = ef[2];
             if (hasB) { Bv(PT, bf, -1); fx += vy * bf[2] - vz * bf[1]; fy += vz * bf[0] - vx * bf[2]; fz += vx * bf[1] - vy * bf[0]; }
-            const k = K_ACC * Qc[i] / M[i];
+            const k = K_ACC * Qc[i] * invM[i];
             kw[o] = k * fx; kw[o + 1] = k * fy; kw[o + 2] = k * fz;
+            if (invTau[i] > 0) { kw[o] -= (vx - gasV[0]) * invTau[i]; kw[o + 1] -= (vy - gasV[1]) * invTau[i]; kw[o + 2] -= (vz - gasV[2]) * invTau[i]; }
         }
+        if (QF !== null) { pairsBySource(xs, kw); return; }
         for (let i = 0; i < n; i++) {
             if (!active[i] || Qc[i] === 0) continue;
-            const oi = 3 * i;
+            const oi = 3 * i, xi = xs[oi], yi = xs[oi + 1], zi = xs[oi + 2], qi = KC * Qc[i], mi = invM[i];
             for (let j = i + 1; j < n; j++) {
                 if (!active[j] || Qc[j] === 0) continue;
                 const oj = 3 * j;
-                const dx = xs[oi] - xs[oj], dy = xs[oi + 1] - xs[oj + 1], dz = xs[oi + 2] - xs[oj + 2];
+                const dx = xi - xs[oj], dy = yi - xs[oj + 1], dz = zi - xs[oj + 2];
                 const d2 = dx * dx + dy * dy + dz * dz + eps2, d = Math.sqrt(d2), inv3 = 1 / (d2 * d);
-                const qq = K_COUL * Qc[i] * Qc[j];
-                const fi = qq * inv3 / M[i], fj = qq * inv3 / M[j];
+                const qq = qi * Qc[j] * inv3;
+                const fi = qq * mi, fj = qq * invM[j];
                 kw[oi] += fi * dx; kw[oi + 1] += fi * dy; kw[oi + 2] += fi * dz;
                 kw[oj] -= fj * dx; kw[oj + 1] -= fj * dy; kw[oj + 2] -= fj * dz;
-                const tau2 = d2 * d / (Math.abs(qq) * (1 / M[i] + 1 / M[j]));
-                if (tau2 < pairMin) pairMin = tau2;
+                // |f_i| + |f_j| = |qq|(1/m_i + 1/m_j)/d³ is the inverse square of the pair time scale
+                const r = (fi < 0 ? -fi : fi) + (fj < 0 ? -fj : fj);
+                if (r > pairMax) pairMax = r;
+            }
+        }
+    }
+    /** Pair forces with per-source partner factors: particle i feels K_C·F·q_i·(f_j q_j), particle j feels K_C·F·q_j·(f_i q_i). */
+    function pairsBySource(xs, kw) {
+        for (let i = 0; i < n; i++) {
+            if (!active[i] || Qc[i] === 0) continue;
+            const oi = 3 * i, xi = xs[oi], yi = xs[oi + 1], zi = xs[oi + 2], qi = KC * Qc[i], qfi = KC * QF[i], mi = invM[i];
+            for (let j = i + 1; j < n; j++) {
+                if (!active[j] || Qc[j] === 0) continue;
+                const oj = 3 * j;
+                const dx = xi - xs[oj], dy = yi - xs[oj + 1], dz = zi - xs[oj + 2];
+                const d2 = dx * dx + dy * dy + dz * dz + eps2, d = Math.sqrt(d2), inv3 = 1 / (d2 * d);
+                const fi = qi * QF[j] * inv3 * mi, fj = qfi * Qc[j] * inv3 * invM[j];
+                kw[oi] += fi * dx; kw[oi + 1] += fi * dy; kw[oi + 2] += fi * dz;
+                kw[oj] -= fj * dx; kw[oj + 1] -= fj * dy; kw[oj + 2] -= fj * dz;
+                const r = (fi < 0 ? -fi : fi) + (fj < 0 ? -fj : fj);
+                if (r > pairMax) pairMax = r;
             }
         }
     }
@@ -197,6 +288,7 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
         const o = 3 * i;
         point(i, X[o], X[o + 1], X[o + 2], T0[i], true);
         if (!(M[i] > 0)) { finish(i, STATUS.NUM_ERROR, -1, T0[i], X[o], X[o + 1], X[o + 2], W[o], W[o + 1], W[o + 2]); return; }
+        if (markersOn) { marks[i].push(particles[i * P_STRIDE + P_ID], T0[i], X[o], X[o + 1], X[o + 2]); markK[i] = 1; }
         if (!model.inside(X[o], X[o + 1], X[o + 2])) {
             const code = typeof model.faceOf === 'function' ? model.faceOf(X[o], X[o + 1], X[o + 2]) : EDGE.XMAX;
             const key = typeof model.beyondKey === 'function' ? model.beyondKey(code) : 'xmax';
@@ -211,7 +303,7 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
     }
     for (let i = 0; i < n; i++) if (T0[i] <= T) activate(i);
 
-    let nSteps = 0, cancelled = false;
+    let nSteps = 0, cancelled = false, lastProgress = t0ms;
     for (;;) {
         let nAct = 0, nextBirth = Infinity, nextStop = Infinity;
         for (let i = 0; i < n; i++) {
@@ -225,8 +317,12 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
         }
         if (nSteps >= maxSteps) { for (let i = 0; i < n; i++) if (active[i]) { const o = 3 * i; finish(i, STATUS.STEPS, -1, T, X[o], X[o + 1], X[o + 2], W[o], W[o + 1], W[o + 2]); } break; }
         if (stop !== null && stop()) { cancelled = true; break; }
+        if (onProgress !== null) {
+            const nowMs = performance.now();
+            if (nowMs - lastProgress >= progressEvery) { lastProgress = nowMs; onProgress({ done: nDone, total: n }); }
+        }
         // first stage gives the accelerations and the pair time scale for the step cap
-        pairMin = Infinity;
+        pairMax = 0;
         accel(T, X, W, KX[0], KW[0]);
         let dt = Infinity;
         for (let i = 0; i < n; i++) {
@@ -236,8 +332,14 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
             const s = hitsOn && model.near(X[o], X[o + 1], X[o + 2]) ? sNear : sCell;
             const den = Math.max(v, Math.sqrt(2 * s * a));
             if (den > 0 && s / den < dt) dt = s / den;
+            if (invTau[i] > 0 && 0.1 / invTau[i] < dt) dt = 0.1 / invTau[i];   // drag: a tenth of the relaxation time (fixed-step RK4)
+            if (gasOn) {
+                const nu = gasModel.rate(gasSp[i], KX[0][o], KX[0][o + 1], KX[0][o + 2]);
+                gasNu[i] = nu;
+                if (nu > 0 && 0.1 / nu < dt) dt = 0.1 / nu;
+            }
         }
-        if (pairMin < Infinity) dt = Math.min(dt, pairStep * Math.sqrt(pairMin));
+        if (pairMax > 0) dt = Math.min(dt, pairStep / Math.sqrt(pairMax));
         if (model.minPeriod > 0 && model.minPeriod < Infinity) dt = Math.min(dt, model.minPeriod / 32);
         let tE = T + dt;
         if (nextBirth < tE) tE = nextBirth;
@@ -299,12 +401,23 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
                 if (steps[i] === 1 && u <= 1e-12) continue;
                 chordAt(o, u);
                 const dir = gb > 0 ? 1 : -1;
-                if (!planeOk(p, QQ[0], QQ[1], QQ[2], dir)) continue;
+                if (!accept(pi, QQ[0], QQ[1], QQ[2], dir)) continue;
                 const c = ++pCount[i * nP + pi];
                 addEv(u, p.terminate ? EV_DETECT : EV_PLANE, pi, dir, c);
             }
             // process in chord order (insertion sort on the few events)
             for (let a = 1; a < nEv; a++) { const v = evOrd[a]; let b = a - 1; while (b >= 0 && evU[evOrd[b]] > evU[v]) { evOrd[b + 1] = evOrd[b]; b--; } evOrd[b + 1] = v; }
+            if (markersOn) {
+                // markers up to the first event that ends the particle (or the step end)
+                let uEnd = 1;
+                for (let a = 0; a < nEv; a++) {
+                    const e = evOrd[a], kind = evK[e];
+                    if (kind === EV_PLANE || kind === EV_MESH || (kind === EV_DETECT && evC[e] !== 1)) continue;
+                    uEnd = evU[e]; break;
+                }
+                const g1 = gamma(W[o], W[o + 1], W[o + 2]);
+                stepMarkers(i, T, dt, T + uEnd * dt, KX[0][o], KX[0][o + 1], KX[0][o + 2], W[o] / g1, W[o + 1] / g1, W[o + 2] / g1);
+            }
             let ended = false;
             for (let a = 0; a < nEv; a++) {
                 const e = evOrd[a], u = evU[e], kind = evK[e], idx = evI[e], k = evC[e];
@@ -323,6 +436,18 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
             path[i] += dl;
             if (!inE) { drift[i] += dl; if (drift[i] >= maxDrift) { finish(i, STATUS.DRIFT_END, EDGE.DRIFT_LIMIT, T1, bx, by, bz, W[o], W[o + 1], W[o + 2]); continue; } }
             point(i, bx, by, bz, T1, false);
+            if (gasOn) {
+                // spend the collision budget (trapezoid of the start and end rates); the excess carries over, so the rate is exact
+                const g1 = gamma(W[o], W[o + 1], W[o + 2]);
+                const nuE = gasModel.rate(gasSp[i], W[o] / g1, W[o + 1] / g1, W[o + 2] / g1);
+                gasBudget[i] -= 0.5 * (gasNu[i] + nuE) * dt;
+                if (gasBudget[i] <= 0) {
+                    gasModel.collide(gasSp[i], gasRng[i], W, o, rel);
+                    gasBudget[i] += gasModel.budget(gasRng[i]);
+                    nColl++;
+                    point(i, bx, by, bz, T1, true);
+                }
+            }
             if (T1 >= tStop(i)) finish(i, STATUS.TMAX, -1, T1, bx, by, bz, W[o], W[o + 1], W[o + 2]);
         }
         T = T1;
@@ -343,14 +468,22 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
         for (let i = 0; i < n; i++) pts.set(traj[i], 4 * offsets[i]);
         trajOut = { offsets, pts };
     }
-    const res = { n, i0: typeof opts.i0 === 'number' ? opts.i0 : (n > 0 ? particles[P_ID] : 0), summary, crossings, nCross: cross.length, traj: trajOut, markers: null,
-        stats: { steps: totalSteps, rejects: 0, evals, ms: performance.now() - t0ms, edgeSplits: 0, regionViolations: 0 } };
+    // markers grouped by particle in batch order (each particle's in time order), as trace.js writes them
+    let markers = null;
+    if (markersOn) {
+        let tot = 0;
+        for (let i = 0; i < n; i++) tot += marks[i].length;
+        markers = new Float32Array(tot);
+        for (let i = 0, o = 0; i < n; i++) { markers.set(marks[i], o); o += marks[i].length; }
+    }
+    const res = { n, i0: typeof opts.i0 === 'number' ? opts.i0 : (n > 0 ? particles[P_ID] : 0), summary, crossings, nCross: cross.length, traj: trajOut, markers,
+        stats: { steps: totalSteps, rejects: 0, evals, ms: performance.now() - t0ms, edgeSplits: 0, regionViolations: 0, crossDropped: 0, collisions: nColl, lockstep: true } };
     if (cancelled) res.cancelled = true;
     return res;
 }
 
 /** Electrostatic interaction energy (eV) of a set of point charges with softening ε (mm): Σ_{i<j} q_i q_j e²/(4π ε0 √(r² + ε²)). */
-export function coulombEnergy(xs, qs, softening = 1e-4) {
+export function coulombEnergy(xs, qs, softening = DEFAULT_SOFTENING) {
     const n = qs.length, eps2 = softening * softening;
     let u = 0;
     for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {

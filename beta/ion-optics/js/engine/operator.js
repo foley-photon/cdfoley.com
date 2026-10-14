@@ -8,14 +8,85 @@
    diag = sum of the arm coefficients, so the matrix is an M-matrix.
    Basis, voltage and custom boundary set-ups; red-black kernels; residual.
 
+   Poisson term (optional, off by default): an analytic charge density
+   rho(x, y) in C/m^3 is sampled at the cell centres and averaged onto the
+   nodes with the volumes of each node's dual cell; the h^2-scaled source
+   f = h^2 rho / eps0 (V) enters the same rows, diag phi_P - sum c_d phi_d = f_P,
+   so that -lap(phi) = rho / eps0. The particular solution with every
+   electrode at 0 V is the "charge basis" (CHARGE_BASIS) and adds to the
+   voltage superposition (uniqueness: Griffiths, Introduction to
+   Electrodynamics, 4th ed., sections 2.3 and 3.1).
+
    Sources: Shortley & Weller, J. Appl. Phys. 9, 334 (1938); Hageman & Young,
    Applied Iterative Methods (Academic Press, 1981), ch. 9 (red-black
    ordering); finite-volume axisymmetric Laplacian: Trottenberg, Oosterlee &
-   Schueller, Multigrid (Academic Press, 2001), section 5.6.
+   Schueller, Multigrid (Academic Press, 2001), section 5.6; Poisson source in
+   relaxation: Press, Teukolsky, Vetterling & Flannery, Numerical Recipes,
+   3rd ed. (2007), section 20.5.
    ========================================================================== */
 import { FLAG, CUT_EXTERIOR, makeGrid, rasterize } from './raster.js';
+import { parseExpr, EngineError } from './expr.js';
+import { EPS0 } from './constants.js';
 
 const ARM_NODE = 0, ARM_CUT = 1, ARM_DROP = 2, ARM_NONE = 3, ARM_GHOST = 4;
+
+/** Pseudo electrode index of the space-charge particular solution: solveBasis(H, CHARGE_BASIS) (weight 1 in the DC channel). */
+export const CHARGE_BASIS = -1;
+/** rho / eps0 with rho in C/m^3 and eps0 in F/m is V/m^2; the grid works in mm, so the Poisson term is scaled by 1e-6 (V/mm^2). */
+const RHO_UNIT = 1e-6;
+
+/**
+ * Nodal Poisson source of a level-0 operator from an analytic charge density (C/m^3; names: the parameters and
+ * x, y, z = 0, r = y). The density is evaluated once per cell centre and averaged onto each free node with the volume
+ * weights of the node's dual cell: planar, the four cells equally; cylindrical j >= 1, the cells above and below
+ * weighted r_j + h/4 and r_j - h/4; on the axis, the two cells above. f_P = h^2 rho_P 1e-6 / eps0 in V.
+ * @param {object} op level-0 Operator
+ * @param {string} expr charge-density expression
+ * @param {object} [paramValues] parameter values by name
+ * @returns {Float64Array|null} length N (0 at fixed and exterior nodes); null when the density is identically zero
+ */
+export function chargeSource(op, expr, paramValues = {}) {
+    if (typeof expr !== 'string' || !expr.trim()) return null;
+    const ex = parseExpr(expr.trim());
+    const g = op.grid, nx = op.nx, ny = op.ny, h = g.h, x0 = g.x0, y0 = g.y0, cyl = op.cyl;
+    const ncx = nx - 1, ncy = ny - 1;
+    const vars = Object.create(null);
+    if (paramValues) for (const name of Object.keys(paramValues)) vars[name] = paramValues[name];
+    vars.z = 0;
+    const rho = new Float64Array(ncx * ncy);
+    let any = false;
+    for (let j = 0; j < ncy; j++) {
+        const y = y0 + (j + 0.5) * h;
+        vars.y = y; vars.r = y;
+        for (let i = 0; i < ncx; i++) {
+            vars.x = x0 + (i + 0.5) * h;
+            const v = ex.evaluate(vars);
+            if (!Number.isFinite(v)) throw new EngineError('E_NOT_FINITE', `The charge density is not finite at (${vars.x}, ${y}).`, 'domain.charge');
+            rho[j * ncx + i] = v;
+            if (v !== 0) any = true;
+        }
+    }
+    if (!any) return null;
+    const f = new Float64Array(op.N), mask = op.mask;
+    const C = h * h * RHO_UNIT / EPS0;
+    for (let j = 0; j < ny; j++) {
+        for (let i = 0; i < nx; i++) {
+            const k = j * nx + i;
+            if (mask[k] === 1) continue;
+            let s = 0, w = 0;
+            for (let cj = j - 1; cj <= j; cj++) {
+                if (cj < 0 || cj >= ncy) continue;
+                const wj = cyl ? (cj === j ? j + 0.25 : j - 0.25) : 1;   // r_{j +- 1/4} / h; the axis (j = 0) sees only the cells above
+                for (let ci = i - 1; ci <= i; ci++) {
+                    if (ci < 0 || ci >= ncx) continue;
+                    s += wj * rho[cj * ncx + ci]; w += wj;
+                }
+            }
+            f[k] = w > 0 ? C * s / w : 0;
+        }
+    }
+    return f;
+}
 
 /**
  * Operators of every multigrid level, each rasterised from the exact geometry at its own spacing.
@@ -40,6 +111,8 @@ export function buildHierarchy(geometry, resolved, opts = {}) {
         H.push(buildOperator(r));
         if (r.stats.free <= minFree) break;
     }
+    // Poisson source (level 0 only; coarse levels solve corrections). Off unless the domain carries a charge density.
+    if (H.length && dom && typeof dom.charge === 'string' && dom.charge.trim()) H[0].source = chargeSource(H[0], dom.charge, resolved.paramValues || {});
     return H;
 }
 
@@ -132,6 +205,7 @@ export function buildOperator(raster) {
         grid: g, raster, cyl, nx, ny, N, level: g.level, h: g.h,
         rowW, rowN, rowS, rowD, rowInvD, mask,
         irr: { count, node, nb, c, diag, cutElec, red, black },
+        source: null,   // Poisson source by node (level 0, h^2 scaling, V), set by buildHierarchy when the domain has a charge density
     };
 }
 
@@ -152,6 +226,7 @@ export function newRhs(op) { return new Float64Array(op.irr.count); }
  */
 export function basisSetup(op, k, u, b) {
     const N = op.N, cls = op.raster.cls, mix = op.raster.mix;
+    if (k < 0) { u.fill(0); b.fill(0); return; }   // the charge basis: every electrode and edge at 0 V
     for (let q = 0; q < N; q++) u[q] = cls[q] === k ? 1 : 0;
     for (let q = 0; q < mix.count; q++) {
         let v = 0;

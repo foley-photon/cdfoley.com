@@ -30,11 +30,12 @@ export function lensDefaults(project, resolved) {
 
 /**
  * Key of everything a lens computation depends on besides the geometry (pure, for tests): the field key (voltages,
- * waveforms, magnets, ideal fields, field interpolation) and the relativistic flag. A change makes shown results stale.
+ * waveforms, magnets, ideal fields), the field interpolation and the relativistic flag, the three tracer-side inputs of
+ * the lens rays. A change makes shown results stale (dimmed, with a "voltages changed" note, markers removed).
  */
 export function fieldStateKey(state) {
     const k = (state && state.keys) || {}, tr = (state && state.resolved && state.resolved.tracer) || {};
-    return [k.fieldKey || '', tr.relativistic === false ? 'nonrel' : 'rel'].join('|');
+    return [k.fieldKey || '', tr.fieldInterp || 'cubic', tr.relativistic === false ? 'nonrel' : 'rel'].join('|');
 }
 
 /** x of the first enabled source's position (the image finder's object), or NaN. */
@@ -115,7 +116,7 @@ export function mount(el, ctx) {
         const st = ctx.store.get(), m = (st.project && st.project.meta) || {};
         return [m.preset || '', m.created || '', (st.keys && st.keys.geomKey) || ''].join('|');
     };
-    const STALE_TEXT = 'Voltages or fields changed since this computation; compute again.';
+    const STALE_TEXT = 'Voltages, fields or tracer settings changed since this computation; compute again.';
     // same geometry, other fields: keep the form and the numbers, but dim them, say so and take the markers off the canvas
     function markStale() {
         const fk = fieldStateKey(ctx.store.get());
@@ -289,6 +290,8 @@ export function mount(el, ctx) {
     });
 
     defaults();
+    // the canvas markers must not outlive their fields while the tab is hidden (the dock forwards events only to the shown tab)
+    const offs = ['resolved', 'field'].map((e) => ctx.store.on(e, () => { if (running) return; if (projectKey() !== filledKey) { if (last || lastImage) clearResults(); } else markStale(); }));
     return {
         update(evt) {
             if (!evt) return;
@@ -296,6 +299,6 @@ export function mount(el, ctx) {
                 if (projectKey() !== filledKey && !running) { clearResults(); defaults(); } else markStale();
             }
         },
-        destroy() { for (const b of blocks) b.destroy(); if (ctx.view && ctx.view.removeOverlay) { ctx.view.removeOverlay('io-lens'); ctx.view.removeOverlay('io-image'); } },
+        destroy() { offs.forEach((f) => f()); for (const b of blocks) b.destroy(); if (ctx.view && ctx.view.removeOverlay) { ctx.view.removeOverlay('io-lens'); ctx.view.removeOverlay('io-image'); } },
     };
 }

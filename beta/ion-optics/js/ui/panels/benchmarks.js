@@ -18,7 +18,9 @@ import { fmtNum, dataTable, linePlot, chartBlock, download } from '../plots.js';
 
 export const meta = { id: 'bench', title: 'Benchmarks', order: 90 };
 
-const GROUPS = [['K', 'Kinematics and magnetics'], ['S', 'Field solutions'], ['T', 'Trajectories in solved fields'], ['L', 'Lens properties'], ['P', 'Planned']];
+const GROUPS = [['K', 'Kinematics and magnetics'], ['S', 'Field solutions'], ['T', 'Trajectories in solved fields'], ['L', 'Lens properties'], ['D', 'Drag and gas'], ['I', 'Devices'], ['P', 'Planned and promoted']];
+/** Registry counts by kind, so the panel follows the registry instead of hard-coding them. */
+const countKind = (kind) => BENCHMARKS.filter((b) => b.kind === kind).length;
 const STATUS = { pass: ['Pass', 'badge-ok'], fail: ['Fail', 'badge-bad'], info: ['Info', ''], planned: ['Planned', ''], error: ['Error', 'badge-bad'], cancelled: ['Stopped', 'badge-warn'], running: ['Running…', 'badge-warn'], queued: ['Queued', ''], none: ['Not run', ''] };
 
 /** The check with the largest |deviation|/tolerance (failed checks first). */
@@ -107,7 +109,7 @@ export function mount(el, ctx) {
         h('thead', null, h('tr', null, ...[['', 'exp'], ['ID', 'id'], ['Check', 'check'], ['Reference', 'ref'], ['Target', 'num'], ['Computed', 'num'], ['Deviation', 'num'], ['Tolerance', 'tol'], ['Typical', 'typ'], ['Status', 'st'], ['Time', 'time']]
             .map(([t, c]) => h('th', { scope: 'col', class: `c-${c}`, text: t, title: t === 'Typical' ? 'Typical deviation measured in the calibration' : null })))), tbody);
     el.appendChild(h('div', { class: 'io-results io-bench' },
-        h('h3', { class: 'io-bench-title', text: 'Validation suite: 38 checks against published and analytic values, run in this browser' }),
+        h('h3', { class: 'io-bench-title', text: `Validation suite: ${countKind('gate')} checks against published and analytic values, run in this browser` }),
         h('div', { class: 'io-btnrow' }, quickBtn, fullBtn, stopBtn, h('span', { class: 'io-sep' }), mdBtn, jsonBtn, copyBtn), env, sumLine, stale,
         h('div', { class: 'io-table-scroll' }, table)));
 
@@ -145,7 +147,7 @@ export function mount(el, ctx) {
         table.classList.toggle('io-dim', S.stale);
         const results = [...S.results.values()];
         const s = summarise(results);
-        sumLine.textContent = results.length ? `Gates passed: ${s.passed}/${s.gates}${s.failed ? ` · failed ${s.failed}` : ''} · informational ${s.info} · planned 4${S.wallMs ? ` · ${(S.wallMs / 1000).toFixed(1)} s` : ''}${S.running ? ` · running ${S.runningIds.size} case${S.runningIds.size === 1 ? '' : 's'}…` : ''}` : 'Not run yet in this browser.';
+        sumLine.textContent = results.length ? `Gates passed: ${s.passed}/${s.gates}${s.failed ? ` · failed ${s.failed}` : ''} · informational ${s.info} · planned ${countKind('planned')}${S.wallMs ? ` · ${(S.wallMs / 1000).toFixed(1)} s` : ''}${S.running ? ` · running ${S.runningIds.size} case${S.runningIds.size === 1 ? '' : 's'}…` : ''}` : 'Not run yet in this browser.';
         tbody.replaceChildren();
         for (const [g, gname] of GROUPS) {
             tbody.appendChild(h('tr', { class: 'io-bench-group' }, h('th', { scope: 'rowgroup', colspan: '11', text: `${g} · ${gname}` })));
@@ -267,7 +269,7 @@ export function mount(el, ctx) {
     jsonBtn.addEventListener('click', () => download(JSON.stringify({ suite: 'ion-optics-validation', level: S.level, engineVersion: ENGINE_VERSION, env: envText(), date: S.date, wallMs: S.wallMs, summary: summarise([...S.results.values()]), results: [...S.results.values()] }, null, 1), `validation-${S.level}.json`, 'application/json'));
     copyBtn.addEventListener('click', async () => {
         const s = summarise([...S.results.values()]);
-        const text = `Validation suite (${S.level}): ${s.passed}/${s.gates} gates passed, ${s.info} informational, 4 planned; engine ${ENGINE_VERSION}; ${browserName()}, ${workers()}; ${S.date ? S.date.slice(0, 10) : ''}.`;
+        const text = `Validation suite (${S.level}): ${s.passed}/${s.gates} gates passed, ${s.info} informational, ${countKind('planned')} planned; engine ${ENGINE_VERSION}; ${browserName()}, ${workers()}; ${S.date ? S.date.slice(0, 10) : ''}.`;
         const ok = await ctx.ui.dom.copyText(text);
         if (ctx.ui.toast) ctx.ui.toast(ok ? 'Summary copied.' : 'Copy failed.', { kind: ok ? 'ok' : 'warn' });
     });

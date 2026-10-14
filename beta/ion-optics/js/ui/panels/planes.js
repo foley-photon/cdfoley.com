@@ -9,7 +9,7 @@
    ========================================================================== */
 import { C_STRIDE, C_PLANE, C_KIND } from '../../engine/layout.js';
 import { groupedBlurMetric, classIndex, planeSample, rmsRadius } from '../../engine/optimize.js';
-import { planeStats } from '../analysis-jobs.js';
+import { planeStats, sampleWeights } from '../analysis-jobs.js';
 import { chartBlock, scatterPlot, heatmapPlot, barsPlot, statList, fmtNum, download, dataTable, displayHistogram } from '../plots.js';
 
 export const meta = { id: 'planes', title: 'Planes', order: 30 };
@@ -46,6 +46,17 @@ export function mount(el, ctx) {
     el.appendChild(h('div', { class: 'io-results io-planes' }, bar, waistOut, empty, top, statsBox, hist, groupsBox));
     let blocks = [];
     let curPlane = 0;
+    let waistFor = null;   // { res, plane } of the shown "Find waist" line and canvas marker
+    /** Removes the waist line and marker when they belong to another run or plane (also while the tab is hidden). */
+    function dropStaleWaist() {
+        const { res } = ctxState();
+        if (!waistFor || (waistFor.res === res && waistFor.plane === curPlane)) return;
+        waistFor = null;
+        waistOut.textContent = '';
+        if (ctx.view && ctx.view.removeOverlay) ctx.view.removeOverlay('io-waist');
+        clearBtn.hidden = true;
+    }
+    const offRun = ctx.store.on('run', dropStaleWaist);
     pick.addEventListener('change', () => { curPlane = +pick.value; render(); });
 
     function clearBlocks() { for (const b of blocks) b.destroy(); blocks = []; top.replaceChildren(); hist.replaceChildren(); statsBox.replaceChildren(); groupsBox.replaceChildren(); }
@@ -55,6 +66,7 @@ export function mount(el, ctx) {
     }
     function render() {
         clearBlocks();
+        dropStaleWaist();
         const { res, resolved } = ctxState();
         const planes = (resolved && resolved.recording && resolved.recording.planes) || [];
         pick.replaceChildren(...planes.map((p, k) => h('option', { value: String(k), text: p.name || p.id })));
@@ -88,18 +100,20 @@ export function mount(el, ctx) {
             [`ε rms (${ax[1]}, ${ax[1]}′)`, ps.emittance.w.epsRms, 'mm·mrad'],
             ['Mean KE', ps.ke.mean, 'eV'], ['KE spread (rms)', ps.ke.sd, 'eV'], ['Mean TOF', ps.tof.mean, 'µs'], ['TOF spread (rms)', ps.tof.sd, 'µs'],
         ]));
-        // histograms
+        // histograms (Σw per bin when the sources carry statistical weights other than 1)
+        const wts = sampleWeights(res, resolved, smp.ids);
         const mk = (title, vals, xLabel, name) => {
-            const hh = displayHistogram(vals, xLabel);
-            blocks.push(chartBlock(hist, { title, plot: barsPlot({ series: [{ label: title, edges: hh.edges, counts: hh.counts }], xLabel: hh.label }), height: 180,
-                columns: ['bin_low', 'bin_high', 'count'], rows: Array.from(hh.counts, (c, i) => [hh.edges[i] + hh.offset, hh.edges[i + 1] + hh.offset, c]), csvName: name }));
+            const hh = displayHistogram(vals, xLabel, { weights: wts });
+            const t = wts ? `${title} (weighted)` : title;
+            blocks.push(chartBlock(hist, { title: t, plot: barsPlot({ series: [{ label: t, edges: hh.edges, counts: hh.counts }], xLabel: hh.label }), height: 180,
+                columns: ['bin_low', 'bin_high', wts ? 'weighted_count' : 'count'], rows: Array.from(hh.counts, (c, i) => [hh.edges[i] + hh.offset, hh.edges[i + 1] + hh.offset, c]), csvName: name }));
         };
         mk(`Position ${ax[0]}`, smp.u, uLab, 'position-histogram');
         mk(`Angle ${ax[0]}′`, upm, `${ax[0]}′ (mrad)`, 'angle-histogram');
         mk('Kinetic energy', smp.ke, 'KE (eV)', 'energy-histogram');
         mk('Time of flight', smp.tof, 't (µs)', 'time-histogram');
         // grouped spots (grid sources with direction or energy classes)
-        const hasClasses = (resolved.sources || []).some((s) => s.sampling === 'grid');
+        const hasClasses = (resolved.sources || []).some((s) => s.sampling === 'grid' || s.type === 'rows');
         if (hasClasses) {
             const gs = groupedSpotsOf(res, resolved, curPlane);
             if (gs.rows.length > 1) {
@@ -132,14 +146,15 @@ export function mount(el, ctx) {
         if (!res) return;
         const plane = resolved.recording.planes[curPlane];
         const ps = planeStats(res, resolved, curPlane);
-        if (!ps.waist || !Number.isFinite(ps.waist.offset)) { waistOut.textContent = 'No waist: too few rays or parallel rays.'; return; }
+        if (!ps.waist || !Number.isFinite(ps.waist.offset)) { waistOut.textContent = 'No waist: too few rays or parallel rays.'; waistFor = { res, plane: curPlane }; return; }
         const axial = plane.kind === 'x' || plane.kind === 'y' || plane.kind === 'z';
         const pos = axial ? (plane.at || 0) + ps.waist.offset : ps.waist.offset;
         waistOut.textContent = `Waist ${axial ? `at ${plane.kind} = ${fmtNum(pos, 6)} mm` : `${fmtNum(pos, 6)} mm beyond the plane`}; rms radius there ${fmtNum(ps.waist.rms, 4)} mm (${fmtNum(ps.waist.rmsAtPlane, 4)} mm at the plane). Rays are continued as straight lines, so the region must be field-free.`;
         if (axial && plane.kind !== 'z') waistMarker(pos, plane);
+        waistFor = { res, plane: curPlane };
         if (ctx.ui.announce) ctx.ui.announce(waistOut.textContent);
     });
-    clearBtn.addEventListener('click', () => { if (ctx.view && ctx.view.removeOverlay) ctx.view.removeOverlay('io-waist'); clearBtn.hidden = true; });
+    clearBtn.addEventListener('click', () => { if (ctx.view && ctx.view.removeOverlay) ctx.view.removeOverlay('io-waist'); clearBtn.hidden = true; waistOut.textContent = ''; waistFor = null; });
     csvBtn.addEventListener('click', () => {
         const { res, resolved } = ctxState();
         if (!res) return;
@@ -153,6 +168,6 @@ export function mount(el, ctx) {
     render();
     return {
         update(evt) { if (!evt || ['run', 'show', 'resolved'].includes(evt.type)) render(); },
-        destroy() { clearBlocks(); if (ctx.view && ctx.view.removeOverlay) ctx.view.removeOverlay('io-waist'); },
+        destroy() { offRun(); clearBlocks(); if (ctx.view && ctx.view.removeOverlay) ctx.view.removeOverlay('io-waist'); },
     };
 }

@@ -17,7 +17,7 @@
    ========================================================================== */
 import { EngineError, evaluateParams, parseExpr, isIdentifier } from './expr.js';
 import { ENGINE_VERSION, PROJECT_FORMAT } from './version.js';
-import { C_MMUS } from './constants.js';
+import { C_MMUS, K_ACC, UC2_EV } from './constants.js';
 
 export { EngineError };
 
@@ -33,17 +33,21 @@ export const ENUMS = Object.freeze({
     termType: ['cos', 'pulse', 'table'],
     shapeType: ['box', 'tube', 'plate', 'disc', 'circle', 'annulus', 'polygon', 'polyline', 'quadric'],
     mirror: ['none', 'x', 'y', 'xy'],
-    magnetType: ['uniform', 'region', 'loop'],
+    magnetType: ['uniform', 'region', 'loop', 'poles'],
     regionType: ['box', 'polygon', 'annulus'],
+    poleBoundary: ['neumann', 'zero'],
     idealType: ['uniformE', 'quadrupole2d', 'quadrupole3d', 'coax', 'sphere'],
+    sourceType: ['sampled', 'rows'],
     sampling: ['random', 'grid'],
     positionType: ['point', 'line', 'disc', 'rect', 'gaussian', 'list'],
     directionType: ['fixed', 'cone', 'fan', 'isotropic'],
     coneFill: ['solid', 'angle', 'lambert'],
     energyType: ['mono', 'uniform', 'gaussian', 'list'],
     timeType: ['fixed', 'uniform', 'rfPhase', 'list'],
-    planeKind: ['x', 'y', 'z', 'r', 'segment'],
+    planeKind: ['x', 'y', 'z', 'r', 'segment', 'sphere'],
     side: ['both', 'forward', 'backward'],
+    spaceChargeModel: ['coulomb'],
+    gasModel: ['hardSphere'],
     record: ['first', 'all'],
     integrator: ['auto', 'rk45', 'boris', 'rk4'],
     quality: ['draft', 'normal', 'fine', 'custom'],
@@ -68,6 +72,9 @@ export const LIMITS = Object.freeze({
     timeChannels: 7,           // waveform channels besides DC (8 including DC)
     projectBytes: 5 * 1024 * 1024, linkBytes: 64 * 1024,
     polygonPoints: 100000, listItems: 1000000, tableKnots: 100000,
+    rows: 1000000,             // particle rows of one 'rows' source (the particle limit above also applies)
+    poles: 64,                 // pole pieces of one 'poles' magnet
+    spaceChargeParticles: 2000,   // direct-summation space charge (coulomb.js)
 });
 
 /** Tracer quality presets (spec §3.8): rtol, maxStepCells, nearStepCells, rfStepsPerPeriod, borisStepsPerGyration. */
@@ -100,6 +107,8 @@ function defaultDomain(type) {
             ymin: cyl ? { bc: 'axis' } : { bc: 'dirichlet', electrode: 'gnd' }, ymax: { bc: 'dirichlet', electrode: 'gnd' },
         },
         mirror: { x: false, y: false },
+        antimirror: { x: false, y: false },
+        charge: '',
         beyond: { xmin: 'stop', xmax: 'stop', ymin: 'stop', ymax: 'stop' },
     };
 }
@@ -134,7 +143,15 @@ const DEFAULT_MAGNETS = {
     region: (cyl) => ({ id: 'm1', name: 'Field region', enabled: true, type: 'region', B: cyl ? [0.01, 0, 0] : [0, 0, 0.01],
         region: { type: 'box', x0: -10, x1: 10, y0: cyl ? 0 : -10, y1: 10 } }),
     loop: () => ({ id: 'm1', name: 'Current loop', enabled: true, type: 'loop', center: [0, 0, 0], normal: [1, 0, 0], radius: 10, turns: 1, current: 1 }),
+    poles: (cyl) => ({ id: 'm1', name: 'Pole pieces', enabled: true, type: 'poles', boundary: 'neumann',
+        pieces: [{ region: { type: 'box', x0: -10, x1: 10, y0: 5, y1: 8 }, psi: 1 }, { region: { type: 'box', x0: -10, x1: 10, y0: cyl ? 12 : -8, y1: cyl ? 15 : -5 }, psi: cyl ? 0 : -1 }] }),
 };
+const DEFAULT_POLE = { region: { type: 'box', x0: -10, x1: 10, y0: 5, y1: 8 }, psi: 1 };
+
+/** One particle row of a 'rows' source: [mass u, charge e, x, y, z mm, dx, dy, dz, KE eV, t0 µs] (velocity rows: [m, q, x, y, z, vx, vy, vz mm/µs, t0]). */
+export const ROW_COLUMNS = Object.freeze(['mass', 'charge', 'x', 'y', 'z', 'dx', 'dy', 'dz', 'ke', 't0']);
+export const ROW_COLUMNS_VELOCITY = Object.freeze(['mass', 'charge', 'x', 'y', 'z', 'vx', 'vy', 'vz', 't0']);
+const DEFAULT_ROW = [100, 1, 0, 0, 0, 1, 0, 0, 100, 0];
 
 const DEFAULT_REGIONS = {
     box: { type: 'box', x0: -10, x1: 10, y0: 0, y1: 10 },
@@ -182,9 +199,9 @@ const DEFAULT_TIME = {
  * Kinds: 'project', 'meta', 'param', 'domain', 'edge', 'segment', 'electrode', 'gnd', 'transform',
  * '<shape type>' or 'shape.<type>', 'term' / 'term.<cos|pulse|table>', 'magnet' / 'magnet.<type>',
  * 'region.<type>', 'idealField' / 'ideal.<type>', 'source', 'species', 'position.<type>',
- * 'direction.<type>', 'energy.<type>', 'time.<type>', 'plane', 'recording', 'trajectories',
- * 'timeMarkers', 'tracer', 'custom', 'drag', 'solver', 'analysis', 'lens', 'scan', 'optimize',
- * 'waist', 'metric', 'view', 'layers', 'slider'.
+ * 'direction.<type>', 'energy.<type>', 'time.<type>', 'source.rows' / 'rows' / 'row' (particle lists), 'plane',
+ * 'recording', 'trajectories', 'timeMarkers', 'tracer', 'custom', 'drag', 'spaceCharge', 'gas', 'antimirror', 'pole',
+ * 'solver', 'analysis', 'lens', 'scan', 'optimize', 'waist', 'metric', 'view', 'layers', 'slider'.
  * @param {string} kind @param {'planar2d'|'cyl2d'} [domainType]
  * @returns {object}
  */
@@ -214,12 +231,16 @@ export function defaults(kind, domainType = 'cyl2d') {
         case 'magnet': return (DEFAULT_MAGNETS[tail] || DEFAULT_MAGNETS.uniform)(cyl);
         case 'region': return clone(DEFAULT_REGIONS[tail] || DEFAULT_REGIONS.box);
         case 'idealField': case 'ideal': return clone(DEFAULT_IDEAL[tail] || DEFAULT_IDEAL.uniformE);
-        case 'source': return {
-            id: 'b1', name: 'Beam 1', enabled: true, color: 'auto', count: 10, sampling: 'random', seed: 1,
-            species: [{ label: 'm/z 100', mass: 100, charge: 1, fraction: 1 }],
-            position: clone(DEFAULT_POSITION.point), direction: clone(DEFAULT_DIRECTION.fixed),
-            energy: clone(DEFAULT_ENERGY.mono), time: clone(DEFAULT_TIME.fixed),
-        };
+        case 'source':
+            if (tail === 'rows') return { id: 'b1', name: 'Particle list', enabled: true, color: 'auto', type: 'rows', weight: 1, species: [], velocity: false, rows: [DEFAULT_ROW.slice()] };
+            return {
+                id: 'b1', name: 'Beam 1', enabled: true, color: 'auto', type: 'sampled', weight: 1, count: 10, sampling: 'random', seed: 1,
+                species: [{ label: 'm/z 100', mass: 100, charge: 1, fraction: 1 }],
+                position: clone(DEFAULT_POSITION.point), direction: clone(DEFAULT_DIRECTION.fixed),
+                energy: clone(DEFAULT_ENERGY.mono), time: clone(DEFAULT_TIME.fixed),
+            };
+        case 'rows': return { type: 'rows', weight: 1, species: [], velocity: false, rows: [DEFAULT_ROW.slice()] };
+        case 'row': return DEFAULT_ROW.slice();
         case 'species': return { label: 'm/z 100', mass: 100, charge: 1, fraction: 1 };
         case 'position': return clone(DEFAULT_POSITION[tail] || DEFAULT_POSITION.point);
         case 'direction': return clone(DEFAULT_DIRECTION[tail] || DEFAULT_DIRECTION.fixed);
@@ -229,9 +250,13 @@ export function defaults(kind, domainType = 'cyl2d') {
         case 'recording': return { planes: [], trajectories: { store: true, maxPoints: 2000 }, timeMarkers: null };
         case 'trajectories': return { store: true, maxPoints: 2000 };
         case 'timeMarkers': return { dt: 0.1 };
-        case 'tracer': return { integrator: 'auto', quality: 'normal', custom: null, fieldInterp: 'cubic', relativistic: true, tMax: 1000, maxSteps: 500000, maxDrift: 10000, drag: null };
+        case 'tracer': return { integrator: 'auto', quality: 'normal', custom: null, fieldInterp: 'cubic', relativistic: true, tMax: 1000, maxSteps: 500000, maxDrift: 10000, drag: null, spaceCharge: null, gas: null };
         case 'custom': return { ...QUALITY.normal };
         case 'drag': return { type: 'stokes', mobility: 1, gasVelocity: [0, 0, 0] };
+        case 'spaceCharge': return { enabled: true, model: 'coulomb', softening: 1e-4, maxParticles: LIMITS.spaceChargeParticles, factor: 1 };
+        case 'gas': return { enabled: true, model: 'hardSphere', pressure: 0.1, temperature: 293.15, mass: 4.002602, diameter: 2.2, ionDiameter: null, velocity: [0, 0, 0] };
+        case 'pole': return clone(DEFAULT_POLE);
+        case 'antimirror': return { x: false, y: false };
         case 'solver': return { boundary: 'subgrid', method: 'auto', tol: 1e-10, maxCycles: 60, maxIterations: 200, maxSweeps: 100000 };
         case 'analysis': return { lens: null, scan: null, optimize: null, waist: null };
         case 'lens': return { refX: 0, D: 10, xStart: -40, xEnd: 40, mass: 100, charge: 1, keLeft: 1000, heights: [0.02, 0.03, 0.04, 0.05, 0.06, 0.08], side: 'both' };
@@ -318,6 +343,20 @@ const CUSTOM_META = [N('rtol', 'Relative tolerance', 'none', 'Error tolerance pe
     N('rfStepsPerPeriod', 'Steps per RF period', 'none', 'Step limit in time-dependent fields.', { gt: 0 }),
     N('borisStepsPerGyration', 'Boris steps per gyration', 'none', 'Step count per cyclotron period.', { gt: 0 }),
     N('dt', 'Fixed step (RK4)', 'time', 'Optional fixed time step.', { nullable: true, gt: 0 })];
+const SPACE_CHARGE_META = [B('enabled', 'Space charge on', 'Particle–particle Coulomb forces by direct summation: an onset estimator, not a self-consistent solution.'),
+    S('model', 'Model', opt(ENUMS.spaceChargeModel, ['Coulomb (pairwise)']), 'Pairwise forces between the particles in flight at the same time.'),
+    N('softening', 'Softening ε', 'length', 'Plummer softening length of the pair force. For a beam about a tenth of the mean particle spacing (halve it to check); for a few-body problem far below the separation.', { gt: 0 }),
+    I('maxParticles', 'Particle cap', `Direct summation is limited to ${LIMITS.spaceChargeParticles} particles per run.`, { min: 1, max: LIMITS.spaceChargeParticles }),
+    N('factor', 'Charge factor', 'none', 'Multiplies every particle\'s charge in the pair forces (each simulated particle stands for this many).', { min: 0 }),
+    N('pairStep', 'Pair step', 'none', 'Fraction of the smallest pair time scale per lockstep step (empty: 0.05 draft, 0.02 normal, 0.005 fine).', { nullable: true, gt: 0, max: 0.5 })];
+const GAS_META = [B('enabled', 'Gas on', 'Hard-sphere collisions with a background gas.'),
+    S('model', 'Model', opt(ENUMS.gasModel, ['Hard sphere']), 'Elastic ion–neutral collisions with a Maxwell–Boltzmann gas.'),
+    N('pressure', 'Pressure', 'none', 'Gas pressure, Pa (1 mTorr = 0.1333 Pa); 0 turns collisions off.', { min: 0 }),
+    N('temperature', 'Temperature', 'none', 'Gas temperature, K.', { gt: 0 }),
+    N('mass', 'Gas mass', 'mass', 'Mass of a gas atom or molecule.', { gt: 0 }),
+    N('diameter', 'Gas diameter', 'none', 'Collision diameter of the gas, Å.', { gt: 0 }),
+    N('ionDiameter', 'Ion diameter', 'none', 'Collision diameter of the ions, Å (empty: a sphere of density 1 g/cm³, (6m/πρ)^(1/3)).', { nullable: true, gt: 0 }),
+    V('velocity', 'Gas velocity', 'none', 3, 'Bulk gas flow, mm/µs.')];
 const IDEAL_COMMON = [B('enabled', 'Enabled', 'Disabled fields are ignored.'),
     S('type', 'Type', opt(ENUMS.idealType, ['Uniform E', 'Quadrupole (2D)', 'Quadrupole (3D, axis x)', 'Coaxial (log)', 'Spherical (A + B/r)']), 'Analytic field added to the solved field.')];
 
@@ -344,7 +383,12 @@ export const META = Object.freeze({
         R2('y', 'y (or r) extent', 'length', 'Domain extent along y (r from 0 when cylindrical).'),
         N('cell', 'Cell size', 'length', 'Grid spacing h (square cells); the grid has (extent / cell + 1) nodes per direction.', { gt: 0 }),
         B('mirror.x', 'Mirror at x = 0', 'The domain covers x ≥ 0 and is mirrored (needs x start = 0 and a Neumann xmin edge).'),
-        B('mirror.y', 'Mirror at y = 0', 'Planar only: the domain covers y ≥ 0 and is mirrored (needs y start = 0 and a Neumann ymin edge).', { when: ['planar2d'] })],
+        B('mirror.y', 'Mirror at y = 0', 'Planar only: the domain covers y ≥ 0 and is mirrored (needs y start = 0 and a Neumann ymin edge).', { when: ['planar2d'] }),
+        B('antimirror.x', 'Anti-mirror at x = 0', 'The domain covers x ≥ 0; the potential is odd in x: φ(−x) = −φ(x), φ = 0 on the plane (needs x start = 0 and a grounded xmin edge).'),
+        B('antimirror.y', 'Anti-mirror at y = 0', 'Planar only: the potential is odd in y (hexapoles, bipolar magnets); needs y start = 0 and a grounded ymin edge.', { when: ['planar2d'] }),
+        T('charge', 'Space-charge density ρ(x, y)', 'Optional expression in x, y (r in cylindrical domains), z and the parameters, C/m³; empty: Laplace. Adds a Poisson term to the solve.', { optional: true })],
+    antimirror: [B('x', 'Anti-mirror in x', 'φ(−x) = −φ(x): the domain covers x ≥ 0 with φ = 0 on the plane (needs x start = 0 and a grounded xmin edge).'),
+        B('y', 'Anti-mirror in y', 'Planar only: φ(−y) = −φ(y); needs y start = 0 and a grounded ymin edge.', { when: ['planar2d'] })],
     edge: [S('bc', 'Boundary', opt(ENUMS.bc, ['Fixed voltage (electrode)', 'Zero normal field (Neumann)', 'Symmetry axis', 'Profile (segments and ramps)']), 'Boundary condition on this domain edge.'),
         EL('electrode', 'Electrode', 'Electrode whose voltage the edge takes.', { showIf: { bc: 'dirichlet' } })],
     segment: [N('from', 'From', 'length', 'Start of the segment along the edge.'), N('to', 'To', 'length', 'End of the segment along the edge.'),
@@ -373,7 +417,10 @@ export const META = Object.freeze({
         V('about', 'Pivot [x, y]', 'length', 2, 'Center of rotation and mirroring.'),
         S('mirror', 'Mirror', opt(ENUMS.mirror, ['None', 'Flip x', 'Flip y', 'Flip both']), 'Applied first (about the pivot).')],
     magnet: [T('name', 'Name', 'Magnet name.', { optional: true }), B('enabled', 'Enabled', 'Disabled magnets are ignored.'),
-        S('type', 'Type', opt(ENUMS.magnetType, ['Uniform field', 'Field region (sharp edges)', 'Current loop']), 'Kind of magnetic field.')],
+        S('type', 'Type', opt(ENUMS.magnetType, ['Uniform field', 'Field region (sharp edges)', 'Current loop', 'Pole pieces (scalar potential)']), 'Kind of magnetic field.')],
+    'magnet.poles': [S('boundary', 'Domain edges', opt(ENUMS.poleBoundary, ['Zero normal field (Neumann)', 'ψ = 0']), 'Condition for the magnetic scalar potential ψ on the open domain edges.')],
+    pole: [S('region.type', 'Piece shape', opt(ENUMS.regionType, ['Box', 'Polygon', 'Annulus sector']), 'Pole piece in plane coordinates, extruded (planar) or revolved (cylindrical).'),
+        N('psi', 'Scalar potential ψ', 'none', 'Magnetic scalar potential of the piece, T·mm: B = −∇ψ, so a gap g between pieces at ψ₁ and ψ₂ carries |B| ≈ |ψ₁ − ψ₂|/g.')],
     'magnet.uniform': [V('B', 'B [Bx, By, Bz]', 'flux', 3, 'Uniform flux density everywhere (also outside the grid), tesla.')],
     'magnet.region': [V('B', 'B [Bx, By, Bz]', 'flux', 3, 'Flux density inside the region, tesla (cylindrical domains: Bx only).'),
         S('region.type', 'Region shape', opt(ENUMS.regionType, ['Box', 'Polygon', 'Annulus sector']), 'Region in plane coordinates, extruded (planar) or revolved (cylindrical).')],
@@ -396,9 +443,18 @@ export const META = Object.freeze({
         N('V1', 'Inner voltage', 'voltage', ''), N('V2', 'Outer voltage', 'voltage', '')],
     source: [T('name', 'Name', 'Source name.'), B('enabled', 'Enabled', 'Disabled sources are not run.'),
         T('color', 'Color', '"auto" or #rrggbb.', { format: 'color', optional: true }),
+        S('type', 'Source type', opt(ENUMS.sourceType, ['Sampled (species and distributions)', 'Particle list (one row per particle)']), 'A sampled source draws particles from the cards below; a particle list gives every particle explicitly.'),
+        N('weight', 'Weight', 'none', 'Statistical weight of each particle of this source (default 1): weighted counts, transmission and histograms.', { gt: 0 }),
         S('sampling', 'Sampling', opt(ENUMS.sampling, ['Random', 'Grid (every combination)']), 'Grid sampling takes every combination of the listed classes.'),
         I('count', 'Particles', 'Number of particles (random sampling; grid sampling derives it).', { min: 0, showIf: { sampling: 'random' } }),
         I('seed', 'Seed', 'Random seed; the same seed gives the same particles.', { min: 0 })],
+    'source.rows': [B('velocity', 'Velocity columns', 'Off: columns 6–8 are a direction and column 9 the kinetic energy. On: columns 6–8 are the velocity in mm/µs (9 columns, no energy column).'),
+        PS('rows', 'Particles (one per line)', ['mass', 'charge', 'length', 'length', 'length', 'none', 'none', 'none', 'energy', 'time'], 1,
+            'mass u, charge e, x, y, z mm, direction dx, dy, dz, kinetic energy eV, birth time µs.')],
+    rows: [PS('rows', 'Particles (one per line)', ['mass', 'charge', 'length', 'length', 'length', 'none', 'none', 'none', 'energy', 'time'], 1,
+        'mass u, charge e, x, y, z mm, direction dx, dy, dz, kinetic energy eV, birth time µs.')],
+    'rows.velocity': [PS('rows', 'Particles (one per line)', ['mass', 'charge', 'length', 'length', 'length', 'none', 'none', 'none', 'time'], 1,
+        'mass u, charge e, x, y, z mm, velocity vx, vy, vz mm/µs, birth time µs.')],
     species: [T('label', 'Label', 'Species label.'), N('mass', 'Mass', 'mass', 'Mass in u.', { gt: 0 }), N('charge', 'Charge', 'charge', 'Charge in e (signed, not zero).'),
         N('fraction', 'Fraction', 'none', 'Relative abundance (random sampling).', { min: 0 })],
     'position.point': [V('p', 'Point [x, y, z]', 'length', 3, '')],
@@ -424,8 +480,9 @@ export const META = Object.freeze({
     'time.uniform': [N('t0', 'From', 'time', ''), N('t1', 'To', 'time', ''), I('n', 'Times (grid)', '', { min: 1 })],
     'time.rfPhase': [N('freq', 'RF frequency', 'freq', 'Birth times spread over one RF period.', { gt: 0 }), I('n', 'Phases (grid)', '', { min: 1 })],
     'time.list': [LIST('values', 'Birth times', 'time', '')],
-    plane: [T('name', 'Name', ''), S('kind', 'Kind', opt(ENUMS.planeKind, ['x = const', 'y = const', 'z = const', 'Cylinder r = const', 'Segment']), 'Test plane or detector.'),
-        N('at', 'Position', 'length', 'Coordinate of the plane (radius for r).', { showIf: { kind: PLANE_AXIAL } }),
+    plane: [T('name', 'Name', ''), S('kind', 'Kind', opt(ENUMS.planeKind, ['x = const', 'y = const', 'z = const', 'Cylinder r = const', 'Segment', 'Sphere']), 'Test plane or detector.'),
+        N('at', 'Position', 'length', 'Coordinate of the plane (radius for r and sphere).', { showIf: { kind: [...PLANE_AXIAL, 'sphere'] } }),
+        V('center', 'Sphere center [x, y, z]', 'length', 3, 'Sphere planes only.', { showIf: { kind: 'sphere' } }),
         V('p0', 'Segment start [x, y]', 'length', 2, 'Segment planes only.', { showIf: { kind: 'segment' } }),
         V('p1', 'Segment end [x, y]', 'length', 2, 'Forward normal = (end − start) rotated −90°.', { showIf: { kind: 'segment' } }),
         N('radius', 'Radius limit', 'length', 'Only crossings within this distance of the axis (empty: no limit).', { nullable: true, gt: 0, showIf: { kind: ['x', 'y', 'z'] } }),
@@ -446,6 +503,10 @@ export const META = Object.freeze({
     custom: CUSTOM_META,
     'tracer.custom': CUSTOM_META,
     drag: [N('mobility', 'Mobility', 'none', 'cm²/(V·s); qualitative Stokes drag.', { gt: 0 }), V('gasVelocity', 'Gas velocity', 'none', 3, 'mm/µs.')],
+    spaceCharge: SPACE_CHARGE_META,
+    'tracer.spaceCharge': SPACE_CHARGE_META,
+    gas: GAS_META,
+    'tracer.gas': GAS_META,
     solver: [S('boundary', 'Electrode surfaces', opt(ENUMS.boundary, ['Sub-grid (Shortley–Weller)', 'Staircase']), 'Sub-grid boundaries are second-order accurate on curved surfaces.'),
         S('method', 'Solver', opt(ENUMS.method, ['Automatic (multigrid → BiCGSTAB → SOR)', 'Multigrid', 'Multigrid-preconditioned BiCGSTAB', 'Adaptive SOR']), 'Automatic tries multigrid, then BiCGSTAB, then SOR.'),
         N('tol', 'Tolerance', 'none', 'Estimated error per volt (floor 1e-12).', { gt: 0, max: 1e-3 }),
@@ -459,7 +520,9 @@ export const META = Object.freeze({
         REF('plane', 'Plane', 'plane', '', { nullable: true }), T('species', 'Species', 'Optional species label.', { optional: true }), REF('source', 'Source', 'source', '', { nullable: true })],
     view: [V('center', 'View center', 'length', 2, ''), N('scale', 'Zoom (px/mm)', 'none', '', { gt: 0 }), N('displayTime', 'Display time', 'time', '', { min: 0 }),
         S('projection', 'Projection', opt(ENUMS.projection, ['x–y', 'x–r (folded)']), ''),
-        S('colormap', 'Color map', opt(ENUMS.colormap, ['Automatic', 'Diverging', 'Viridis-like', 'Cividis', 'Gray']), '')],
+        S('colormap', 'Color map', opt(ENUMS.colormap, ['Automatic', 'Diverging', 'Viridis-like', 'Cividis', 'Gray']), ''),
+        N('aspect', 'Vertical stretch (y ×)', 'none', 'Draws y this many times longer than x (Layers menu); 1 = true proportions.', { gt: 0, optional: true }),
+        N('relief', 'Surface relief (×)', 'none', 'Height scale of the potential-energy surface view.', { min: 0.25, max: 4, optional: true })],
 });
 
 // ======================================================================== migrate
@@ -680,6 +743,29 @@ function resolveDomain(pass, d, out) {
     if (isObj(d.mirror)) { mirror.x = pass.bool(d.mirror, 'x', `${base}.mirror`, false); mirror.y = pass.bool(d.mirror, 'y', `${base}.mirror`, false); }
     else if (d.mirror !== undefined && d.mirror !== null) pass.error(`${base}.mirror`, 'E_TYPE', '"mirror" must be an object { x, y }.');
     if (cyl && mirror.y) pass.error(`${base}.mirror.y`, 'E_MIRROR', 'Cylindrical domains are already symmetric about the axis; mirror y is for planar domains.');
+    // anti-mirror planes (odd reflection, φ = 0 on the plane): same shape as mirror; never both on one plane
+    const antimirror = { x: false, y: false };
+    if (isObj(d.antimirror)) { antimirror.x = pass.bool(d.antimirror, 'x', `${base}.antimirror`, false); antimirror.y = pass.bool(d.antimirror, 'y', `${base}.antimirror`, false); }
+    else if (d.antimirror !== undefined && d.antimirror !== null) pass.error(`${base}.antimirror`, 'E_TYPE', '"antimirror" must be an object { x, y }.');
+    if (cyl && antimirror.y) pass.error(`${base}.antimirror.y`, 'E_MIRROR', 'Cylindrical domains are already symmetric about the axis; anti-mirror y is for planar domains.');
+    for (const ax of ['x', 'y']) if (mirror[ax] && antimirror[ax]) pass.error(`${base}.antimirror.${ax}`, 'E_MIRROR', `The ${ax} = 0 plane cannot be both a mirror and an anti-mirror.`);
+    // analytic space-charge density ρ(x, y, z): an expression in the plane coordinates and the parameters; '' = Laplace.
+    // It is probed below, once the grid is known, where the solver samples it.
+    let charge = null, chargeEx = null, chargeSrc = '';
+    if (d.charge !== undefined && d.charge !== null && d.charge !== '') {
+        if (typeof d.charge !== 'string') pass.error(`${base}.charge`, 'E_TYPE', '"charge" must be an expression string (C/m³) or empty.');
+        else {
+            const src = d.charge.trim();
+            if (src) {
+                try {
+                    const ex = parseExpr(src);
+                    const unknown = ex.deps.filter((n) => !CHARGE_VARS.includes(n) && !pass.declared.has(n));
+                    if (unknown.length) pass.error(`${base}.charge`, 'E_EXPR_UNKNOWN', `Unknown name "${unknown[0]}" in the charge density; use x, y, z, r or a parameter.`);
+                    else { chargeEx = ex; chargeSrc = src; }
+                } catch (e) { pass.error(`${base}.charge`, 'E_EXPR_SYNTAX', e && e.message ? e.message : 'Invalid expression.'); }
+            }
+        }
+    }
     const beyond = {};
     for (const e of ['xmin', 'xmax', 'ymin', 'ymax']) beyond[e] = pass.enumv(isObj(d.beyond) ? d.beyond : null, e, `${base}.beyond`, ENUMS.beyond, 'stop');
     let nx = NaN, ny = NaN, x1 = x[1], y1 = y[1];
@@ -700,14 +786,53 @@ function resolveDomain(pass, d, out) {
             y1 = ry;
         }
     }
+    if (chargeEx) {
+        let at = null, failed = null;
+        try { at = chargeProbe(chargeEx, pass.vars, x, y, h, nx, ny); } catch (e) { failed = e; }
+        if (failed) pass.error(`${base}.charge`, failed.code === 'E_EXPR_UNKNOWN' ? 'E_PARAM_DEPENDS' : 'E_EXPR_SYNTAX', failed.message || 'The charge density cannot be evaluated.');
+        else if (at) pass.error(`${base}.charge`, 'E_NOT_FINITE', `The charge density is not finite at (${at[0]}, ${at[1]}).`);
+        else {
+            charge = chargeSrc;
+            // the solver samples ρ on the solved half only; across an anti-mirror plane the potential is odd, so the image half carries −ρ
+            if ((antimirror.x && !mirror.x) || (!cyl && antimirror.y && !mirror.y)) {
+                pass.warn(`${base}.charge`, 'W_CHARGE_ANTIMIRROR', 'Across an anti-mirror plane the charge density is mirrored with the opposite sign: the image half carries −ρ. A beam centered on the plane needs the full domain or a mirror plane.');
+            }
+        }
+    }
     out.type = type;
     out.cell = h; out.h = h;
     out.x = [x[0], x1]; out.y = [y[0], y1];
     out.xUser = x.slice(); out.yUser = y.slice();
     out.nx = nx; out.ny = ny; out.N = nx * ny;
     out.mirror = mirror;
+    out.antimirror = antimirror;
+    out.charge = charge;
     out.beyond = beyond;
-    return { type, cyl, h, x, y, nx, ny, mirror };
+    return { type, cyl, h, x, y, nx, ny, mirror, antimirror };
+}
+
+/** Names the charge-density expression may use besides the parameters: plane coordinates (y = r in cyl2d), z and r. */
+const CHARGE_VARS = ['x', 'y', 'z', 'r'];
+
+/**
+ * First point where a charge-density expression is not finite, or null: the domain corner and a lattice of 9 × 9
+ * cell centers (both ends included, evenly spread), where the solver samples the density (operator.chargeSource).
+ * @returns {number[]|null} [x, y] rounded for messages
+ */
+function chargeProbe(ex, vars, x, y, h, nx, ny) {
+    const v = { ...vars, z: 0 };
+    const pts = [];
+    if (Number.isFinite(x[0]) && Number.isFinite(y[0])) pts.push([x[0], y[0]]);
+    if (Number.isFinite(nx) && Number.isFinite(ny) && nx >= 2 && ny >= 2 && h > 0) {
+        const pick = (cells) => { const out = []; for (let k = 0; k <= 8; k++) { const i = Math.round(k * (cells - 1) / 8); if (!out.includes(i)) out.push(i); } return out; };
+        const ci = pick(nx - 1), cj = pick(ny - 1);
+        for (const j of cj) for (const i of ci) pts.push([x[0] + (i + 0.5) * h, y[0] + (j + 0.5) * h]);
+    }
+    for (const [px, py] of pts) {
+        v.x = px; v.y = py; v.r = py;
+        if (!Number.isFinite(ex.evaluate(v))) return [+px.toPrecision(10), +py.toPrecision(10)];
+    }
+    return null;
 }
 
 function resolveEdges(pass, d, out, dom, eIndex) {
@@ -772,6 +897,17 @@ function resolveEdges(pass, d, out, dom, eIndex) {
     if (dom.mirror.y && !dom.cyl) {
         if (dom.y[0] !== 0) pass.error('domain.y[0]', 'E_MIRROR', 'Mirror in y needs the domain to start at y = 0.');
         if (res.ymin.bc !== 'neumann') pass.error('domain.edges.ymin.bc', 'E_MIRROR', 'Mirror in y needs a Neumann (zero normal field) ymin edge.');
+    }
+    // anti-mirrors need the plane at 0 and φ = 0 there: a grounded Dirichlet edge
+    const am = dom.antimirror || { x: false, y: false };
+    const grounded = (e) => e && e.bc === 'dirichlet' && e.electrodeIndex === 0;
+    if (am.x) {
+        if (dom.x[0] !== 0) pass.error('domain.x[0]', 'E_MIRROR', 'Anti-mirror in x needs the domain to start at x = 0.');
+        if (!grounded(res.xmin)) pass.error('domain.edges.xmin', 'E_MIRROR', 'Anti-mirror in x needs a grounded (0 V) xmin edge: the potential is zero on the plane.');
+    }
+    if (am.y && !dom.cyl) {
+        if (dom.y[0] !== 0) pass.error('domain.y[0]', 'E_MIRROR', 'Anti-mirror in y needs the domain to start at y = 0.');
+        if (!grounded(res.ymin)) pass.error('domain.edges.ymin', 'E_MIRROR', 'Anti-mirror in y needs a grounded (0 V) ymin edge: the potential is zero on the plane.');
     }
     out.edges = res;
 }
@@ -1016,6 +1152,16 @@ function resolveMagnet(pass, m, i, dom) {
         r.B = pass.vec(m, 'B', base, 3, { pad3: false });
         if (dom.cyl && (r.B[1] !== 0 || r.B[2] !== 0)) pass.error(`${base}.B`, 'E_REGION_AXIAL', 'In a cylindrical domain a field region can only carry an axial field B = [Bx, 0, 0].');
         r.region = resolveRegion(pass, m.region, `${base}.region`);
+    } else if (type === 'poles') {
+        // magnetic scalar potential ψ (T·mm) on pole pieces; B = −∇ψ is solved on the domain grid
+        r.boundary = pass.enumv(m, 'boundary', base, ENUMS.poleBoundary, 'neumann');
+        const pieces = pass.list(m, 'pieces', base, LIMITS.poles);
+        if (!pieces.length) pass.error(`${base}.pieces`, 'E_REQUIRED', 'Pole pieces need at least one piece { region, psi }.');
+        r.pieces = pieces.map((pc, j) => {
+            const p = `${base}.pieces[${j}]`;
+            if (!isObj(pc)) { pass.error(p, 'E_TYPE', 'A pole piece must be an object { region, psi }.'); return null; }
+            return { ...pc, region: resolveRegion(pass, pc.region, `${p}.region`), psi: pass.num(pc, 'psi', p) };
+        }).filter(Boolean);
     } else {
         r.center = pass.vec(m, 'center', base, 3, { def: [0, 0, 0] });
         r.normal = pass.vec(m, 'normal', base, 3, { def: [1, 0, 0], nonzero: true });
@@ -1072,25 +1218,132 @@ function classCount(pass, o, path, grid, q) {
     return grid ? n : 1;
 }
 
-function resolveSource(pass, s, i) {
+/** Species entries { label, mass, charge, fraction } of a source. */
+function resolveSpecies(pass, list, base) {
+    return list.map((x, j) => {
+        const p = `${base}.species[${j}]`;
+        if (!isObj(x)) { pass.error(p, 'E_TYPE', 'A species must be an object { label, mass, charge, fraction }.'); return { label: '', mass: NaN, charge: NaN, fraction: 0 }; }
+        const mass = pass.num(x, 'mass', p, { gt: 0 });
+        return { ...x, label: pass.str(x, 'label', p, { def: speciesLabel(mass, x.charge), max: 100 }), mass,
+            charge: pass.num(x, 'charge', p, { nonzero: true }), fraction: pass.num(x, 'fraction', p, { def: 1, min: 0 }) };
+    });
+}
+function speciesLabel(mass, charge) {
+    if (!Number.isFinite(mass)) return '';
+    const q = typeof charge === 'number' && Number.isFinite(charge) && charge !== 0 ? charge : 1;
+    return Math.abs(q) === 1 ? `m/z ${+mass.toPrecision(6)}` : `m/z ${+(mass / Math.abs(q)).toPrecision(6)} (${q > 0 ? '+' : '−'}${Math.abs(q)}e)`;
+}
+
+const MAX_ROW_ERRORS = 50;
+
+/**
+ * A 'rows' source: one array per particle, [mass, charge, x, y, z, dx, dy, dz, ke, t0] (10 columns) or, with
+ * `velocity: true`, [mass, charge, x, y, z, vx, vy, vz, t0] (9 columns, mm/µs). The resolved rows are always the
+ * 10-column form with a unit direction (a direction already unit to 1e-9 in |d|² is kept bit for bit, so a frozen
+ * sampled source reproduces its run exactly) and the kinetic energy of a velocity row from |v| with the run's
+ * relativistic flag. `species` is optional; every (mass, charge) of the rows that is not listed is appended with
+ * a default label, so the resolved species list covers every row.
+ */
+function resolveRowsSource(pass, s, r, base, ctx) {
+    const velocity = pass.bool(s, 'velocity', base, false);
+    r.velocity = velocity;
+    const ncol = velocity ? 9 : 10;
+    const cols = velocity ? ROW_COLUMNS_VELOCITY : ROW_COLUMNS;
+    if (s.rows === undefined || s.rows === null) pass.error(`${base}.rows`, 'E_REQUIRED', 'A particle list needs "rows": one array per particle.');
+    const list = pass.list(s, 'rows', base, LIMITS.rows);
+    const spIn = s.species === undefined || s.species === null ? [] : pass.list(s, 'species', base, 64);
+    const species = resolveSpecies(pass, spIn, base);
+    const spKey = new Map();
+    species.forEach((sp, k) => { const key = `${sp.mass}|${sp.charge}`; if (!spKey.has(key)) spKey.set(key, k); });
+    const rel = ctx.relativistic !== false;
+    const silent = new Pass(pass.vars);   // after MAX_ROW_ERRORS reported rows, further rows are checked without reports
+    let bad = 0, shown = 0;
+    const rows = [];
+    const points = [];
+    let dirAll = null, sameDir = true;
+    for (let j = 0; j < list.length; j++) {
+        const row = list[j], p = `${base}.rows[${j}]`;
+        const P = shown < MAX_ROW_ERRORS ? pass : silent;
+        const e0 = P.errors.length;
+        if (!Array.isArray(row) || row.length !== ncol) {
+            P.error(p, 'E_TYPE', `Each row needs ${ncol} values: ${cols.join(', ')}.`);
+        } else {
+            const m = P.value(row[0], `${p}[0]`, { gt: 0 }), q = P.value(row[1], `${p}[1]`, { nonzero: true });
+            const x = P.value(row[2], `${p}[2]`), y = P.value(row[3], `${p}[3]`), z = P.value(row[4], `${p}[4]`);
+            let a = P.value(row[5], `${p}[5]`), b = P.value(row[6], `${p}[6]`), c = P.value(row[7], `${p}[7]`);
+            let ke, t0;
+            const n2 = a * a + b * b + c * c;
+            if (velocity) {
+                t0 = P.value(row[8], `${p}[8]`);
+                if (n2 === 0) P.error(`${p}[5]`, 'E_RANGE', 'The velocity must not be zero.');
+                else if (Number.isFinite(n2)) {
+                    const v = Math.sqrt(n2), beta = v / C_MMUS;
+                    if (rel && beta >= 1) P.error(`${p}[5]`, 'E_RANGE', 'The speed must be below c (299792.458 mm/µs).');
+                    else {
+                        ke = rel ? (1 / Math.sqrt(1 - beta * beta) - 1) * m * UC2_EV : m * n2 / (2 * K_ACC);
+                        a /= v; b /= v; c /= v;
+                    }
+                }
+            } else {
+                ke = P.value(row[8], `${p}[8]`, { min: 0 }); t0 = P.value(row[9], `${p}[9]`);
+                if (n2 === 0) P.error(`${p}[5]`, 'E_RANGE', 'The direction must not be the zero vector.');
+                else if (Number.isFinite(n2) && Math.abs(n2 - 1) > 1e-9) { const n = Math.sqrt(n2); a /= n; b /= n; c /= n; }
+            }
+            if (P.errors.length === e0 && [m, q, x, y, z, a, b, c, ke, t0].every(Number.isFinite)) {
+                rows.push([m, q, x, y, z, a, b, c, ke, t0]);
+                const key = `${m}|${q}`;
+                if (!spKey.has(key)) { spKey.set(key, species.length); species.push({ label: speciesLabel(m, q), mass: m, charge: q, fraction: 1 }); }
+                if (points.length < 2000) points.push([x, y, z]);
+                if (dirAll === null) dirAll = [a, b, c];
+                else if (sameDir && (Math.abs(a - dirAll[0]) > 1e-12 || Math.abs(b - dirAll[1]) > 1e-12 || Math.abs(c - dirAll[2]) > 1e-12)) sameDir = false;
+                continue;
+            }
+        }
+        bad++;
+        if (P === pass) shown++;
+    }
+    if (bad > shown) pass.error(`${base}.rows`, 'E_ROWS', `${bad} rows have errors (the first ${shown} are listed).`);
+    if (!list.length && Array.isArray(s.rows)) pass.error(`${base}.rows`, 'E_RANGE', 'A particle list needs at least one row.');
+    // class indices of a list frozen from a sampled source ('random', or one [position, direction, energy] per row, −1 for
+    // none): the grouped metrics use them instead of guessing classes from repeated values. A list whose row count no
+    // longer matches (rows added or removed) falls back to the guess.
+    if (s.classes !== undefined) {   // the key is left out of lists without it, so their keys do not change
+        r.classes = null;
+        if (s.classes === 'random') r.classes = 'random';
+        else if (Array.isArray(s.classes)) {
+            const okCls = s.classes.every((c) => Array.isArray(c) && c.length === 3 && c.every((v) => Number.isInteger(v) && v >= -1));
+            if (!okCls) pass.warn(`${base}.classes`, 'W_CLASSES', 'The class indices of the list are not one [position, direction, energy] triple of whole numbers per row; they are ignored.');
+            else if (s.classes.length === list.length && rows.length === list.length) r.classes = s.classes;
+        } else if (s.classes !== null) pass.warn(`${base}.classes`, 'W_CLASSES', '"classes" must be "random" or one [position, direction, energy] triple per row; it is ignored.');
+    }
+    r.species = species;
+    r.rows = rows;
+    r.count = rows.length;
+    // canvas preview and summaries: the row positions as a point list, a common direction when all rows share one
+    r.position = { type: 'list', points, preview: true };
+    r.direction = sameDir && dirAll ? { type: 'fixed', dir: dirAll } : null;
+    r.energy = null;
+    r.time = null;
+    r.sampling = 'rows';
+    return r;
+}
+
+function resolveSource(pass, s, i, ctx = {}) {
     const base = `sources[${i}]`;
     const r = { ...s };
     r.enabled = pass.bool(s, 'enabled', base, true);
     pass.str(s, 'name', base, { def: '', max: 200 });
     pass.color(s, 'color', base, true);
+    r.type = pass.enumv(s, 'type', base, ENUMS.sourceType, 'sampled');
+    r.weight = pass.num(s, 'weight', base, { def: 1, gt: 0 });
+    if (r.type === 'rows') return resolveRowsSource(pass, s, r, base, ctx);
     r.sampling = pass.enumv(s, 'sampling', base, ENUMS.sampling, 'random');
     const grid = r.sampling === 'grid';
     r.seed = pass.num(s, 'seed', base, { def: 1, int: true, min: 0 });
     // species
     const sp = pass.list(s, 'species', base, 64);
     if (!sp.length) pass.error(`${base}.species`, 'E_REQUIRED', 'A source needs at least one species.');
-    r.species = sp.map((x, j) => {
-        const p = `${base}.species[${j}]`;
-        if (!isObj(x)) { pass.error(p, 'E_TYPE', 'A species must be an object { label, mass, charge, fraction }.'); return { label: '', mass: NaN, charge: NaN, fraction: 0 }; }
-        const mass = pass.num(x, 'mass', p, { gt: 0 });
-        return { ...x, label: pass.str(x, 'label', p, { def: Number.isFinite(mass) ? `m/z ${+mass.toPrecision(6)}` : '', max: 100 }), mass,
-            charge: pass.num(x, 'charge', p, { nonzero: true }), fraction: pass.num(x, 'fraction', p, { def: 1, min: 0 }) };
-    });
+    r.species = resolveSpecies(pass, sp, base);
     if (!grid && r.species.length > 1 && r.species.every((x) => x.fraction === 0)) pass.error(`${base}.species`, 'E_RANGE', 'At least one species needs a fraction above zero.');
     // position
     let nPos = 1, nDir = 1, nE = 1, nT = 1;
@@ -1202,6 +1455,10 @@ function resolvePlanes(pass, list, dom) {
         if (kind === 'segment') {
             r.p0 = pass.vec(pl, 'p0', base, 2, { pad3: false }); r.p1 = pass.vec(pl, 'p1', base, 2, { pad3: false });
             if (r.p0[0] === r.p1[0] && r.p0[1] === r.p1[1]) pass.error(base, 'E_RANGE', 'A segment plane needs two different end points.');
+        } else if (kind === 'sphere') {
+            // spherical test surface |P − center| = at (radius)
+            r.at = pass.num(pl, 'at', base, { gt: 0 });
+            r.center = pass.vec(pl, 'center', base, 3, { def: [0, 0, 0] });
         } else {
             r.at = pass.num(pl, 'at', base, kind === 'r' ? { gt: 0 } : {});
             if (kind === 'r' && !dom.cyl) pass.error(`${base}.kind`, 'E_ENUM', 'Cylinder planes (r = const) need a cylindrical domain.');
@@ -1260,6 +1517,40 @@ function resolveTracer(pass, t) {
     else if (!isObj(tr.drag)) { pass.error(`${base}.drag`, 'E_TYPE', '"drag" must be null or { type: "stokes", mobility, gasVelocity }.'); r.drag = null; }
     else r.drag = { ...tr.drag, type: pass.enumv(tr.drag, 'type', `${base}.drag`, ['stokes'], 'stokes'), mobility: pass.num(tr.drag, 'mobility', `${base}.drag`, { gt: 0 }),
         gasVelocity: pass.vec(tr.drag, 'gasVelocity', `${base}.drag`, 3, { def: [0, 0, 0] }) };
+    // physics plug-ins: null (or enabled: false) in the resolved project means off
+    r.spaceCharge = null;
+    if (tr.spaceCharge !== undefined && tr.spaceCharge !== null) {
+        const p = `${base}.spaceCharge`, sc = tr.spaceCharge;
+        if (!isObj(sc)) pass.error(p, 'E_TYPE', '"spaceCharge" must be null or { enabled, model, softening, maxParticles, factor }.');
+        else {
+            const soft = sc.enabled === false;   // settings of a switched-off plug-in are only checked softly
+            if (soft) pass.soft++;
+            const q = { ...sc, enabled: pass.bool(sc, 'enabled', p, true), model: pass.enumv(sc, 'model', p, ENUMS.spaceChargeModel, 'coulomb'),
+                softening: pass.num(sc, 'softening', p, { def: 1e-4, gt: 0 }),
+                maxParticles: pass.num(sc, 'maxParticles', p, { def: LIMITS.spaceChargeParticles, int: true, min: 1, max: LIMITS.spaceChargeParticles }),
+                factor: pass.num(sc, 'factor', p, { def: 1, min: 0 }),
+                pairStep: pass.num(sc, 'pairStep', p, { nullable: true, def: null, gt: 0, max: 0.5 }) };
+            if (q.pairStep === null) delete q.pairStep;   // empty: the accuracy preset's pair step (pipeline.PAIR_STEP)
+            if (soft) pass.soft--;
+            if (q.enabled) r.spaceCharge = q;
+        }
+    }
+    r.gas = null;
+    if (tr.gas !== undefined && tr.gas !== null) {
+        const p = `${base}.gas`, g = tr.gas;
+        if (!isObj(g)) pass.error(p, 'E_TYPE', '"gas" must be null or { enabled, model, pressure, temperature, mass, diameter, ionDiameter, velocity }.');
+        else {
+            const soft = g.enabled === false;
+            if (soft) pass.soft++;
+            const q = { ...g, enabled: pass.bool(g, 'enabled', p, true), model: pass.enumv(g, 'model', p, ENUMS.gasModel, 'hardSphere'),
+                pressure: pass.num(g, 'pressure', p, { min: 0 }), temperature: pass.num(g, 'temperature', p, { def: 293.15, gt: 0 }),
+                mass: pass.num(g, 'mass', p, { gt: 0 }), diameter: pass.num(g, 'diameter', p, { gt: 0 }),
+                ionDiameter: pass.num(g, 'ionDiameter', p, { nullable: true, def: null, gt: 0 }),
+                velocity: pass.vec(g, 'velocity', p, 3, { def: [0, 0, 0] }) };
+            if (soft) pass.soft--;
+            if (q.enabled) r.gas = q;
+        }
+    }
     return r;
 }
 
@@ -1352,6 +1643,8 @@ function resolveView(pass, v) {
         if (v.displayTime !== undefined) r.displayTime = pass.num(v, 'displayTime', base, { min: 0 });
         if (v.projection !== undefined) r.projection = pass.enumv(v, 'projection', base, ENUMS.projection, 'xy');
         if (v.colormap !== undefined) r.colormap = pass.enumv(v, 'colormap', base, ENUMS.colormap, 'auto');
+        if (v.aspect !== undefined) r.aspect = pass.num(v, 'aspect', base, { gt: 0 });
+        if (v.relief !== undefined) r.relief = pass.num(v, 'relief', base, { min: 0.25, max: 4 });
         if (v.contourLevels !== undefined && v.contourLevels !== null) r.contourLevels = pass.points(v, 'contourLevels', base, 1, { maxItems: 1000 });
         if (v.layers !== undefined && !isObj(v.layers)) pass.error(`${base}.layers`, 'E_TYPE', '"layers" must be an object.');
     }
@@ -1476,12 +1769,13 @@ function runPass(project, { mobile = false } = {}) {
     const sources = pass.list(p, 'sources', '', LIMITS.sources);
     const srcIds = new Set();
     const rSrc = [];
+    const srcCtx = { relativistic: !(isObj(p.tracer) && p.tracer.relativistic === false) };
     sources.forEach((s, i) => {
         if (!isObj(s)) { pass.error(`sources[${i}]`, 'E_TYPE', 'A source must be an object.'); return; }
         const soft = s.enabled === false;
         if (soft) pass.soft++;
         pass.id(s, `sources[${i}]`, srcIds, 'source');
-        const r = resolveSource(pass, s, i);
+        const r = resolveSource(pass, s, i, srcCtx);
         if (soft) pass.soft--;
         if (r.enabled !== false) rSrc.push({ ...r, srcIndex: i });
     });
@@ -1509,6 +1803,9 @@ function runPass(project, { mobile = false } = {}) {
     }
     quasistaticCheck(pass, out);
     out.tracer = resolveTracer(pass, p.tracer);
+    if (out.tracer.spaceCharge && firstId > out.tracer.spaceCharge.maxParticles) {
+        pass.error('tracer.spaceCharge.maxParticles', 'E_LIMIT', `Space-charge runs trace at most ${out.tracer.spaceCharge.maxParticles.toLocaleString('en-US')} particles together; the sources give ${firstId.toLocaleString('en-US')}.`);
+    }
     out.solver = resolveSolver(pass, p.solver);
     const refs = {
         planes: new Set(planes.map((x) => x.id)), sources: new Set(sources.filter(isObj).map((x) => x.id)),

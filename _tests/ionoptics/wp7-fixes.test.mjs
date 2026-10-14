@@ -157,7 +157,8 @@ test('worker pool: a broken reserved preview worker (or every other worker) does
 test('beamWaist groups the rays by species: the magnetic sector reports the image of each species, not the crossing of their lines', () => {
     const r = runProject(presetById('magnetic-sector').build());
     const w = A.beamWaist(r.result, r.resolved, r.field.model);
-    assert.ok(w && w.ok, JSON.stringify(w));
+    // the species land in separate spots, so no single waist is reported; the per-species images, position and spread still are
+    assert.ok(w && !w.ok && w.dispersed && /dispersed/.test(w.reason), JSON.stringify(w));
     // Barber's rule: object and image at r/tan 45° = 100 mm; the detector is at x = −100, so every species images there (±1.5 mm dispersion)
     assert.ok(Math.abs(w.position + 100) < 0.3, `mean waist ${w.position}`);
     assert.equal(w.groups.length, 3);

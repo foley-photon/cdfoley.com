@@ -5,7 +5,10 @@
    and magnets, and answers geometry queries for the tracer.
 
    Mapping (spec §3.6.5): planar2d φ(x, y), E_z = 0, mirrored halves by
-   evaluating at |x| or |y| and flipping that E component; cyl2d φ(x, ρ),
+   evaluating at |x| or |y| and flipping that E component; anti-mirrored
+   halves (domain.antimirror, odd potential) by evaluating at |x| and
+   flipping φ and the tangential E component (φ(−x) = −φ(x), E_x even,
+   E_y odd; method of images, Griffiths section 3.2); cyl2d φ(x, ρ),
    ρ = √(y² + z²), E_y = E_ρ y/ρ, E_z = E_ρ z/ρ (0 for ρ < 1e-12 mm).
    Time dependence: E(t) = E0 + Σ_c f_c(t) E_c (Laplace superposition of the
    electrode basis fields), then ideal fields are added. Outside the domain the
@@ -22,9 +25,12 @@ const num = (v, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 
 /**
  * @param {{ resolved: object, grid?: object|null, raster0?: object|null, geometry?: object|null,
- *   channelFns?: Array<object|null>|null, magnets?: object|Array|null, ideal?: object|Array|null }} spec
+ *   channelFns?: Array<object|null>|null, magnets?: object|Array|null, ideal?: object|Array|null,
+ *   potentialRange?: number[]|null }} spec
+ *   potentialRange: [min, max] of the solved DC potential (pipeline.buildField passes it when the domain has a charge
+ *   density): the potential span vSpan then covers the space-charge potential as well as the electrode voltages.
  */
-export function createFieldModel({ resolved = null, grid = null, raster0 = null, geometry = null, channelFns = null, magnets = null, ideal = null } = {}) {
+export function createFieldModel({ resolved = null, grid = null, raster0 = null, geometry = null, channelFns = null, magnets = null, ideal = null, potentialRange = null } = {}) {
     const dom = (resolved && resolved.domain) || {};
     const type = dom.type || (grid && grid.cyl ? 'cyl2d' : 'planar2d');
     const cyl = type === 'cyl2d';
@@ -41,15 +47,18 @@ export function createFieldModel({ resolved = null, grid = null, raster0 = null,
         X0 = rg.x0; Y0 = rg.y0; X1 = rg.x0 + (rg.nx - 1) * rg.h; Y1 = rg.y0 + (rg.ny - 1) * rg.h;
     } else { X0 = -Infinity; X1 = Infinity; Y0 = cyl ? 0 : -Infinity; Y1 = Infinity; }
     if (cyl) Y0 = Math.max(0, Y0);
-    const mirror = dom.mirror || {};
+    const mirror = dom.mirror || {}, anti = dom.antimirror || {};
     const mx = !!mirror.x, my = !cyl && !!mirror.y;
+    // anti-mirror planes reflect the geometry like mirrors; the potential is odd (φ(−x) = −φ(x), E_x even, E_y odd)
+    const amx = !mx && !!anti.x, amy = !cyl && !my && !!anti.y;
+    const fx = mx || amx, fy = my || amy;   // folded axes (geometry queries)
     const eps = 1e-9 * h;
     const XLO = X0 - eps, XHI = X1 + eps, YLO = Y0 - eps, YHI = Y1 + eps, RHI2 = YHI * YHI;
 
     // 3D box including mirrored halves
     const box = {
-        xmin: mx ? -X1 : X0, xmax: X1,
-        ymin: cyl ? -Y1 : (my ? -Y1 : Y0), ymax: Y1,
+        xmin: fx ? -X1 : X0, xmax: X1,
+        ymin: cyl ? -Y1 : (fy ? -Y1 : Y0), ymax: Y1,
         zmin: cyl ? -Y1 : -Infinity, zmax: cyl ? Y1 : Infinity,
         rmax: cyl ? Y1 : Infinity,
     };
@@ -57,7 +66,7 @@ export function createFieldModel({ resolved = null, grid = null, raster0 = null,
 
     // magnets and ideal fields (compiled objects or raw lists)
     const mag = magnets && typeof magnets.add === 'function' ? magnets
-        : compileMagnets(Array.isArray(magnets) ? magnets : ((resolved && resolved.magnets) || []), type);
+        : compileMagnets(Array.isArray(magnets) ? magnets : ((resolved && resolved.magnets) || []), type, dom);
     const idl = ideal && typeof ideal.E === 'function' ? ideal
         : compileIdealFields(Array.isArray(ideal) ? ideal : ((resolved && resolved.idealFields) || []));
     const hasB = !!mag.any;
@@ -96,6 +105,11 @@ export function createFieldModel({ resolved = null, grid = null, raster0 = null,
         }
         vMin = Math.min(vMin, v - sw); vMax = Math.max(vMax, v + sw);
     }
+    // a space-charge density (Poisson term) is an electric field of its own: its potential widens the span
+    const chargeOn = typeof dom.charge === 'string' && dom.charge.trim() !== '';
+    if (chargeOn && Array.isArray(potentialRange) && potentialRange.length === 2 && Number.isFinite(potentialRange[0]) && Number.isFinite(potentialRange[1])) {
+        vMin = Math.min(vMin, potentialRange[0]); vMax = Math.max(vMax, potentialRange[1]);
+    }
 
     // electrode band ("near") source
     const hasGeom = !!(geometry && typeof geometry.classify === 'function' && (!geometry.prims || geometry.prims.length > 0));
@@ -111,9 +125,9 @@ export function createFieldModel({ resolved = null, grid = null, raster0 = null,
     // ---- coordinate mapping helpers (results in mX, mY; flips in msx, msy)
     let mX = 0, mY = 0;
     function mapXY(x, y, z) {
-        mX = mx && x < 0 ? -x : x;
+        mX = fx && x < 0 ? -x : x;
         if (cyl) mY = Math.sqrt(y * y + z * z);
-        else mY = my && y < 0 ? -y : y;
+        else mY = fy && y < 0 ? -y : y;
         return mX >= XLO && mX <= XHI && mY >= YLO && mY <= YHI;
     }
 
@@ -125,9 +139,9 @@ export function createFieldModel({ resolved = null, grid = null, raster0 = null,
      */
     function Ev(P, out4, sig, left) {
         const t = P[0], x = P[1], y = P[2], z = P[3];
-        const X = mx && x < 0 ? -x : x;
+        const X = fx && x < 0 ? -x : x;
         let Y, rho = 0;
-        if (cyl) { rho = Math.sqrt(y * y + z * z); Y = rho; } else Y = my && y < 0 ? -y : y;
+        if (cyl) { rho = Math.sqrt(y * y + z * z); Y = rho; } else Y = fy && y < 0 ? -y : y;
         if (!(X >= XLO && X <= XHI && Y >= YLO && Y <= YHI)) {
             out4[0] = 0; out4[1] = 0; out4[2] = 0; out4[3] = NaN;
             return 3;
@@ -149,6 +163,8 @@ export function createFieldModel({ resolved = null, grid = null, raster0 = null,
                     }
                 }
                 if (mx && x < 0) ex = -ex;
+                if (amx && x < 0) { phi = -phi; ey = -ey; }   // odd reflection: φ and the tangential component flip
+                if (amy && y < 0) { phi = -phi; ex = -ex; }
             } else where = grid.cellTypeAt(X, Y);
         }
         out4[0] = ex;
@@ -204,9 +220,9 @@ export function createFieldModel({ resolved = null, grid = null, raster0 = null,
     /** The domain edge whose `beyond` setting applies at an EDGE code (mirrors map to the far edge). */
     function beyondKey(code) {
         switch (code) {
-            case EDGE.XMIN: return mx ? 'xmax' : 'xmin';
+            case EDGE.XMIN: return fx ? 'xmax' : 'xmin';
             case EDGE.XMAX: return 'xmax';
-            case EDGE.YMIN: return my ? 'ymax' : 'ymin';
+            case EDGE.YMIN: return fy ? 'ymax' : 'ymin';
             case EDGE.YMAX: case EDGE.RMAX: return 'ymax';
             default: return 'xmax';
         }
@@ -259,8 +275,8 @@ export function createFieldModel({ resolved = null, grid = null, raster0 = null,
     function firstHit(x0, y0, z0, x1, y1, z1, skipTransparent = false) {
         if (!hasGeom) return null;
         let nc = 0;
-        if (mx && (x0 < 0) !== (x1 < 0) && x0 !== x1) { const u = x0 / (x0 - x1); if (u > 0 && u < 1) cuts[nc++] = u; }
-        if (my && (y0 < 0) !== (y1 < 0) && y0 !== y1) { const u = y0 / (y0 - y1); if (u > 0 && u < 1) cuts[nc++] = u; }
+        if (fx && (x0 < 0) !== (x1 < 0) && x0 !== x1) { const u = x0 / (x0 - x1); if (u > 0 && u < 1) cuts[nc++] = u; }
+        if (fy && (y0 < 0) !== (y1 < 0) && y0 !== y1) { const u = y0 / (y0 - y1); if (u > 0 && u < 1) cuts[nc++] = u; }
         if (cyl) {
             const dy = y1 - y0, dz = z1 - z0, d2 = dy * dy + dz * dz;
             if (d2 > 0) { const u = -(y0 * dy + z0 * dz) / d2; if (u > 1e-12 && u < 1 - 1e-12) cuts[nc++] = u; }
@@ -275,7 +291,7 @@ export function createFieldModel({ resolved = null, grid = null, raster0 = null,
             const u1 = cuts[k];
             chordPoint(x0, y0, z0, x1, y1, z1, u1);
             const pxb = cX, pyb = cY;
-            const r = chord(mx ? Math.abs(pxa) : pxa, my ? Math.abs(pya) : pya, mx ? Math.abs(pxb) : pxb, my ? Math.abs(pyb) : pyb, skipTransparent);
+            const r = chord(fx ? Math.abs(pxa) : pxa, fy ? Math.abs(pya) : pya, fx ? Math.abs(pxb) : pxb, fy ? Math.abs(pyb) : pyb, skipTransparent);
             if (r) {
                 const e = r.electrode;
                 return { u: u0 + r.t * (u1 - u0), electrode: e, transparent: !!(r.transparent || transparent[e]) };
@@ -301,10 +317,10 @@ export function createFieldModel({ resolved = null, grid = null, raster0 = null,
 
     return {
         type, cyl, h, timeDependent, hasB, hasRegions, bMax: hasB ? mag.bMax : 0, box,
-        interp: grid ? grid.interp : 'none', get nChannels() { return hasGrid ? grid.nChannels | 0 : 0; }, mirror: { x: mx, y: my },
+        interp: grid ? grid.interp : 'none', get nChannels() { return hasGrid ? grid.nChannels | 0 : 0; }, mirror: { x: mx, y: my }, antimirror: { x: amx, y: amy },
         transparent, transmission, vSpan: vMax - vMin, hasGeometry: hasGeom, nearMode,
-        // an electric field can act (electrode voltages, or ideal fields): the automatic integrator choice keeps DP45 then
-        hasE: !!idl || (hasGrid && (elist.length === 0 || vMax - vMin > 0)),
+        // an electric field can act (electrode voltages, a charge density, or ideal fields): the automatic integrator choice keeps DP45 then
+        hasE: !!idl || (hasGrid && (elist.length === 0 || vMax - vMin > 0 || chargeOn)),
         warnings: mag.warnings || [],
         E, B, potential, inside, near, ownerAt, cellTypeAt, firstHit, regionSig, nextBreak, minPeriod,
         Ev, Bv, insideV, nearV, regionSigV,

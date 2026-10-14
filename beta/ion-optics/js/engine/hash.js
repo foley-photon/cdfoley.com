@@ -1,7 +1,8 @@
 /* ==========================================================================
    Ion optics engine: hash.js
    Canonical JSON and the three cache keys that decide staleness (spec §2.2.5):
-   geomKey (geometry, grid, edges, solver settings) → solution; fieldKey
+   geomKey (geometry, grid, edges, solver settings, the charge density with
+   the values of the parameters it uses) → solution; fieldKey
    (+ voltages, waveforms, mesh settings, magnets, ideal fields, field
    interpolation) → field and run; runKey (+ sources, recording, tracer,
    domain.beyond) → run. Cosmetic fields (names, colours, ids of shapes and
@@ -13,6 +14,7 @@
    fmix32 avalanche (Appleby, public domain, 2011). Not cryptographic.
    ========================================================================== */
 import { ENGINE_VERSION } from './version.js';
+import { parseExpr } from './expr.js';
 
 function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v) && !ArrayBuffer.isView(v);
@@ -143,6 +145,21 @@ function edgeContent(e) {
     return { bc: e.bc };
 }
 
+/**
+ * Key content of a charge-density expression: the text, plus the values of the parameters it uses (the Poisson basis
+ * changes with them although the text does not). Without parameters the text alone, so such keys are unchanged.
+ */
+function chargeContent(src, paramValues) {
+    if (typeof src !== 'string' || !src.trim()) return null;
+    const p = {};
+    try {
+        for (const name of parseExpr(src.trim()).deps) {
+            if (paramValues && Object.prototype.hasOwnProperty.call(paramValues, name)) p[name] = paramValues[name];
+        }
+    } catch (e) { /* the schema reports a bad expression; the text alone keys it */ }
+    return Object.keys(p).length ? { e: src, p } : src;
+}
+
 /** The data that determines the solved basis fields. */
 export function geomContent(resolved) {
     const r = resolved || {};
@@ -151,7 +168,7 @@ export function geomContent(resolved) {
     const sol = r.solver || {};
     return {
         v: ENGINE_VERSION,
-        d: { type: d.type, h: d.h, x: d.x, y: d.y, nx: d.nx, ny: d.ny, mirror: d.mirror,
+        d: { type: d.type, h: d.h, x: d.x, y: d.y, nx: d.nx, ny: d.ny, mirror: d.mirror, antimirror: d.antimirror || null, charge: chargeContent(d.charge, r.paramValues),
             edges: { xmin: edgeContent(ed.xmin), xmax: edgeContent(ed.xmax), ymin: edgeContent(ed.ymin), ymax: edgeContent(ed.ymax) } },
         e: (r.electrodes || []).map((e) => e.id),
         s: (r.shapes || []).map((s) => ({ t: s.type, e: s.electrodeIndex, x: s.transform || null, p: pick(s, SHAPE_PARAMS[s.type] || []) })),

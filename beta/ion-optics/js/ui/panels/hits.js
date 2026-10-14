@@ -10,6 +10,8 @@ import {
 } from '../../engine/layout.js';
 import { fmtNum, download } from '../plots.js';
 import { statusLabel } from '../analysis-jobs.js';
+import { endStatesSource, addEndStatesSource, rowsFromEndStates } from '../../engine/particles.js';
+import { particlesToCSV } from '../../engine/io.js';
 
 export const meta = { id: 'hits', title: 'Hits', order: 20 };
 
@@ -79,6 +81,12 @@ export function mount(el, ctx) {
     const count = h('span', { class: 'io-note io-hits-count', role: 'status' });
     const csvBtn = h('button', { type: 'button', class: 'btn btn-sm btn-ghost', text: 'CSV' });
     const bar = h('div', { class: 'io-btnrow io-hits-bar' }, fStatus, fSource, fSpecies, fElec, count, csvBtn);
+    // end states of the filtered particles → a new particle-list source (reverse flight or hand-off), or a particle CSV
+    const esMode = h('select', { class: 'io-select io-select-sm', 'aria-label': 'End-state source direction' },
+        h('option', { value: 'reverse', text: 'Reversed (v → −v)' }), h('option', { value: 'forward', text: 'As they ended (hand-off)' }));
+    const esBtn = h('button', { type: 'button', class: 'btn btn-sm btn-secondary', text: 'Source from end states', title: 'New particle list from the end states of the rows shown; the other sources are disabled so that it flies alone' });
+    const pCsvBtn = h('button', { type: 'button', class: 'btn btn-sm btn-ghost', text: 'Particles CSV', title: 'End states of the rows shown as a particle CSV (mass, charge, position, direction, energy)' });
+    const esBar = h('div', { class: 'io-btnrow io-hits-bar' }, h('span', { class: 'io-note', text: 'End states:' }), esMode, esBtn, pCsvBtn);
     const headRow = h('div', { class: 'io-vt-row io-vt-head', role: 'row' });
     const sortBtns = new Map();
     for (const c of COLS) {
@@ -93,7 +101,7 @@ export function mount(el, ctx) {
     const scroll = h('div', { class: 'io-vt-scroll', tabindex: '0', role: 'grid', 'aria-label': 'Particles', 'aria-rowcount': '0' }, h('div', { role: 'rowgroup' }, headRow), spacer);
     spacer.appendChild(rowsBox);
     const empty = h('p', { class: 'io-empty', text: 'No run yet.' });
-    el.append(h('div', { class: 'io-results io-hits' }, bar, empty, scroll));
+    el.append(h('div', { class: 'io-results io-hits' }, bar, esBar, empty, scroll));
 
     let result = null, resolved = null, lab = null;
     const opt = (sel, items, cur) => { sel.replaceChildren(...items.map(([v, t]) => h('option', { value: v, text: t }))); sel.value = items.some(([v]) => v === cur) ? cur : ''; };
@@ -123,6 +131,7 @@ export function mount(el, ctx) {
         empty.hidden = !!result;
         scroll.hidden = !result;
         bar.hidden = !result;
+        esBar.hidden = !result;
         if (!result) return;
         lab = labels(resolved);
         setOptions();
@@ -182,6 +191,25 @@ export function mount(el, ctx) {
         state.rows.forEach((o, i) => sub.set(S.subarray(o, o + S_STRIDE), i * S_STRIDE));
         const text = ctx.engine.io.runToCSV({ n: state.rows.length, summary: sub, crossings: new Float64Array(0), nCross: 0 }, 'hits', resolved);
         download(text, `${ctx.ui.dom.fileStem((ctx.store.get().project.meta || {}).name)}-hits.csv`);
+    });
+    const shownIds = () => new Set(state.rows.map((o) => result.summary[o + S_ID]));
+    pCsvBtn.addEventListener('click', () => {
+        if (!result) return;
+        const ids = shownIds();
+        const es = rowsFromEndStates(result, resolved, { reverse: false, filter: (st, S, o) => ids.has(S[o + S_ID]) });
+        if (!es.rows.length) { if (ctx.ui.toast) ctx.ui.toast('No particle with an end state is shown.', { kind: 'warn' }); return; }
+        download(particlesToCSV(es.rows), `${ctx.ui.dom.fileStem((ctx.store.get().project.meta || {}).name)}-end-states.csv`);
+    });
+    esBtn.addEventListener('click', () => {
+        if (!result) return;
+        const reverse = esMode.value !== 'forward';
+        const src = endStatesSource(result, resolved, { reverse, ids: shownIds() });
+        if (!src) { if (ctx.ui.toast) ctx.ui.toast('No particle with an end state is shown.', { kind: 'warn' }); return; }
+        let added = null;
+        const r = ctx.commit((d) => { added = addEndStatesSource(d, src, { disableOthers: true }); }, { label: 'Source from end states' });
+        if (!r.ok) { if (ctx.ui.toast) ctx.ui.toast(r.error, { kind: 'warn' }); return; }
+        ctx.store.select({ kind: 'source', ids: [added.id] });
+        if (ctx.ui.toast) ctx.ui.toast(`Added "${src.name}" with ${src.rows.length.toLocaleString('en-US')} particles${added.disabled ? ` and disabled ${added.disabled} other source${added.disabled === 1 ? '' : 's'}` : ''}${reverse ? '; run it to fly the particles back' : ''}. Undo reverts this.`, { kind: 'ok' });
     });
     rebuild();
     return {

@@ -11,7 +11,7 @@
 /** Working product name (final name to be approved). */
 export const PRODUCT_NAME = 'Ion Optics Workbench';
 /** Engine version: bump on any numerics or layout change. */
-export const ENGINE_VERSION = '0.1.0';
+export const ENGINE_VERSION = '0.2.1';
 /** Worker message protocol version (spec §2.4). */
 export const PROTOCOL_VERSION = 1;
 /** Value of the `format` field of a project file. */

@@ -18,7 +18,7 @@
    The objective and evaluation functions may be asynchronous.
    ========================================================================== */
 import { C_STRIDE, C_ID, C_PLANE, C_T, C_X, C_Y, C_Z, C_VX, C_VY, C_VZ, C_KE, C_DIR, C_KIND,
-    S_STRIDE, S_ID, S_STATUS, S_WHERE, S_SRC, S_SPECIES, S_T0, STATUS, P_STRIDE, P_ID, P_C1, P_C2 } from './layout.js';
+    S_STRIDE, S_ID, S_STATUS, S_WHERE, S_SRC, S_SPECIES, S_T0, STATUS, P_STRIDE, P_ID, P_SRC, P_WX, P_WY, P_WZ, P_KE, P_C1, P_C2 } from './layout.js';
 import { peakStats } from './analysis.js';
 import { generate } from './particles.js';
 
@@ -198,6 +198,11 @@ export function planeFrame(plane) {
         return { n: [dy / L, -dx / L, 0], u: [dx / L, dy / L, 0], w: AX.z, origin: [p0[0], p0[1], 0], axes: ['a', 'z'], axis: 'n' };
     }
     if (k === 'r') return { n: AX.y, u: AX.x, w: AX.z, origin: [0, 0, 0], axes: ['x', 'z'], axis: 'r' };
+    if (k === 'sphere') {
+        // spherical test surface |P − center| = at: a fixed frame through the center (n along x); the radial direction varies
+        const c = Array.isArray(plane.center) ? plane.center : [0, 0, 0];
+        return { n: AX.x, u: AX.y, w: AX.z, origin: [c[0] || 0, c[1] || 0, c[2] || 0], axes: ['y', 'z'], axis: 'sphere', radius: plane.at || 0 };
+    }
     return { n: AX.x, u: AX.y, w: AX.z, origin: [plane ? plane.at || 0 : 0, 0, 0], axes: ['y', 'z'], axis: 'x' };
 }
 
@@ -371,11 +376,44 @@ export function groupedBlurMetric(result, resolved, planeIdx, metric = null) {
     return m ? Math.sqrt(s / m) : NaN;
 }
 
-/** Direction and energy class indices per particle id, regenerated from the sources (counter-based, so exact). */
+/**
+ * Direction and energy class indices per particle id, regenerated from the sources (counter-based, so exact).
+ * A list frozen from a sampled source ("Freeze to list") stores the original class indices (`classes`: one triple per
+ * row, or 'random'), so it groups exactly as the source did. For other particle lists (typed, imported, or edited to
+ * another row count) the classes are the distinct directions and the distinct kinetic energies of the list, per source,
+ * when they repeat (at most half as many distinct values as particles); otherwise −1 (one group), as for a random source.
+ */
 export function classIndex(resolved) {
     const out = new Map();
     if (!resolved || !resolved.sources || !resolved.particleCount) return out;
     const rows = generate(resolved.sources, 0, resolved.particleCount, { domainType: resolved.domain && resolved.domain.type, relativistic: !resolved.tracer || resolved.tracer.relativistic !== false });
-    for (let i = 0; i * P_STRIDE < rows.length; i++) out.set(rows[i * P_STRIDE + P_ID], [rows[i * P_STRIDE + P_C1], rows[i * P_STRIDE + P_C2]]);
+    const listSrc = new Set();   // lists without stored class indices: guessed from repeated values
+    resolved.sources.forEach((s, k) => {
+        const stored = s && (s.classes === 'random' || (Array.isArray(s.classes) && Array.isArray(s.rows) && s.classes.length === s.rows.length));
+        if (s && s.type === 'rows' && !stored) listSrc.add(typeof s.index === 'number' ? s.index : k);
+    });
+    const lists = new Map();   // source index → { ids, dir: [], ke: [] }
+    for (let i = 0; i * P_STRIDE < rows.length; i++) {
+        const o = i * P_STRIDE, id = rows[o + P_ID], src = rows[o + P_SRC];
+        if (listSrc.has(src) && rows[o + P_C1] < 0 && rows[o + P_C2] < 0) {
+            let L = lists.get(src);
+            if (!L) { L = { ids: [], dir: [], ke: [] }; lists.set(src, L); }
+            const wx = rows[o + P_WX], wy = rows[o + P_WY], wz = rows[o + P_WZ], m = Math.hypot(wx, wy, wz) || 1;
+            L.ids.push(id);
+            L.dir.push(`${(wx / m).toPrecision(12)},${(wy / m).toPrecision(12)},${(wz / m).toPrecision(12)}`);
+            L.ke.push(rows[o + P_KE].toPrecision(12));
+            continue;
+        }
+        out.set(id, [rows[o + P_C1], rows[o + P_C2]]);
+    }
+    const classesOf = (keys) => {
+        const idx = new Map();
+        for (const k of keys) if (!idx.has(k)) idx.set(k, idx.size);
+        return idx.size > 1 && 2 * idx.size <= keys.length ? keys.map((k) => idx.get(k)) : null;
+    };
+    for (const L of lists.values()) {
+        const cd = classesOf(L.dir), ce = classesOf(L.ke);
+        L.ids.forEach((id, i) => out.set(id, [cd ? cd[i] : -1, ce ? ce[i] : -1]));
+    }
     return out;
 }

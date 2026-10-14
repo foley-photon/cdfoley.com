@@ -6,6 +6,10 @@
      fields with commas, quotes or line breaks quoted, quotes doubled; '.'
      decimals; numbers with 10 significant digits (float32 trajectory data:
      the shortest decimal that round-trips to the stored float32).
+   - Particle lists: particlesToCSV / parseParticlesCSV read and write the
+     rows of a 'rows' source at full precision (shortest round-trip decimals),
+     in the direction + kinetic-energy form or the velocity form, and accept
+     this tool's hits table as end states.
    - Share links: '#p=' + base64url(deflate-raw(canonical JSON)) with the
      DEFLATE format of Deutsch, IETF RFC 1951 (1996), and base64url of
      Josefsson, IETF RFC 4648 §5 (2006); '#pj=' + base64url(JSON) where
@@ -21,6 +25,7 @@ import {
 import { generate } from './particles.js';
 import { canonicalJSON } from './hash.js';
 import { EngineError, migrate, validate, LIMITS, isProjectLike } from './schema.js';
+import { C_MMUS, K_ACC, UC2_EV, speedFromKE } from './constants.js';
 
 // ======================================================================== CSV
 
@@ -184,6 +189,177 @@ export function runToCSV(result, which, resolved) {
     throw new EngineError('E_UNSUPPORTED', `Unknown CSV table "${which}".`);
 }
 
+// ======================================================================== particle lists (CSV)
+
+/** Columns of a particle CSV (direction form) and of the velocity form. */
+export const PARTICLE_COLUMNS = Object.freeze(['mass_u', 'charge_e', 'x_mm', 'y_mm', 'z_mm', 'dx', 'dy', 'dz', 'ke_eV', 't0_us']);
+export const PARTICLE_COLUMNS_VELOCITY = Object.freeze(['mass_u', 'charge_e', 'x_mm', 'y_mm', 'z_mm', 'vx_mm_us', 'vy_mm_us', 'vz_mm_us', 'ke_eV', 't0_us']);
+
+/** Shortest decimal that reads back to the same double (full precision, unlike the 10-digit run tables). */
+function fmtExact(v) {
+    if (typeof v !== 'number') return v === null || v === undefined ? '' : String(v);
+    if (v !== v) return '';
+    if (!Number.isFinite(v)) return v > 0 ? 'Infinity' : '-Infinity';
+    return Object.is(v, -0) ? '0' : String(v);
+}
+
+/**
+ * CSV of particle rows ([mass, charge, x, y, z, dx, dy, dz, ke, t0] per particle) at full precision, so that
+ * parseParticlesCSV gives the rows back bit for bit. With `velocity`, the direction columns are replaced by the
+ * velocity (mm/µs, from the kinetic energy with the given relativistic flag) and ke_eV is kept.
+ * @param {number[][]} rows
+ * @param {{ velocity?: boolean, relativistic?: boolean }} [opts]
+ * @returns {string}
+ */
+export function particlesToCSV(rows, { velocity = false, relativistic = true } = {}) {
+    const lines = [(velocity ? PARTICLE_COLUMNS_VELOCITY : PARTICLE_COLUMNS).join(',')];
+    for (const r of rows || []) {
+        if (!Array.isArray(r)) continue;
+        let a = r[5], b = r[6], c = r[7];
+        if (velocity) {
+            const m = +r[0], ke = +r[8];
+            const v = relativistic ? velocityFromKE(ke, m) : speedFromKE(ke, m, false);
+            a = v * r[5]; b = v * r[6]; c = v * r[7];
+        }
+        lines.push([r[0], r[1], r[2], r[3], r[4], a, b, c, r[8], r[9]].map(fmtExact).join(','));
+    }
+    return lines.join('\r\n') + '\r\n';
+}
+
+/** |v| (mm/µs) of a relativistic particle of kinetic energy ke (eV) and mass m (u). */
+function velocityFromKE(ke, m) {
+    const g = 1 + Math.max(0, ke) / (m * UC2_EV);
+    return C_MMUS * Math.sqrt(Math.max(0, 1 - 1 / (g * g)));
+}
+
+const COLUMN_ALIASES = {
+    mass: ['mass_u', 'mass', 'm', 'm_u', 'mass (u)'], charge: ['charge_e', 'charge', 'q', 'q_e', 'charge (e)'],
+    x: ['x_mm', 'x', 'x0_mm', 'x0'], y: ['y_mm', 'y', 'y0_mm', 'y0'], z: ['z_mm', 'z', 'z0_mm', 'z0'],
+    dx: ['dx', 'ux', 'nx', 'dirx', 'dir_x'], dy: ['dy', 'uy', 'ny', 'diry', 'dir_y'], dz: ['dz', 'uz', 'nz', 'dirz', 'dir_z'],
+    vx: ['vx_mm_us', 'vx', 'vx_mm/us', 'vx (mm/us)'], vy: ['vy_mm_us', 'vy', 'vy_mm/us', 'vy (mm/us)'], vz: ['vz_mm_us', 'vz', 'vz_mm/us', 'vz (mm/us)'],
+    ke: ['ke_ev', 'ke', 'ke0_ev', 'ke0', 'energy', 'energy_ev', 'kinetic energy (ev)'], t0: ['t0_us', 't0', 'tob', 'birth', 't_birth_us', 'time of birth'],
+};
+
+/** Splits one CSV line (RFC 4180 quotes; comma, semicolon or tab separated). */
+function splitCSVLine(line, sep) {
+    const out = [];
+    let cur = '', q = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (q) {
+            if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+            else cur += ch;
+        } else if (ch === '"') q = true;
+        else if (ch === sep) { out.push(cur); cur = ''; }
+        else cur += ch;
+    }
+    out.push(cur);
+    return out.map((s) => s.trim());
+}
+
+function toNumber(s) {
+    const t = String(s).trim().replace(/^'/, '').replace(/−/g, '-');
+    if (t === '') return NaN;
+    if (/^[-+]?inf(inity)?$/i.test(t)) return t[0] === '-' ? -Infinity : Infinity;
+    const v = Number(t);
+    return Number.isFinite(v) ? v : NaN;
+}
+
+/**
+ * Reads a particle CSV into canonical rows [mass, charge, x, y, z, dx, dy, dz, ke, t0].
+ * Accepted: a header line with the columns of PARTICLE_COLUMNS (direction) or PARTICLE_COLUMNS_VELOCITY (velocity, from
+ * which the direction and, when ke_eV is absent, the kinetic energy are taken), common aliases (x, y, z, vx, …, ke, t0),
+ * extra columns ignored (so a hits table exported by this tool imports as the end states, see `fromHits`); or a
+ * headerless table of 10 (direction) or 9 (velocity, `[m, q, x, y, z, vx, vy, vz, t0]`) numbers per line. Separator: comma,
+ * semicolon or tab. Lines starting with # are comments; blank lines are skipped. Rows with errors are reported, not kept.
+ * @param {string} text
+ * @param {{ relativistic?: boolean, reverse?: boolean, maxRows?: number }} [opts] reverse: v → −v for velocity columns
+ * @returns {{ rows: number[][], velocity: boolean, columns: string[], errors: Array<{ line: number, message: string }>, skipped: number, fromHits: boolean }}
+ * @throws {EngineError} E_BAD_PROJECT when no particle columns can be identified
+ */
+export function parseParticlesCSV(text, { relativistic = true, reverse = false, maxRows = LIMITS.rows } = {}) {
+    const src = String(text || '').replace(/^﻿/, '');
+    const lines = src.split(/\r?\n/);
+    const errors = [];
+    let first = -1;
+    for (let i = 0; i < lines.length; i++) { const t = lines[i].trim(); if (t && !t.startsWith('#')) { first = i; break; } }
+    if (first < 0) throw new EngineError('E_BAD_PROJECT', 'The file has no particle rows.');
+    const sample = lines[first];
+    const sep = (sample.match(/\t/g) || []).length >= (sample.match(/[,;]/g) || []).length ? (sample.includes('\t') ? '\t' : (sample.includes(';') && !sample.includes(',') ? ';' : ',')) : (sample.includes(';') && !sample.includes(',') ? ';' : ',');
+    const head = splitCSVLine(sample, sep);
+    const numericHead = head.length && head.every((h) => h === '' || Number.isFinite(toNumber(h)));
+    let idx = null, velocity = false, start = first, fromHits = false, columns;
+    if (!numericHead) {
+        const norm = head.map((h) => h.toLowerCase().replace(/^'/, '').trim());
+        const find = (names) => { for (const n of names) { const k = norm.indexOf(n); if (k >= 0) return k; } return -1; };
+        const col = {}; for (const key of Object.keys(COLUMN_ALIASES)) col[key] = find(COLUMN_ALIASES[key]);
+        const haveDir = col.dx >= 0 && col.dy >= 0 && col.dz >= 0, haveVel = col.vx >= 0 && col.vy >= 0 && col.vz >= 0;
+        fromHits = norm.includes('status') && norm.includes('x0_mm');
+        if (fromHits) {   // a hits table: end position and velocity, mass and charge columns
+            col.x = norm.indexOf('x_mm'); col.y = norm.indexOf('y_mm'); col.z = norm.indexOf('z_mm'); col.ke = norm.indexOf('ke_ev'); col.t0 = -1;
+        }
+        const missing = ['mass', 'charge', 'x', 'y', 'z'].filter((k) => col[k] < 0);
+        if (missing.length || !(haveDir || haveVel) || (haveDir && !haveVel && col.ke < 0)) {
+            throw new EngineError('E_BAD_PROJECT', `The header lacks particle columns (${missing.length ? 'missing ' + missing.join(', ') : haveDir ? 'missing ke_eV' : 'missing dx, dy, dz or vx_mm_us, vy_mm_us, vz_mm_us'}); expected ${PARTICLE_COLUMNS.join(', ')}.`);
+        }
+        velocity = haveVel && !haveDir;
+        if (haveVel && haveDir) velocity = false;   // both given: the direction wins, ke required
+        if (velocity && reverse) { /* handled per row */ }
+        idx = col; start = first + 1; columns = head;
+    } else {
+        const n = head.length;
+        if (n !== 10 && n !== 9) throw new EngineError('E_BAD_PROJECT', `A headerless particle table needs 10 columns (${PARTICLE_COLUMNS.join(', ')}) or 9 (velocity form); found ${n}.`);
+        velocity = n === 9;
+        idx = velocity ? { mass: 0, charge: 1, x: 2, y: 3, z: 4, vx: 5, vy: 6, vz: 7, ke: -1, t0: 8 } : { mass: 0, charge: 1, x: 2, y: 3, z: 4, dx: 5, dy: 6, dz: 7, ke: 8, t0: 9 };
+        columns = (velocity ? ['mass_u', 'charge_e', 'x_mm', 'y_mm', 'z_mm', 'vx_mm_us', 'vy_mm_us', 'vz_mm_us', 't0_us'] : PARTICLE_COLUMNS).slice();
+    }
+    const rows = [];
+    let skipped = 0;
+    const get = (cells, k) => (k >= 0 && k < cells.length ? toNumber(cells[k]) : NaN);
+    for (let i = start; i < lines.length; i++) {
+        const raw = lines[i].trim();
+        if (!raw || raw.startsWith('#')) continue;
+        if (rows.length >= maxRows) { skipped++; continue; }
+        const cells = splitCSVLine(raw, sep);
+        const m = get(cells, idx.mass), q = get(cells, idx.charge), x = get(cells, idx.x), y = get(cells, idx.y), z = get(cells, idx.z);
+        let t0 = idx.t0 >= 0 ? get(cells, idx.t0) : 0;
+        if (idx.t0 >= 0 && cells[idx.t0] === '') t0 = 0;
+        let a, b, c, ke;
+        const bad = (msg) => { errors.push({ line: i + 1, message: msg }); };
+        if (!(m > 0 && m < Infinity)) { bad('mass must be a positive number'); continue; }
+        if (!Number.isFinite(q) || q === 0) { bad('charge must be a non-zero number'); continue; }
+        if (![x, y, z].every(Number.isFinite)) { bad('x, y, z must be numbers'); continue; }
+        if (!Number.isFinite(t0)) { bad('t0 must be a number'); continue; }
+        if (velocity) {
+            const vx = get(cells, idx.vx), vy = get(cells, idx.vy), vz = get(cells, idx.vz);
+            if (![vx, vy, vz].every(Number.isFinite)) { bad('vx, vy, vz must be numbers'); continue; }
+            const v = Math.hypot(vx, vy, vz);
+            const keCol = idx.ke >= 0 ? get(cells, idx.ke) : NaN;
+            if (keCol === Infinity) { bad('ke must be a finite number ≥ 0'); continue; }
+            if (v === 0) {
+                if (!(keCol >= 0)) { bad('the velocity is zero and no kinetic energy is given'); continue; }
+                a = reverse ? -1 : 1; b = 0; c = 0; ke = keCol;
+            } else {
+                const s = (reverse ? -1 : 1) / v;
+                a = vx * s; b = vy * s; c = vz * s;
+                if (keCol >= 0) ke = keCol;
+                else if (relativistic) {
+                    const beta = v / C_MMUS;
+                    if (beta >= 1) { bad('the speed must be below c'); continue; }
+                    ke = (1 / Math.sqrt(1 - beta * beta) - 1) * m * UC2_EV;
+                } else ke = m * v * v / (2 * K_ACC);
+            }
+        } else {
+            a = get(cells, idx.dx); b = get(cells, idx.dy); c = get(cells, idx.dz); ke = get(cells, idx.ke);
+            if (![a, b, c].every(Number.isFinite) || (a === 0 && b === 0 && c === 0)) { bad('dx, dy, dz must be numbers and not all zero'); continue; }
+            if (!(ke >= 0 && ke < Infinity)) { bad('ke must be a finite number ≥ 0'); continue; }
+            if (reverse) { a = -a; b = -b; c = -c; }
+        }
+        rows.push([m, q, x, y, z, a, b, c, ke, t0]);
+    }
+    return { rows, velocity, columns, errors, skipped, fromHits };
+}
+
 // ======================================================================== base64url
 
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -288,6 +464,10 @@ function clampProject(p) {
             if (s && typeof s === 'object' && typeof s.count === 'number' && s.count > LIMITS.desktop.maxParticles) {
                 notes.push({ path: `sources[${i}].count`, code: 'W_CLAMPED', message: `sources[${i}].count was reduced from ${s.count} to ${LIMITS.desktop.maxParticles}.` });
                 s.count = LIMITS.desktop.maxParticles;
+            }
+            if (s && typeof s === 'object' && s.type === 'rows' && Array.isArray(s.rows) && s.rows.length > LIMITS.desktop.maxParticles) {
+                notes.push({ path: `sources[${i}].rows`, code: 'W_CLAMPED', message: `sources[${i}].rows was cut from ${s.rows.length} to ${LIMITS.desktop.maxParticles} particles.` });
+                s.rows.length = LIMITS.desktop.maxParticles;
             }
         });
     }

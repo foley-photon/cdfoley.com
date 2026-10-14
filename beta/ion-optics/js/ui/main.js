@@ -17,7 +17,8 @@ import * as constants from '../engine/constants.js';
 import * as analysis from '../engine/analysis.js';
 import * as geometry from '../engine/geometry.js';
 import { PRODUCT_NAME, ENGINE_VERSION, PROTOCOL_VERSION } from '../engine/version.js';
-import { createView } from './view2d.js';
+import { createView, ASPECTS } from './view2d.js';
+import { createReplay, SPEEDS } from './replay.js';
 import { createTools } from './tools.js';
 import { installShortcuts } from './shortcuts.js';
 import { createA11y, runStats } from './a11y.js';
@@ -57,8 +58,9 @@ export const DOCK_PANELS = Object.freeze([
     { id: 'tof', title: 'TOF', path: './panels/tof.js', order: 40 },
     { id: 'lens', title: 'Lens', path: './panels/lens.js', order: 50 },
     { id: 'profile', title: 'Profile', path: './panels/profile.js', order: 60 },
+    { id: 'charges', title: 'Charges & multipoles', path: './panels/charges.js', order: 65 },
     { id: 'scan', title: 'Scan & tune', path: './panels/scan.js', order: 70 },
-    { id: 'compare', title: 'Compare', path: './panels/compare.js', order: 80, planned: true },
+    { id: 'compare', title: 'Compare', path: './panels/compare.js', order: 80 },
     { id: 'bench', title: 'Benchmarks', path: './panels/benchmarks.js', order: 90 },
     { id: 'log', title: 'Log', path: './panels/log.js', order: 100 },
 ]);
@@ -340,6 +342,7 @@ async function boot() {
         jobs.on('version', reloadBanner);
         jobs.on('versionMismatch', reloadBanner);
         jobs.on('log', (m) => { if (m && m.message) log.add(m.level || 'info', m.message); });
+        jobs.on('run:stopped', (m) => { if (m && m.message) toast(m.message, { kind: 'info' }); });
         // benchmark results stream in: announce one summary once they stop arriving
         let bench = [], benchTimer = null;
         jobs.on('bench:result', (r) => {
@@ -471,7 +474,7 @@ function createApp(ctx, platform, log) {
             const st = store.get();
             if (st.valid === false) { toast('The project has errors; fix the fields marked in red first.', { kind: 'warn' }); return null; }
             if (e && e.blocked) { toast(e.blockMessage || 'This job is over the limits of this device.', { kind: 'error' }); return null; }
-            if (e && ((e.runMs || 0) + (st.solve.status === 'done' ? 0 : (e.solveMs || 0)) > 5000 || e.memMB > 0.7 * memCap())) {
+            if (e && ((e.runTotalMs || e.runMs || 0) + (st.solve.status === 'done' ? 0 : (e.solveMs || 0)) > 5000 || e.memMB > 0.7 * memCap())) {
                 const ok = await confirmJob('Run particles', e);
                 if (!ok) return null;
             }
@@ -481,7 +484,14 @@ function createApp(ctx, platform, log) {
             const st = store.get();
             if (st.solve.status === 'running' || st.solve.status === 'queued') jobs.cancelSolve();
             if (st.run.status === 'running') jobs.cancelRun();
+            // a long live preview (gas, drag, many steps) is stopped too; the next edit starts a new one
+            if (typeof jobs.previewing === 'function' && jobs.previewing()) { jobs.cancelPreview(); announce('Live preview stopped.'); return; }
             announce('Stopped.');
+        },
+        /** True while something can be stopped: a solve, a run or a live preview in flight. */
+        isBusy() {
+            const st = store.get();
+            return st.solve.status === 'running' || st.solve.status === 'queued' || st.run.status === 'running' || (typeof jobs.previewing === 'function' && jobs.previewing());
         },
         setLive(on) {
             store.setUi('live', !!on);
@@ -498,11 +508,15 @@ function createApp(ctx, platform, log) {
             if (!res) return '';
             const sum = runStats(res, res.resolvedSnapshot || st.resolved || st.lastResolved, analysis);
             if (!sum) return '';
-            const parts = [`${sum.launched} particles`];
+            const cnt = (n) => (typeof n === 'number' ? n.toLocaleString('en-US') : String(n));
+            const parts = [`${cnt(sum.launched)} particle${sum.launched === 1 ? '' : 's'}`];
             const bs = sum.byStatus || {};
             const keys = ['DETECTED', 'HIT', 'EXIT', 'ABSORBED', 'TMAX', 'DRIFT_END', 'NUM_ERROR', 'BORN_INSIDE', 'CANCELLED', 'STEPS'];
-            const words = { DETECTED: 'detected', HIT: 'hit electrodes', EXIT: 'left the domain', ABSORBED: 'absorbed by meshes', TMAX: 'reached the time limit', DRIFT_END: 'drifted out', NUM_ERROR: 'numerical errors', BORN_INSIDE: 'started inside electrodes', CANCELLED: 'cancelled', STEPS: 'hit the step limit' };
-            for (const k of keys) if (bs[k]) parts.push(`${bs[k]} ${words[k]}`);
+            // [one, several]
+            const words = { DETECTED: ['detected', 'detected'], HIT: ['hit an electrode', 'hit electrodes'], EXIT: ['left the domain', 'left the domain'], ABSORBED: ['absorbed by a mesh', 'absorbed by meshes'],
+                TMAX: ['reached the time limit', 'reached the time limit'], DRIFT_END: ['drifted out', 'drifted out'], NUM_ERROR: ['numerical error', 'numerical errors'],
+                BORN_INSIDE: ['started inside an electrode', 'started inside electrodes'], CANCELLED: ['cancelled', 'cancelled'], STEPS: ['hit the step limit', 'hit the step limit'] };
+            for (const k of keys) if (bs[k]) parts.push(`${cnt(bs[k])} ${words[k][bs[k] === 1 ? 0 : 1]}`);
             if (sum.launched && sum.transmission) parts.push(`transmission ${(100 * sum.transmission.overall).toFixed(sum.transmission.overall === 1 || sum.transmission.overall === 0 ? 0 : 1)}%`);
             return `Run ${st.run.status === 'partial' ? 'stopped' : 'finished'}: ${parts.join(', ')}.`;
         },
@@ -589,7 +603,8 @@ function createApp(ctx, platform, log) {
                 h('dt', { text: 'Grid nodes' }), h('dd', { text: dom.fmtCount(e.nodes) }),
                 h('dt', { text: 'Basis fields' }), h('dd', { text: String(e.bases) }),
                 h('dt', { text: 'Memory' }), h('dd', { text: `${Math.round(e.memMB)} MB` }),
-                h('dt', { text: 'Estimated time' }), h('dd', { text: dom.fmtMs((e.solveMs || 0) + (e.runMs || 0)) })));
+                h('dt', { text: 'Estimated time' }), h('dd', { text: dom.fmtMs((e.solveMs || 0) + (e.runTotalMs || e.runMs || 0)) }),
+                ...(e.postMs > 500 ? [h('dt', { text: 'of which after tracing' }), h('dd', { text: `${dom.fmtMs(e.postMs)} (merging and summarizing on this page)` })] : [])));
         const r = await openDialog({ title, body, actions: [{ label: 'Cancel', value: false }, { label: 'Continue', value: true, primary: true }] });
         return r === true;
     }
@@ -676,12 +691,14 @@ function mountRail(ctx, app) {
     });
 }
 
-// ---------------------------------------------------------------- view bar (tools, layers, colour by, zoom, time)
+// ---------------------------------------------------------------- view bar (tools, layers, colour by, stretch, replay, zoom, time)
 function mountViewbar(el, ctx, app) {
     if (!el) return;
     const { store, view } = ctx;
     const tools = app.tools;
     dom.clear(el);
+    const svgIcon = (...paths) => dom.svg('svg', { viewBox: '0 0 24 24', width: '18', height: '18', fill: 'currentColor', stroke: 'none', 'aria-hidden': 'true', focusable: 'false', class: 'io-icon' }, ...paths);
+    const pauseIcon = () => svgIcon(dom.svg('rect', { x: '6', y: '5', width: '4', height: '14', rx: '1' }), dom.svg('rect', { x: '14', y: '5', width: '4', height: '14', rx: '1' }));
     const toolGroup = h('div', { class: 'io-toolgroup', role: 'group', 'aria-label': 'Tools' });
     for (const t of tools.list()) {
         const b = h('button', { type: 'button', class: 'io-toolbtn', 'aria-pressed': 'false', title: t.title + (t.key ? ` (${t.key})` : ''), 'aria-label': t.title, dataset: { tool: t.id } }, icon(t.icon, 18));
@@ -708,7 +725,8 @@ function mountViewbar(el, ctx, app) {
     // layers menu
     const layersBtn = h('button', { type: 'button', class: 'btn btn-sm btn-ghost io-menubtn', 'aria-haspopup': 'true', 'aria-expanded': 'false' }, icon('layers', 16), h('span', { text: 'Layers' }));
     const layersPop = h('div', { class: 'io-popover', hidden: true, role: 'group', 'aria-label': 'Layers' });
-    const LAYERS = [['potential', 'Potential'], ['contours', 'Equipotentials'], ['field', '|E| (log)'], ['electrodes', 'Electrodes'], ['trajectories', 'Trajectories'], ['planes', 'Planes'], ['hits', 'Hits'], ['markers', 'Time markers'], ['grid', 'Grid nodes and cuts'], ['mirror', 'Mirrored half']];
+    const LAYERS = [['potential', 'Potential'], ['contours', 'Equipotentials'], ['field', '|E| (log)'], ['electrodes', 'Electrodes'], ['trajectories', 'Trajectories'], ['planes', 'Planes'], ['hits', 'Hits'], ['markers', 'Time markers'], ['grid', 'Grid nodes and cuts'], ['mirror', 'Mirrored half'],
+        ['surface', 'Potential-energy surface (3D)']];
     const layerInputs = new Map();
     for (const [k, label] of LAYERS) {
         const id = dom.uid('io-layer');
@@ -745,9 +763,58 @@ function mountViewbar(el, ctx, app) {
         lvMsg.hidden = true; lvInput.removeAttribute('aria-invalid');
         store.update((p) => { p.view = { ...(p.view || {}), contourLevels: levels }; }, { label: 'Equipotential levels' });
     });
-    layersPop.append(h('hr'), h('label', { class: 'io-inline' }, h('span', { text: 'Equipotentials' }), ncInput),
-        h('label', { class: 'io-levels-label', for: lvId, text: 'Levels (V, optional list)' }), lvInput, lvMsg, cmSel);
+    // relief of the potential-energy surface (height of the full q·φ range relative to the domain, ×)
+    const reliefIn = h('input', { type: 'range', min: '0.25', max: '4', step: '0.25', value: '1', 'aria-label': 'Surface relief' });
+    const reliefOut = h('output', { class: 'io-relief-out', text: '×1' });
+    reliefIn.addEventListener('input', dom.rafThrottle(() => {
+        const r = Math.max(0.25, Math.min(4, Number(reliefIn.value) || 1));
+        reliefOut.textContent = '×' + units.formatPretty(r, 'none', 3);
+        store.update((p) => { p.view = { ...(p.view || {}), relief: r }; }, { label: 'Surface relief', merge: 'relief' });
+    }));
+    const reliefRow = h('label', { class: 'io-relief' }, h('span', { text: 'Relief' }), reliefIn, reliefOut);
+    // vertical stretch for long thin devices (view.aspect; the canvas shows an aspect badge while it is on)
+    const aspectSel = h('select', { class: 'io-select io-select-sm io-aspect', 'aria-label': 'Vertical stretch', title: 'Vertical stretch (y × factor) for long thin devices' },
+        ...ASPECTS.map((a) => h('option', { value: String(a), text: a === 1 ? '1:1' : `y ×${a}` })));
+    aspectSel.addEventListener('change', () => {
+        const a = Number(aspectSel.value) || 1;
+        store.update((p) => { p.view = { ...(p.view || {}), aspect: a }; }, { label: 'Vertical stretch' });
+    });
+    layersPop.append(reliefRow, h('hr'), h('label', { class: 'io-inline' }, h('span', { text: 'Equipotentials' }), ncInput),
+        h('label', { class: 'io-levels-label', for: lvId, text: 'Levels (V, optional list)' }), lvInput, lvMsg, cmSel,
+        h('label', { class: 'io-inline io-aspect-row' }, h('span', { text: 'Vertical stretch' }), aspectSel));
     togglePopover(layersBtn, layersPop);
+
+    // moving-dot replay of the run (replay.js): one toggle in the view bar; the transport (play/pause, scrubber,
+    // speed, close) floats over the canvas while the replay is on, so the view bar keeps its height
+    const replay = createReplay({ store, view, reducedMotion: dom.reducedMotion });
+    app.replay = replay;
+    const rpBtn = h('button', { type: 'button', class: 'io-toolbtn io-replay-btn', 'aria-pressed': 'false', 'aria-label': 'Replay the run as moving dots', title: 'Replay the run as moving dots', hidden: true }, icon('play', 18));
+    const rpWrap = h('div', { class: 'io-replay io-replay-bar', role: 'group', 'aria-label': 'Trajectory replay', hidden: true });
+    const rpPlay = h('button', { type: 'button', class: 'io-toolbtn io-replay-play', 'aria-label': 'Pause replay', title: 'Play or pause' }, pauseIcon());
+    const rpRange = h('input', { type: 'range', min: '0', max: '1', step: '0.001', value: '0', 'aria-label': 'Replay time', class: 'io-replay-range' });
+    const rpOut = h('output', { class: 'io-replay-out', text: '' });
+    const rpSpeed = h('select', { class: 'io-select io-select-sm io-replay-speed', 'aria-label': 'Replay speed' }, ...SPEEDS.map((k) => h('option', { value: String(k), text: `${units.formatPretty(k, 'none', 3)}×`, selected: k === 1 })));
+    const rpStop = h('button', { type: 'button', class: 'io-toolbtn io-replay-stop', 'aria-label': 'Close the replay and show the full trajectories', title: 'Close the replay (show the full trajectories)' }, icon('x', 16));
+    rpWrap.append(rpPlay, rpRange, rpOut, rpSpeed, rpStop);
+    (document.getElementById('io-canvas-wrap') || el).appendChild(rpWrap);
+    const startReplay = () => { if (!replay.play()) ctx.ui.toast('Run the particles first; the replay needs stored trajectories.', { kind: 'info' }); else rpPlay.focus(); };
+    rpBtn.addEventListener('click', () => { if (replay.active) { replay.stop(); rpBtn.focus(); } else startReplay(); });
+    rpPlay.addEventListener('click', () => { if (replay.playing) replay.pause(); else startReplay(); });
+    rpRange.addEventListener('input', () => { replay.pause(); replay.seekFraction(Number(rpRange.value)); });
+    rpSpeed.addEventListener('change', () => replay.setSpeed(Number(rpSpeed.value) || 1));
+    rpStop.addEventListener('click', () => { replay.stop(); rpBtn.focus(); });
+    const syncReplay = (st) => {
+        const rg = st.range;
+        rpWrap.hidden = !st.active;
+        rpBtn.setAttribute('aria-pressed', st.active ? 'true' : 'false');
+        rpPlay.replaceChildren(st.playing ? pauseIcon() : icon('play', 18));
+        rpPlay.setAttribute('aria-label', st.playing ? 'Pause replay' : 'Play replay');
+        rpRange.disabled = !rg;
+        if (rg && st.t !== null && document.activeElement !== rpRange) rpRange.value = String(rg.t1 > rg.t0 ? (st.t - rg.t0) / (rg.t1 - rg.t0) : 0);
+        rpOut.textContent = st.t === null ? '' : `t = ${units.formatPretty(st.t, 'time', 4)}`;
+    };
+    replay.on(syncReplay);
+    syncReplay(replay.state());
 
     // colour by
     const colorBy = h('select', { class: 'io-select io-select-sm', 'aria-label': 'Color trajectories by' },
@@ -780,8 +847,18 @@ function mountViewbar(el, ctx, app) {
         timeRange.value = String(Math.max(0, Math.min(1, (t % P) / P)));
         timeOut.textContent = units.formatPretty(t, 'time', 4);
     });
+    // the replay of a run in time-dependent fields drives the display time, so the potential (and the surface) shown is
+    // the one the dots fly through (at most 10 updates per second while playing: each one recombines the field)
+    let lastLink = -Infinity;
+    replay.on((rs) => {
+        if (!rs.active || rs.t === null || timeWrap.hidden) return;
+        const t = performance.now();
+        if (rs.playing && t - lastLink < 100) return;
+        lastLink = t;
+        view.setDisplayTime(rs.t);
+    });
 
-    el.append(toolGroup, h('span', { class: 'io-sep' }), elSel, layersBtn, layersPop, colorBy, proj, h('span', { class: 'io-spacer' }), timeWrap, zoomGroup);
+    el.append(toolGroup, h('span', { class: 'io-sep' }), elSel, layersBtn, layersPop, colorBy, proj, rpBtn, h('span', { class: 'io-spacer' }), timeWrap, zoomGroup);
 
     function syncBar() {
         const st = store.get();
@@ -798,6 +875,13 @@ function mountViewbar(el, ctx, app) {
         colorBy.disabled = !L.trajectories;
         proj.value = v.projection || 'xy';
         proj.hidden = st.resolved && st.resolved.domain && st.resolved.domain.type !== 'cyl2d';
+        if (document.activeElement !== reliefIn) { const r = Number(v.relief) > 0 ? Number(v.relief) : 1; reliefIn.value = String(r); reliefOut.textContent = '×' + units.formatPretty(r, 'none', 3); }
+        reliefRow.hidden = !L.surface;
+        const asp = Number(v.aspect) > 0 ? Number(v.aspect) : 1;
+        if (!ASPECTS.includes(asp) && ![...aspectSel.options].some((o) => Number(o.value) === asp)) aspectSel.appendChild(h('option', { value: String(asp), text: `y ×${units.formatPretty(asp, 'none', 3)}` }));
+        aspectSel.value = String(asp);
+        const res = st.run && st.run.result;
+        rpBtn.hidden = !(res && res.traj && res.traj.offsets && res.n > 0);
         // time slider when fields are time dependent
         const r = st.resolved;
         let period = 0;
@@ -811,6 +895,7 @@ function mountViewbar(el, ctx, app) {
     }
     syncBar();
     store.on('project', syncBar);
+    store.on('run', syncBar);
     tools.onChange((id) => { for (const b of toolGroup.querySelectorAll('[data-tool]')) b.setAttribute('aria-pressed', b.dataset.tool === id ? 'true' : 'false'); });
 }
 
@@ -891,16 +976,47 @@ function mountDock(ctx, app) {
         current = i;
         tabs.forEach((b, k) => { b.setAttribute('aria-selected', k === i ? 'true' : 'false'); b.tabIndex = k === i ? 0 : -1; panels[k].hidden = k !== i; });
         if (dockEl.classList.contains('io-dock-collapsed') && user) setCollapsed(false);
-        load(i).then(() => { const x = inst.get(entries[i].id); if (x && typeof x.update === 'function') { try { x.update({ type: 'show', state: ctx.store.get() }); } catch (e) { app.log.add('error', e.message); } } });
+        load(i).then(() => {
+            const id = entries[i].id, x = inst.get(id);
+            // the store events the panel missed while it was hidden (it compares its stored results with the current keys)
+            const m = missed.get(id);
+            missed.delete(id);
+            if (x && typeof x.update === 'function') { try { x.update({ type: 'show', state: ctx.store.get(), missed: m ? [...m] : [] }); } catch (e) { app.log.add('error', e.message); } }
+        });
         if (user) ctx.store.setUi('dockTab', entries[i].id);
     }
+    const missed = new Map();   // panel id → store events that arrived while it was hidden
     for (const evt of ['project', 'resolved', 'selection', 'solve', 'solution', 'field', 'run', 'runs', 'ui']) {
         ctx.store.on(evt, () => {
             if (current < 0) return;
+            for (const id of inst.keys()) {
+                if (id === entries[current].id) continue;
+                if (!missed.has(id)) missed.set(id, new Set());
+                missed.get(id).add(evt);
+            }
             const x = inst.get(entries[current].id);
             if (x && typeof x.update === 'function') { try { x.update({ type: evt, state: ctx.store.get() }); } catch (e) { app.log.add('error', e.message); } }
         });
     }
+    // Compare pins saved in this browser: load the Compare tab in the background once the first run is done (or after
+    // 6 s), so the pinned ghosts are on the canvas without opening the tab. The key is analysis-jobs.PINS_STORAGE_KEY,
+    // read here directly so the startup does not import the analysis modules.
+    (() => {
+        let saved = false;
+        // the stored value is { version, savedAt, pins: [...] } (an older form is a bare array); 'Unpin all' leaves an empty list
+        try {
+            const raw = localStorage.getItem('ionopt.pins.v1');
+            const data = raw ? JSON.parse(raw) : null;
+            const list = Array.isArray(data) ? data : (data && Array.isArray(data.pins) ? data.pins : []);
+            saved = list.length > 0;
+        } catch (e) { /* storage blocked or damaged */ }
+        const k = entries.findIndex((p) => p.id === 'compare');
+        if (!saved || k < 0) return;
+        let done = false, off = null, timer = 0;
+        const go = () => { if (done) return; done = true; if (off) off(); clearTimeout(timer); load(k); };
+        off = ctx.store.on('run', () => { const r = ctx.store.get().run; if (r && r.status === 'done') setTimeout(go, 0); });
+        timer = setTimeout(go, 6000);
+    })();
     const collapseBtn = document.getElementById('io-dock-toggle');
     function setCollapsed(c) {
         dockEl.classList.toggle('io-dock-collapsed', c);

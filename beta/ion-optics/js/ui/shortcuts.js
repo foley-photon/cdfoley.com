@@ -10,7 +10,7 @@ import { h } from './dom.js';
 
 /** Shortcut table: [keys, description] (also shown by "?" and on the help page). */
 export const SHORTCUTS = Object.freeze([
-    ['S', 'Solve the fields'], ['R', 'Run all particles'], ['L', 'Live preview on or off'], ['Esc', 'Cancel the current drawing, or stop a solve or run'],
+    ['S', 'Solve the fields'], ['R', 'Run all particles'], ['L', 'Live preview on or off'], ['Esc', 'Cancel the current drawing, or stop a solve, a run or a live preview'],
     ['V', 'Select and edit tool'], ['H', 'Pan tool (or hold Space, or drag with the middle button)'], ['B', 'Box tool'], ['T', 'Tube tool'], ['C', 'Circle tool'],
     ['P', 'Polygon tool (Enter or double-click closes)'], ['M', 'Measure tool'], ['Shift+P', 'Probe line for the Profile tab'],
     ['Delete', 'Delete the selection (or the grabbed polygon vertex)'], ['Ctrl+Z', 'Undo'], ['Ctrl+Y or Ctrl+Shift+Z', 'Redo'], ['Ctrl+D', 'Duplicate the selection'],
@@ -70,7 +70,7 @@ export function installShortcuts(ctx, app) {
         if (app.tools && app.tools.key(e)) return true;
         if (k === 'Escape') {
             const st = store.get();
-            if (st.solve.status === 'running' || st.solve.status === 'queued' || st.run.status === 'running') { app.stop(); return true; }
+            if (app.isBusy ? app.isBusy() : (st.solve.status === 'running' || st.solve.status === 'queued' || st.run.status === 'running')) { app.stop(); return true; }
             if (app.tools && app.tools.current() !== 'select') { app.tools.setTool('select'); return true; }
             if ((st.selection.ids || []).length) { store.select({ kind: null, ids: [] }); view.highlightParticle(null); return true; }
             return false;

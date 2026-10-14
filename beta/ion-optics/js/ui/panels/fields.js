@@ -1,28 +1,39 @@
 /* ==========================================================================
    Ion optics UI: panels/fields.js
    Fields rail tab (spec §4.3, §2.2.2): magnets (uniform field, hard-edged
-   field region, current loop) with a helper for planar sector magnets that
+   field region, current loop, pole pieces described by a magnetic scalar
+   potential ψ, each piece a region with its ψ in T·mm) with a helper for
+   planar sector magnets that
    sets the region and the flux density for a chosen ion, and, under
    "Advanced", ideal analytic fields that are added to the solved field.
    Bending radius r = γm|v|/(|q|B) from the engine constants (cyclotron()).
    ========================================================================== */
 import { h, icon, clear } from '../dom.js';
-import { bindForm, locate, nextId, parseScalar } from '../forms.js';
+import { bindForm, locate, nextId, parseScalar, metaFor } from '../forms.js';
 import { formatPretty } from '../units.js';
 import { cyclotron } from '../../engine/constants.js';
 
-const MAGNET_TYPES = [['uniform', 'Uniform field'], ['region', 'Field region (sharp edges)'], ['loop', 'Current loop']];
+const MAGNET_TYPES = [['uniform', 'Uniform field'], ['region', 'Field region (sharp edges)'], ['loop', 'Current loop'], ['poles', 'Pole pieces (scalar potential)']];
+const DEFAULT_MAGNET_NAMES = new Set(['Uniform field', 'Field region', 'Current loop', 'Pole pieces']);
 const IDEAL_TYPES = [['uniformE', 'Uniform E'], ['quadrupole2d', 'Quadrupole (2D)'], ['quadrupole3d', 'Quadrupole (3D, axis x)'], ['coax', 'Coaxial (log)'], ['sphere', 'Spherical (A + B/r)']];
 
+/** Schema defaults of a kind for the project's domain type (planar projects get planar pole pieces), else the fallback. */
 function defaultsOf(ctx, kind, fallback) {
-    try { const d = ctx.engine.schema.defaults(kind); if (d && typeof d === 'object' && Object.keys(d).length) return d; } catch (e) { /* not known */ }
-    return structuredClone(fallback);
+    const p = ctx.store && ctx.store.get().project;
+    const dt = p && p.domain && p.domain.type === 'planar2d' ? 'planar2d' : 'cyl2d';
+    try { const d = ctx.engine.schema.defaults(kind, dt); if (d && typeof d === 'object' && Object.keys(d).length) return d; } catch (e) { /* not known */ }
+    const f = typeof fallback === 'function' ? fallback(dt === 'cyl2d') : fallback;
+    return structuredClone(f);
 }
 const MAG_FALLBACK = {
     uniform: { type: 'uniform', B: [0, 0, 0.01] },
     region: { type: 'region', B: [0, 0, 0.01], region: { type: 'box', x0: -10, x1: 10, y0: -10, y1: 10 } },
     loop: { type: 'loop', center: [0, 0, 0], normal: [1, 0, 0], radius: 10, turns: 1, current: 1 },
+    // pole pieces: a gap of 10 mm (planar: centered on y = 0 with ψ = ±1 T·mm; cylindrical: two pieces above the axis)
+    poles: (cyl) => ({ type: 'poles', boundary: 'neumann', pieces: [{ region: { type: 'box', x0: -10, x1: 10, y0: 5, y1: 8 }, psi: 1 },
+        { region: { type: 'box', x0: -10, x1: 10, y0: cyl ? 12 : -8, y1: cyl ? 15 : -5 }, psi: cyl ? 0 : -1 }] }),
 };
+const POLE_FALLBACK = { region: { type: 'box', x0: -10, x1: 10, y0: 5, y1: 8 }, psi: 1 };
 const REGION_FALLBACK = { box: { type: 'box', x0: -10, x1: 10, y0: 0, y1: 10 }, polygon: { type: 'polygon', points: [[0, 0], [20, 0], [0, 20]] }, annulus: { type: 'annulus', cx: 0, cy: 0, rIn: 50, rOut: 150, a0: 0, a1: 90 } };
 const IDEAL_FALLBACK = {
     uniformE: { type: 'uniformE', E: [1, 0, 0], ref: [0, 0, 0], box: null },
@@ -49,7 +60,7 @@ function itemSection(ctx, app, { kind, listKey, title, types, prefix, emptyText,
             id = nextId(list, prefix);
             const obj = { ...base, id, enabled: true };
             if (kind === 'magnet') {
-                obj.name = obj.name && obj.name !== 'Uniform field' && obj.name !== 'Field region' && obj.name !== 'Current loop' ? obj.name : `${types.find((x) => x[0] === t)[1]} ${list.length + 1}`;
+                obj.name = obj.name && !DEFAULT_MAGNET_NAMES.has(obj.name) ? obj.name : `${t === 'poles' ? 'Pole pieces' : types.find((x) => x[0] === t)[1]} ${list.length + 1}`;
                 if (p.domain && p.domain.type === 'cyl2d' && Array.isArray(obj.B)) obj.B = [obj.B[0] || obj.B[2] || 0.01, 0, 0];
             }
             list.push(obj);
@@ -113,7 +124,22 @@ function describeMagnet(m) {
     if (m.type === 'uniform') return `Uniform · ${bTxt}`;
     if (m.type === 'region') return `${m.region ? m.region.type : 'region'} · ${bTxt}`;
     if (m.type === 'loop') return `Loop r = ${typeof m.radius === 'number' ? formatPretty(m.radius, 'length', 4) : m.radius}, ${typeof m.current === 'number' ? formatPretty(m.current, 'current', 4) : m.current} × ${m.turns || 1}`;
+    if (m.type === 'poles') return describePoles(m);
     return m.type;
+}
+/** "2 pole pieces · ψ −1 to 1 T·mm (Δψ 2 T·mm)" (expressions are listed as written). */
+export function describePoles(m) {
+    const pieces = Array.isArray(m.pieces) ? m.pieces : [];
+    const n = pieces.length;
+    const head = `${n} pole piece${n === 1 ? '' : 's'}`;
+    const psi = pieces.map((p) => p && p.psi);
+    if (!n) return head;
+    if (psi.every((v) => typeof v === 'number' && Number.isFinite(v))) {
+        const lo = Math.min(...psi), hi = Math.max(...psi);
+        const f = (v) => formatPretty(v, 'none', 4);
+        return lo === hi ? `${head} · ψ ${f(lo)} T·mm` : `${head} · ψ ${f(lo)} to ${f(hi)} T·mm (Δψ ${f(hi - lo)} T·mm)`;
+    }
+    return `${head} · ψ ${psi.map((v) => (v === undefined || v === null ? '?' : String(v))).join(', ')} T·mm`;
 }
 function describeIdeal(f) { return (IDEAL_TYPES.find((x) => x[0] === f.type) || [0, f.type])[1]; }
 
@@ -127,7 +153,7 @@ export function mountFields(host, ctx, app) {
     const adv = h('details', { class: 'io-card' }, h('summary', { text: 'Advanced: ideal analytic fields' }),
         h('p', { class: 'io-note', text: 'Analytic fields are added to the solved electrode field everywhere (also outside the grid when boxed). Use them for idealised tests; real devices should be drawn as electrodes.' }), ideals.el);
     host.append(
-        h('p', { class: 'io-note', text: 'Field regions have sharp edges (fringe fields are not modeled). In cylindrical domains only an axial field Bx is allowed.' }),
+        h('p', { class: 'io-note', text: 'Field regions have sharp edges; pole pieces give fringe fields (B = −∇ψ solved on the domain grid between iron pieces at fixed ψ). In cylindrical domains uniform fields and field regions allow only an axial field Bx.' }),
         h('h3', { class: 'io-group-title', text: 'Magnets' }), mags.el, adv);
     const update = () => { mags.update(); ideals.update(); if ((store.get().project.idealFields || []).length) adv.open = true; };
     update();
@@ -157,7 +183,7 @@ export function magnetEditor(host, ctx, app, id) {
     host.appendChild(common.el);
     const typeBox = h('div');
     host.appendChild(typeBox);
-    let tForm = null, rForm = null, tType = null, rType = null;
+    let tForm = null, rForm = null, tType = null, rType = null, poles = null;
     function update() {
         const L = locM(store.get().project);
         if (!L) { clear(host); host.appendChild(h('p', { class: 'io-empty', text: 'This magnet was deleted.' })); return; }
@@ -188,8 +214,9 @@ export function magnetEditor(host, ctx, app, id) {
                     resolved: (r) => { const m = resM(r); return m ? m.region : null; } }) : null;
                 if (rForm) typeBox.appendChild(h('div', { class: 'io-card' }, h('div', { class: 'io-card-title', text: 'Region (plane coordinates)' }), rForm.el));
             } else rForm = null;
+            if (t === 'poles') { poles = polesEditor(typeBox, ctx, locM, resM); } else poles = null;
             typeBox.appendChild(radiusNote);
-        } else { tForm.sync(); if (rForm) rForm.sync(); }
+        } else { tForm.sync(); if (rForm) rForm.sync(); if (poles) poles.update(); }
         updateRadiusNote();
     }
     const radiusNote = h('p', { class: 'io-note' });
@@ -205,6 +232,83 @@ export function magnetEditor(host, ctx, app, id) {
         if (!(B > 0) || !(ke > 0)) { radiusNote.textContent = ''; return; }
         const c = cyclotron(sp.mass, sp.charge, B, ke, r.tracer ? r.tracer.relativistic !== false : true);
         radiusNote.textContent = `For ${sp.label || sp.mass + ' u'} at ${formatPretty(ke, 'energy', 4)}: bending radius ${formatPretty(c.radiusMM, 'length', 5)}, cyclotron frequency ${formatPretty(c.freqMHz, 'freq', 5)}.`;
+    }
+    update();
+    return { update };
+}
+
+/**
+ * Editor of the pieces of a 'poles' magnet: one card per piece with its shape (box, polygon, annulus sector: the same
+ * region forms as a field region), its scalar potential ψ (T·mm), and buttons to add and delete pieces.
+ * @returns {{ update(): void }}
+ */
+/** The pole-piece descriptors with the unit of ψ in its label. */
+function poleDescs(ctx) {
+    return metaFor(ctx.engine && ctx.engine.schema && ctx.engine.schema.META, 'pole').map((d) => (d.key === 'psi' && !/T·mm/.test(d.label) ? { ...d, label: `${d.label} (T·mm)` } : d));
+}
+function polesEditor(host, ctx, locM, resM) {
+    const { store } = ctx;
+    const box = h('div', { class: 'io-card io-poles' });
+    const head = h('div', { class: 'io-card-title', text: 'Pole pieces (plane coordinates)' });
+    const note = h('p', { class: 'io-note', text: 'Each piece is iron at a fixed magnetic scalar potential ψ; B = −∇ψ in the gaps (about |Δψ|/gap in tesla). Pieces are not obstacles for particles; mirror and anti-mirror planes of the domain apply to ψ too.' });
+    const list = h('div', { class: 'io-poles-list' });
+    const addBtn = h('button', { type: 'button', class: 'btn btn-secondary btn-sm' }, icon('plus', 16), h('span', { text: 'Add piece' }));
+    box.append(head, note, list, h('div', { class: 'io-add-row' }, addBtn));
+    host.appendChild(box);
+    const pieceLoc = (j) => (p) => { const M = locM(p); const pc = M && Array.isArray(M.obj.pieces) ? M.obj.pieces[j] : null; return pc ? { obj: pc, path: `${M.path}.pieces[${j}]` } : null; };
+    const pieceRes = (j) => (r) => { const m = resM(r); return m && Array.isArray(m.pieces) ? m.pieces[j] || null : null; };
+    addBtn.addEventListener('click', () => {
+        const r = ctx.commit((p) => {
+            const M = locM(p);
+            if (!M) return;
+            const pcs = M.obj.pieces || (M.obj.pieces = []);
+            const last = pcs[pcs.length - 1];
+            // a new piece next to the last box (or the default one), at ψ = 0
+            const lr = last && last.region;
+            const nb = lr && lr.type === 'box' && [lr.x0, lr.x1, lr.y0, lr.y1].every((v) => typeof v === 'number')
+                ? { region: { type: 'box', x0: lr.x0, x1: lr.x1, y0: Math.max(lr.y0, lr.y1) + 5, y1: Math.max(lr.y0, lr.y1) + 8 }, psi: 0 }
+                : { ...defaultsOf(ctx, 'pole', POLE_FALLBACK), psi: 0 };
+            pcs.push(nb);
+        }, { label: 'Add pole piece' });
+        if (!r.ok && ctx.ui.toast) ctx.ui.toast(r.error, { kind: 'warn' });
+    });
+    let sig = null, forms = [];
+    function build(pieces) {
+        clear(list);
+        forms = [];
+        pieces.forEach((pc, j) => {
+            const rt = pc && pc.region ? pc.region.type || 'box' : 'box';
+            const card = h('div', { class: 'io-pole-piece' });
+            const del = h('button', { type: 'button', class: 'io-mini', title: 'Delete this piece', 'aria-label': `Delete pole piece ${j + 1}` }, icon('trash', 16));
+            del.disabled = pieces.length <= 1;
+            del.addEventListener('click', () => {
+                const r = ctx.commit((p) => { const M = locM(p); if (M && Array.isArray(M.obj.pieces)) M.obj.pieces.splice(j, 1); }, { label: 'Delete pole piece' });
+                if (!r.ok && ctx.ui.toast) ctx.ui.toast(r.error, { kind: 'warn' });
+            });
+            card.appendChild(h('div', { class: 'io-item-row' }, h('strong', { text: `Piece ${j + 1}` }), h('span', { class: 'io-spacer' }), del));
+            const pf = bindForm(ctx, {
+                kind: 'pole', descs: poleDescs(ctx), label: 'Edit pole piece', idPrefix: `io-pp${j}`, locate: pieceLoc(j), resolved: pieceRes(j),
+                intercept: (key, value, draft, L) => {
+                    if (key !== 'region.type') return false;
+                    if (L.obj.region && L.obj.region.type === value) return true;
+                    L.obj.region = { ...defaultsOf(ctx, 'region.' + value, REGION_FALLBACK[value]), type: value };
+                    return true;
+                },
+            });
+            card.appendChild(pf.el);
+            const rf = bindForm(ctx, { kind: 'region', sub: rt, label: 'Edit pole piece', idPrefix: `io-ppr${j}`,
+                locate: (p) => { const L = pieceLoc(j)(p); return L && L.obj.region ? { obj: L.obj.region, path: `${L.path}.region` } : null; },
+                resolved: (r) => { const pc = pieceRes(j)(r); return pc ? pc.region : null; } });
+            card.appendChild(rf.el);
+            forms.push(pf, rf);
+            list.appendChild(card);
+        });
+    }
+    function update() {
+        const M = locM(store.get().project);
+        const pieces = M && Array.isArray(M.obj.pieces) ? M.obj.pieces : [];
+        const s = pieces.map((pc) => (pc && pc.region ? pc.region.type || 'box' : '-')).join('|');
+        if (s !== sig) { sig = s; build(pieces); } else for (const f of forms) f.sync();
     }
     update();
     return { update };

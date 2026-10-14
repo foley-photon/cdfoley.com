@@ -6,19 +6,30 @@
    calibration.observed holds the deviations measured in the design-phase
    time-domain calibration (§5.5) and, after integration, on this engine.
 
-   Sources: CODATA 2022 (NIST); Natali, DiChio, Uva & Kuyatt, J. Res. NBS
-   76A, 27 (1972); DiChio, Natali & Kuyatt, Rev. Sci. Instrum. 45, 559
+   Sources: CODATA 2022 (NIST); Natali, Di Chio & Kuyatt, J. Res. NBS 76A,
+   27–35 (1972); DiChio, Natali & Kuyatt, Rev. Sci. Instrum. 45, 559
    (1974); Adams & Read, J. Phys. E 5, 150 (1972) and Harting & Read,
    Electrostatic Lenses (1976), both as tabulated by Gillespie & Brown;
    Hughes & Rojansky, Phys. Rev. 34, 284 (1929); Purcell, Phys. Rev. 54, 818
    (1938); Wiley & McLaren, Rev. Sci. Instrum. 26, 1150 (1955); Mamyrin et
    al., Sov. Phys. JETP 37, 45 (1973); Paul, Rev. Mod. Phys. 62, 531 (1990);
-   Simpson, Lane, Immer & Youngquist, NASA (2001); Davisson & Calbick, Phys.
-   Rev. 42, 580 (1932); Langmuir, Phys. Rev. 2, 450 (1913).
+   Simpson, Lane, Immer, Youngquist & Steinrock, NASA (2001); Davisson &
+   Calbick, Phys. Rev. 42, 580 (1932); Langmuir, Phys. Rev. 2, 450 (1913).
+   Round 2: Liebl, Applied Charged Particle Optics (2008); Zouros et al.,
+   Int. J. Mass Spectrom. 261, 115 (2007); Dehmelt, Adv. At. Mol. Phys. 3,
+   53 (1967); March, J. Mass Spectrom. 32, 351 (1997); Kingdon, Phys. Rev.
+   21, 408 (1923); Heddle, Electrostatic Lens Systems (2000); Mason &
+   McDaniel, Transport Properties of Ions in Gases (1988); Gillig et al.,
+   Anal. Chem. 72, 3965 (2000); Gerlich, Adv. Chem. Phys. 82, 1 (1992);
+   Rama Rao & Bhutani, Int. J. Mass Spectrom. 202, 31 (2000); Dayton et al.,
+   Rev. Sci. Instrum. 25, 485 (1954); Denison, J. Vac. Sci. Technol. 8, 266
+   (1971); Shockley, J. Appl. Phys. 9, 635 (1938); Ramo, Proc. IRE 27, 584
+   (1939); Barlow, Taylor & Swanson, Int. J. Mass Spectrom. 207, 19 (2001);
+   Press et al., Numerical Recipes (Richardson extrapolation).
    ========================================================================== */
 
 const CODATA = { text: 'CODATA 2022 recommended values (NIST); closed-form kinematics', url: 'https://physics.nist.gov/cuu/Constants/' };
-const NBS1972 = { text: 'Natali, DiChio, Uva & Kuyatt, J. Res. NBS 76A, 27 (1972), Table 2', url: 'https://nvlpubs.nist.gov/nistpubs/jres/76A/jresv76An1p27_A1b.pdf' };
+const NBS1972 = { text: 'Natali, Di Chio & Kuyatt, J. Res. NBS 76A, 27–35 (1972), Table 2', url: 'https://doi.org/10.6028/jres.076A.003' };
 const DNK1974 = { text: 'DiChio, Natali & Kuyatt, Rev. Sci. Instrum. 45, 559 (1974), Table I', url: 'https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=620059' };
 
 /** Reference values by case id: { values, units, source: { text, url }, note, calibration: { level, observed: { quick, full }, design } }. */
@@ -42,7 +53,7 @@ export const TARGETS = Object.freeze({
     },
     K4: {
         values: { ion: -1, electron: 1 }, units: { ion: 'y_c/r', electron: 'y_c/r' },
-        source: { text: 'Lorentz force F = q v × B: for B = +z and motion along +x a positive ion turns toward −y', url: 'https://doi.org/10.1063/1.5051077' },
+        source: { text: 'Lorentz force F = q v × B (closed form): for B = +z and motion along +x a positive ion turns toward −y', url: null },
         note: 'Center of gyration at (0, −r) for an ion and (0, +r) for an electron, with Dormand–Prince and Boris.',
         calibration: { level: 'integration', observed: { quick: 5.6e-9, full: 5.6e-9 }, design: null },
     },
@@ -110,7 +121,7 @@ export const TARGETS = Object.freeze({
     },
     S7: {
         values: { err: 0 }, units: { err: 'V/V' },
-        source: { text: 'Linearity of Laplace\'s equation (superposition of unit-voltage basis fields)', url: 'https://doi.org/10.1137/1.9780898719505' },
+        source: { text: 'Linearity of Laplace\'s equation: superposition of unit-voltage basis fields is exact for the discrete operator too (closed form; e.g. Jackson, Classical Electrodynamics, 3rd ed. (1999), §1.13)', url: null },
         note: 'Three-electrode thin-wall einzel lens with a ramp edge; random voltages; direct solve at tolerance 1e-12.',
         calibration: { level: 'integration', observed: { quick: 5.5e-13, full: 5.5e-13 }, design: { err: 2.6e-13 } },
     },
@@ -122,7 +133,7 @@ export const TARGETS = Object.freeze({
     },
     S9: {
         values: { rho: 0.35 }, units: { rho: '/cycle' },
-        source: { text: 'Geometric multigrid with exact interval painting on every level (Trottenberg, Oosterlee & Schüller, Multigrid (2001))', url: 'https://doi.org/10.1137/1.9780898719505' },
+        source: { text: 'Geometric multigrid with exact interval painting on every level: V-cycle convergence factor (Briggs, Henson & McCormick, A Multigrid Tutorial, 2nd ed. (SIAM, 2000); Trottenberg, Oosterlee & Schüller, Multigrid (2001))', url: 'https://doi.org/10.1137/1.9780898719505' },
         note: '404 × 98 two-aperture fixture: plates 0.3 cell thick between nodes and 1 cell off the coarse lattice; far edges off-lattice.',
         calibration: { level: 'integration', observed: { quick: 4.7e-11, full: 4.7e-11 }, design: { rho: 0.251 } },
     },
@@ -206,7 +217,7 @@ export const TARGETS = Object.freeze({
     },
     T13: {
         values: { helmholtz: '0.899176', loop: '4.49588' }, units: { helmholtz: 'mT', loop: 'µT' },
-        source: { text: 'Simpson, Lane, Immer & Youngquist, Simple analytic expressions for the magnetic field of a circular current loop (NASA, 2001)', url: 'https://ntrs.nasa.gov/citations/20010038494' },
+        source: { text: 'Simpson, Lane, Immer, Youngquist & Steinrock, Simple analytic expressions for the magnetic field of a circular current loop (NASA, 2001)', url: 'https://ntrs.nasa.gov/citations/20010038494' },
         note: 'Helmholtz pair N 100, 1 A, R 100 mm at x = ±50 mm: B at the center; one loop: B on the axis 50 mm from its center.',
         calibration: { level: 'integration', observed: { quick: 2.9e-7, full: 2.9e-7 }, design: { helmholtz: 1e-9 } },
     },
@@ -278,16 +289,136 @@ export const TARGETS = Object.freeze({
         note: 'Planned: needs a Poisson solver (space charge).', calibration: { level: 'planned', observed: null },
     },
     P2: {
-        values: { each: 0.719982 }, units: { each: 'meV' }, source: CODATA,
-        note: 'Planned: two protons released from rest 1 µm apart (direct Coulomb interaction).', calibration: { level: 'planned', observed: null },
+        values: { energy: 0.719982 }, units: { energy: 'meV' }, source: CODATA,
+        note: 'Promoted in round 2: two protons released from rest 1 µm apart share the Coulomb energy k e²/d = 1.439964 meV (CODATA 2022); traced through the pipeline with the direct pair force (coulomb.js, space-charge onset estimator), ε = 1e-7 mm, pair step 0.005.',
+        calibration: { level: 'round 2', observed: { quick: 5.1e-7, full: 5.1e-7 }, design: null },
     },
     P3: {
         values: {}, units: {}, source: { text: 'Coaxial cylinders and concentric spheres in three dimensions', url: 'http://hyperphysics.phy-astr.gsu.edu/hbase/electric/capcyl.html' },
         note: 'Planned for the 3D solver (Phase 2).', calibration: { level: 'planned', observed: null },
     },
     P4: {
-        values: { coax: 80.2607, sphere: 26.7036 }, units: { coax: 'pF/m', sphere: 'pF' }, source: CODATA,
-        note: 'Planned: capacitance by Gauss flux (coax a 10, b 20 mm; spheres 80/120 mm).', calibration: { level: 'planned', observed: null },
+        values: { coax: '80.2607', sphere: '26.7036' }, units: { coax: 'pF/m', sphere: 'pF' },
+        source: { text: 'Capacitance of coaxial cylinders 2πε₀/ln(b/a) and of concentric spheres 4πε₀/(1/R₁ − 1/R₂) with CODATA 2022 ε₀ (e.g. Griffiths, Introduction to Electrodynamics, ch. 2); charge by Gauss\'s law on a discrete contour', url: 'https://physics.nist.gov/cuu/Constants/' },
+        note: 'Promoted in round 2: coax a 10, b 20 mm (S1 field, planar quarter with mirrors) and spheres 80/120 mm (S2 field); the capacitance matrix from the unit solutions and its reciprocity; the inner sphere\'s charge at +500 / −333.333 V (2.22530e-8 C; the study quotes 2.2253e-8). The charges of one field sum to zero by construction of the contours, so that sum is not checked.',
+        calibration: { level: 'round 2', observed: { quick: 1.3e-5, full: 3.4e-6 }, design: { coaxQuick: -1.2e-7, coaxFull: -1.8e-8, spheresQuick: 1.3e-5, spheresFull: 3.4e-6, reciprocity: 3.6e-14 } },
+    },
+    // ---- round 2 (benchmark plan §2.1, §2.2). calibration.observed: deviations of the worst check measured on this engine
+    // (quick / full) before the tolerances were set at ≥ 2× (design: per-check values).
+    K3d: {
+        values: { f3: '23.03417' }, units: { f3: 'kHz', r: 'mm' },
+        source: { text: 'Cyclotron frequency f = qB/(2πm) and radius r = mv/(qB) with CODATA 2022 constants; the ICR course lab quoted in the concept study prints 23.03417 kHz for 2000 u at 3 T', url: 'https://physics.nist.gov/cuu/Constants/' },
+        note: '2000 u, +1 e, 1 eV in a uniform 3 T field, nonrelativistic; period from an all-crossings plane, radius from a Kåsa fit of markers; at 6 T the frequency doubles and the radius halves. CODATA 2022 gives 23.034176 kHz, 2.7e-7 above the printed figure, so the printed value is compared at rel 1e-6 and the closed form at rel 1e-9.',
+        calibration: { level: 'round 2', observed: { quick: 2.7e-7, full: 2.7e-7 }, design: { fExact: 1.0e-14, r: 1.5e-9, ratio: 2.8e-14, landing: 1.1e-11 } },
+    },
+    K6b: {
+        values: { l: 25, barber: 180 }, units: { l: 'mm', barber: '°' },
+        source: { text: 'Symmetric sector-field imaging: object and image r/tan(φ/2) from the field edges (25 mm for r = 25 mm, φ = 90°) and Barber\'s rule (object, center of curvature and image collinear); H. Liebl, Applied Charged Particle Optics (Springer, 2008), eqs. 3.7–3.8', url: 'https://doi.org/10.1007/978-3-540-71925-0' },
+        note: 'Hard-edged annular sector r 12.5–37.5 mm, B = −1.821144 T ẑ (r = 25 mm for 100 u at 1 keV), φ = 90°, object 25 mm before the entrance edge, ±0.5 mrad; image from the exit asymptotes.',
+        calibration: { level: 'round 2', observed: { quick: -4.0e-9, full: -4.0e-9 }, design: { l: 4.0e-9, barber: 1e-7 } },
+    },
+    S11: {
+        values: { err: 0 }, units: { err: 'V' },
+        source: { text: 'Two tilted parallel plates: the potential is linear in the distance from the plates (closed form; the concept study reports about 1e-5 V error with fractional surfaces and 1e-4 V without, out of 0.1 V)', url: null },
+        note: 'Plates at slope 0.05 (2.86°), 20 mm apart, 0 and 0.1 V, closed by exact linear ramps on the side edges; cell 1 mm (0.5 mm at the full level). Shortley–Weller cuts reproduce a linear potential to solver precision; the staircase error is reported for information.',
+        calibration: { level: 'round 2', observed: { quick: 5.0e-12, full: 5.0e-12 }, design: { nodal: 5.0e-12, midLine: 1.5e-13, staircaseNodal: 3.5e-3, staircaseMid: 1.7e-4 } },
+    },
+    S12: {
+        values: { pMin: 1.2, waist: '78.9' }, units: { p: '', waist: 'mm' },
+        source: { text: 'Mesh-refinement study: observed order of accuracy from three cell sizes and Richardson extrapolation (Press, Teukolsky, Vetterling & Flannery, Numerical Recipes, 3rd ed., §17.3)', url: 'https://numerical.recipes/' },
+        note: 'Einzel lens of the default preset (D 20 mm, 0.1 D gaps, center tube 850 V, 21 rays at 1000 eV): waist position at cell 0.5, 0.25, 0.125 (and 0.0625) mm. The order is about 1.35, so the second-order Richardson estimate Δ/3 under-corrects; the extrapolation with the observed order brackets the next level.',
+        calibration: { level: 'round 2', observed: { quick: 1.366, full: 1.326 }, design: { waist: [78.5366, 78.9144, 79.0610, 79.1194] } },
+    },
+    S13: {
+        values: { phi0: 3.76470, phiBox: 5.85897 }, units: { phi0: 'V', phiBox: 'V' },
+        source: { text: 'Poisson equation: uniformly charged sphere inside a grounded sphere and a separable sinusoidal source (Griffiths, Introduction to Electrodynamics, 4th ed., §2.3 and §3.3; closed forms)', url: null },
+        note: 'ρ₀ = 1 µC/m³. Sphere a 10 mm in R 20 mm: φ(0) = kQ(1/a − 1/R) + ρ₀a²/(6ε₀); box L 32 mm: φ = ρ₀L²/(2π²ε₀) sin(πx/L) sin(πy/L). Cell-centered sampling of the step density is first order with a sign-random charge error (about 1% at 20 cells per radius). Case contributed by the solver-extensions package (WP-G).',
+        calibration: { level: 'round 2', observed: { quick: 7.4e-4, full: 4.8e-5 }, design: { sphereV: { a40: 7.4e-4, a80: 4.8e-5 }, sphereEout: { a40: 1.26e-3, a80: 1.6e-4 }, boxV: { n64: 4.0e-4, n128: 1.0e-4 } } },
+    },
+    T8b: {
+        values: { dr: 0, relShift: 0.196 }, units: { dr: 'mm', relShift: 'mm' },
+        source: { text: 'Zouros, Sise, Spiegelhalder & Manura, Int. J. Mass Spectrom. 261, 115 (2007): Kepler orbits in an ideal spherical capacitor (φ = 200000/r − 2000 V, r in mm) as an accuracy benchmark; relativistic shift from energy and angular-momentum conservation (closed form)', url: 'https://doi.org/10.1016/j.ijms.2006.08.005' },
+        note: 'S2 field (80 mm +500 V, 120 mm −333.333 V); electrons launched tangentially at r₀ 82, 85, 90, 100, 110, 115, 118 mm with 10⁵/r₀ eV stay on circles over 180°; relativistic orbit at r₀ 100 dips inward by 0.196 mm.',
+        calibration: { level: 'round 2', observed: { quick: 4.3e-3, full: 9.9e-4 }, design: { quick: [4.0e-3, 2.0e-3, 8.0e-4, 1.17e-3, 2.7e-3, 3.5e-3, 4.3e-3], full: [7.1e-4, 5.0e-4, 1.9e-4, 3.1e-4, 7.1e-4, 8.9e-4, 9.9e-4], relQuick: 1.1e-3, relFull: 3.0e-4 } },
+    },
+    T16: {
+        values: { t: 5.25, R: 10.5 }, units: { t: 'µs', R: 'mm' },
+        source: { text: 'Spherical test surface in a field-free region: straight paths at 2 mm/µs reach a sphere of radius 10.5 mm about the source at 5.25 µs (closed form)', url: null },
+        note: 'Cylindrical domain, no electrodes; point source at the origin, cone of 60° half-angle, 50 rays of 100 u at 2.072854 eV (2 mm/µs); (a) sphere inside the grid, (b) sphere in the field-free drift beyond a small grid (analytic intersection).',
+        calibration: { level: 'round 2', observed: { quick: 2.3e-15, full: 2.3e-15 }, design: { tInGrid: 2.3e-15, tDrift: 3.3e-16, r: 2.2e-16 } },
+    },
+    T18: {
+        values: { dzOverDr: 2 }, units: { dz: 'eV', dr: 'eV' },
+        source: { text: 'Pseudopotential well depth of the Paul trap, D̄_z = q_z V/8 and D̄_r = D̄_z/2 for r₀² = 2z₀² (Dehmelt, Adv. At. Mol. Phys. 3, 53 (1967); March, J. Mass Spectrom. 32, 351 (1997))', url: 'https://doi.org/10.1016/S0065-2199(08)60170-0' },
+        note: 'P9 trap (r₀ 7.07, z₀ 5 mm, 500 V at 1 MHz). Ions launched from the center along z or r with energies around D̄ over 8 or 16 RF phases. Adiabatic ion (m 3000, q_z 0.033): the escape threshold lies at 0.93–0.98 D̄ in both directions, ratio 2. At q_z 0.33 (m 300) losses start at 0.55 D̄ and are complete by 1.1 D̄; at q_z 0.815 (m 120) the axial depth is meaningless (5 eV of 51 eV already escape for some phases).',
+        calibration: { level: 'round 2', observed: { quick: 0, full: 0 }, design: { adiabaticZ: [0.9, 1.05], adiabaticR: [0.95, 1.0], q033z: [0.5, 1.1], q033r: [0.55, 1.1], q0815z: [0.05, 1.1], q0815r: [0.4, 1.1] } },
+    },
+    T20: {
+        values: { ke: 1746.17, rMin: 5.70713 }, units: { ke: 'eV', rMin: 'mm' },
+        source: { text: 'Kingdon, Phys. Rev. 21, 408 (1923): in a logarithmic radial field the circular-orbit energy k·q/2 is independent of radius; apsides of a bound orbit from energy and angular-momentum conservation (closed form)', url: 'https://doi.org/10.1103/PhysRev.21.408' },
+        note: 'Coaxial field with k = 3492.34 V (inner radius 4 mm at 5620.70 V, outer 20 mm at 0 V, planar quarter with mirrors); q −1, 1 u ions tangential at 10 and 15 mm with 1746.17 eV stay circular over 720°; one at 10 mm with 946.17 eV swings between 5.7071 and 10 mm.',
+        calibration: { level: 'round 2', observed: { quick: 5.5e-4, full: 1.4e-4 }, design: { r10Quick: 5.5e-4, r15Quick: 3.3e-4, r10Full: 1.4e-4, r15Full: 8.3e-5, rMinQuick: -5.4e-4, rMinFull: -1.4e-4, rMaxQuick: 3.2e-5 } },
+    },
+    L8: {
+        values: { newton: 1 }, units: { newton: '', xi: 'mm' },
+        source: { text: 'Newton\'s lens equation (x_o − F1)(x_i − F2) = f1·f2 with the cardinal elements from the DiChio method (DiChio, Natali & Kuyatt, Rev. Sci. Instrum. 45, 559 (1974)); e.g. Heddle, Electrostatic Lens Systems (2000), ch. 1', url: DNK1974.url },
+        note: 'Two-tube lens of the preset (D 20 mm, 0.1 D deep gap, V2/V1 = 5, 1000 eV Ar⁺); axial object at x = −80 mm; rays aimed at heights 1e-4, 0.01, 0.05, 0.1, 0.2, 0.4 D in the reference plane; image = axis crossing in the field-free drift. pq/(f1 f2) → 1 for the paraxial ray; spherical aberration moves the image inward as h².',
+        calibration: { level: 'round 2', observed: { quick: -7.9e-4, full: -6.1e-4 }, design: { h1e4Quick: -3.5e-5, h1e4Full: 1.5e-6, h001Quick: -7.9e-4, h001Full: -6.1e-4, h2Scaling: 3.93, newtonDiChio: 161.447 } },
+    },
+    L9: {
+        values: { f105: 2633.86, f110: 679.45 }, units: { f: 'D' },
+        source: { text: 'Weak-lens (Picht) approximation 1/f = (3/16)∫(φ′/φ)² dz on the Bessel-series axial potential of the zero-gap einzel lens (Natali, Di Chio & Kuyatt, J. Res. NBS 76A, 27–35 (1972)); e.g. Harting & Read, Electrostatic Lenses (1976), ch. 1', url: NBS1972.url },
+        note: 'Einzel lens A/D 0.5, G/D 0.1 (linear-ramp gaps), R = 40 (80) cells, at kinetic-potential ratios 1.05 and 1.10; the lens tool\'s f against the weak-lens integral on the zero-gap series (the 0.1 D gaps lengthen f by about 1.1%) and on the solved axial potential.',
+        calibration: { level: 'round 2', observed: { quick: 0.0114, full: 0.0114 }, design: { bessel105: 1.14e-2, bessel110: 1.15e-2, solved105: 5.8e-4, solved110: 8.2e-4 } },
+    },
+    D1: {
+        values: { vt: 4.8e-3, dRelax: 9.9497e-7 }, units: { vt: 'mm/µs', dRelax: 'mm' },
+        source: { text: 'Mobility-limited drift v = KE and the relaxation time τ = Km/q (Mason & McDaniel, Transport Properties of Ions in Gases (Wiley, 1988), ch. 1)', url: 'https://doi.org/10.1002/3527602852' },
+        note: '100 u, +1 e, K = 2 cm²/(V s) (τ = 2.07e-4 µs): in 24 V/mm the terminal velocity is 4.8e-3 mm/µs and the relaxation distance v_t·τ = (m/q)EK² = 9.95e-7 mm; with E = 0 and gas moving at 100 mm/µs the ion reaches v_gas(1 − e⁻⁵) after 5τ and the gas speed after 20τ.',
+        calibration: { level: 'round 2', observed: { quick: -5.6e-9, full: -5.6e-9 }, design: { vt: -4.8e-9, dRelax: -5.6e-9, gas5: -1.8e-11, gas20: -2.1e-9 } },
+    },
+    D2: {
+        values: { K: '3574', damping: '0.375', vt: '1.787' }, units: { K: 'cm²/(V·s)', damping: '1/µs', vt: 'mm/µs' },
+        source: { text: 'Gillig, Ruotolo, Stone, Russell, Fuhrer, Gonin & Schultz, Anal. Chem. 72, 3965–3971 (2000): K₀ = 4.31 cm²/(V s) for m/z 720 in He gives K = 3574 cm²/(V s) at 1 torr and 298 K; damping q/(mK) and drift velocity KE (Mason & McDaniel, 1988)', url: 'https://doi.org/10.1021/ac0005619' },
+        note: 'Uniform 5 V/mm drift cell, 720 u from rest: K = K₀(760/p)(T/273.15) = 3573.6 cm²/(V s); damping constant K_ACC·q/(K m) = 0.37499 µs⁻¹ from the velocity after 2 µs; terminal velocity 1.7868 mm/µs after 60 µs.',
+        // observed: the deviation of the row's worst check, K against the printed 3574 (cm²/(V s)); the others are in design
+        calibration: { level: 'round 2', observed: { quick: -0.40, full: -0.40 }, design: { vtDigits: -1.1e-4, vtExact: -1.7e-10, dampingDigits: -1.9e-5, dampingExact: -4.8e-12, K: -0.40 } },
+    },
+    I1: {
+        values: { A4: 1, A12: 0 }, units: { A4: '', A12: '' },
+        source: { text: 'Octupole ion guide of eight round rods: φ ≈ V(x⁴ + y⁴ − 6x²y²)/r₀⁴ (Gerlich, Adv. Chem. Phys. 82, 1 (1992)); rod radius 0.355 r₀ as the concept study quotes it from Rama Rao & Bhutani, "Electric hexapoles and octopoles with optimized circular section rods," Int. J. Mass Spectrom. 202, 31–36 (2000), doi:10.1016/S1387-3806(00)00200-1', url: 'https://doi.org/10.1002/9780470141397.ch1' },
+        note: 'Informational: r₀ 4 mm, rods 1.42 mm at 5.42 mm, ±1 V, planar quarter with mirrors, cell r₀/40; potential on r = 0.5 r₀ against the ideal octupole (band ±1% of V(r/r₀)⁴) and the multipole coefficients A4, A12 by Fourier projection. The study\'s q₄ = 3.59, η = 0.38 need its unstated V and m (Casey run 4).',
+        calibration: { level: 'round 2', observed: { quick: 0.0076, full: 0.0076 }, design: { A4: 0.99786, A12overA4: 5.5e-3, maxDev05: 7.6e-3, maxDev08: 2.4e-3 } },
+    },
+    T17: {
+        values: { a2: 1, a2Converged: 1.00287, a6overA2: 0, qEdge: 0.908046 }, units: { a2: '', a6overA2: '', qEdge: '' },
+        source: { text: 'Round-rod quadrupoles: rods of radius 1.148 r₀ (Dayton, Shoemaker & Mozley, Rev. Sci. Instrum. 25, 485–489 (1954)) or 1.1468 r₀ in a cage of 3.54 r₀ (Denison, J. Vac. Sci. Technol. 8, 266–269 (1971), doi:10.1116/1.1316304) approximate the hyperbolic field; stability edge q* = 0.908046 (NIST DLMF §28.17)', url: 'https://doi.org/10.1063/1.1771107' },
+        note: 'Promoted in round 2: Fourier multipoles of the ±1 V rod potential on r = 0.5 r₀ (a₂ = 1.00289 at r₀/25 cells, 1.00287 at r₀/50, 1.00287 converged; |a₆/a₂| 2.3e-4; a₁₀ −2.5e-3) and the practical stability edge of 16 ions from 0.01 r₀ (bounded at nominal 0.99 q*, lost at 1.01 q*; the effective parameter is a₂·q). Casey\'s run 4 (b) gives the independent reference for a₂.',
+        calibration: { level: 'round 2', observed: { quick: 2.9e-3, full: 2.9e-3 }, design: { a2Quick: 1.0028873, a2Full: 1.0028720, a2Converged: 1.0028679, a6overA2Quick: -2.26e-4, a6overA2Full: -1.39e-4, daytonA2: 1.0029654, odd: 2e-14, edge: 'first losses between 0.995 and 1.0 q* (0.01 r₀ start)' } },
+    },
+    T19: {
+        values: { r: '1.000', v: '838.76201', Q: '9.61306401e-20', i: '1.3438459e-11' }, units: { r: 'mm', v: 'mm/µs', Q: 'C', i: 'A' },
+        source: { text: 'Shockley, J. Appl. Phys. 9, 635 (1938) and Ramo, Proc. IRE 27, 584 (1939): induced charge Q = −q·φ_w(x) and current i = q·v·E_w from the weighting potential; closed forms with CODATA 2022 constants', url: 'https://doi.org/10.1063/1.1710367' },
+        note: 'Promoted in round 2: 2 eV electron in −4.7688984 mT ẑ between plates 10 mm apart (electrode A at y = 0) circles with r = 1.0000 mm about (0, 4); on the y = 4 crossings Q_A = 0.6 e and i = q·v·E_w = 1.34385e-11 A. The published figures use older constants (speed and current 4.5e-6 higher than CODATA 2022), so they are compared at rel 1e-5 and the closed forms at 1e-9 / 1e-8.',
+        calibration: { level: 'round 2', observed: { quick: 4.5e-6, full: 4.5e-6 }, design: { Q: 1.5e-13, i: 9.6e-11, r: 1.2e-9, constancy: 4.0e-8, totalCurrent: 2.4e-6, spectrum: 2.3e-8 } },
+    },
+    I2: {
+        values: { rMin: 1.28 }, units: { rMin: 'mm' },
+        source: { text: 'Laminar envelope equation of a converging beam with space charge, R′² = R₀′² + 2K ln(R/R₀) (closed form; Reiser, Theory and Design of Charged Particle Beams, 2nd ed. 2008, §4.2)', url: null },
+        note: 'Informational: R_min = R₀ exp(−tan²θ/(2K)) = 1.2748 mm at the perveance-limited current 3.47 µA (K = 0.0526). Observed 1.29 mm (250 particles, ε 0.25 mm) and 1.28 mm (1000, ε 0.1 mm). The softening should be about a tenth of the mean particle spacing (πR₀²L/N)^(1/3) (1.89 mm for 250 particles, 1.19 mm for 1000; the settings here are 1/7.5 and 1/12 of it): at a tenth R_min is within 0.3 % of the laminar value, at a fifth about 3 % low, and at the spacing itself two thirds of the spread is lost (0.42 mm for 1000 particles).',
+        calibration: { level: 'round 2', observed: { quick: 1.292, full: 1.283 }, design: null },
+    },
+    I4: {
+        values: { lambda: 3.1 }, units: { lambda: 'mm' },
+        source: { text: 'Kinetic theory of rigid spheres (closed form; Chapman & Cowling, The Mathematical Theory of Non-uniform Gases, 1970, ch. 5): λ = 1/(nσ) for a fast ion, v/(nσ⟨g⟩) in general', url: null },
+        note: 'Informational: Σpath/Σcollisions 3.08 mm over two mean free paths with 2000 ions (1/(nσ) = 3.137 mm, kinetic 3.061 mm; 1σ statistics 1.6 %).',
+        calibration: { level: 'round 2', observed: { quick: 1.8e-2, full: 1.8e-2 }, design: null },
+    },
+    I3: {
+        values: { C2: -1.001, C0: 0.5, C4: 1.05e-3, C6: 1.24e-3 }, units: { C: '' },
+        source: { text: 'Barlow, Taylor & Swanson, "Determination of analytic potentials from finite element computations," Int. J. Mass Spectrom. 207, 19–29 (2001): multipole (Legendre) coefficients of truncated hyperbolic traps', url: 'https://doi.org/10.1016/S1387-3806(00)00452-8' },
+        note: 'Informational, promoted in round 2: the P9 trap with its hyperbolic surfaces continued to 15 mm gives c₀ = 0.50007, c₂ = −0.99985 (the study\'s truncated trap: 0.49969, −1.00113), c₄ = 1.2e-5 and c₆ = −7.5e-6 against the study\'s 1.05e-3 and 1.24e-3 for its unstated truncation; odd coefficients vanish by symmetry.',
+        calibration: { level: 'round 2', observed: { quick: 1.15e-3, full: 1.15e-3 }, design: { c0: 0.500071, c2: -0.999847, c4: 1.19e-5, c6: -7.5e-6, odd: 1e-13 } },
     },
 });
 
@@ -299,5 +430,8 @@ export const SHORT_REFS = Object.freeze({
     T2: 'Energy gain qΔV', T3: 'Wiley & McLaren 1955', T4: 'Mamyrin et al. 1973', T5: 'Energy conservation', T6: 'Time reversal', T7: 'Hughes & Rojansky 1929', T8: 'Purcell 1938',
     T9: 'NIST DLMF §28.29', T10: 'NIST DLMF §28.17', T11: 'Paul 1990', T12: 'Paul 1990', T13: 'Simpson et al. 2001', T14: 'Salmon et al. 2011', T15: 'Exact intersection',
     L1: 'Exact (Bessel series)', L2: 'Exact (Bessel series)', L3: 'DiChio et al. 1974', L4: 'DiChio et al. 1974', L5: 'Adams & Read 1972', L6: 'Harting & Read 1976',
-    L7: 'Davisson & Calbick 1932', P1: 'Langmuir 1913', P2: 'CODATA 2022', P3: 'Closed form', P4: 'CODATA 2022',
+    L7: 'Davisson & Calbick 1932', P1: 'Langmuir 1913', P2: 'Coulomb (CODATA 2022)', P3: 'Closed form', P4: 'CODATA 2022',
+    K3d: 'CODATA 2022', K6b: 'Liebl 2008; Barber’s rule', S11: 'Linear potential (closed form)', S12: 'Press et al.', S13: 'Poisson (closed form)', T8b: 'Zouros et al. 2007', T16: 'Closed form',
+    T17: 'Dayton et al. 1954; Denison 1971', T18: 'Dehmelt 1967; March 1997', T19: 'Shockley 1938; Ramo 1939', T20: 'Kingdon 1923', L8: 'Newton’s rule; DiChio et al. 1974',
+    L9: 'Weak-lens formula (Bessel series)', D1: 'Mason & McDaniel 1988', D2: 'Gillig et al. 2000', I1: 'Gerlich 1992', I2: 'Reiser 2008, §4.2', I3: 'Barlow et al. 2001', I4: 'Chapman & Cowling 1970',
 });

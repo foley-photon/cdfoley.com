@@ -19,10 +19,20 @@
 
    Masses: CODATA 2022 proton mass; other ions are AME2020 atomic masses
    (Wang et al., Chin. Phys. C 45, 030003 (2021)) minus one electron mass.
+
+   Particle lists ('rows' sources): one canonical row per particle,
+   [mass, charge, x, y, z, dx, dy, dz, ke, t0]; generateRows/frozenSource
+   turn a sampled source into such a list with the sampled directions kept
+   bit for bit, so the frozen source reproduces the run; rowsFromEndStates
+   builds the reverse-flight (v → −v, t0 reset) or hand-off list from a run's
+   summary rows. Per-source weights: particleWeights/weightedSummary.
    ========================================================================== */
-import { ME_U, speedFromKE, properSpeedFromKE } from './constants.js';
+import { ME_U, C_MMUS, K_ACC, UC2_EV, speedFromKE, properSpeedFromKE } from './constants.js';
 import { uniform01, normal01, Stream } from './rng.js';
-import { P_STRIDE, P_ID, P_SRC, P_SPECIES, P_MASS, P_CHARGE, P_T0, P_X, P_Y, P_Z, P_WX, P_WY, P_WZ, P_KE, P_C0, P_C1, P_C2 } from './layout.js';
+import {
+    P_STRIDE, P_ID, P_SRC, P_SPECIES, P_MASS, P_CHARGE, P_T0, P_X, P_Y, P_Z, P_WX, P_WY, P_WZ, P_KE, P_C0, P_C1, P_C2,
+    S_STRIDE, S_ID, S_STATUS, S_WHERE, S_X, S_Y, S_Z, S_VX, S_VY, S_VZ, S_KE, S_SRC, S_SPECIES, STATUS,
+} from './layout.js';
 
 // AME2020 atomic masses (u) of the most abundant isotopes.
 const ATOM = { He4: 4.00260325413, C12: 12, N14: 14.00307400425, O16: 15.99491461926, Ar40: 39.9623831237, Kr84: 83.9114977282, Xe132: 131.9041550856 };
@@ -121,6 +131,7 @@ function timeCount(t) {
  */
 export function sourceCount(src) {
     if (!src || src.enabled === false) return 0;
+    if (src.type === 'rows') return Array.isArray(src.rows) ? src.rows.length : 0;
     if (src.sampling === 'grid') {
         return speciesList(src).length * posCount(src.position) * dirCount(src.direction) * energyCount(src.energy) * timeCount(src.time);
     }
@@ -172,7 +183,51 @@ function isoInverse(u, beta) {
     return 0.5 * (lo + hi);
 }
 
-function makeSampler(src, sIndex, opts) {
+/**
+ * Sampler of a 'rows' source (resolved form: [mass, charge, x, y, z, dx, dy, dz, ke, t0] per particle, unit direction).
+ * The species index is the first entry of src.species with the row's mass and charge (the resolver appends one for every
+ * pair, so it always exists); class indices come from src.classes when a frozen list carries one triple per row, else
+ * they are −1. The proper velocity is wmag·d with the same wmag as a sampled source, so a frozen source reproduces the
+ * sampled particles bit for bit.
+ */
+function makeRowSampler(src, sIndex, opts) {
+    const rows = Array.isArray(src.rows) ? src.rows : [];
+    const cls = Array.isArray(src.classes) && src.classes.length === rows.length ? src.classes : null;
+    const species = Array.isArray(src.species) ? src.species : [];
+    const spIndex = new Map();
+    species.forEach((sp, k) => { const key = `${sp.mass}|${sp.charge}`; if (!spIndex.has(key)) spIndex.set(key, k); });
+    const rel = opts.relativistic !== false;
+    return function fill(j, id, out, o) {
+        const r = rows[j] || [];
+        const m = num(r[0], 100), q = num(r[1], 1), ke = Math.max(0, num(r[8]));
+        const wmag = rel ? properSpeedFromKE(ke, m) : speedFromKE(ke, m, false);
+        const key = `${m}|${q}`;
+        let iS = spIndex.get(key);
+        if (iS === undefined) {
+            // not resolved through schema.js: register the pair so the summary still names a species
+            iS = species.length; species.push({ label: `m/z ${+m.toPrecision(6)}`, mass: m, charge: q, fraction: 1 }); spIndex.set(key, iS);
+        }
+        out[o + P_ID] = id; out[o + P_SRC] = sIndex; out[o + P_SPECIES] = iS;
+        out[o + P_MASS] = m; out[o + P_CHARGE] = q; out[o + P_T0] = num(r[9]);
+        out[o + P_X] = num(r[2]); out[o + P_Y] = num(r[3]); out[o + P_Z] = num(r[4]);
+        out[o + P_WX] = wmag * num(r[5]); out[o + P_WY] = wmag * num(r[6]); out[o + P_WZ] = wmag * num(r[7]);
+        out[o + P_KE] = ke;
+        const c = cls ? cls[j] : null;
+        out[o + P_C0] = c ? num(c[0], -1) : -1; out[o + P_C1] = c ? num(c[1], -1) : -1; out[o + P_C2] = c ? num(c[2], -1) : -1;
+    };
+}
+
+/**
+ * Sampler of one source: fill(j, id, out, o) writes particle j of the source as a P_STRIDE row at offset o.
+ * With `asRow`, fill(j) instead returns the canonical row [mass, charge, x, y, z, dx, dy, dz, ke, t0] with the direction
+ * exactly as sampled (before the KE → velocity step), which is what "Freeze to list" stores.
+ */
+function makeSampler(src, sIndex, opts, asRow = false) {
+    if (src.type === 'rows') {
+        if (!asRow) return makeRowSampler(src, sIndex, opts);
+        const rows = Array.isArray(src.rows) ? src.rows : [];
+        return (j) => (rows[j] || []).slice(0, 10).map((v) => num(v));
+    }
     const seed = num(src.seed, 1);
     const grid = src.sampling === 'grid';
     const species = speciesList(src).map((sp) => ({ mass: num(sp.mass, 100), charge: num(sp.charge, 1), fraction: num(sp.fraction, 1) }));
@@ -366,6 +421,7 @@ function makeSampler(src, sIndex, opts) {
         direction(j, iD, dir);
         const ke = Math.max(0, energy(j, iE));
         const t0 = time(j, iT);
+        if (asRow) return [sp.mass, sp.charge, pTmp[0], pTmp[1], pTmp[2], dir[0], dir[1], dir[2], ke, t0];
         const rel = opts.relativistic !== false;
         const wmag = rel ? properSpeedFromKE(ke, sp.mass) : speedFromKE(ke, sp.mass, false);
         out[o + P_ID] = id; out[o + P_SRC] = sIndex; out[o + P_SPECIES] = iS;
@@ -385,15 +441,7 @@ function makeSampler(src, sIndex, opts) {
  * @returns {Float64Array}
  */
 export function generate(resolvedSources, i0, i1, opts = {}) {
-    const sources = (resolvedSources || []).filter((s) => s && s.enabled !== false);
-    const firsts = [], counts = [];
-    let acc = 0;
-    for (const s of sources) {
-        const n = sourceCount(s);
-        const f = typeof s.firstId === 'number' ? s.firstId : acc;
-        firsts.push(f); counts.push(n); acc = f + n;
-    }
-    const total = acc;
+    const { sources, firsts, counts, total } = idRanges(resolvedSources);
     i0 = Math.max(0, Math.floor(num(i0)));
     i1 = Math.min(total, Math.floor(num(i1, total)));
     const n = Math.max(0, i1 - i0);
@@ -411,4 +459,244 @@ export function generate(resolvedSources, i0, i1, opts = {}) {
         samplers[si](id - firsts[si], id, out, (id - i0) * P_STRIDE);
     }
     return out;
+}
+
+/** Enabled sources with their id ranges (firstId/count when present, else derived in order). */
+function idRanges(resolvedSources) {
+    const sources = (resolvedSources || []).filter((s) => s && s.enabled !== false);
+    const firsts = [], counts = [];
+    let acc = 0;
+    for (const s of sources) {
+        const n = sourceCount(s);
+        const f = typeof s.firstId === 'number' ? s.firstId : acc;
+        firsts.push(f); counts.push(n); acc = f + n;
+    }
+    return { sources, firsts, counts, total: acc };
+}
+
+// ---------------------------------------------------------------- particle lists ('rows' sources)
+
+/**
+ * The particles of one resolved source as canonical rows [mass u, charge e, x, y, z mm, dx, dy, dz, ke eV, t0 µs], with the
+ * direction exactly as the sampler produced it. A 'rows' source whose `rows` hold these particles generates the same
+ * P_STRIDE rows as the original source, bit for bit ("Freeze to list").
+ * @param {object} resolvedSource @param {{ relativistic?: boolean }} [opts]
+ * @returns {number[][]}
+ */
+export function generateRows(resolvedSource, opts = {}) {
+    const s = resolvedSource;
+    if (!s || s.enabled === false) return [];
+    const n = sourceCount(s);
+    const fill = makeSampler(s, typeof s.index === 'number' ? s.index : 0, opts, true);
+    const out = new Array(n);
+    for (let j = 0; j < n; j++) out[j] = fill(j);
+    return out;
+}
+
+/**
+ * Class indices [position, direction, energy] of every particle of a resolved source as its sampler assigns them: one
+ * triple per particle for grid sampling (or a list that carries them), 'random' for random sampling (every index −1:
+ * one group). A frozen list stores them, so grouped metrics group its particles exactly as the original source's.
+ * @param {object} resolvedSource @param {{ relativistic?: boolean }} [opts]
+ * @returns {'random'|number[][]|null} null for a list without class indices
+ */
+export function sourceClasses(resolvedSource, opts = {}) {
+    const s = resolvedSource;
+    if (!s) return null;
+    if (s.type === 'rows') return s.classes === 'random' || Array.isArray(s.classes) ? s.classes : null;
+    if (s.sampling !== 'grid') return 'random';
+    const n = sourceCount(s), fill = makeSampler(s, typeof s.index === 'number' ? s.index : 0, opts), row = new Float64Array(P_STRIDE), out = new Array(n);
+    for (let j = 0; j < n; j++) { fill(j, j, row, 0); out[j] = [row[P_C0], row[P_C1], row[P_C2]]; }
+    return out;
+}
+
+/**
+ * The project object of a 'rows' source that reproduces a resolved source ("Freeze to list"): same id, name, color,
+ * weight and species list, `rows` from generateRows and the class indices of the original particles (`classes`, see
+ * sourceClasses; left out when unknown). Returns null for a disabled source.
+ * @param {object} resolvedSource @param {{ relativistic?: boolean }} [opts]
+ */
+export function frozenSource(resolvedSource, opts = {}) {
+    const s = resolvedSource;
+    if (!s || s.enabled === false) return null;
+    const species = Array.isArray(s.species) ? s.species.map((sp) => ({ label: sp.label, mass: sp.mass, charge: sp.charge, fraction: sp.fraction === undefined ? 1 : sp.fraction })) : [];
+    const out = { id: s.id, name: s.name || s.id, enabled: true, color: s.color === undefined ? 'auto' : s.color, type: 'rows', weight: s.weight === undefined ? 1 : s.weight,
+        species, velocity: false, rows: generateRows(s, opts) };
+    const classes = sourceClasses(s, opts);
+    if (classes !== null) out.classes = Array.isArray(classes) ? classes.map((c) => c.slice()) : classes;
+    return out;
+}
+
+/**
+ * Canonical rows from P_STRIDE particle rows (direction = w/|w|; a particle at rest keeps [1, 0, 0]).
+ * @param {Float64Array} P @returns {number[][]}
+ */
+export function rowsFromParticles(P) {
+    const n = Math.floor((P ? P.length : 0) / P_STRIDE), out = new Array(n);
+    for (let i = 0; i < n; i++) {
+        const o = i * P_STRIDE;
+        const wx = P[o + P_WX], wy = P[o + P_WY], wz = P[o + P_WZ], w = Math.hypot(wx, wy, wz);
+        const d = w > 0 ? [wx / w, wy / w, wz / w] : [1, 0, 0];
+        out[i] = [P[o + P_MASS], P[o + P_CHARGE], P[o + P_X], P[o + P_Y], P[o + P_Z], d[0], d[1], d[2], P[o + P_KE], P[o + P_T0]];
+    }
+    return out;
+}
+
+/**
+ * Rows from the end states of a run: position, kinetic energy and direction of every summary row, reversed
+ * (v → −v) by default, with the birth time reset to `t0`. Mass and charge come from the run's species tables.
+ * filter(status, S, o) → boolean selects the particles (default: every particle that moved: not CANCELLED, BORN_INSIDE or NUM_ERROR).
+ * A particle at rest at the end gets the direction [1, 0, 0] (or [−1, 0, 0] when reversed).
+ * @param {object} result TraceResult @param {object} resolved the run's resolved project
+ * @param {{ reverse?: boolean, t0?: number, filter?: (status: number, S: Float64Array, o: number) => boolean }} [opts]
+ * @returns {{ rows: number[][], ids: number[], species: object[] }}
+ */
+export function rowsFromEndStates(result, resolved, { reverse = true, t0 = 0, filter = null } = {}) {
+    const S = result && result.summary ? result.summary : new Float64Array(0), n = result ? result.n : 0;
+    const sources = (resolved && resolved.sources) || [];
+    const sign = reverse ? -1 : 1;
+    const skip = new Set([STATUS.CANCELLED, STATUS.BORN_INSIDE, STATUS.NUM_ERROR]);
+    const rows = [], ids = [], species = [], spKey = new Map();
+    for (let i = 0; i < n; i++) {
+        const o = i * S_STRIDE, st = S[o + S_STATUS];
+        if (filter ? !filter(st, S, o) : skip.has(st)) continue;
+        const src = sources[S[o + S_SRC]];
+        const sp = src && Array.isArray(src.species) ? src.species[S[o + S_SPECIES]] : null;
+        if (!sp || !(sp.mass > 0) || !sp.charge) continue;
+        const vx = S[o + S_VX], vy = S[o + S_VY], vz = S[o + S_VZ], v = Math.hypot(vx, vy, vz);
+        const d = v > 0 ? [sign * vx / v, sign * vy / v, sign * vz / v] : [sign, 0, 0];
+        rows.push([sp.mass, sp.charge, S[o + S_X], S[o + S_Y], S[o + S_Z], d[0], d[1], d[2], Math.max(0, S[o + S_KE]), t0]);
+        ids.push(S[o + S_ID]);
+        const key = `${sp.mass}|${sp.charge}`;
+        if (!spKey.has(key)) { spKey.set(key, species.length); species.push({ label: sp.label, mass: sp.mass, charge: sp.charge, fraction: 1 }); }
+    }
+    return { rows, ids, species };
+}
+
+/**
+ * Converts particle rows between the direction form [m, q, x, y, z, dx, dy, dz, ke, t0] and the velocity form
+ * [m, q, x, y, z, vx, vy, vz, t0] (mm/µs; relativistic velocity when the flag is set).
+ * @param {number[][]} rows @param {{ toVelocity: boolean, relativistic?: boolean }} opts
+ * @returns {number[][]}
+ */
+export function convertRows(rows, { toVelocity, relativistic = true }) {
+    const out = [];
+    for (const r of rows || []) {
+        if (!Array.isArray(r)) continue;
+        if (toVelocity) {
+            if (r.length === 9) { out.push(r.slice()); continue; }
+            const m = num(r[0], 100), ke = Math.max(0, num(r[8]));
+            const v = relativistic ? velocityFromKE(ke, m) : speedFromKE(ke, m, false);
+            out.push([r[0], r[1], r[2], r[3], r[4], v * num(r[5]), v * num(r[6]), v * num(r[7]), r[9]]);
+        } else {
+            if (r.length === 10) { out.push(r.slice()); continue; }
+            const m = num(r[0], 100), vx = num(r[5]), vy = num(r[6]), vz = num(r[7]), v = Math.hypot(vx, vy, vz);
+            const d = v > 0 ? [vx / v, vy / v, vz / v] : [1, 0, 0];
+            const ke = relativistic ? keFromVelocity(v, m) : m * v * v / (2 * K_ACC);
+            out.push([r[0], r[1], r[2], r[3], r[4], d[0], d[1], d[2], ke, r[8]]);
+        }
+    }
+    return out;
+}
+function velocityFromKE(ke, m) {
+    const g = 1 + Math.max(0, ke) / (m * UC2_EV);
+    return C_MMUS * Math.sqrt(Math.max(0, 1 - 1 / (g * g)));
+}
+function keFromVelocity(v, m) {
+    const beta = Math.min(v / C_MMUS, 1 - 1e-15);
+    return (1 / Math.sqrt(1 - beta * beta) - 1) * m * UC2_EV;
+}
+
+function freshId(list, prefix) {
+    const used = new Set((list || []).map((o) => o && o.id));
+    for (let n = 1; ; n++) if (!used.has(prefix + n)) return prefix + n;
+}
+
+/**
+ * A 'rows' source holding the end states of a run ("Source from end states"): reversed (v → −v, reverse flight) or as
+ * they ended (hand-off), birth time reset to t0. `filter` selects particles (see rowsFromEndStates); `ids` (a Set of
+ * particle ids) is a shortcut for the rows shown in a table. Returns null when no particle qualifies.
+ * @param {object} result @param {object} resolved
+ * @param {{ reverse?: boolean, t0?: number, filter?: Function, ids?: Set<number>, id?: string, name?: string, weight?: number }} [opts]
+ */
+export function endStatesSource(result, resolved, { reverse = true, t0 = 0, filter = null, ids = null, id = null, name = null, weight = 1 } = {}) {
+    const f = ids ? (st, S, o) => ids.has(S[o + S_ID]) && st !== STATUS.CANCELLED && st !== STATUS.BORN_INSIDE && st !== STATUS.NUM_ERROR : filter;
+    const es = rowsFromEndStates(result, resolved, { reverse, t0, filter: f });
+    if (!es.rows.length) return null;
+    return { id: id || (reverse ? 'rev1' : 'end1'), name: name || (reverse ? 'Reversed end states' : 'End states'), enabled: true, color: 'auto',
+        type: 'rows', weight, species: es.species, velocity: false, rows: es.rows, origin: { particles: es.ids.length, reverse } };
+}
+
+/**
+ * Adds a source to a project draft (a fresh id when the given one is taken) and, by default, disables the other enabled
+ * sources so that the new particles fly alone (a reverse-flight check). Returns { id, disabled }.
+ * @param {object} project (mutated) @param {object} source @param {{ disableOthers?: boolean }} [opts]
+ */
+export function addEndStatesSource(project, source, { disableOthers = true } = {}) {
+    project.sources = Array.isArray(project.sources) ? project.sources : [];
+    let disabled = 0;
+    if (disableOthers) for (const s of project.sources) if (s && s.enabled !== false) { s.enabled = false; disabled++; }
+    const used = new Set(project.sources.map((s) => s && s.id));
+    const id = source.id && !used.has(source.id) ? source.id : freshId(project.sources, source.id ? String(source.id).replace(/\d+$/, '') || 'r' : 'r');
+    project.sources.push({ ...source, id });
+    return { id, disabled };
+}
+
+// ---------------------------------------------------------------- weights
+
+/** Weight of each source (resolved sources; 1 when absent), indexed like S_SRC. */
+export function sourceWeights(resolvedSources) {
+    const srcs = resolvedSources || [];
+    let n = srcs.length;
+    for (const s of srcs) if (s && typeof s.index === 'number') n = Math.max(n, s.index + 1);
+    const w = new Float64Array(n).fill(1);
+    srcs.forEach((s, k) => { const i = s && typeof s.index === 'number' ? s.index : k; if (s && s.weight > 0) w[i] = s.weight; });
+    return w;
+}
+
+/**
+ * Statistical weight of every summary row of a run (its source's `weight`, 1 by default): the `weights` input of
+ * analysis.histogram and of weighted counts.
+ * @param {object} result TraceResult @param {object} resolved
+ * @returns {Float64Array}
+ */
+export function particleWeights(result, resolved) {
+    const S = result && result.summary ? result.summary : new Float64Array(0), n = result ? result.n : 0;
+    const w = sourceWeights(resolved && resolved.sources);
+    const out = new Float64Array(n);
+    for (let i = 0; i < n; i++) { const k = S[i * S_STRIDE + S_SRC]; out[i] = k >= 0 && k < w.length ? w[k] : 1; }
+    return out;
+}
+
+/**
+ * Weighted counts of a run: Σw over launched particles, over detected particles (status DETECTED, per plane) and the
+ * weighted transmission detected/launched; unweighted figures alongside.
+ * @param {object} result TraceResult @param {object} resolved
+ * @returns {{ launched: number, detected: number, transmission: number, byPlane: Array<{ index: number, detected: number, fraction: number }>,
+ *   bySource: Array<{ index: number, weight: number, launched: number, detected: number, transmission: number }>, unweighted: { launched: number, detected: number, transmission: number } }}
+ */
+export function weightedSummary(result, resolved) {
+    const S = result && result.summary ? result.summary : new Float64Array(0), n = result ? result.n : 0;
+    const w = sourceWeights(resolved && resolved.sources);
+    const byPlane = new Map(), bySrc = new Map();
+    let launched = 0, detected = 0, nDet = 0;
+    for (let i = 0; i < n; i++) {
+        const o = i * S_STRIDE, k = S[o + S_SRC], wi = k >= 0 && k < w.length ? w[k] : 1, det = S[o + S_STATUS] === STATUS.DETECTED;
+        launched += wi;
+        let bs = bySrc.get(k);
+        if (!bs) { bs = { index: k, weight: wi, launched: 0, detected: 0, transmission: 0 }; bySrc.set(k, bs); }
+        bs.launched += wi;
+        if (det) {
+            detected += wi; nDet++; bs.detected += wi;
+            const p = S[o + S_WHERE];
+            byPlane.set(p, (byPlane.get(p) || 0) + wi);
+        }
+    }
+    for (const bs of bySrc.values()) bs.transmission = bs.launched > 0 ? bs.detected / bs.launched : 0;
+    return {
+        launched, detected, transmission: launched > 0 ? detected / launched : 0,
+        byPlane: [...byPlane.entries()].sort((a, b) => a[0] - b[0]).map(([index, d]) => ({ index, detected: d, fraction: launched > 0 ? d / launched : 0 })),
+        bySource: [...bySrc.values()].sort((a, b) => a.index - b.index),
+        unweighted: { launched: n, detected: nDet, transmission: n > 0 ? nDet / n : 0 },
+    };
 }

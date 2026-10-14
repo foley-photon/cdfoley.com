@@ -127,9 +127,13 @@ export function mountToolbar(el, ctx, app) {
     ], { label: 'More actions' });
 
     // ---- state
-    function busy() { const s = st(); return s.solve.status === 'running' || s.solve.status === 'queued' || s.run.status === 'running'; }
+    function busy() { if (app.isBusy) return app.isBusy(); const s = st(); return s.solve.status === 'running' || s.solve.status === 'queued' || s.run.status === 'running'; }
     let pulse = false;
-    if (jobs && typeof jobs.on === 'function') jobs.on('solve:pulse', () => { pulse = true; sync(); });
+    if (jobs && typeof jobs.on === 'function') {
+        jobs.on('solve:pulse', () => { pulse = true; sync(); });
+        // a live preview in flight can be stopped (Stop, Esc): the button follows it
+        jobs.on('preview:busy', () => sync());
+    }
     function sync() {
         const s = st();
         const meta = s.project.meta || {};

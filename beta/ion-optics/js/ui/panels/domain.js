@@ -6,11 +6,46 @@
    divide the extents; the four edges (fixed voltage, Neumann, axis or a
    profile of segments and ramps), mirrors, what happens beyond each edge;
    solver settings; tracer settings (integrator, trajectory accuracy, field
-   interpolation with a one-line explanation, relativistic, limits).
+   interpolation with a one-line explanation, relativistic, limits); the
+   Physics card (improvement plan WP-F): space charge by direct pair forces
+   (labeled an onset estimator), hard-sphere collisions with a background
+   gas, and Stokes drag with a K₀ → K mobility helper (gas.js).
    ========================================================================== */
 import { h, icon, clear, fmtCount, fmtMs } from '../dom.js';
 import { bindForm, metaFor, normaliseDescriptor, createField, refOptions, storeEvalExpr } from '../forms.js';
 import { formatPretty } from '../units.js';
+import { createGasModel, mobilityFromReduced, dragTimeConstant } from '../../engine/gas.js';
+
+/** Mass and charge of the first species of the first enabled source (the particles the Physics readouts refer to); null without one. */
+export function leadSpecies(resolved) {
+    for (const s of (resolved && resolved.sources) || []) {
+        if (s && s.enabled !== false && Array.isArray(s.species) && s.species.length) {
+            const sp = s.species[0];
+            if (sp && sp.mass > 0) return { mass: sp.mass, charge: sp.charge || 1, label: sp.label || `${sp.mass} u` };
+        }
+    }
+    return null;
+}
+
+const sig = (v, n = 4) => (typeof v === 'number' && Number.isFinite(v) ? (Math.abs(v) >= 1e-3 && Math.abs(v) < 1e6 ? String(+v.toPrecision(n)) : v.toExponential(n - 1)) : '–');
+
+/**
+ * Readout lines of the gas card for the resolved gas settings and the lead species: the collision diameter in use, the
+ * mean free path of a fast ion 1/(nσ), the gas speeds, the collision time of a slow ion and the rigid-sphere mobility.
+ * Pure (tests): returns strings.
+ */
+export function gasReadout(gas, species) {
+    if (!gas || !(gas.pressure > 0)) return gas ? ['Pressure 0: the gas is on but no collisions occur.'] : [];
+    const sp = species || { mass: 100, charge: 1, label: '100 u' };
+    const m = createGasModel(gas);
+    const s = m.summary(sp.mass, sp.charge);
+    const est = !(gas.ionDiameter > 0);
+    return [
+        `${sp.label}: collision diameter ${sig(s.ionDiameter, 3)} Å${est ? ' (estimated from the mass as a sphere of density 1 g/cm³; enter a measured value when known)' : ''}, with the gas d = ${sig(s.d, 3)} Å, σ = π d² = ${sig(s.sigma * 1e14, 3)} Å².`,
+        `n = ${sig(m.n * 1e9, 3)} m⁻³. Mean free path of a fast ion 1/(nσ) = ${sig(s.lambdaFast, 4)} mm; gas most probable speed ${sig(m.cmp, 3)} mm/µs; 3kT/2 = ${sig(s.thermalEnergy * 1e3, 3)} meV; collision time of a slow ion ${sig(s.tauThermal, 3)} µs.`,
+        `Low-field mobility of rigid spheres (first Chapman–Enskog approximation: exact for ions much heavier than the gas; the collisions of this model give up to 13 % more for ions much lighter than it) ${sig(s.mobility, 3)} cm²/(V·s), i.e. a drag time constant ${sig(dragTimeConstant(s.mobility, sp.mass, sp.charge), 3)} µs.`,
+    ];
+}
 
 const EDGE_LABELS = { xmin: 'Left edge (x start)', xmax: 'Right edge (x end)', ymin: 'Bottom edge (y start)', ymax: 'Top edge (y end)' };
 const NICE = [1, 2, 2.5, 5];
@@ -64,8 +99,10 @@ export function mountDomain(host, ctx, app) {
     // ---- grid
     const typeSel = h('select', { id: 'io-dom-type', class: 'input io-select' }, h('option', { value: 'cyl2d', text: 'Cylindrical (x, r): revolved about x' }), h('option', { value: 'planar2d', text: 'Planar (x, y): extruded in z' }));
     typeSel.addEventListener('change', () => changeType(typeSel.value));
+    const domDescs = metaFor(meta, 'domain').map(normaliseDescriptor);
+    const isMirrorKey = (k) => /^(anti)?mirror\./.test(k);
     const gridForm = bindForm(ctx, {
-        descs: metaFor(meta, 'domain').map(normaliseDescriptor).filter((d) => d.key !== 'type'),
+        descs: domDescs.filter((d) => d.key !== 'type' && !isMirrorKey(d.key)),
         label: 'Domain', idPrefix: 'io-dom', locate: (p) => (p.domain ? { obj: p.domain, path: 'domain' } : null), resolved: (r) => r.domain,
     });
     const stats = h('p', { class: 'io-note io-dom-stats', role: 'status' });
@@ -74,8 +111,12 @@ export function mountDomain(host, ctx, app) {
     // ---- edges
     const edgesBox = h('div', { class: 'io-edges' });
     // ---- mirrors, beyond, solver, tracer
-    const mirrorForm = bindForm(ctx, { kind: 'mirror', label: 'Mirror', idPrefix: 'io-mir', locate: (p) => (p.domain ? { obj: p.domain.mirror || {}, path: 'domain.mirror' } : null),
-        intercept: (key, value, draft) => { draft.domain.mirror = { x: false, y: false, ...(draft.domain.mirror || {}), [key]: value }; return true; } });
+    // mirror and anti-mirror planes in one place (the schema lists them with the domain; the fallback has mirrors only)
+    const mirrorDescs = domDescs.filter((d) => isMirrorKey(d.key));
+    const mirrorForm = mirrorDescs.length
+        ? bindForm(ctx, { descs: mirrorDescs, label: 'Mirror', idPrefix: 'io-mir', locate: (p) => (p.domain ? { obj: p.domain, path: 'domain' } : null), resolved: (r) => r.domain })
+        : bindForm(ctx, { kind: 'mirror', label: 'Mirror', idPrefix: 'io-mir', locate: (p) => (p.domain ? { obj: p.domain.mirror || {}, path: 'domain.mirror' } : null),
+            intercept: (key, value, draft) => { draft.domain.mirror = { x: false, y: false, ...(draft.domain.mirror || {}), [key]: value }; return true; } });
     const beyondForm = bindForm(ctx, { kind: 'beyond', label: 'Beyond the edges', idPrefix: 'io-bey', locate: (p) => (p.domain ? { obj: p.domain.beyond || {}, path: 'domain.beyond' } : null),
         intercept: (key, value, draft) => { draft.domain.beyond = { xmin: 'stop', xmax: 'stop', ymin: 'stop', ymax: 'stop', ...(draft.domain.beyond || {}), [key]: value }; return true; } });
     const solverForm = bindForm(ctx, { kind: 'solver', label: 'Solver', idPrefix: 'io-sol', locate: (p) => (p.solver ? { obj: p.solver, path: 'solver' } : null), resolved: (r) => r.solver });
@@ -94,15 +135,128 @@ export function mountDomain(host, ctx, app) {
     });
     const customBox = h('div');
     const interpNote = h('p', { class: 'hint' });
+    const physics = buildPhysics();
     host.append(
         h('h3', { class: 'io-group-title', text: 'Grid' }),
         h('div', { class: 'field io-field-select' }, h('label', { for: 'io-dom-type', text: 'Domain type' }), typeSel),
         gridForm.el, stats, aperture, sugg,
         h('h3', { class: 'io-group-title', text: 'Edges' }), h('p', { class: 'io-note', text: 'Each edge is held at an electrode\'s voltage, has zero normal field (Neumann), is the symmetry axis, or follows a profile of segments and linear ramps.' }), edgesBox,
-        h('h3', { class: 'io-group-title', text: 'Mirrors' }), mirrorForm.el,
+        h('h3', { class: 'io-group-title', text: 'Mirror and anti-mirror planes' }), mirrorForm.el,
         h('h3', { class: 'io-group-title', text: 'Leaving the domain' }), beyondForm.el,
         h('details', { class: 'io-card' }, h('summary', { text: 'Field solver' }), solverForm.el, h('p', { class: 'hint', text: 'Automatic runs multigrid, then multigrid-preconditioned BiCGSTAB, then adaptive SOR if needed; the path is shown in the Fields pill.' })),
-        h('details', { class: 'io-card', open: true }, h('summary', { text: 'Particle tracing' }), tracerForm.el, interpNote, customBox));
+        h('details', { class: 'io-card', open: true }, h('summary', { text: 'Particle tracing' }), tracerForm.el, interpNote, customBox),
+        physics.el);
+
+    // ---- physics plug-ins: space charge (onset estimator), background gas, Stokes drag. Each is null in the project when
+    // off; the switch creates the schema defaults (or sets enabled: false / null) and the META form edits the settings.
+    function buildPhysics() {
+        const schema = ctx.engine.schema;
+        const defaults = (k) => { try { return schema.defaults(k); } catch (e) { return null; } };
+        const cap = (schema.LIMITS && schema.LIMITS.spaceChargeParticles) || 2000;
+        const tracerOf = (p) => (p && p.tracer) || {};
+        const scOn = (p) => { const s = tracerOf(p).spaceCharge; return !!(s && typeof s === 'object' && s.enabled !== false); };
+        const gasIsOn = (p) => { const g = tracerOf(p).gas; return !!(g && typeof g === 'object' && g.enabled !== false); };
+        const dragIsOn = (p) => { const d = tracerOf(p).drag; return !!(d && typeof d === 'object'); };
+        let lastDrag = null;
+        function toggle(id, label, isOn, apply) {
+            const input = h('input', { type: 'checkbox', id });
+            input.addEventListener('change', () => {
+                const r = ctx.commit((d) => { d.tracer = d.tracer || {}; apply(d, input.checked); }, { label });
+                if (!r.ok) { if (ctx.ui.toast) ctx.ui.toast(r.error, { kind: 'warn' }); input.checked = isOn(store.get().project); }
+            });
+            return { el: h('label', { class: 'io-check', for: id }, input, h('span', { text: label })), input, sync: () => { if (document.activeElement !== input) input.checked = isOn(store.get().project); } };
+        }
+        // space charge
+        const scToggle = toggle('io-phy-sc', 'Space charge (onset estimator)', scOn, (d, on) => {
+            const cur = d.tracer.spaceCharge;
+            if (on) d.tracer.spaceCharge = cur && typeof cur === 'object' ? { ...cur, enabled: true } : (defaults('spaceCharge') || { enabled: true, model: 'coulomb', softening: 1e-4, maxParticles: cap, factor: 1 });
+            else if (cur && typeof cur === 'object') d.tracer.spaceCharge = { ...cur, enabled: false };
+        });
+        const scForm = bindForm(ctx, { kind: 'spaceCharge', label: 'Space charge', idPrefix: 'io-sc', hide: (key) => key === 'enabled',
+            locate: (p) => (scOn(p) ? { obj: p.tracer.spaceCharge, path: 'tracer.spaceCharge' } : null), resolved: (r) => (r.tracer && r.tracer.spaceCharge) || null });
+        const scInfo = h('p', { class: 'io-note' });
+        const scNote = h('p', { class: 'hint', text: `Pairwise Coulomb forces between the particles in flight are added to the solved field (direct summation, every particle of the run in one batch on one worker, at most ${cap.toLocaleString('en-US')} particles). This is an estimator of the onset of space-charge effects, not a self-consistent solution: the particles do not change the electrode charges, and results near a space-charge-limited emitter are order-of-magnitude only. The softening ε smooths the pair force below ε: for a beam use about a tenth of the mean particle spacing (πR²L/N)^(1/3) of the traced particles, well below the beam radius, and halve ε to check that the result does not change (in the beam-spread benchmark I2, ε = spacing/10 gives +0.3 %, spacing/5 −3 %, and ε equal to the spacing loses two thirds of the spread; each traced particle stands for the charge factor's worth of real ones); for a few-body problem set it far below the separation. Live previews trace a subset with the charge factor scaled to keep the total charge. Energy diagnostics are off.` });
+        // gas
+        const gasToggle = toggle('io-phy-gas', 'Background gas (hard-sphere collisions)', gasIsOn, (d, on) => {
+            const cur = d.tracer.gas;
+            if (on) d.tracer.gas = cur && typeof cur === 'object' ? { ...cur, enabled: true } : (defaults('gas') || { enabled: true, model: 'hardSphere', pressure: 0.1, temperature: 293.15, mass: 4.002602, diameter: 2.2, ionDiameter: null, velocity: [0, 0, 0] });
+            else if (cur && typeof cur === 'object') d.tracer.gas = { ...cur, enabled: false };
+        });
+        const gasForm = bindForm(ctx, { kind: 'gas', label: 'Gas', idPrefix: 'io-gas', hide: (key) => key === 'enabled',
+            locate: (p) => (gasIsOn(p) ? { obj: p.tracer.gas, path: 'tracer.gas' } : null), resolved: (r) => (r.tracer && r.tracer.gas) || null });
+        const gasInfo = h('div', { class: 'io-note' });
+        const gasNote = h('p', { class: 'hint', text: 'Elastic rigid-sphere collisions with a Maxwell–Boltzmann gas: collision rate n σ ⟨g⟩ with σ = π ((d_ion + d_gas)/2)² and ⟨g⟩ the mean relative speed, partner velocity weighted by the relative speed, isotropic scattering in the center-of-mass frame; exact exponential free paths with steps capped at a tenth of the mean free time. Pressure in Pa (1 mTorr = 0.1333 Pa), diameters in Å. Collision cross-sections are the main uncertainty (30 % or more). Energy diagnostics are off while the gas is on; Boris runs switch to Dormand–Prince.' });
+        // drag with the K₀ → K helper
+        // drag starts from the rigid-sphere mobility of the lead species in the gas of the gas card (its settings when the gas is
+        // on, else its defaults: helium at 0.1 Pa), so the two plug-ins describe the same gas until the user enters a mobility
+        const gasMobility = (d) => {
+            try {
+                const g = d.tracer && d.tracer.gas && d.tracer.gas.enabled !== false ? d.tracer.gas : defaults('gas');
+                const st = store.get(), lead = leadSpecies(st.resolved || st.lastResolved) || { mass: 100, charge: 1 };
+                const K = g ? createGasModel(g).summary(lead.mass, lead.charge).mobility : NaN;
+                return K > 0 && Number.isFinite(K) ? +K.toPrecision(4) : null;
+            } catch (e) { return null; }
+        };
+        const dragToggle = toggle('io-phy-drag', 'Stokes drag (mobility)', dragIsOn, (d, on) => {
+            if (on) {
+                const base = defaults('drag') || { type: 'stokes', mobility: 1, gasVelocity: [0, 0, 0] };
+                const K = lastDrag ? null : gasMobility(d);
+                d.tracer.drag = lastDrag || (K ? { ...base, mobility: K } : base);
+            } else { if (d.tracer.drag) lastDrag = d.tracer.drag; d.tracer.drag = null; }
+        });
+        const dragForm = bindForm(ctx, { kind: 'drag', label: 'Drag', idPrefix: 'io-drag',
+            locate: (p) => (dragIsOn(p) ? { obj: p.tracer.drag, path: 'tracer.drag' } : null), resolved: (r) => (r.tracer && r.tracer.drag) || null });
+        const helper = { k0: 4.31, p: 1, T: 298 };
+        const evalExpr = storeEvalExpr(ctx);
+        const hf = (key, label, help, value) => createField({ key, label, kind: 'number', dim: 'none', help, gt: 0 }, { value, evalExpr, idPrefix: 'io-k0', onCommit: (v) => { helper[key] = v; syncHelper(); } });
+        const k0Field = hf('k0', 'Reduced mobility K₀', 'cm²/(V·s) at 760 Torr and 273.15 K.', helper.k0);
+        const pField = hf('p', 'Pressure', 'Torr.', helper.p);
+        const tField = hf('T', 'Temperature', 'K.', helper.T);
+        const kOut = h('span', { class: 'io-item-sub' });
+        const setBtn = h('button', { type: 'button', class: 'btn btn-ghost btn-sm', text: 'Set mobility from K₀' });
+        setBtn.addEventListener('click', () => {
+            const K = mobilityFromReduced(helper.k0, helper.p, helper.T);
+            if (!(K > 0)) return;
+            const r = ctx.commit((d) => { d.tracer = d.tracer || {}; d.tracer.drag = { ...(d.tracer.drag || lastDrag || defaults('drag') || { type: 'stokes', gasVelocity: [0, 0, 0] }), type: 'stokes', mobility: +K.toPrecision(8) }; }, { label: 'Mobility from K₀' });
+            if (!r.ok && ctx.ui.toast) ctx.ui.toast(r.error, { kind: 'warn' });
+        });
+        function syncHelper() {
+            const K = mobilityFromReduced(helper.k0, helper.p, helper.T);
+            kOut.textContent = K > 0 ? `K = K₀ (760 Torr/p)(T/273.15 K) = ${sig(K, 5)} cm²/(V·s)` : 'K = –';
+        }
+        const dragInfo = h('p', { class: 'io-note' });
+        const dragNote = h('p', { class: 'hint', text: 'Qualitative Stokes drag a = −(v − v_gas)/τ with τ = K m/|q| from the mobility K: the terminal velocity in a field E is K·E, the relaxation length (m/q) E K². Spherical ions in a dense gas; no diffusion. Turning drag on starts from the rigid-sphere mobility of the lead species in the gas of the Background gas card (with the gas off: its defaults, helium at 0.1 Pa and 293.15 K, where drag is negligible); enter a measured mobility, or use the K₀ helper below for a real buffer-gas pressure.' });
+        const open0 = scOn(store.get().project) || gasIsOn(store.get().project) || dragIsOn(store.get().project);
+        const el = h('details', { class: 'io-card io-physics', open: open0 }, h('summary', { text: 'Physics: space charge, gas, drag' }),
+            h('p', { class: 'io-note', text: 'Optional plug-ins of the particle tracer; all off by default. They change the run, never the field solution.' }),
+            h('div', { class: 'io-card' }, h('div', { class: 'io-card-title', text: 'Space charge' }), scToggle.el, scForm.el, scInfo, scNote),
+            h('div', { class: 'io-card' }, h('div', { class: 'io-card-title', text: 'Background gas' }), gasToggle.el, gasForm.el, gasInfo, gasNote),
+            h('div', { class: 'io-card' }, h('div', { class: 'io-card-title', text: 'Drag' }), dragToggle.el, dragForm.el, dragInfo,
+                h('div', { class: 'io-card io-k0' }, h('div', { class: 'io-card-title', text: 'Mobility from the reduced mobility' }), h('div', { class: 'io-form' }, k0Field.el, pField.el, tField.el), h('div', { class: 'io-btnrow' }, setBtn, kOut)),
+                dragNote));
+        syncHelper();
+        function sync() {
+            const st = store.get();
+            const p = st.project, r = st.resolved || st.lastResolved;
+            const sc = scOn(p), gs = gasIsOn(p), dr = dragIsOn(p);
+            scToggle.sync(); gasToggle.sync(); dragToggle.sync();
+            scForm.el.hidden = !sc; gasForm.el.hidden = !gs; dragForm.el.hidden = !dr;
+            if (sc) scForm.sync(); if (gs) gasForm.sync(); if (dr) dragForm.sync();
+            const lead = leadSpecies(r);
+            const n = r ? r.particleCount || 0 : 0;
+            scInfo.hidden = !sc;
+            if (sc) scInfo.textContent = `${n.toLocaleString('en-US')} particle${n === 1 ? '' : 's'} traced together${n > cap ? ` — above the cap of ${cap.toLocaleString('en-US')}: reduce the sources` : ''}; the run cost grows with the square of the count.`;
+            gasInfo.hidden = !gs;
+            if (gs) { clear(gasInfo); for (const line of gasReadout(r && r.tracer ? r.tracer.gas : null, lead)) gasInfo.appendChild(h('p', { text: line })); }
+            dragInfo.hidden = !dr;
+            if (dr) {
+                const d = r && r.tracer && r.tracer.drag;
+                const K = d ? d.mobility : NaN;
+                dragInfo.textContent = lead && K > 0 ? `${lead.label}: τ = K m/|q| = ${sig(dragTimeConstant(K, lead.mass, lead.charge), 3)} µs; terminal velocity K·E = ${sig(1e-4 * K, 3)} mm/µs per V/mm.` : '';
+            }
+        }
+        return { el, sync };
+    }
 
     async function changeType(t) {
         const p = store.get().project;
@@ -299,6 +453,7 @@ export function mountDomain(host, ctx, app) {
             customForm = hasCustom ? bindForm(ctx, { kind: 'custom', label: 'Custom accuracy', idPrefix: 'io-cus', locate: (pp) => (pp.tracer && pp.tracer.custom ? { obj: pp.tracer.custom, path: 'tracer.custom' } : null) }) : null;
             if (customForm) customBox.append(h('h4', { class: 'io-group-title', text: 'Custom accuracy' }), customForm.el);
         } else if (customForm) customForm.sync();
+        physics.sync();
     }
     buildEdges();
     update();

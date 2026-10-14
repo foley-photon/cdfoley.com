@@ -18,8 +18,11 @@
    ========================================================================== */
 import { newComposition } from './geometry.js';
 
-/** Raster node flags (bit set). */
-export const FLAG = { FIXED: 1, IRREG: 2, AXIS: 4, MIXED: 8, SNAPPED: 16, EXTERIOR: 32, NEUMANN_EDGE: 64 };
+/**
+ * Raster node flags (bit set). ANTIMIRROR marks the 0 V nodes of an anti-mirror plane (odd symmetry, φ(−x) = −φ(x)):
+ * fixed for the solver, free-space nodes with odd ghosts for the field interpolant.
+ */
+export const FLAG = { FIXED: 1, IRREG: 2, AXIS: 4, MIXED: 8, SNAPPED: 16, EXTERIOR: 32, NEUMANN_EDGE: 64, ANTIMIRROR: 128 };
 /** Level-0 cell types. */
 export const CELL = { REGULAR: 0, BOUNDARY: 1, SOLID: 2, EXTERIOR: 3 };
 /** Cut-arm directions: 0 +x, 1 -x, 2 +y, 3 -y. */
@@ -57,14 +60,20 @@ export function makeGrid(dom, level = 0) {
     const xEnd = x0 + (nx0 - 1) * h0, yEnd = y0 + (ny0 - 1) * h0;
     const mirror = dom.mirror || {};
     const mx = !!mirror.x, my = !cyl && !!mirror.y;
+    // anti-mirror planes (odd reflection): the plane is a grounded Dirichlet edge for the solver; a mirror on the same
+    // plane wins (the schema refuses both)
+    const anti = dom.antimirror || {};
+    const amx = !mx && !!anti.x, amy = !cyl && !my && !!anti.y;
     const ed = dom.edges || {};
     const edges = { xmin: normEdge(ed.xmin, 'dirichlet'), xmax: normEdge(ed.xmax, 'dirichlet'), ymin: normEdge(ed.ymin, cyl ? 'axis' : 'dirichlet'), ymax: normEdge(ed.ymax, 'dirichlet') };
     if (mx) edges.xmin = { bc: 'neumann', electrode: 0, segments: null };
     if (my) edges.ymin = { bc: 'neumann', electrode: 0, segments: null };
+    if (amx) edges.xmin = { bc: 'dirichlet', electrode: 0, segments: null };
+    if (amy) edges.ymin = { bc: 'dirichlet', electrode: 0, segments: null };
     if (cyl) edges.ymin = { bc: 'axis', electrode: 0, segments: null };
     return {
         type, level, scale, h, h0, x0, y0, nx, ny, N: nx * ny, nx0, ny0, xEnd, yEnd,
-        offX: (nx - 1) * h - (xEnd - x0), offY: (ny - 1) * h - (yEnd - y0), edges, mirror: { x: mx, y: my },
+        offX: (nx - 1) * h - (xEnd - x0), offY: (ny - 1) * h - (yEnd - y0), edges, mirror: { x: mx, y: my }, antimirror: { x: amx, y: amy },
     };
 }
 
@@ -175,6 +184,15 @@ export function rasterize(geometry, grid, resolved, opts = {}) {
     if (yFarOn && isDir(ES.ymax)) for (let i = 0; i < nxIn; i++) setEdgeNode((nyIn - 1) * nx + i, ES.ymax, x0 + i * h);
     if (isDir(ES.xmin)) for (let j = 0; j < nyIn; j++) setEdgeNode(j * nx, ES.xmin, y0 + j * h);
     if (xFarOn && isDir(ES.xmax)) for (let j = 0; j < nyIn; j++) setEdgeNode(j * nx + nxIn - 1, ES.xmax, y0 + j * h);
+    // anti-mirror planes: the plane nodes stay fixed at 0 V for the solver and are flagged so that the field
+    // interpolant treats them as free-space nodes with odd ghosts; a shape that paints a plane node clears the flag
+    // (it is then an ordinary electrode node)
+    // (a plane node on a real Dirichlet edge, e.g. the corner at a grounded far edge, is a fixed node in the full model too)
+    const amx = !!(g.antimirror && g.antimirror.x), amy = !!(g.antimirror && g.antimirror.y), anyAM = amx || amy;
+    const dirX0 = isDir(ES.xmin) && !amx, dirX1 = xFarOn && isDir(ES.xmax), dirY0 = isDir(ES.ymin) && !amy, dirY1 = yFarOn && isDir(ES.ymax);
+    if (amx) for (let j = 0; j < nyIn; j++) { if ((j === 0 && dirY0) || (j === nyIn - 1 && dirY1)) continue; flags[j * nx] |= FLAG.ANTIMIRROR; }
+    if (amy) for (let i = 0; i < nxIn; i++) { if ((i === 0 && dirX0) || (i === nxIn - 1 && dirX1)) continue; flags[i] |= FLAG.ANTIMIRROR; }
+    const freeOrPlane = (k) => cls[k] === -1 || (anyAM && (flags[k] & FLAG.ANTIMIRROR) !== 0);
 
     // ---- per-row and per-column compositions
     const prims = geometry ? geometry.prims : [];
@@ -242,7 +260,7 @@ export function rasterize(geometry, grid, resolved, opts = {}) {
                 for (let i = 0; i < nxIn; i++) {
                     const k = row + i;
                     while (qn < np && PA[qn] <= i) qn++;
-                    if (cls[k] !== -1) continue;
+                    if (!freeOrPlane(k)) continue;
                     if (qn < np) {
                         const th = PA[qn] - i;
                         if (th <= 1 + 1e-12) {
@@ -280,7 +298,7 @@ export function rasterize(geometry, grid, resolved, opts = {}) {
         for (let j = 0; j < nyIn; j++) {
             const k = j * nx + i;
             while (qn < np && PA[qn] <= j) qn++;
-            if (cls[k] !== -1) continue;
+            if (!freeOrPlane(k)) continue;
             const qp = qn - 1;
             if (qp >= 0 && PB[qp] >= j) { pushCut(k, 2, 0, comp.cls[qp]); continue; }   // column disagrees with the row: snap
             if (qn < np) {
@@ -328,6 +346,8 @@ export function rasterize(geometry, grid, resolved, opts = {}) {
             cls[k] = e >= 0 ? e : farElec(cutDir[best]);
             flags[k] = FLAG.FIXED | FLAG.SNAPPED;
             snapped++;
+        } else if (cutTh[c] < snapTheta && anyAM && (flags[k] & FLAG.ANTIMIRROR)) {
+            flags[k] &= ~FLAG.ANTIMIRROR;   // an electrode surface passes through the plane node: an ordinary fixed node
         }
     }
     let nc2 = 0;
@@ -335,12 +355,12 @@ export function rasterize(geometry, grid, resolved, opts = {}) {
     let lastKey = -1;
     for (let r = 0; r < cutN; r++) {
         const c = order[r], k = cutNode[c];
-        if (cls[k] !== -1) continue;
+        if (!freeOrPlane(k)) continue;
         const key = keyOf(c);
         if (key === lastKey) continue;   // a smaller theta for this arm was already kept
         lastKey = key;
         cNode[nc2] = k; cDir[nc2] = cutDir[c]; cTh[nc2] = cutTh[c]; cEl[nc2] = cutEl[c];
-        flags[k] |= FLAG.IRREG;
+        if (cls[k] === -1) flags[k] |= FLAG.IRREG;
         nc2++;
     }
     const cuts = { count: nc2, node: cNode.slice(0, nc2), dir: cDir.slice(0, nc2), theta: cTh.slice(0, nc2), elec: cEl.slice(0, nc2) };
@@ -396,7 +416,10 @@ export function rasterize(geometry, grid, resolved, opts = {}) {
                 const hb = j * (nx - 1) + i, ht = hb + (nx - 1), vl = j * nx + i, vr = vl + 1;
                 const b = hCode[hb], t = hCode[ht], l = vCode[vl], r = vCode[vr];
                 const s = sub[c];
-                if (c00 === -1 && c10 === -1 && c01 === -1 && c11 === -1 && (b | t | l | r) === 0 && !(s & 1)) { cellType[c] = CELL.REGULAR; continue; }
+                // anti-mirror plane nodes count as free space here: the cells along the plane stay REGULAR (Hermite)
+                const allFree = anyAM ? (freeOrPlane(k) && freeOrPlane(k + 1) && freeOrPlane(k + nx) && freeOrPlane(k + nx + 1))
+                    : (c00 === -1 && c10 === -1 && c01 === -1 && c11 === -1);
+                if (allFree && (b | t | l | r) === 0 && !(s & 1)) { cellType[c] = CELL.REGULAR; continue; }
                 if (c00 >= 0 && c00 === c10 && c00 === c01 && c00 === c11 && b === 2 && t === 2 && l === 2 && r === 2
                     && hCls[hb] === c00 && hCls[ht] === c00 && vCls[vl] === c00 && vCls[vr] === c00 && !(s & 2)
                     && !((flags[k] | flags[k + 1] | flags[k + nx] | flags[k + nx + 1]) & FLAG.MIXED)) { cellType[c] = CELL.SOLID; continue; }
@@ -464,7 +487,7 @@ export function packRaster(raster) {
         present.push(n); types.push(a.constructor.name);
         buffers.push(a.slice().buffer);
     }
-    const grid = { ...raster.grid, edges: JSON.parse(JSON.stringify(raster.grid.edges)), mirror: { ...raster.grid.mirror } };
+    const grid = { ...raster.grid, edges: JSON.parse(JSON.stringify(raster.grid.edges)), mirror: { ...raster.grid.mirror }, antimirror: { ...(raster.grid.antimirror || { x: false, y: false }) } };
     const meta = { grid, cutsCount: raster.cuts.count, mixCount: raster.mix.count, stats: JSON.parse(JSON.stringify(raster.stats)), boundary: raster.boundary, present, types };
     return { meta, buffers };
 }

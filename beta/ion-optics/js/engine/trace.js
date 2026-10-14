@@ -23,9 +23,18 @@
    check for tangent double crossings (Kiefer, Proc. AMS 4, 502 (1953)).
    Mesh transmission uses counter-based random numbers (rng.js), so results
    never depend on batching.
+   Physics plug-ins (off by default; improvement plan, package WP-F): Stokes
+   drag a −= (v − v_gas)/τ, τ = K_mob M/(K_ACC |q|) (spec §3.12), and
+   hard-sphere collisions with a background gas (gas.js): a per-particle
+   exponential collision budget is spent at the rate ν(v) = n σ ⟨g⟩ along each
+   step (trapezoid of the start and end rates); the step that would exhaust it
+   is shortened to end at the collision, which then changes the velocity;
+   steps are capped at 1/(10 ν). Budget and partner come from one counter-based
+   stream per particle id, so results stay independent of batching.
    ========================================================================== */
 import { K_ACC, C_MMUS, properSpeedFromKE, speedFromKE } from './constants.js';
 import { uniform01 } from './rng.js';
+import { createGasModel, gasStream } from './gas.js';
 import {
     P_STRIDE, P_ID, P_SRC, P_SPECIES, P_MASS, P_CHARGE, P_T0, P_X, P_Y, P_Z, P_WX, P_WY, P_WZ, P_KE,
     S_STRIDE, S_ID, S_STATUS, S_WHERE, S_T, S_X, S_Y, S_Z, S_VX, S_VY, S_VZ, S_KE, S_TOF, S_STEPS, S_PATH,
@@ -118,7 +127,7 @@ function dpError2(h, K0, K2, K3, K4, K5, K6, ERR2) {
 // indices of the tracer's typed state arrays
 const V_T = 0, V_PATH = 1, V_WORK = 2, V_DEMAX = 3, V_KE = 4, V_STEP = 5, V_PDT = 6, V_TBAND = 7, V_DRIFT = 8, V_E0 = 9,
     V_MINSEG = 10, V_LX = 11, V_LY = 12, V_LZ = 13, V_LT = 14, V_LDX = 15, V_LDY = 16, V_LDZ = 17,
-    V_VB = 18, V_HLIM = 19, V_PLIM = 20, V_REACH = 21;
+    V_VB = 18, V_HLIM = 19, V_PLIM = 20, V_REACH = 21, V_NUS = 22 /* gas collision rate at the step start */, V_GASB = 23 /* collision budget left */;
 const QX = 0, QY = 1, QZ = 2, QVX = 3, QVY = 4, QVZ = 5, QWX = 6, QWY = 7, QWZ = 8;
 const HX0 = 0, HY0 = 1, HZ0 = 2, HVX0 = 3, HVY0 = 4, HVZ0 = 5, HX1 = 6, HY1 = 7, HZ1 = 8, HVX1 = 9, HVY1 = 10, HVZ1 = 11;
 const FEX = 0, FEY = 1, FEZ = 2, FPHI = 3, FBX = 4, FBY = 5, FBZ = 6;
@@ -150,6 +159,7 @@ export function traceOptions(resolved, overrides = {}) {
         },
         energyCheck: true,
         drag: tr.drag || null,
+        gas: tr.gas || null,
     };
     const out = { ...base, ...overrides };
     out.record = { ...base.record, ...(overrides.record || {}) };
@@ -190,6 +200,8 @@ function normalizeOptions(opts) {
         },
         energyCheck: o.energyCheck !== false,
         drag: o.drag && o.drag.type === 'stokes' && o.drag.mobility > 0 ? o.drag : null,
+        // hard-sphere gas: off when absent, disabled, or at zero pressure
+        gas: o.gas && o.gas.enabled !== false && o.gas.pressure > 0 && o.gas.temperature > 0 && o.gas.mass > 0 && o.gas.diameter > 0 ? o.gas : null,
         i0: typeof o.i0 === 'number' ? o.i0 : null,
         debugRegions: !!o.debugRegions,
     };
@@ -199,13 +211,14 @@ function normalizeOptions(opts) {
 function compilePlanes(list, h) {
     const n = list.length;
     const P = {
-        n, kind: new Int8Array(n), at: new Float64Array(n), p0x: new Float64Array(n), p0y: new Float64Array(n),
+        n, kind: new Int8Array(n), at: new Float64Array(n), p0x: new Float64Array(n), p0y: new Float64Array(n), p0z: new Float64Array(n),
         nx: new Float64Array(n), ny: new Float64Array(n), ux: new Float64Array(n), uy: new Float64Array(n), len: new Float64Array(n),
         term: new Uint8Array(n), side: new Int8Array(n), all: new Uint8Array(n),
         aMin: new Float64Array(n), aMax: new Float64Array(n), bMin: new Float64Array(n), bMax: new Float64Array(n), rad: new Float64Array(n),
         tolS: 1e-9 * h,
     };
-    const KIND = { x: 0, y: 1, z: 2, r: 3, segment: 4 };
+    // sphere: a spherical test surface g = |P − center| − at (radius `at`, center [x, y, z]); forward = outward
+    const KIND = { x: 0, y: 1, z: 2, r: 3, segment: 4, sphere: 5 };
     for (let i = 0; i < n; i++) {
         const pl = list[i] || {};
         const k = KIND[pl.kind] !== undefined ? KIND[pl.kind] : 0;
@@ -217,6 +230,9 @@ function compilePlanes(list, h) {
             const L = Math.sqrt(dx * dx + dy * dy) || 1;
             P.p0x[i] = x0; P.p0y[i] = y0; P.ux[i] = dx / L; P.uy[i] = dy / L; P.len[i] = L;
             P.nx[i] = dy / L; P.ny[i] = -dx / L;   // (p1 − p0) rotated −90°
+        } else if (k === 5) {
+            const c = Array.isArray(pl.center) ? pl.center : [0, 0, 0];
+            P.p0x[i] = num(c[0], 0); P.p0y[i] = num(c[1], 0); P.p0z[i] = num(c[2], 0);
         }
         P.term[i] = pl.terminate ? 1 : 0;
         P.side[i] = pl.side === 'forward' ? 1 : (pl.side === 'backward' ? 2 : 0);
@@ -228,6 +244,50 @@ function compilePlanes(list, h) {
         P.rad[i] = pl.radius > 0 ? pl.radius : Infinity;
     }
     return P;
+}
+
+/**
+ * Whether a crossing of compiled plane i at (x, y, z) in direction dir (+1 forward, −1 backward) passes the side,
+ * extent, limits and radius filters. The limit coordinates (a, b) are: x plane (y, z); y plane (x, z); z plane (x, y);
+ * r plane (x, −); sphere (axial offset from the center, distance from the center's x axis); segment (distance along
+ * the segment from p0, z when planar). One definition for both tracers (trace.js and coulomb.js).
+ */
+function acceptCrossing(P, cyl, i, x, y, z, dir) {
+    const sd = P.side[i];
+    if ((sd === 1 && dir < 0) || (sd === 2 && dir > 0)) return false;
+    let a = 0, b = 0, r2 = 0;
+    switch (P.kind[i]) {
+        case 0: a = y; b = z; r2 = y * y + z * z; break;
+        case 1: a = x; b = z; r2 = x * x + z * z; break;
+        case 2: a = x; b = y; r2 = x * x + y * y; break;
+        case 3: a = x; b = NaN; r2 = 0; break;
+        case 5: {   // a = axial offset from the center, b = distance from the center's x axis; no radius filter
+            const dy = y - P.p0y[i], dz = z - P.p0z[i];
+            a = x - P.p0x[i]; b = Math.sqrt(dy * dy + dz * dz); r2 = 0;
+            break;
+        }
+        default: {
+            const r = cyl ? Math.sqrt(y * y + z * z) : y;
+            a = (x - P.p0x[i]) * P.ux[i] + (r - P.p0y[i]) * P.uy[i];
+            if (a < -P.tolS || a > P.len[i] + P.tolS) return false;
+            b = cyl ? NaN : z; r2 = 0;
+        }
+    }
+    if (a < P.aMin[i] || a > P.aMax[i]) return false;
+    if (b === b && (b < P.bMin[i] || b > P.bMax[i])) return false;
+    if (P.rad[i] < Infinity && r2 > P.rad[i] * P.rad[i]) return false;
+    return true;
+}
+
+/**
+ * Crossing filter of a list of recording planes (the one the tracer applies): accept(i, x, y, z, dir) → boolean.
+ * @param {object[]} planes recording planes (resolved) @param {number} h grid cell (mm) @param {boolean} cyl cylindrical model
+ * @returns {(i: number, x: number, y: number, z: number, dir: number) => boolean}
+ */
+export function planeAcceptor(planes, h, cyl) {
+    const P = compilePlanes(Array.isArray(planes) ? planes : [], h > 0 ? h : 1);
+    const c = !!cyl;
+    return (i, x, y, z, dir) => acceptCrossing(P, c, i, x, y, z, dir);
 }
 
 /**
@@ -290,7 +350,9 @@ function createTracer(model, o, nTotal) {
     const beyond = o.beyond;
     const energyCheck = o.energyCheck;
     const dragOn = o.drag !== null;
-    const integrateDrift = hasB || dragOn;   // outside the grid: integrate (B or drag) or straight-line drift
+    const gasOn = o.gas !== null;
+    const gasModel = gasOn ? createGasModel(o.gas) : null;
+    const integrateDrift = hasB || dragOn || gasOn;   // outside the grid: integrate (B, drag or gas) or straight-line drift
     const KMOB = dragOn ? 1e-4 * o.drag.mobility : 0;
     const gasV = dragOn && Array.isArray(o.drag.gasVelocity) ? o.drag.gasVelocity.map((v) => num(v, 0)) : [0, 0, 0];
     const debugRegions = o.debugRegions && hasRegions;
@@ -298,8 +360,8 @@ function createTracer(model, o, nTotal) {
     // planes
     const PL = compilePlanes(o.planes, h);
     const nP = PL.n;
-    const pKind = PL.kind, pAt = PL.at, pP0x = PL.p0x, pP0y = PL.p0y, pNx = PL.nx, pNy = PL.ny, pUx = PL.ux, pUy = PL.uy, pLen = PL.len;
-    const pTerm = PL.term, pSide = PL.side, pAll = PL.all, pAMin = PL.aMin, pAMax = PL.aMax, pBMin = PL.bMin, pBMax = PL.bMax, pRad = PL.rad;
+    const pKind = PL.kind, pAt = PL.at, pP0x = PL.p0x, pP0y = PL.p0y, pP0z = PL.p0z, pNx = PL.nx, pNy = PL.ny;
+    const pTerm = PL.term, pAll = PL.all;
     const gS = new Float64Array(nP), gE = new Float64Array(nP), pCount = new Int32Array(nP);
     const GS = new Float64Array(MAX_SAMPLES + 1);
 
@@ -322,7 +384,7 @@ function createTracer(model, o, nTotal) {
     let trajPts = recTraj ? new Float32Array(4 * 1024) : null, nTrajPts = 0;
     const trajOff = recTraj ? new Uint32Array(nTotal + 1) : null;
     let marks = markersOn ? new Float32Array(5 * 256) : null, nMarks = 0;
-    let cSteps = 0, cRejects = 0, cEvals = 0, cSplits = 0, cViol = 0;
+    let cSteps = 0, cRejects = 0, cEvals = 0, cSplits = 0, cViol = 0, cColl = 0;
     let stopFn = null;
 
     // scratch
@@ -365,8 +427,33 @@ function createTracer(model, o, nTotal) {
     let nearS = false, nextMarkK = 0, invTau = 0;
     let outRow = 0;
     let firstStep = true, endInside = true;
+    let gasS = null, gasRng = null;   // gas: species constants and the particle's random stream
 
     function setStop(fn) { stopFn = fn; }
+
+    // ------------------------------------------------------------------ gas collisions (gas.js)
+    /** Collision rate ν (1/µs) from the velocity components A[a..a+2]. */
+    function gasRate(A, a) { return gasModel.rate(gasS, A[a], A[a + 1], A[a + 2]); }
+    /**
+     * Fraction τ of a step of length dt at which the collision budget E is spent, with the rate linear in time from
+     * nuS to nuE (∫ν dt = dt(nuS τ + ½(nuE − nuS)τ²) = E; called only when the whole step spends at least E).
+     */
+    function collisionTau(nuS, nuE, dt, E) {
+        const a = 0.5 * (nuE - nuS) * dt, b = nuS * dt;
+        let tau;
+        if (Math.abs(a) <= 1e-12 * Math.max(b, 1e-300)) tau = b > 0 ? E / b : 1;
+        else { const disc = Math.max(0, b * b + 4 * a * E); tau = 2 * E / (b + Math.sqrt(disc)); }
+        return tau > 1 ? 1 : (tau < 1e-9 ? 1e-9 : tau);
+    }
+    /** Applies one collision to the current state Y (proper velocity Y[3..5]) and draws the next budget. */
+    function applyCollision() {
+        gasModel.collide(gasS, gasRng, Y, 3, rel);
+        V[V_KE] = keOfW(Y[3], Y[4], Y[5]);
+        V[V_GASB] = gasModel.budget(gasRng);
+        cColl++;
+        const ig = rel ? 1 / Math.sqrt(1 + (Y[3] * Y[3] + Y[4] * Y[4] + Y[5] * Y[5]) * INV_C2) : 1;
+        recordPoint(Y[0], Y[1], Y[2], V[V_T], Y[3] * ig, Y[4] * ig, Y[5] * ig, true);   // the kink in the trajectory
+    }
 
     // ------------------------------------------------------------------ buffers
     function pushCross(plane, kind, elec, dir, k, tAbs) {
@@ -560,6 +647,7 @@ function createTracer(model, o, nTotal) {
             case 1: return y - pAt[i];
             case 2: return z - pAt[i];
             case 3: return Math.sqrt(y * y + z * z) - pAt[i];
+            case 5: { const dx = x - pP0x[i], dy = y - pP0y[i], dz = z - pP0z[i]; return Math.sqrt(dx * dx + dy * dy + dz * dz) - pAt[i]; }
             default: {
                 const r = cyl ? Math.sqrt(y * y + z * z) : y;
                 return (x - pP0x[i]) * pNx[i] + (r - pP0y[i]) * pNy[i];
@@ -572,6 +660,10 @@ function createTracer(model, o, nTotal) {
             case 1: return vy;
             case 2: return vz;
             case 3: { const r = Math.sqrt(y * y + z * z); return r > 0 ? (y * vy + z * vz) / r : Math.sqrt(vy * vy + vz * vz); }
+            case 5: {
+                const dx = x - pP0x[i], dy = y - pP0y[i], dz = z - pP0z[i], d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                return d > 0 ? (dx * vx + dy * vy + dz * vz) / d : Math.sqrt(vx * vx + vy * vy + vz * vz);
+            }
             default: {
                 let vr = vy;
                 if (cyl) { const r = Math.sqrt(y * y + z * z); vr = r > 0 ? (y * vy + z * vz) / r : Math.sqrt(vy * vy + vz * vz); }
@@ -580,27 +672,7 @@ function createTracer(model, o, nTotal) {
         }
     }
     /** Whether a crossing at (x, y, z) in direction dir passes the side, extent, limits and radius filters. */
-    function planeAccept(i, x, y, z, dir) {
-        const sd = pSide[i];
-        if ((sd === 1 && dir < 0) || (sd === 2 && dir > 0)) return false;
-        let a = 0, b = 0, r2 = 0;
-        switch (pKind[i]) {
-            case 0: a = y; b = z; r2 = y * y + z * z; break;
-            case 1: a = x; b = z; r2 = x * x + z * z; break;
-            case 2: a = x; b = y; r2 = x * x + y * y; break;
-            case 3: a = x; b = NaN; r2 = 0; break;
-            default: {
-                const r = cyl ? Math.sqrt(y * y + z * z) : y;
-                a = (x - pP0x[i]) * pUx[i] + (r - pP0y[i]) * pUy[i];
-                if (a < -PL.tolS || a > pLen[i] + PL.tolS) return false;
-                b = cyl ? NaN : z; r2 = 0;
-            }
-        }
-        if (a < pAMin[i] || a > pAMax[i]) return false;
-        if (b === b && (b < pBMin[i] || b > pBMax[i])) return false;
-        if (pRad[i] < Infinity && r2 > pRad[i] * pRad[i]) return false;
-        return true;
-    }
+    function planeAccept(i, x, y, z, dir) { return acceptCrossing(PL, cyl, i, x, y, z, dir); }
     /** Root of g_i on the path between ta (ga) and tb (gb) with opposite sides (Illinois). */
     function planeRoot(i, ta, ga, tb, gb) {
         let side = 0;
@@ -1025,6 +1097,11 @@ function createTracer(model, o, nTotal) {
             case 1: lin(py - pAt[i], vy); break;
             case 2: lin(pz - pAt[i], vz); break;
             case 3: quad(vy * vy + vz * vz, 2 * (py * vy + pz * vz), py * py + pz * pz - pAt[i] * pAt[i], () => true); break;
+            case 5: {
+                const dx = px - pP0x[i], dy = py - pP0y[i], dz = pz - pP0z[i];
+                quad(vx * vx + vy * vy + vz * vz, 2 * (dx * vx + dy * vy + dz * vz), dx * dx + dy * dy + dz * dz - pAt[i] * pAt[i], () => true);
+                break;
+            }
             default: {
                 const nx = pNx[i], ny = pNy[i];
                 if (!cyl) { lin((px - pP0x[i]) * nx + (py - pP0y[i]) * ny, vx * nx + vy * ny); break; }
@@ -1079,10 +1156,11 @@ function createTracer(model, o, nTotal) {
             if (!fsal) { PT[0] = V[V_T]; deriv(Y, K0, 0, sig, false); fsal = true; }
             const v = Math.sqrt(K0[0] * K0[0] + K0[1] * K0[1] + K0[2] * K0[2]);
             const a = Math.sqrt(K0[3] * K0[3] + K0[4] * K0[4] + K0[5] * K0[5]);
-            let dtTry, tLand = tEnd, landing = false, landBreak = false, landMark = false, edgeStep = false, exitLand = false;
+            let dtTry, tLand = tEnd, landing = false, landBreak = false, landMark = false, edgeStep = false, exitLand = false, collLand = false;
+            if (gasOn) V[V_NUS] = gasRate(K0, 0);
             if (forced > 0) {
                 dtTry = forced; forced = 0;
-                if (forcedKind === 1) edgeStep = true; else exitLand = true;
+                if (forcedKind === 1) edgeStep = true; else if (forcedKind === 3) collLand = true; else exitLand = true;
                 forcedKind = 0;
             } else {
                 let cap = capDist(v, a, nearS ? nearStepLen : maxStepLen);
@@ -1092,6 +1170,7 @@ function createTracer(model, o, nTotal) {
                     const gc = gyroCap(gam, 32);
                     if (cap > gc) cap = gc;
                 }
+                if (gasOn && V[V_NUS] > 0) { const gc = 0.1 / V[V_NUS]; if (cap > gc) cap = gc; }   // a tenth of the mean free time
                 dtTry = dt < cap ? dt : cap;
                 let tb = Infinity, tm = Infinity;
                 if (td) tb = model.nextBreak(V[V_T], V[V_T] + dtTry);
@@ -1163,6 +1242,19 @@ function createTracer(model, o, nTotal) {
                 const tauIn = lastInside();
                 if (tauIn > 0) { forced = dtTry * tauIn; forcedKind = 2; continue; }
             }
+            // gas: spend the collision budget along the step; a step that exhausts it is shortened to end at the collision
+            let collide = false;
+            if (gasOn) {
+                if (collLand) collide = true;
+                else {
+                    const nuE = gasRate(K6, 0), dE = 0.5 * (V[V_NUS] + nuE) * dtTry;
+                    if (dE >= V[V_GASB]) {
+                        const tau = collisionTau(V[V_NUS], nuE, dtTry, V[V_GASB]);
+                        if (tau < 1 - 1e-9) { forced = dtTry * tau; forcedKind = 3; continue; }
+                        collide = true;
+                    } else V[V_GASB] -= dE;
+                }
+            }
             // accepted
             steps++; cSteps++;
             const x0 = Y[0], y0 = Y[1], z0 = Y[2];
@@ -1185,13 +1277,14 @@ function createTracer(model, o, nTotal) {
             if (landBreak) fsal = false;
             if (edgeStep) { sig = regionA(Y); fsal = false; }
             recordStep(K0, 0);
+            if (collide) { applyCollision(); fsal = false; }   // the velocity changed: new derivative, new step caps
             if (drifting && V[V_DRIFT] >= maxDrift) { endHere(STATUS.DRIFT_END, EDGE.DRIFT_LIMIT); return true; }
             let fac = err2 < 3.5e-8 ? 5 : 0.9 * Math.pow(err2, -0.1);   // 0.9·err^(−1/5) ≥ 5 below err = 1.9e-4
             if (fac > 5) fac = 5; else if (fac < 0.2) fac = 0.2;
             if (noGrow && fac > 1) fac = 1;
             noGrow = false;
             let dn = dtTry * fac;
-            if ((landing || edgeStep || exitLand) && dn < dt) dn = dt;
+            if ((landing || edgeStep || exitLand || collLand) && dn < dt) dn = dt;
             dt = dn;
         }
     }
@@ -1428,6 +1521,11 @@ function createTracer(model, o, nTotal) {
         w1eV = rel ? properSpeedFromKE(1, pMass > 0 ? pMass : 1) : speedFromKE(1, pMass > 0 ? pMass : 1, false);
         w1eV2 = w1eV * w1eV;
         invTau = dragOn && pMass > 0 && pQ !== 0 ? K_ACC * Math.abs(pQ) / (KMOB * pMass) : 0;
+        if (gasOn) {
+            gasS = gasModel.species(pMass > 0 ? pMass : 1);
+            gasRng = gasStream(seed, pid);
+            V[V_GASB] = gasModel.budget(gasRng); V[V_NUS] = 0;
+        }
     }
 
     function integrate() {
@@ -1438,7 +1536,8 @@ function createTracer(model, o, nTotal) {
             const gam = rel ? Math.sqrt(1 + (Y[3] * Y[3] + Y[4] * Y[4] + Y[5] * Y[5]) * INV_C2) : 1;
             if (tMax / (TWO_PI * gam / (K_ACC * absQM * bMax)) > 50) integ = INTEG_BORIS;
         }
-        if (dragOn && integ === INTEG_BORIS) integ = INTEG_RK45;
+        if ((dragOn || gasOn) && integ === INTEG_BORIS) integ = INTEG_RK45;   // drag and collisions live in the DP45 loop
+        if (gasOn && integ === INTEG_RK4) integ = INTEG_RK45;
         if (integ === INTEG_BORIS) return runBoris();
         if (integ === INTEG_RK4) return runRK4();
         return runRK45();
@@ -1456,7 +1555,7 @@ function createTracer(model, o, nTotal) {
             if (recTraj) trajOff[p + 1] = nTrajPts;
             return true;
         }
-        if (!td && !dragOn) V[V_E0] = keOfW(Y[3], Y[4], Y[5]) + pQ * model.potential(V[V_T], Y[0], Y[1], Y[2]);
+        if (!td && !dragOn && !gasOn) V[V_E0] = keOfW(Y[3], Y[4], Y[5]) + pQ * model.potential(V[V_T], Y[0], Y[1], Y[2]);
         recordPoint(Y[0], Y[1], Y[2], V[V_T], vx, vy, vz, true);
         if (markersOn) { pushMarker(V[V_T], Y[0], Y[1], Y[2]); nextMarkK = 1; }
         for (let i = 0; i < nP; i++) gS[i] = planeG(i, Y[0], Y[1], Y[2]);
@@ -1495,7 +1594,7 @@ function createTracer(model, o, nTotal) {
         const crossings = cross.slice(0, nCross * C_STRIDE);
         const traj = recTraj ? { offsets: trajOff, pts: trajPts.slice(0, 4 * nTrajPts) } : null;
         const markers = markersOn ? marks.slice(0, 5 * nMarks) : null;
-        const stats = { steps: cSteps, rejects: cRejects, evals: cEvals, ms: 0, edgeSplits: cSplits, regionViolations: cViol, crossDropped: cDropped };
+        const stats = { steps: cSteps, rejects: cRejects, evals: cEvals, ms: 0, edgeSplits: cSplits, regionViolations: cViol, crossDropped: cDropped, collisions: cColl };
         return { n: nTotal, i0, summary, crossings, nCross, traj, markers, stats };
     }
 
@@ -1518,7 +1617,7 @@ export function mergeResults(parts) {
     const summary = new Float64Array(n * S_STRIDE), crossings = new Float64Array(nc * C_STRIDE);
     const offsets = anyTraj ? new Uint32Array(n + 1) : null, pts = anyTraj ? new Float32Array(4 * np) : null;
     const markers = anyMarkers ? new Float32Array(nm) : null;
-    const stats = { steps: 0, rejects: 0, evals: 0, ms: 0, edgeSplits: 0, regionViolations: 0, crossDropped: 0 };
+    const stats = { steps: 0, rejects: 0, evals: 0, ms: 0, edgeSplits: 0, regionViolations: 0, crossDropped: 0, collisions: 0 };
     let ip = 0, ic = 0, it = 0, im = 0;
     for (const r of list) {
         summary.set(r.summary.subarray(0, r.n * S_STRIDE), ip * S_STRIDE);
@@ -1533,6 +1632,7 @@ export function mergeResults(parts) {
         }
         if (anyMarkers && r.markers) { markers.set(r.markers, im); im += r.markers.length; }
         for (const k of Object.keys(stats)) if (r.stats && typeof r.stats[k] === 'number') stats[k] += r.stats[k];
+        if (r.stats && r.stats.lockstep) stats.lockstep = true;   // a space-charge batch (coulomb.js): steps are common steps
         ip += r.n; ic += r.nCross;
     }
     return { n, i0: list.length ? list[0].i0 : 0, summary, crossings, nCross: nc, traj: anyTraj ? { offsets, pts } : null, markers, stats };

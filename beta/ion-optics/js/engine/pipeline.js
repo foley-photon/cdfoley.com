@@ -11,6 +11,12 @@
    Electrodynamics, 3rd ed. (1999), §1.13); channels group the electrode
    waveforms (φ₀ = Σ dc_k φ_k, φ_c = Σ amp_{k,c} φ_k).
 
+   A domain with a charge density (domain.charge, Poisson term) adds the
+   particular solution φ_ρ (0 V on every electrode) as one more basis, keyed
+   CHARGE_BASIS: weight 1 in the DC channel, 0 in every time channel.
+   Runs with tracer.spaceCharge go to coulomb.js (direct pair forces, one
+   lockstep batch: an onset estimator); everything else to trace.js.
+
    Every engine module is reached through one `engine` object, so tests and
    the worker core can inject stubs (makePipeline).
    ========================================================================== */
@@ -25,13 +31,19 @@ import * as fieldmodel from './fieldmodel.js';
 import * as waveform from './waveform.js';
 import * as particles from './particles.js';
 import * as trace from './trace.js';
+import * as coulomb from './coulomb.js';
+import * as gas from './gas.js';
 import * as analysis from './analysis.js';
 import { P_STRIDE } from './layout.js';
+import { CHARGE_BASIS } from './operator.js';
 
 const EngineError = schema.EngineError;
 
 /** The real engine modules, as namespaces. */
-export const ENGINE = Object.freeze({ schema, hash, geometry, raster, operator, solve, field, fieldmodel, waveform, particles, trace, analysis });
+export const ENGINE = Object.freeze({ schema, hash, geometry, raster, operator, solve, field, fieldmodel, waveform, particles, trace, coulomb, gas, analysis });
+
+/** Pair-step fraction of the lockstep space-charge integrator per trajectory-accuracy preset (fraction of the smallest pair time scale). */
+export const PAIR_STEP = Object.freeze({ draft: 0.05, normal: 0.02, fine: 0.005, custom: 0.02 });
 
 const now = () => performance.now();
 
@@ -47,12 +59,48 @@ export function solverOptions(resolved, opts = {}) {
     return o;
 }
 
-/** Indices of the electrodes that get a basis field (every non-ground electrode). */
+/**
+ * Indices of the basis fields to solve: every non-ground electrode, plus CHARGE_BASIS (−1, the particular solution of
+ * the Poisson term) when the domain has a charge density.
+ */
 export function basisElectrodes(resolved) {
     const out = [];
     const list = (resolved && resolved.electrodes) || [];
     for (let k = 1; k < list.length; k++) out.push(k);
+    if (hasChargeDensity(resolved)) out.push(CHARGE_BASIS);
     return out;
+}
+
+/** True when the resolved domain carries a (non-blank) charge-density expression. */
+export function hasChargeDensity(resolved) {
+    const d = resolved && resolved.domain;
+    return !!(d && typeof d.charge === 'string' && d.charge.trim());
+}
+
+/** The resolved space-charge settings of a run (tracer.spaceCharge), or null when the run uses the ordinary tracer. */
+export function spaceChargeOf(resolved) {
+    const sc = resolved && resolved.tracer && resolved.tracer.spaceCharge;
+    return sc && typeof sc === 'object' && sc.enabled !== false ? sc : null;
+}
+
+/**
+ * Options of coulomb.traceCoulomb for a space-charge run: the tracer options plus softening, factor and the pair step
+ * (from the accuracy preset, or `spaceCharge.pairStep` when the project gives one).
+ * The override `factorScale` lets a subset of the run carry the charge of the whole run: a number scales every particle
+ * alike; an array scales by source index (resolved source `index`, the particles' P_SRC), so a subset that takes m_s of
+ * the count_s particles of source s passes count_s/m_s for it (missing entries 1).
+ * @param {object} resolved @param {object} traceOpts from trace.traceOptions
+ */
+export function coulombOptions(resolved, traceOpts) {
+    const sc = spaceChargeOf(resolved) || {};
+    const q = (resolved.tracer && resolved.tracer.quality) || 'normal';
+    const pairStep = typeof sc.pairStep === 'number' && sc.pairStep > 0 && sc.pairStep <= 0.5 ? sc.pairStep : (PAIR_STEP[q] || PAIR_STEP.normal);
+    const fs = traceOpts ? traceOpts.factorScale : null;
+    const bySource = Array.isArray(fs) || ArrayBuffer.isView(fs)
+        ? Array.from(fs, (v) => (typeof v === 'number' && v > 0 && Number.isFinite(v) ? v : 1)) : null;
+    const scale = !bySource && fs > 0 && Number.isFinite(fs) ? fs : 1;
+    return { ...traceOpts, softening: sc.softening > 0 ? sc.softening : coulomb.DEFAULT_SOFTENING, factor: (sc.factor >= 0 ? sc.factor : 1) * scale,
+        factorBySource: bySource, pairStep };
 }
 
 /**
@@ -144,8 +192,15 @@ export function makePipeline(engine = ENGINE) {
             });
             return out;
         }
-        out.push({ key: 'dc', phi: E.field.combine(solved.bases, tf.dc, N), cut: dcCut, fn: null });
-        for (const ch of tf.channels) out.push({ key: ch.key, phi: E.field.combine(solved.bases, ch.amp, N), cut: Float64Array.from(ch.amp), fn: ch.fn });
+        // the charge basis (k < 0) has weight 1 in the DC channel and 0 in every time channel; the cut values are unchanged
+        // because φ_ρ is 0 on every electrode. Without it the weight arrays are used as before.
+        const withCharge = solved.bases.has(CHARGE_BASIS);
+        const wDc = withCharge ? (k) => (k < 0 ? 1 : tf.dc[k]) : tf.dc;
+        out.push({ key: 'dc', phi: E.field.combine(solved.bases, wDc, N), cut: dcCut, fn: null });
+        for (const ch of tf.channels) {
+            const w = withCharge ? (k) => (k < 0 ? 0 : ch.amp[k]) : ch.amp;
+            out.push({ key: ch.key, phi: E.field.combine(solved.bases, w, N), cut: Float64Array.from(ch.amp), fn: ch.fn });
+        }
         return out;
     }
 
@@ -160,9 +215,18 @@ export function makePipeline(engine = ENGINE) {
             grid = E.field.createFieldGrid(solved.raster0, geometry, { interp: (resolved.tracer && resolved.tracer.fieldInterp) || 'cubic' });
             grid.setChannels(channels.map((c) => c.phi), channels.map((c) => c.cut));
         }
+        // with a charge density the DC channel carries φ_ρ too: its nodal range widens the model's potential span (energy
+        // thresholds) and marks the field as electric (integrator choice). The same array serves bases and combined channels.
+        let potentialRange = null;
+        if (channels.length && hasChargeDensity(resolved)) {
+            const phi = channels[0].phi;
+            let lo = Infinity, hi = -Infinity;
+            for (let k = 0; k < phi.length; k++) { const v = phi[k]; if (v < lo) lo = v; if (v > hi) hi = v; }
+            if (lo <= hi) potentialRange = [lo, hi];
+        }
         const model = E.fieldmodel.createFieldModel({
             resolved, grid, raster0: solved.raster0, geometry,
-            channelFns: channels.length ? channels.map((c) => c.fn) : null,
+            channelFns: channels.length ? channels.map((c) => c.fn) : null, potentialRange,
         });
         return { grid, model, channels, dc: tf.dc, timeChannels: tf.channels, geometry };
     }
@@ -200,6 +264,12 @@ export function makePipeline(engine = ENGINE) {
         const crossCap = typeof E.trace.crossCapFor === 'function' ? E.trace.crossCapFor(nTotal) : 1000;
         const opts = E.trace.traceOptions(resolved, { ...ov, record: { maxPoints: cap, pointBudget: 1e15, crossCap, ...(ov.record || {}) } });
         if (!parts) opts.i0 = i0;
+        // space charge: every particle of the batch in one lockstep pass through coulomb.js (an onset estimator); an override
+        // spaceCharge: false traces without the pair forces (analysis rays that measure the field: lens tool, image finder)
+        if (spaceChargeOf(resolved) && ov.spaceCharge !== false) {
+            const C = E.coulomb || coulomb;
+            return C.traceCoulomb(fieldObj.model, rows, coulombOptions(resolved, opts), hooks);
+        }
         return E.trace.traceParticles(fieldObj.model, rows, opts, hooks);
     }
 

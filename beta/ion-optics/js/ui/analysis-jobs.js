@@ -5,18 +5,26 @@
    through jobs.traceBatch), 1D scans and Nelder–Mead tuning (temporary
    projects through jobs.withTemporaryProject, which re-solve only when the
    geometry changes), the accuracy check (h/2 re-solve, rtol/100 re-run of the
-   first ≤ 200 particles, the observed order p from three resolutions and the
+   first ≤ 200 particles; with space charge the first particles of every
+   source, each source's charge kept, and the lockstep steps shortened to
+   1/√10 instead of rtol/100; the observed order p from three resolutions and the
    Richardson estimates of the remaining grid error, Δ·2^p/(2^p − 1) for the
    current grid and Δ/(2^p − 1) for the finer one; Richardson, Phil. Trans.
    R. Soc. A 210, 307 (1911)),
-   field profiles along a line, run overviews for the Summary tab and the
-   Methods text. Pure functions take plain data so Node tests can call them.
+   field profiles along a line, run overviews for the Summary tab, the
+   Methods text and the pinned runs of the Compare tab (pin records, their
+   metrics, the side-by-side table and CSV, and the local-storage pin store).
+   Pure functions take plain data so Node tests can call them.
    ========================================================================== */
 import { lensProperties, imageOf } from '../engine/lensprops.js';
 import { scan1D, nelderMead, evaluateMetric, planeIndex, planeSample, rmsRadius, waistOf, METRICS } from '../engine/optimize.js';
-import { summarize, peakStats, histogram, tofCalibration } from '../engine/analysis.js';
-import { S_STRIDE, S_ID, S_STATUS, S_X, S_Y, S_Z, S_SPECIES, S_SRC, STATUS, STATUS_NAMES } from '../engine/layout.js';
+import { summarize, peakStats, histogram, tofCalibration, beamWaist } from '../engine/analysis.js';
+import { S_STRIDE, S_ID, S_STATUS, S_X, S_Y, S_Z, S_SPECIES, S_SRC, STATUS, STATUS_NAMES, P_STRIDE } from '../engine/layout.js';
 import { ENGINE_VERSION, PRODUCT_NAME } from '../engine/version.js';
+import { runKey as runKeyOf } from '../engine/hash.js';
+import { sourceWeights, generate } from '../engine/particles.js';
+import { PAIR_STEP } from '../engine/pipeline.js';
+import { csvText, fmtNum } from './plots.js';
 
 export const BENCH_STORAGE_KEY = 'ionopt.bench.v1';
 
@@ -111,8 +119,28 @@ export function bootstrapRmsR(t, reps = 200) {
 }
 
 /**
+ * Statistical weights (the sources' `weight`, Particles tab) of the particles with the given ids, for weighted histograms;
+ * null when every weight is 1, so unweighted runs keep plain counts.
+ * @param {object} result TraceResult @param {object} resolved @param {ArrayLike<number>} ids particle ids (e.g. planeSample().ids)
+ * @returns {Float64Array|null}
+ */
+export function sampleWeights(result, resolved, ids) {
+    const sw = sourceWeights(resolved && resolved.sources);
+    if (!sw.some((w) => w !== 1) || !result || !result.summary) return null;
+    const S = result.summary, row = new Map();
+    for (let i = 0; i < result.n; i++) row.set(S[i * S_STRIDE + S_ID], i * S_STRIDE);
+    const out = new Float64Array(ids.length);
+    for (let i = 0; i < ids.length; i++) {
+        const o = row.get(ids[i]), k = o === undefined ? -1 : S[o + S_SRC];
+        out[i] = k >= 0 && k < sw.length ? sw[k] : 1;
+    }
+    return out;
+}
+
+/**
  * TOF peaks per species at a plane: histogram data, peak statistics (mean, σ, FWHM, R from the FWHM, from the rms width and
  * from the narrowest 76.1% of the times; the bootstrap range of the rms-based R) and the calibration t = a√(m/q) + b.
+ * With source weights other than 1 the histograms count Σw per bin (`weighted: true`); the peak statistics stay unweighted.
  */
 export function tofPeaks(result, resolved, k) {
     const smp = planeSample(result, resolved, k);
@@ -120,22 +148,24 @@ export function tofPeaks(result, resolved, k) {
     for (let i = 0; i < result.n; i++) sidx.set(S[i * S_STRIDE + S_ID], i * S_STRIDE);
     const groups = new Map();
     const sources = (resolved && resolved.sources) || [];
+    const wts = sampleWeights(result, resolved, smp.ids);
     for (let i = 0; i < smp.ids.length; i++) {
         const o = sidx.get(smp.ids[i]);
         const src = sources[S[o + S_SRC]], sp = src && src.species ? src.species[S[o + S_SPECIES]] : null;
         const key = sp ? `${sp.label}` : `species ${S[o + S_SPECIES]}`;
         let g = groups.get(key);
-        if (!g) { g = { label: key, mass: sp ? sp.mass : NaN, charge: sp ? sp.charge : NaN, t: [] }; groups.set(key, g); }
+        if (!g) { g = { label: key, mass: sp ? sp.mass : NaN, charge: sp ? sp.charge : NaN, t: [], w: [] }; groups.set(key, g); }
         g.t.push(smp.tof[i]);
+        g.w.push(wts ? wts[i] : 1);
     }
-    const peaks = [...groups.values()].map((g) => ({ ...g, stats: peakStats(g.t), rRange: bootstrapRmsR(g.t) }));
+    const peaks = [...groups.values()].map(({ w, ...g }) => ({ ...g, ...(wts ? { w } : {}), stats: peakStats(g.t), rRange: bootstrapRmsR(g.t) }));
     const all = smp.tof;
     let lo = Infinity, hi = -Infinity;
     for (const t of all) { if (t < lo) lo = t; if (t > hi) hi = t; }
-    const hist = all.length ? peaks.map((p) => ({ label: p.label, ...histogram(p.t, { bins: Math.max(10, Math.min(200, Math.round(Math.sqrt(all.length) * 2))), min: lo, max: hi }) })) : [];
+    const hist = all.length ? peaks.map((p) => ({ label: p.label, ...histogram(p.t, { bins: Math.max(10, Math.min(200, Math.round(Math.sqrt(all.length) * 2))), min: lo, max: hi, weights: wts ? p.w : undefined }) })) : [];
     const pairs = peaks.filter((p) => isNum(p.mass) && isNum(p.charge) && p.charge !== 0 && p.stats.n > 0).map((p) => ({ mq: p.mass / Math.abs(p.charge), t: p.stats.mean }));
     const cal = pairs.length >= 2 ? tofCalibration(pairs) : null;
-    return { peaks, hist, calibration: cal, n: all.length };
+    return { peaks, hist, calibration: cal, n: all.length, weighted: !!wts };
 }
 
 // ---------------------------------------------------------------- lens tool and image finder
@@ -340,15 +370,46 @@ export function accuracyTable(base, fine, tight, coarse = null, { fineIsCoarser 
     });
 }
 /**
+ * The particles a space-charge accuracy check traces: the first particles of every source (at most `max` in all, split
+ * evenly) and the per-source charge scale count/taken, so that the subset carries the charge of the whole run
+ * (pipeline.coulombOptions, override factorScale by source index).
+ * @param {object} resolved @param {number} [max]
+ * @returns {{ particles: Float64Array, scale: number[], n: number }}
+ */
+export function spaceChargeSubset(resolved, max = 200) {
+    const src = (resolved && resolved.sources) || [];
+    const used = src.filter((s) => s.count > 0).length;
+    const per = Math.max(1, Math.floor(max / Math.max(1, used)));
+    const scale = src.map(() => 1), chunks = [];
+    let n = 0;
+    src.forEach((s, k) => {
+        const m = Math.min(per, s.count);
+        if (!(m > 0)) return;
+        chunks.push(generate(src, s.firstId, s.firstId + m, { domainType: resolved.domain.type, relativistic: !resolved.tracer || resolved.tracer.relativistic !== false }));
+        scale[typeof s.index === 'number' ? s.index : k] = s.count / m;
+        n += m;
+    });
+    const particles = new Float64Array(n * P_STRIDE);
+    let o = 0;
+    for (const c of chunks) { particles.set(c, o); o += c.length; }
+    return { particles, scale, n };
+}
+
+/**
  * Accuracy check of the current project: the first ≤ maxParticles particles are re-run on a grid with half the cell
  * (twice the cell when the memory estimate forbids it, noted), at rtol/100 on the same grid, and on a 2h grid
  * (when it divides the domain) for the observed order. onStep(text) reports progress.
+ * Space charge: the lockstep integrator has no rtol, so the comparison run shortens its steps (cell caps and pair step)
+ * to 1/√10, which cuts the time-step error of the fourth-order method about a hundredfold; the traced particles are the
+ * first of every source, each source keeping its whole charge (spaceChargeSubset). `tightening` says which was used.
  */
 export async function accuracyCheck(ctx, { maxParticles = 200, onStep = null } = {}) {
     const st = ctx.store.get();
     if (!st.resolved) throw new Error('The project has errors; fix them before the accuracy check.');
     const project = clone(st.project), r0 = st.resolved;
-    const n = Math.min(maxParticles, r0.particleCount);
+    const sc = !!(r0.tracer && r0.tracer.spaceCharge);
+    const subset = sc ? spaceChargeSubset(r0, maxParticles) : null;
+    const n = subset ? subset.n : Math.min(maxParticles, r0.particleCount);
     if (!(n > 0)) throw new Error('The project has no particles.');
     const h = r0.domain.h;
     const withCell = (cell) => { const p = clone(project); p.domain.cell = cell; return p; };
@@ -359,14 +420,25 @@ export async function accuracyCheck(ctx, { maxParticles = 200, onStep = null } =
         p.tracer = { ...(p.tracer || {}), quality: 'custom', custom: { rtol: rtol / 100, maxStepCells: q.maxStepCells || 0.5, nearStepCells: q.nearStepCells || 0.1, rfStepsPerPeriod: q.rfStepsPerPeriod || 32, borisStepsPerGyration: q.borisStepsPerGyration || 128 } };
         return p;
     };
+    const SHORT = 1 / Math.sqrt(10);
+    const withShortSteps = () => {
+        const p = clone(project);
+        const q = r0.tracer.q || {}, s = r0.tracer.spaceCharge || {};
+        const pair = (s.pairStep > 0 ? s.pairStep : (PAIR_STEP[r0.tracer.quality] || PAIR_STEP.normal)) * SHORT;
+        p.tracer = { ...(p.tracer || {}), quality: 'custom', custom: { rtol, maxStepCells: (q.maxStepCells || 0.5) * SHORT, nearStepCells: (q.nearStepCells || 0.1) * SHORT,
+            rfStepsPerPeriod: q.rfStepsPerPeriod || 32, borisStepsPerGyration: q.borisStepsPerGyration || 128 } };
+        p.tracer.spaceCharge = { ...(p.tracer.spaceCharge || {}), pairStep: pair };
+        return p;
+    };
     const runFirst = (p, label) => ctx.jobs.withTemporaryProject(p, async (tmp) => {
         if (onStep) onStep(label);
         const est = tmp.estimate ? tmp.estimate() : null;
         if (est && est.blocked) { const e = new Error(est.blockMessage || 'Too large'); e.code = 'E_MEMORY'; throw e; }
-        const res = await tmp.traceBatch({ range: [0, n] });
+        const res = subset ? await tmp.traceBatch({ particles: subset.particles, overrides: { factorScale: subset.scale } }) : await tmp.traceBatch({ range: [0, n] });
         return { result: res, resolved: tmp.resolved, nodes: tmp.resolved.domain.N };
     });
     const notes = [];
+    if (sc) notes.push(`Space charge: the check traces the first ${n} particles of the sources with each source's charge factor scaled to carry its whole charge, and the comparison run shortens the lockstep steps (cell and pair-time caps) to 1/√10, about a hundredth of the time-step error of the fourth-order method, in place of rtol/100.`);
     const base = await runFirst(project, 'Re-running the first particles on the current grid');
     let fine, fineCell = h / 2;
     try { fine = await runFirst(withCell(h / 2), `Solving on a grid with half the cell (${h / 2} mm)`); }
@@ -376,7 +448,8 @@ export async function accuracyCheck(ctx, { maxParticles = 200, onStep = null } =
         notes.push('The half-cell grid exceeds the memory limit; the comparison uses twice the cell instead.');
         fine = await runFirst(withCell(2 * h), `Solving on a grid with twice the cell (${2 * h} mm)`);
     }
-    const tight = await runFirst(withRtol(), `Re-running at rtol/100 (${(rtol / 100).toExponential(0)})`);
+    const tight = sc ? await runFirst(withShortSteps(), 'Re-running with the lockstep steps shortened to 1/√10')
+        : await runFirst(withRtol(), `Re-running at rtol/100 (${(rtol / 100).toExponential(0)})`);
     let coarse = null;
     if (fineCell < h) {
         const span = r0.domain.x[1] - r0.domain.x[0], spanY = r0.domain.y[1] - r0.domain.y[0];
@@ -390,6 +463,8 @@ export async function accuracyCheck(ctx, { maxParticles = 200, onStep = null } =
     const rows = accuracyTable(mb, mf, mt, mc, { fineIsCoarser: fineCell > h });
     return {
         particles: n, cell: h, fineCell, coarseCell: coarse ? 2 * h : null, rtol, rows, notes,
+        // which comparison run measured the trajectory accuracy: 'rtol' (rtol/100) or 'steps' (space charge: steps × 1/√10)
+        tightening: sc ? 'steps' : 'rtol', tightLabel: sc ? 'steps/√10' : 'rtol/100',
         endShift: { grid: endPointShift(base.result, fine.result), rtol: endPointShift(base.result, tight.result) },
         nodes: { base: base.nodes, fine: fine.nodes, coarse: coarse ? coarse.nodes : null },
     };
@@ -445,23 +520,36 @@ export function methodsText(state, { bench = undefined } = {}) {
     const nBases = Math.max(0, r.electrodes.length - 1);
     const sol = r.solver || {};
     const methodText = { auto: 'geometric multigrid V(2,2) with automatic fallback to MG-preconditioned BiCGSTAB and adaptive red-black SOR', multigrid: 'geometric multigrid V(2,2)', krylov: 'MG-preconditioned BiCGSTAB', sor: 'adaptive red-black SOR (Carré)' }[sol.method || 'auto'];
-    parts.push(`Electrostatic fields were computed with the ${PRODUCT_NAME} (beta, engine ${ENGINE_VERSION}) on a two-dimensional ${cyl ? 'cylindrical (x, r)' : 'planar (x, y)'} grid of ${d.nx} × ${d.ny} nodes (${d.N.toLocaleString('en-US')} nodes, cell ${fmtSig(d.h, 4)} mm${d.mirror && (d.mirror.x || d.mirror.y) ? `, mirrored in ${[d.mirror.x ? 'x' : null, d.mirror.y ? 'y' : null].filter(Boolean).join(' and ')}` : ''})${(sol.boundary || 'subgrid') === 'subgrid' ? ' with Shortley–Weller sub-grid boundaries' : ' with staircase boundaries'}.`);
+    parts.push(`Electrostatic fields were computed with the ${PRODUCT_NAME} (beta, engine ${ENGINE_VERSION}) on a two-dimensional ${cyl ? 'cylindrical (x, r)' : 'planar (x, y)'} grid of ${d.nx} × ${d.ny} nodes (${d.N.toLocaleString('en-US')} nodes, cell ${fmtSig(d.h, 4)} mm${d.mirror && (d.mirror.x || d.mirror.y) ? `, mirrored in ${[d.mirror.x ? 'x' : null, d.mirror.y ? 'y' : null].filter(Boolean).join(' and ')}` : ''}${d.antimirror && (d.antimirror.x || d.antimirror.y) ? `, anti-mirrored in ${[d.antimirror.x ? 'x' : null, d.antimirror.y ? 'y' : null].filter(Boolean).join(' and ')} (odd potential, 0 V on the plane)` : ''})${(sol.boundary || 'subgrid') === 'subgrid' ? ' with Shortley–Weller sub-grid boundaries' : ' with staircase boundaries'}.`);
     if (nBases > 0) {
         const paths = state.solve && Array.isArray(state.solve.stats) ? [...new Set(state.solve.stats.map((s) => (s.path || []).join(' → ')))].filter(Boolean) : [];
         parts.push(`Laplace's equation was solved by ${methodText} to an estimated error of ${fmtE(sol.tol || 1e-10)} V per volt${paths.length ? ` (methods used: ${paths.join('; ')})` : ''}; ${nBases === 1 ? 'one unit-voltage basis field was' : `${nBases} unit-voltage basis fields, one per electrode, were`} combined by superposition${r.channelCount ? `, with ${r.channelCount} time-dependent channel${r.channelCount === 1 ? '' : 's'}` : ''}.`);
     } else parts.push('No electrode besides ground carries a voltage, so the electric field from electrodes is zero.');
+    if (typeof d.charge === 'string' && d.charge.trim()) {
+        const odd = d.antimirror && ((d.antimirror.x && !(d.mirror && d.mirror.x)) || (!cyl && d.antimirror.y && !(d.mirror && d.mirror.y)));
+        parts.push(`A space-charge density ρ = ${d.charge.trim()} (C/m³) entered as a Poisson term: its particular solution, with 0 V on every electrode, was solved as one more basis and added to the superposition (ρ sampled at the cell centers; the particles do not change it${odd ? '; across the anti-mirror plane the image half carries −ρ' : ''}).`);
+    }
     const interp = r.tracer.fieldInterp === 'linear' ? 'bilinear interpolation of nodal fields' : 'C¹ bicubic Hermite interpolation of the potential (bilinear nodal fields with same-side extrapolation in cells cut by electrodes)';
     parts.push(`The field between nodes used ${interp}.`);
     const q = r.tracer.q || {};
     const integ = { auto: 'the Dormand–Prince 5(4) method, or the Boris method for long runs in purely magnetic fields,', rk45: 'the Dormand–Prince 5(4) method', boris: 'the relativistic Boris method', rk4: 'the classical fourth-order Runge–Kutta method' }[r.tracer.integrator || 'auto'];
     parts.push(`Trajectories were integrated ${r.tracer.relativistic === false ? 'nonrelativistically' : 'relativistically'} with ${integ} at ${QUALITY_TEXT[r.tracer.quality] || 'normal'} accuracy (relative tolerance ${fmtE(q.rtol)}, steps ≤ ${fmtSig(q.maxStepCells)} cell and ≤ ${fmtSig(q.nearStepCells)} cell near electrodes).`);
-    if ((r.magnets || []).length) parts.push(`Magnetic fields: ${r.magnets.length} source${r.magnets.length === 1 ? '' : 's'} (sharp-edged regions, uniform fields or exact circular loops).`);
+    if ((r.magnets || []).length) {
+        const nPoles = r.magnets.filter((m) => m.type === 'poles').length;
+        parts.push(`Magnetic fields: ${r.magnets.length} source${r.magnets.length === 1 ? '' : 's'} (${nPoles ? 'pole pieces from a magnetic scalar potential solved on the grid (B = −∇ψ, infinitely permeable pieces)' : 'sharp-edged regions, uniform fields or exact circular loops'}${nPoles && nPoles < r.magnets.length ? ', with sharp-edged regions, uniform fields or circular loops' : ''}).`);
+    }
+    // physics plug-ins (Domain → Physics)
+    const sc = r.tracer.spaceCharge, gas = r.tracer.gas, drag = r.tracer.drag;
+    if (sc) parts.push(`Pairwise Coulomb forces between the particles were added (space-charge onset estimator, not a self-consistent solution: direct summation with Plummer softening ε = ${fmtSig(sc.softening)} mm, charge factor ${fmtSig(sc.factor)}, lockstep fourth-order Runge–Kutta).`);
+    if (gas) parts.push(`Hard-sphere collisions with a ${fmtSig(gas.mass, 5)} u gas at ${fmtSig(gas.pressure)} Pa and ${fmtSig(gas.temperature, 4)} K (collision diameters: gas ${fmtSig(gas.diameter)} Å, ions ${gas.ionDiameter > 0 ? `${fmtSig(gas.ionDiameter)} Å` : 'estimated from the mass as spheres of density 1 g/cm³'}; isotropic scattering in the center-of-mass frame) were included.`);
+    if (drag) parts.push(`Stokes drag with a mobility K = ${fmtSig(drag.mobility, 4)} cm²/(V·s) was included (qualitative).`);
     const sp = [];
     for (const s of r.sources || []) {
         const species = (s.species || []).map((x) => `${x.label} (${fmtSig(x.mass, 6)} u, ${x.charge > 0 ? '+' : ''}${x.charge} e)`);
         const en = s.energy || {};
         const e = en.type === 'mono' ? `${fmtSig(en.ke, 6)} eV` : en.type === 'uniform' ? `${fmtSig(en.min)}–${fmtSig(en.max)} eV` : en.type === 'gaussian' ? `${fmtSig(en.mean)} eV (FWHM ${fmtSig(en.fwhm)} eV)` : en.type === 'list' ? `${(en.values || []).map((v) => fmtSig(v)).join(', ')} eV` : '';
-        sp.push(`${s.count} ${listJoin(species)} at ${e}`);
+        const wt = isNum(s.weight) && s.weight !== 1 ? `, weight ${fmtSig(s.weight)}` : '';
+        sp.push(s.type === 'rows' ? `a list of ${s.count} particles of ${listJoin(species)}${wt}` : `${s.count} ${listJoin(species)} at ${e}${wt}`);
     }
     if (sp.length) parts.push(`Particles: ${listJoin(sp)}.`);
     const b = bench === undefined ? lastBenchmarkReport() : bench;
@@ -479,5 +567,203 @@ export function statusList(summary) {
 export function statusLabel(code) {
     const t = { 0: 'flying', 1: 'hit', 2: 'detected', 3: 'left the domain', 4: 'time limit', 5: 'step limit', 6: 'absorbed', 7: 'drift end', 8: 'numerical error', 9: 'born inside', 10: 'cancelled' };
     return t[code] || String(code);
+}
+
+// ---------------------------------------------------------------- pinned runs (Compare tab, §4.7)
+// A pin is a plain record { id, label, createdAt, engineVersion, runKey, project, metrics, color, visible }: a deep copy of
+// the project (the sources carry their seeds, so the run is regenerated from it bitwise) and the metrics of the run as it
+// was pinned. Results (trajectories) are never stored; the Compare tab regenerates them through jobs.withTemporaryProject.
+export const PINS_STORAGE_KEY = 'ionopt.pins.v1';
+export const MAX_PINS = 8;
+/** Colour tokens of the pin ghosts (the site's series colours c1–c6; the panel reads their current values from CSS). */
+export const PIN_COLORS = Object.freeze(['c1', 'c2', 'c3', 'c4', 'c5', 'c6']);
+const PARAM_UNITS = { voltage: ' V', length: ' mm', time: ' µs', energy: ' eV', mass: ' u', frequency: ' MHz', angle: '°' };
+let pinSeq = 0;
+
+/** Default label of a pin: the project name and its slider parameters (else up to three fixed electrode voltages). */
+export function pinLabel(project) {
+    const name = (project && project.meta && typeof project.meta.name === 'string' && project.meta.name) || 'Untitled project';
+    const params = ((project && project.params) || []).filter((p) => p && p.slider && isNum(p.value));
+    let parts = params.map((p) => `${p.name} = ${fmtNum(p.value, 6)}${PARAM_UNITS[p.dim] || ''}`);
+    if (!parts.length) parts = ((project && project.electrodes) || []).filter((e) => e && !e.ground && isNum(e.v)).slice(0, 3).map((e) => `${e.name || e.id} ${fmtNum(e.v, 6)} V`);
+    return parts.length ? `${name} · ${parts.join(', ')}` : name;
+}
+
+/**
+ * Metrics of a run for the Compare table (plain numbers, JSON-safe; NaN where a value does not exist): particles,
+ * transmission, the beam waist (§3.11(4), per species as in the Summary tab), per plane the crossings, detected
+ * fraction, spot rms, mean TOF, the waist from that plane and, with ≥ 2 crossings, the TOF statistics (σ, FWHM,
+ * rms-based resolving power, per species peaks), and the energy diagnostics.
+ * @param {object} result TraceResult @param {object} resolved @param {object|null} [model] FieldModel for the waist test
+ */
+export function pinMetrics(result, resolved, model = null) {
+    const ov = runOverview(result, resolved);
+    const s = ov.summary;
+    const bw = beamWaist(result, resolved, model);
+    const planes = ov.planes.map((p) => {
+        const row = { id: p.id, name: p.name, kind: p.kind, terminate: p.terminate, crossings: p.crossings, detected: p.detected, fraction: p.fraction,
+            spotRms: p.spotRms, meanTof: p.meanTof, waistPos: p.waist ? p.waist.position : NaN, waistRms: p.waist ? p.waist.rms : NaN, tof: null };
+        if (p.crossings >= 2) {
+            const all = peakStats(planeSample(result, resolved, p.index).tof);
+            const tp = tofPeaks(result, resolved, p.index);
+            row.tof = { n: all.n, sd: all.std, fwhm: all.fwhm, fwhmResolved: !!all.fwhmResolved, resolvingPower: all.resolvingPowerRms,
+                peaks: tp.peaks.map((q) => ({ label: q.label, n: q.stats.n, mean: q.stats.mean, sd: q.stats.std, fwhm: q.stats.fwhm, resolvingPower: q.stats.resolvingPowerRms })) };
+        }
+        return row;
+    });
+    const byStatus = {};
+    for (const [k, c] of statusList(s)) byStatus[k] = c;
+    return {
+        launched: s.launched, traced: s.traced, byStatus, transmission: s.transmission.overall,
+        waist: bw ? { ok: !!bw.ok, reason: bw.reason || null, axis: bw.axis, name: bw.name, position: bw.position, rms: bw.rms, rmsAtPlane: bw.rmsAtPlane,
+            groups: (bw.groups || []).map((g) => ({ label: g.label, n: g.n, position: g.position, rms: g.rms })) } : null,
+        planes, energy: { maxEnd: s.energy.maxEnd, medianEnd: s.energy.medianEnd, maxEndRel: s.energy.maxEndRel },
+        trajectories: !!(result && result.traj && result.traj.pts && result.traj.pts.length),
+    };
+}
+
+/**
+ * A pin of a run: a deep copy of the project, its run key and the run's metrics.
+ * @param {{ project: object, resolved: object, result: object, model?: object|null, id?: string|null, label?: string|null,
+ *   color?: string|null, now?: number, engineVersion?: string }} o
+ */
+export function makePin({ project, resolved, result, model = null, id = null, label = null, color = null, now = Date.now(), engineVersion = ENGINE_VERSION }) {
+    if (!project || !resolved || !result) throw new Error('A pin needs the project, its resolution and a run result.');
+    return {
+        id: id || `pin-${now.toString(36)}-${(++pinSeq).toString(36)}`,
+        label: label || pinLabel(project), createdAt: new Date(now).toISOString(), engineVersion,
+        runKey: runKeyOf(resolved), project: clone(project), metrics: pinMetrics(result, resolved, model),
+        color: color || PIN_COLORS[0], visible: true,
+    };
+}
+
+/**
+ * The pins with `pin` added at the end, the oldest dropped beyond `max`; a pin whose id is already there replaces it in
+ * place, so relabelling or hiding a pin keeps its number and column (as store.pinRun).
+ */
+export function addPin(pins, pin, max = MAX_PINS) {
+    const list = pins || [];
+    const k = list.findIndex((p) => p.id === pin.id);
+    if (k >= 0) { const same = list.slice(); same[k] = pin; return same; }
+    const out = [...list, pin];
+    while (out.length > max) out.shift();
+    return out;
+}
+/** The pins without the one with this id. */
+export function removePin(pins, id) { return (pins || []).filter((p) => p.id !== id); }
+/** The first colour token no pin uses (else cycling through the tokens). */
+export function nextPinColor(pins) {
+    const used = new Set((pins || []).map((p) => p.color));
+    return PIN_COLORS.find((c) => !used.has(c)) || PIN_COLORS[(pins || []).length % PIN_COLORS.length];
+}
+/** The storable part of a pin (no results, no derived state). */
+export function serializePin(pin) {
+    const { id, label, createdAt, engineVersion, runKey, project, metrics, color } = pin;
+    return { id, label, createdAt: createdAt || null, engineVersion: engineVersion || null, runKey: runKey || null, project, metrics: metrics || null,
+        color: PIN_COLORS.includes(color) ? color : PIN_COLORS[0], visible: pin.visible !== false };
+}
+function defaultStorage() { try { return globalThis.localStorage || null; } catch (e) { return null; } }
+/**
+ * Pins saved in local storage (the same mechanism as the autosave: every call wrapped, [] when storage is blocked,
+ * absent or damaged). Entries without an id or a project object are dropped; at most MAX_PINS (the newest) are kept.
+ * @param {Storage|null} [storage]
+ */
+export function readPins(storage = defaultStorage()) {
+    try {
+        if (!storage) return [];
+        const raw = storage.getItem(PINS_STORAGE_KEY);
+        if (!raw) return [];
+        const data = JSON.parse(raw);
+        const list = Array.isArray(data) ? data : (data && Array.isArray(data.pins) ? data.pins : []);
+        return list.filter((p) => p && typeof p === 'object' && typeof p.id === 'string' && p.id && p.project && typeof p.project === 'object')
+            .slice(-MAX_PINS)
+            .map((p) => ({ ...serializePin(p), label: typeof p.label === 'string' && p.label ? p.label : pinLabel(p.project), metrics: p.metrics && typeof p.metrics === 'object' ? p.metrics : null }));
+    } catch (e) { return []; }
+}
+/**
+ * Saves the pins (serialized, at most MAX_PINS) to local storage; an empty list removes the entry, so that a startup
+ * probe of the key finds nothing to load. @returns {boolean} saved
+ */
+export function writePins(pins, storage = defaultStorage(), now = Date.now()) {
+    try {
+        if (!storage) return false;
+        const list = (pins || []).slice(-MAX_PINS);
+        if (!list.length) {
+            if (typeof storage.removeItem === 'function') storage.removeItem(PINS_STORAGE_KEY);
+            else storage.setItem(PINS_STORAGE_KEY, '[]');
+            return true;
+        }
+        storage.setItem(PINS_STORAGE_KEY, JSON.stringify({ version: 1, savedAt: new Date(now).toISOString(), pins: list.map(serializePin) }));
+        return true;
+    } catch (e) { return false; }
+}
+
+/**
+ * True when two metric sets of the same pin disagree beyond rounding (1e-9 relative) in transmission, waist, spot
+ * rms or mean TOF: the regenerated run differs from the one pinned (another engine version, or a changed preset).
+ */
+export function metricsDiffer(a, b) {
+    if (!a || !b) return false;
+    const pairs = [[a.transmission, b.transmission]];
+    if (a.waist && b.waist && a.waist.ok && b.waist.ok) pairs.push([a.waist.position, b.waist.position], [a.waist.rms, b.waist.rms]);
+    for (const p of a.planes || []) {
+        const q = (b.planes || []).find((x) => x.id === p.id);
+        if (q) pairs.push([p.spotRms, q.spotRms], [p.meanTof, q.meanTof], [p.fraction, q.fraction]);
+    }
+    return pairs.some(([x, y]) => isNum(x) && isNum(y) && Math.abs(x - y) > 1e-9 * Math.max(1, Math.abs(x), Math.abs(y)));
+}
+
+/**
+ * The side-by-side table of pinned runs: one column per pin and a row for every metric at least one pin has (NaN where
+ * a pin lacks it). metricsOf(pin) chooses the metrics shown (default: those stored with the pin; the panel passes the
+ * regenerated ones).
+ * @returns {{ columns: string[], keys: string[], rows: Array<Array<string|number>> }}
+ */
+export function compareTable(pins, metricsOf = (p) => p.metrics) {
+    const list = pins || [];
+    const ms = list.map((p) => metricsOf(p) || {});
+    const num = (v) => (isNum(v) ? v : NaN);
+    const defs = [];
+    const add = (key, label, get) => { if (!defs.some((d) => d.key === key)) defs.push({ key, label, get }); };
+    add('launched', 'Particles launched', (m) => num(m.launched));
+    add('transmission', 'Transmission (all detectors)', (m) => num(m.transmission));
+    add('waist:pos', 'Waist position (mm)', (m) => (m.waist && m.waist.ok ? num(m.waist.position) : NaN));
+    add('waist:rms', 'rms radius at the waist (mm)', (m) => (m.waist && m.waist.ok ? num(m.waist.rms) : NaN));
+    const planeOf = (m, id) => ((m && m.planes) || []).find((p) => p.id === id);
+    const pv = (id, f) => (m) => { const r = planeOf(m, id); return r ? num(f(r)) : NaN; };
+    const tv = (id, f) => (m) => { const r = planeOf(m, id); return r && r.tof ? num(f(r.tof)) : NaN; };
+    for (const m of ms) {
+        for (const p of m.planes || []) {
+            const lab = p.name || p.id;
+            if (p.terminate) add(`${p.id}:fraction`, `${lab}: transmission`, pv(p.id, (r) => r.fraction));
+            add(`${p.id}:crossings`, `${lab}: crossings`, pv(p.id, (r) => r.crossings));
+            add(`${p.id}:spotRms`, `${lab}: spot rms (mm)`, pv(p.id, (r) => r.spotRms));
+            add(`${p.id}:meanTof`, `${lab}: mean TOF (µs)`, pv(p.id, (r) => r.meanTof));
+            add(`${p.id}:tofSd`, `${lab}: TOF σ (µs)`, tv(p.id, (t) => t.sd));
+            add(`${p.id}:tofFwhm`, `${lab}: TOF FWHM (µs)`, tv(p.id, (t) => t.fwhm));
+            add(`${p.id}:R`, `${lab}: resolving power t/(2·2.3548σ)`, tv(p.id, (t) => t.resolvingPower));
+            const peaks = (p.tof && p.tof.peaks) || [];
+            if (peaks.length > 1) {
+                for (const pk of peaks) {
+                    const sel = (f) => tv(p.id, (t) => { const q = (t.peaks || []).find((x) => x.label === pk.label); return q ? f(q) : NaN; });
+                    add(`${p.id}:${pk.label}:meanTof`, `${lab}, ${pk.label}: mean TOF (µs)`, sel((q) => q.mean));
+                    add(`${p.id}:${pk.label}:fwhm`, `${lab}, ${pk.label}: TOF FWHM (µs)`, sel((q) => q.fwhm));
+                    add(`${p.id}:${pk.label}:R`, `${lab}, ${pk.label}: resolving power`, sel((q) => q.resolvingPower));
+                }
+            }
+        }
+    }
+    add('energy:maxEnd', 'Max |ΔE| at the end (eV)', (m) => (m.energy ? num(m.energy.maxEnd) : NaN));
+    const rows = [], keys = [];
+    for (const d of defs) {
+        const vals = ms.map((m) => d.get(m));
+        if (vals.some(isNum)) { rows.push([d.label, ...vals]); keys.push(d.key); }
+    }
+    return { columns: ['Metric', ...list.map((p, i) => `${i + 1}. ${p.label || p.id}`)], keys, rows };
+}
+/** CSV of the comparison table. */
+export function compareCsv(pins, metricsOf) {
+    const t = compareTable(pins, metricsOf);
+    return csvText(t.columns, t.rows);
 }
 
