@@ -234,7 +234,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', e => {
         if (e.target.matches && e.target.matches('input, select, textarea') && e.target.id !== 'wrap') return;
         if (KEYS[e.key]) { e.preventDefault(); steer(KEYS[e.key]); }
-        else if (e.key === ' ' || e.key === 'p' || e.key === 'P') { if (running) { e.preventDefault(); togglePause(); } else if (e.key === ' ' && !$('overlay').hidden) { e.preventDefault(); start(); } }
+        else if (e.key === ' ' || e.key === 'p' || e.key === 'P') {
+            if (e.key === ' ' && e.target.matches && e.target.matches('button, a')) return;   // Space on a focused button activates it
+            if (running) { e.preventDefault(); togglePause(); } else if (e.key === ' ' && !$('overlay').hidden) { e.preventDefault(); start(); }
+        }
         else if (e.key === 'Enter' && document.activeElement === cv) { e.preventDefault(); reset(); start(); }
     });
     let t0 = null;

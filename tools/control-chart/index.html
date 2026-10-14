@@ -368,8 +368,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // number (a pasted column header) cannot shift anything and is ignored.
     function checkData(text, ind) {
         const shift = ind ? '' : '; skipping it would shift every later subgroup';
+        let m;
+        // "1.064,5" (period as thousands separator, decimal comma) would be split at the comma
+        if ((m = /(^|[\s;])([-+−]?\d{1,3}(?:\.\d{3})+,\d+)(?=,\s|[\s;]|$)/.exec(text))) throw Calc.fail('“' + m[2] + '” is ambiguous: use a period as the decimal mark and no thousands separators (1064.5, not 1.064,5).', 'data');
+        // "1,200, 1,300" or "12,500\t13,200": a comma followed by exactly three digits is a thousands separator, a decimal comma, or a separator between values
+        if ((m = /(^|[\s;,])([-+−]?\d{1,3}(?:,\d{3})+)(?=,\s|[\s;]|$)/.exec(text))) throw Calc.fail('“' + m[2] + '” is ambiguous: a thousands separator, a decimal comma, or separate values. Remove thousands separators (1200, not 1,200), use a period as the decimal mark (1.2, not 1,2), and separate values with spaces, tabs, or new lines.', 'data');
         if (/(^|[\s;])[-+−]?\d+,\d+(?=[\s;]|$)/.test(text) && !/\d\.\d/.test(text) && !/,\s|\s,|\d,\d+,/.test(text)) throw Calc.fail('Use a period as the decimal mark (12.04, not 12,04) and no thousands separators. Separate values with spaces, tabs, commas, or new lines.', 'data');
-        if (/(^|[\s;])[-+−]?\d{1,3}(,\d{3})+\.\d+(?=[\s;]|$)/.test(text)) throw Calc.fail('Remove the thousands separators (1234.5, not 1,234.5). Commas separate values.', 'data');
+        if (/(^|[\s;])[-+−]?\d{1,3}(,\d{3})+\.\d+(?=,\s|[\s;]|$)/.test(text)) throw Calc.fail('Remove the thousands separators (1234.5, not 1,234.5). Commas separate values.', 'data');
         const toks = text.split(/[\s,;]+/).filter(Boolean), bad = toks.slice(Math.max(0, toks.findIndex(isNum))).find(t => !isNum(t));
         if (bad !== undefined) throw Calc.fail('“' + bad + '” is not a number. Delete it or enter the value' + shift + '.', 'data');
         // a blank cell in a tab- or comma-separated paste (a blank column, or blanks after the last value, are harmless)
@@ -390,7 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sigmaLabel.textContent = std ? 'Process σ₀ (given)' : ind ? 'Short-term σ estimate' : 'Within-subgroup σ estimate';
             countLabel.textContent = ind ? 'Observations' : 'Subgroups · values used';
             checkData(v.data, ind);
-            const data = Calc.parseList(v.data);
+            const data = Calc.parseList(v.data, 'data');
             const n = ind ? 1 : Calc.parseNum(v.n);
             if (!ind && (!Number.isInteger(n) || n < 2 || n > 25)) throw Calc.fail('Subgroup size must be a whole number from 2 to 25.', 'n');
             let mu0, s0;

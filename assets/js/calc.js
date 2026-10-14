@@ -94,9 +94,13 @@
     /* ── Number parsing & formatting ────────────────────────────────────── */
     // one comma followed by exactly three digits ("1,064", "-12,500") reads as thousands or as decimals
     var AMBIGUOUS_COMMA = /^[-+]?[1-9]\d{0,2},\d{3}([eE][-+]?\d+)?$/;
+    var SUPD = { '⁻': '-', '⁺': '+', '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9' };
     function normNum(s) {
-        // "2,5 × 10^-3" → "2,5e-3" (before the comma rules, so a decimal comma works with ×10ⁿ too)
-        return String(s).trim().replace(/[−‒–]/g, '-').replace(/\s+/g, '').replace(/[×x*]10\^?([-+]?\d+)$/i, 'e$1');
+        // "2,5 × 10^-3" → "2,5e-3" (before the comma rules, so a decimal comma works with ×10ⁿ too); a copied result
+        // ("1.234 × 10⁻⁵", as fmt.sci writes it) has a superscript exponent, so that form is accepted too
+        return String(s).trim().replace(/[−‒–]/g, '-').replace(/\s+/g, '')
+            .replace(/[×x*]10([⁻⁺⁰¹²³⁴⁵⁶⁷⁸⁹]+)$/, function (m, e) { return 'e' + e.split('').map(function (c) { return SUPD[c]; }).join(''); })
+            .replace(/[×x*]10\^?([-+]?\d+)$/i, 'e$1');
     }
     function parseNum(s) {
         if (s === null || s === undefined) return NaN;
@@ -147,7 +151,7 @@
         // 1234.5 / 0.01234 / 1.234 × 10⁻⁵
         num: function (x, sig) {
             sig = sig || 4;
-            if (x === null || x === undefined || isNaN(x)) return '—';
+            if (typeof x !== 'number' || isNaN(x)) return '—';
             if (!isFinite(x)) return x > 0 ? '∞' : '−∞';
             if (x === 0) return '0';
             var a = Math.abs(x);
@@ -157,7 +161,7 @@
         // always scientific: 1.234 × 10⁸ (falls back to plain for 10⁰…10²)
         sci: function (x, sig) {
             sig = sig || 4;
-            if (x === null || x === undefined || isNaN(x)) return '—';
+            if (typeof x !== 'number' || isNaN(x)) return '—';
             if (!isFinite(x)) return x > 0 ? '∞' : '−∞';
             if (x === 0) return '0';
             var s = x.toExponential(sig - 1).split('e');
@@ -168,7 +172,7 @@
         // SI prefix: fmt.si(2.5e-6, 'm') → "2.5 µm"
         si: function (x, unit, sig, opts) {
             sig = sig || 4; opts = opts || {};
-            if (x === null || x === undefined || isNaN(x)) return '—';
+            if (typeof x !== 'number' || isNaN(x)) return '—';
             if (!isFinite(x)) return (x > 0 ? '∞ ' : '−∞ ') + unit;
             if (x === 0) return '0 ' + unit;
             var P = { '-18': 'a', '-15': 'f', '-12': 'p', '-9': 'n', '-6': 'µ', '-3': 'm', '0': '', '3': 'k', '6': 'M', '9': 'G', '12': 'T', '15': 'P' };
@@ -177,8 +181,10 @@
             e3 = Math.max(lo, Math.min(hi, e3));
             var m = roundSig(x / Math.pow(10, e3), sig);
             if (Math.abs(m) >= 1000 && e3 + 3 <= hi) { e3 += 3; m = roundSig(x / Math.pow(10, e3), sig); }
-            var mantissa = (Math.abs(m) >= 1e-3 && Math.abs(m) < 1e5) ? plainDecimal(m, sig) : fmt.sci(m, sig);
-            return mantissa.replace(/^-/, '−') + ' ' + P[String(e3)] + unit;
+            // beyond the prefix range (the clamp left a mantissa outside 0.001…99999) plain scientific notation
+            // reads better than "5 × 10⁵ PW"
+            if (Math.abs(m) < 1e-3 || Math.abs(m) >= 1e5) return fmt.sci(x, sig) + ' ' + unit;
+            return plainDecimal(m, sig).replace(/^-/, '−') + ' ' + P[String(e3)] + unit;
         },
         // value in a specific unit of a dimension: fmt.unit(0.0021, 'length', 'mm') → "2.1 mm"
         unit: function (x, dim, unit, sig) { return fmt.num(fromSI(dim, unit, x), sig) + (unit ? ' ' + unit : ''); },
@@ -186,7 +192,7 @@
         // editable ASCII form for converter inputs: 1064, 0.0012, 1.1654e-19
         plain: function (x, sig) {
             sig = sig || 6;
-            if (!isFinite(x)) return '';
+            if (typeof x !== 'number' || !isFinite(x)) return '';
             if (x === 0) return '0';
             var a = Math.abs(x);
             if (a >= 1e-4 && a < 1e7) return plainDecimal(x, sig);
@@ -252,11 +258,18 @@
         return str.split(/[\s,;]+/).map(parseNum).filter(function (x) { return isFinite(x); });
     }
     function checkList(str, field) {
-        var isNum = function (t) { return isFinite(parseNum(t)); }, i;
+        var isNum = function (t) { return isFinite(parseNum(t)); }, i, m;
+        // "1.064,5" (period as thousands separator, decimal comma) would be split at the comma: refuse it rather than guess
+        if ((m = /(^|[\s;])([-+−]?\d{1,3}(?:\.\d{3})+,\d+)(?=,\s|[\s;]|$)/.exec(str)))
+            throw fail('“' + m[2] + '” is ambiguous: use a period as the decimal mark and no thousands separators (1064.5, not 1.064,5).', field);
+        // "1,200, 1,300" or "12,500\t13,200": a comma followed by exactly three digits is a thousands separator, a decimal
+        // comma, or a separator between values; every reading but one splits or misreads the value, so refuse it
+        if ((m = /(^|[\s;,])([-+−]?\d{1,3}(?:,\d{3})+)(?=,\s|[\s;]|$)/.exec(str)))
+            throw fail('“' + m[2] + '” is ambiguous: a thousands separator, a decimal comma, or separate values. Remove thousands separators (1200, not 1,200), use a period as the decimal mark (1.2, not 1,2), and separate values with spaces, tabs, or new lines.', field);
         // a comma next to a space, or two commas in one run ("10,20,30"), shows that commas separate the values here
         if (/(^|[\s;])[-+−]?\d+,\d+(?=[\s;]|$)/.test(str) && !/\d\.\d/.test(str) && !/,\s|\s,|\d,\d+,/.test(str))
             throw fail('Use a period as the decimal mark (12.04, not 12,04). Separate values with spaces, tabs, commas, or new lines.', field);
-        if (/(^|[\s;])[-+−]?\d{1,3}(,\d{3})+\.\d+(?=[\s;]|$)/.test(str))
+        if (/(^|[\s;])[-+−]?\d{1,3}(,\d{3})+\.\d+(?=,\s|[\s;]|$)/.test(str))
             throw fail('Remove the thousands separators (1234.5, not 1,234.5). Commas separate values.', field);
         var toks = str.split(/[\s,;]+/).filter(Boolean), seen = false;   // text before the first number is a header
         for (i = 0; i < toks.length; i++) {
@@ -330,6 +343,19 @@
             copyText(location.href).then(function (ok) { if (ok) flash(share, 'copied', 'Link copied'); });
         }
     });
+    // click-to-copy results are reachable from the keyboard too: every .result-value is a tab stop, and Enter or Space
+    // copies it like a click does (run for the whole page once it has loaded, and again for each calculator's outputs)
+    function focusable(root) {
+        root.querySelectorAll('.result-value').forEach(function (o) {
+            if (!o.hasAttribute('tabindex')) o.tabIndex = 0;
+            if (!o.title) o.title = 'Copy value';
+        });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { focusable(document); });
+    else focusable(document);
+    document.addEventListener('keydown', function (e) {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.result-value')) { e.preventDefault(); e.target.click(); }
+    });
 
     /* ── Hash state ─────────────────────────────────────────────────────── */
     function readHash() {
@@ -379,6 +405,7 @@
         var outRoot = opts.outputs ? (typeof opts.outputs === 'string' ? document.querySelector(opts.outputs) : opts.outputs) : document;
         var prefix = opts.id ? opts.id + '.' : '';
         if (root.tagName === 'FORM') root.addEventListener('submit', function (e) { e.preventDefault(); });
+        focusable(outRoot);   // outputs added after the page loaded
 
         root.querySelectorAll('select[data-dim]').forEach(function (sel) {
             var named = sel.getAttribute('aria-label');

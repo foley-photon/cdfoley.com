@@ -34,11 +34,13 @@
     .card .back { border: 1px solid #0b1220; box-shadow: 0 1px 2px rgba(0,0,0,.3);
         background: linear-gradient(135deg, transparent 46%, rgba(110,168,254,.55) 48%, rgba(52,211,153,.55) 52%, transparent 54%) center / 100% 100% no-repeat,
                     repeating-linear-gradient(45deg, #17284a 0 5px, #13213d 5px 10px); outline: 3px solid #fdfdfb; outline-offset: -5px; }
-    .corner { position: absolute; font: 700 calc(var(--cw) * 0.2)/0.95 var(--font); text-align: center; letter-spacing: -0.02em; }
+    .corner { position: absolute; font: 700 max(10px, calc(var(--cw) * 0.2))/0.95 var(--font); text-align: center; letter-spacing: -0.02em; }
     .corner.tl { top: 5%; left: 7%; } .corner.br { bottom: 5%; right: 7%; transform: rotate(180deg); }
     .pip { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw) * 0.48); line-height: 1; }
     .pip.court { font: 700 calc(var(--cw) * 0.34) var(--font); }
     .card.hint .face { box-shadow: 0 0 0 3px #fbbf24; }
+    .felt:focus-visible { outline-offset: 0; }
+    .felt:focus-visible .kb { outline: 3px solid #fff; outline-offset: 2px; }   /* the keyboard cursor, shown only while the table has keyboard focus */
     .sol-bar .chip { background: var(--surface); }
 </style>
 <script type="application/ld+json" id="ld-page">
@@ -117,10 +119,10 @@
             </div>
         </div>
         <div class="game-stage">
-            <div class="felt" id="table" aria-label="Solitaire table"></div>
+            <div class="felt" id="table" tabindex="0" role="application" aria-label="Solitaire table" aria-describedby="sol-help"></div>
             <div class="game-overlay" id="overlay" hidden><h2 id="ov-head">You won!</h2><p id="ov-text"></p><div class="game-actions"><button class="btn btn-primary" type="button" id="again">Deal again</button><button class="btn btn-secondary" type="button" id="keep" hidden>Keep playing</button></div></div>
         </div>
-        <p class="game-help"><strong>Drag</strong> cards to move them, or <strong>tap</strong> a card to send it to the best legal spot (foundations first). Tap the deck to draw; tap the empty deck to turn the waste pile over. Face-down cards flip automatically when uncovered. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.</p>
+        <p class="game-help" id="sol-help"><strong>Drag</strong> cards to move them, or <strong>tap</strong> a card to send it to the best legal spot (foundations first). Tap the deck to draw; tap the empty deck to turn the waste pile over. Face-down cards flip automatically when uncovered. Keyboard: <kbd>Tab</kbd> to the table, then the arrow keys choose a pile or card (<kbd>↑</kbd> in a column reaches a run) and <kbd>Enter</kbd> or <kbd>Space</kbd> draws or moves it. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.</p>
     </div>
 </main>
 
@@ -132,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const SUITS = ['♠', '♥', '♦', '♣'], RANKS = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
     const NAMES = ['', 'Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King'], SUIT_NAMES = ['spades', 'hearts', 'diamonds', 'clubs'];
     const red = c => c.s === 1 || c.s === 2;
-    let S, moves, undoStack, t0, tick, els = {}, L = {}, drag = null, won = false;
+    let S, moves, undoStack, t0, tick, els = {}, L = {}, drag = null, won = false, kb = { i: 0, depth: 0 }, kbEl = null;
 
     // ── Model ──
     function deal() {
@@ -235,12 +237,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function build() {
         table.innerHTML = '';
-        const slot = (cls, label) => { const d = document.createElement('div'); d.className = 'slot ' + cls; if (label) d.textContent = label; table.appendChild(d); return d; };
-        L.slots = { stock: slot('stock'), waste: slot('waste'), found: [0, 1, 2, 3].map(() => slot('found', 'A')), tab: [0, 1, 2, 3, 4, 5, 6].map(() => slot('tab', 'K')) };
+        const slot = (cls, label, id, name) => { const d = document.createElement('div'); d.className = 'slot ' + cls; d.id = 'sol-' + id; d.setAttribute('aria-label', name); if (label) d.textContent = label; table.appendChild(d); return d; };
+        L.slots = { stock: slot('stock', '', 'stock', 'Stock'), waste: slot('waste', '', 'waste', 'Waste'), found: [0, 1, 2, 3].map(i => slot('found', 'A', 'found' + i, 'Foundation ' + (i + 1))), tab: [0, 1, 2, 3, 4, 5, 6].map(i => slot('tab', 'K', 'tab' + i, 'Column ' + (i + 1))) };
         els = {};
         for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) {
             const c = { s, r }, d = document.createElement('div');
-            d.className = 'card' + (red(c) ? ' red' : ''); d.dataset.id = s * 13 + r; d.innerHTML = cardHTML(c);
+            d.className = 'card' + (red(c) ? ' red' : ''); d.dataset.id = s * 13 + r; d.id = 'sol-c' + (s * 13 + r); d.innerHTML = cardHTML(c);
             table.appendChild(d); els[s * 13 + r] = d;
         }
     }
@@ -276,6 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             maxH = Math.max(maxH, y - tabY + ch - (p.length ? (p[p.length - 1].up ? dUp : dDown) : 0));
         });
         table.style.height = Math.ceil(tabY + maxH + gap * 2) + 'px';
+        kbShow();
     }
 
     // ── Input ──
@@ -314,13 +317,47 @@ document.addEventListener('DOMContentLoaded', () => {
             const [px, py] = tablePoint(e), dx = px - d.sx, dy = py - d.sy;
             const dest = dropTarget(d.base[0][0] + dx + L.cw / 2, d.base[0][1] + dy + L.ch * 0.3);
             if (!(dest && !(dest.pile === d.loc.pile && dest.idx === d.loc.idx) && move(d.loc, dest))) render();
-        } else if (!autoMove(d.loc)) { const el = els[d.ids[0]]; el.animate([{ marginLeft: '0' }, { marginLeft: '-5px' }, { marginLeft: '5px' }, { marginLeft: '0' }], { duration: 220 }); }
+        } else if (!autoMove(d.loc)) shake(els[d.ids[0]]);
     });
+    function shake(el) { el.animate([{ marginLeft: '0' }, { marginLeft: '-5px' }, { marginLeft: '5px' }, { marginLeft: '0' }], { duration: 220 }); }
+
+    // ── Keyboard ──
+    // The table is one tab stop. Left/Right move a cursor along the top row (stock, waste, foundations) or the tableau
+    // columns, Up/Down switch rows, and Up inside a column reaches deeper face-up cards (a run). Enter or Space draws
+    // from the stock or sends the chosen card to its best spot, exactly as a tap does.
+    const TOP_OF = [0, 1, 1, 2, 3, 4, 5], TAB_OF = [0, 1, 3, 4, 5, 6];   // tableau column → top-row index, and back
+    function kbTarget() {
+        const i = kb.i;
+        if (i < 6) { const p = i === 0 ? S.stock : i === 1 ? S.waste : S.found[i - 2]; return p.length ? els[p[p.length - 1].id] : i === 0 ? L.slots.stock : i === 1 ? L.slots.waste : L.slots.found[i - 2]; }
+        const p = S.tab[i - 6]; if (!p.length) { kb.depth = 0; return L.slots.tab[i - 6]; }
+        kb.depth = Math.max(0, Math.min(kb.depth, p.filter(c => c.up).length - 1));
+        return els[p[p.length - 1 - kb.depth].id];
+    }
+    function kbShow() {
+        if (kbEl) kbEl.classList.remove('kb');
+        kbEl = kbTarget(); kbEl.classList.add('kb'); table.setAttribute('aria-activedescendant', kbEl.id);
+    }
+    function kbAct() {
+        if (kb.i === 0) { drawStock(); return; }
+        const el = kbTarget(); if (!el.classList.contains('card')) return;
+        if (!autoMove(locate(+el.dataset.id))) shake(el);
+    }
+    table.addEventListener('focus', kbShow);
     table.addEventListener('pointercancel', () => { if (drag) { drag.ids.forEach(id => els[id].classList.remove('dragging')); drag = null; render(); } });
 
     function undo() { if (!undoStack.length || won) return; const u = JSON.parse(undoStack.pop()); S = u.S; moves = u.moves; render(); update(); }
     $('undo').addEventListener('click', undo);
-    document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); } });
+    document.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+        if (document.activeElement !== table || won || e.altKey || e.ctrlKey || e.metaKey) return;
+        const k = e.key, top = kb.i < 6;
+        if (k === 'ArrowLeft' || k === 'ArrowRight') { const d = k === 'ArrowLeft' ? -1 : 1; kb.i = top ? (kb.i + d + 6) % 6 : 6 + (kb.i - 6 + d + 7) % 7; kb.depth = 0; }
+        else if (k === 'ArrowUp') { if (top) return; const p = S.tab[kb.i - 6]; if (kb.depth < p.filter(c => c.up).length - 1) kb.depth++; else { kb.i = TOP_OF[kb.i - 6]; kb.depth = 0; } }
+        else if (k === 'ArrowDown') { if (top) { kb.i = 6 + TAB_OF[kb.i]; kb.depth = 0; } else if (kb.depth > 0) kb.depth--; else return; }
+        else if (k === 'Enter' || k === ' ') kbAct();
+        else return;
+        e.preventDefault(); kbShow();
+    });
     $('new').addEventListener('click', () => { deal(); render(); update(); });
     $('again').addEventListener('click', () => { if (pendingDraw) { $('draw').value = pendingDraw; pendingDraw = null; saveDraw(); } deal(); render(); update(); });
     // Changing the draw mode deals a new game, so a game in progress asks first (the select shows the current mode until confirmed).
@@ -355,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
     build(); deal(); layout(); render(); update();
     new ResizeObserver(() => { const w = table.clientWidth; if (w !== L.W) { layout(); render(); } }).observe(table);
     window.addEventListener('resize', () => render());
-    window.__sol = { get state() { return S; }, move, autoMove, locate, drawStock, accepts, canFinish };
+    window.__sol = { get state() { return S; }, move, autoMove, locate, drawStock, accepts, canFinish, render };
 });
 </script>
 </body>
