@@ -187,6 +187,7 @@
                     <div class="field">
                         <label for="q">Specific outgassing rate <span class="sym">q</span></label>
                         <div class="input-unit"><input id="q" name="q" value="" inputmode="decimal" data-optional data-nonneg placeholder="e.g. 1e-8" data-label="outgassing rate"><span class="unit">mbar·L/(s·cm²)</span></div>
+                        <p class="hint" style="margin-bottom:0">Typical values in mbar·L/(s·cm²): cleaned unbaked stainless steel 10⁻⁹–10⁻⁷ after 1&nbsp;h of pumping (falling about as 1/t), fluoroelastomer seals 4&nbsp;×&nbsp;10⁻⁷–10⁻⁶ after 1&nbsp;h, steel after a 24&nbsp;h bake at 150&nbsp;°C about 3&nbsp;×&nbsp;10⁻¹².</p>
                     </div>
                     <div class="field">
                         <label for="A">Internal surface area <span class="sym">A</span></label>
@@ -259,15 +260,28 @@
             <li><strong>Isothermal, quasi-static flow.</strong> Fast roughing from atmosphere cools the gas and can condense water.</li>
             <li><strong>Laminar, subsonic flow in the line.</strong> Near atmosphere the flow in a roughing line is often turbulent (the calculator reports the Reynolds number at p₀; turbulent above about 2000 to 4000), and a turbulent line conducts less than the Poiseuille value. A large pump on a narrow line can also choke it: the gas cannot enter faster than about the speed of sound, which caps the throughput near \(0.68\,p\,\pi d^2/4 \cdot \sqrt{RT/M}\) for air and other diatomic gases (0.73 for helium and argon). The calculator flags both but does not model them, so in those cases the real pump-down near atmosphere is slower than calculated.</li>
             <li>Straight round tubes only. Bends, flexible bellows, and rectangular or annular ducts conduct less. Use vendor data or a Monte Carlo model for them.</li>
+            <li><strong>Elements joined through large volumes.</strong> Adding 1/S and 1/C assumes the line and the pump meet through a volume much larger than their openings. When the line bore equals the pump inlet, the sum counts the shared opening twice, so in molecular flow the calculated effective speed is conservative; combining transmission probabilities (Oatley 1957, with Santeler’s 1986 correction) gives about 20&nbsp;% more for a 100&nbsp;mm, 20&nbsp;cm port on a 300&nbsp;L/s pump.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>J. F. O'Hanlon, <em>A User's Guide to Vacuum Technology</em>, 3rd ed., Wiley (2003), ch. 3 (gas flow and conductance) and ch. 4 (gas release from solids).</li>
-            <li>K. Jousten (ed.), <em>Handbook of Vacuum Technology</em>, 2nd ed., Wiley-VCH (2016).</li>
-            <li>S. Dushman, <em>Scientific Foundations of Vacuum Technique</em>, 2nd ed. (rev. J. M. Lafferty), Wiley (1962).</li>
-            <li>A. S. Berman, “Free molecule transmission probabilities,” <em>J. Appl. Phys.</em> <strong>36</strong>, 3356 (1965).</li>
+            <li>M. Knudsen, “Die Gesetze der Molekularströmung und der inneren Reibungsströmung der Gase durch Röhren,” <em>Ann. Phys.</em> <strong>333</strong>, 75–130 (1909), <a href="https://doi.org/10.1002/andp.19093330106" target="_blank" rel="noopener">doi:10.1002/andp.19093330106</a> (molecular-flow conductance of long tubes and the transitional-flow formula the calculator uses).</li>
+            <li>P. Clausing, “Über die Strömung sehr verdünnter Gase durch Röhren von beliebiger Länge,” <em>Ann. Phys.</em> <strong>404</strong>, 961–989 (1932), <a href="https://doi.org/10.1002/andp.19324040804" target="_blank" rel="noopener">doi:10.1002/andp.19324040804</a>; English translation, “The flow of highly rarefied gases through tubes of arbitrary length,” <em>J. Vac. Sci. Technol.</em> <strong>8</strong>, 636–646 (1971), <a href="https://doi.org/10.1116/1.1316379" target="_blank" rel="noopener">doi:10.1116/1.1316379</a> (the transmission probability of a tube of any length).</li>
+            <li>A. S. Berman, “Free molecule transmission probabilities,” <em>J. Appl. Phys.</em> <strong>36</strong>, 3356 (1965), <a href="https://doi.org/10.1063/1.1702984" target="_blank" rel="noopener">doi:10.1063/1.1702984</a> (the closed form for Clausing’s problem used by the calculator).</li>
+            <li>D. J. Santeler, “New concepts in molecular gas flow,” <em>J. Vac. Sci. Technol. A</em> <strong>4</strong>, 338–343 (1986), <a href="https://doi.org/10.1116/1.573923" target="_blank" rel="noopener">doi:10.1116/1.573923</a> (the simple transmission-probability formula and a beaming correction to Oatley’s combining rule).</li>
+            <li>C. W. Oatley, “The flow of gas through composite systems at very low pressures,” <em>Br. J. Appl. Phys.</em> <strong>8</strong>, 15–19 (1957), <a href="https://doi.org/10.1088/0508-3443/8/1/305" target="_blank" rel="noopener">doi:10.1088/0508-3443/8/1/305</a> (combining the transmission probabilities of elements joined in series).</li>
+            <li>P. Chiggiato, “Outgassing properties of vacuum materials for particle accelerators,” lecture notes, CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.07124" target="_blank" rel="noopener">arXiv:2006.07124</a> (2020) (outgassing rates of unbaked and baked steel and of polymers, and the 1/t design rule).</li>
+            <li>R. Grinham and A. Chew, “A review of outgassing and methods for its reduction,” <em>Appl. Sci. Converg. Technol.</em> <strong>26</strong>, 95–109 (2017), <a href="https://doi.org/10.5757/ASCT.2017.26.5.95" target="_blank" rel="noopener">doi:10.5757/ASCT.2017.26.5.95</a> (averaged literature outgassing rates for steel and fluoroelastomer, time exponents, and their scatter).</li>
+            <li>J. F. O’Hanlon, <em>A User’s Guide to Vacuum Technology</em>, 3rd ed., Wiley (2003), <a href="https://doi.org/10.1002/0471467162" target="_blank" rel="noopener">doi:10.1002/0471467162</a>, ch. 3 (gas flow and conductance) and ch. 4 (gas release from solids).</li>
+            <li>K. Jousten (ed.), <em>Handbook of Vacuum Technology</em>, 2nd ed., Wiley-VCH (2016), <a href="https://doi.org/10.1002/9783527688265" target="_blank" rel="noopener">doi:10.1002/9783527688265</a> (ch. 4, gas flow).</li>
+            <li>S. Dushman, <em>Scientific Foundations of Vacuum Technique</em>, 2nd ed. (rev. J. M. Lafferty), Wiley (1962) (classic conductance formulas, including the series approximation for short tubes).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>E. Al-Dmour, “Fundamentals of vacuum physics and technology,” CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.01464" target="_blank" rel="noopener">arXiv:2006.01464</a> (flow regimes, orifice and tube conductances, effective pumping speed, and gas sources).</li>
+            <li>Pfeiffer Vacuum, <em>The Vacuum Technology Book</em> (online), <a href="https://www.pfeiffervacuum.com/global/en/knowledge/vacuum-technology/knowledge-book/table_of_content/" target="_blank" rel="noopener">pfeiffervacuum.com</a> (sections 1.2–1.3 on flow, desorption, permeation, and bake-out; 2.3 on pipe conductance).</li>
+        </ul>
     </article>
 
     <section class="related">
