@@ -27,6 +27,25 @@
     #sum-fields > .hint { font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
     .pc-sub { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 1.1rem 0 0.7rem; font-weight: 650; }
     .pc-sub:first-child { margin-top: 0; }
+    .panel-body > .hint { margin: 0.5rem 0 0; }
+    #prob-plot circle.marker { stroke-width: 0.75; }   /* thin outlines, so neighboring points in a dense plot stay visible */
+    /* Centered vs. shifted figure: two 360-unit-wide panels, side by side from 800 px, so the 12 px labels render at 11.9-12.4 px */
+    .cfig { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.8rem 1rem; justify-items: center; }
+    .cfig > figcaption { grid-column: 1 / -1; justify-self: stretch; }
+    .cfig-svg { width: 100%; max-width: 440px; height: auto; display: block; font-family: var(--font); }
+    @media (min-width: 800px) { .cfig { grid-template-columns: 1fr 1fr; } .cfig-svg { max-width: none; } }
+    .cfig-svg text { font-size: 12px; fill: var(--text-2); }
+    .cfig-svg .t-title { font-size: 13px; font-weight: 650; fill: var(--text); }
+    .cfig-svg .t-idx { font-weight: 600; fill: var(--text); }
+    .cfig-svg .t-lim { font-weight: 600; fill: var(--c5); }
+    .cfig-svg .t-mean { fill: var(--muted); }
+    .cfig-svg .t-ppm.bad { font-weight: 600; fill: var(--c5); }
+    .cfig-svg .c-fill { fill: var(--accent-soft); }
+    .cfig-svg .c-line { fill: none; stroke: var(--accent); stroke-width: 2; }
+    .cfig-svg .c-tail { fill: var(--c5); opacity: 0.6; }
+    .cfig-svg .base { fill: none; stroke: var(--border-strong); }
+    .cfig-svg .lim { fill: none; stroke: var(--c5); stroke-width: 1.5; stroke-dasharray: 6 4; }
+    .cfig-svg .mean, .cfig-svg .ar, .cfig-svg .arh { fill: none; stroke: var(--text-2); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
 </style>
 <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
 <script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
@@ -103,7 +122,17 @@
 
     <header class="page-head">
         <h1>Process Capability (Cpk) Calculator</h1>
-        <p class="lede">A Cpk calculator: it measures how well a process fits its specification. Paste raw measurements or enter summary statistics to get Cp, Cpk, Pp, Ppk, Cpm, expected and observed PPM, and Z.bench, with a histogram and fitted normal curves. Within-subgroup sigma uses the AIAG convention: R̄/d₂ for subgroups and MR̄/d₂ for individuals.</p>
+        <p class="lede">This Cpk calculator answers a simple question: does the process make parts inside the specification, and with how much room to spare? Paste your measurements in the order they were made, or enter a mean and standard deviations, together with the specification limits. You get Cp, Cpk, Pp, Ppk, and Cpm, the expected and observed parts per million (PPM) out of specification, a normality check, and charts of your data against the limits.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Specification limits</dt><dd>The lowest and highest acceptable values of a characteristic (LSL and USL), from the drawing or the customer’s specification. Some characteristics, such as flatness or burr height, have only an upper limit.</dd>
+            <dt>Target</dt><dd>The ideal value, usually the middle of the specification (the nominal).</dd>
+            <dt>Subgroup</dt><dd>A few parts, typically 4 or 5, made and measured close together in time under the same conditions. The variation inside a subgroup shows what the process does in the short term.</dd>
+            <dt>σ within and σ overall</dt><dd>Two estimates of the standard deviation σ, the typical spread of the values. σ within comes from the variation inside subgroups, or between consecutive values when parts are measured one at a time. σ overall is the ordinary standard deviation of all the values, so it also includes drifts and shifts during the study.</dd>
+            <dt>Cp and Cpk</dt><dd>Cp compares the width of the specification with the width of the process (6&nbsp;σ within) and ignores where the process is centered. Cpk uses the distance from the mean to the nearer limit, so it drops when the process runs off center. A Cpk of 1.33 means the nearer limit is 4&nbsp;σ from the mean.</dd>
+            <dt>Pp and Ppk</dt><dd>The same two ratios calculated with σ overall. They describe what the process actually delivered during the study.</dd>
+            <dt>PPM</dt><dd>Parts per million: out-of-specification parts per million parts made; 1000&nbsp;PPM is 0.1&nbsp;%. Expected PPM comes from a normal-distribution model, observed PPM from counting your data.</dd>
+            <dt>Stable process</dt><dd>A process in statistical control: its values vary randomly around a steady mean with a steady spread, without trends or jumps. A control chart shows whether it is. Capability numbers predict future output only for a stable process.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -145,12 +174,21 @@
 51.54 52.46 49.54 49.01 52.26
 52.12 50.06 50.28 50.35 51.40
 49.97 51.57 50.31 49.69 51.76</textarea>
-                        <p class="hint">Separate values with spaces, commas, tabs, or new lines. Subgroups are consecutive blocks of the subgroup size. The example is a laser-scribe line width in µm: 20 subgroups of 5, spec 50 ± 6 µm.</p>
+                        <p class="hint">Separate values with spaces, commas, tabs, or new lines, in the order the parts were made. Each run of <i>n</i> consecutive values is one subgroup, so a table pasted from a spreadsheet should hold one subgroup per row. The example is a laser-scribe line width in µm: 20 subgroups of 5, specification 50&nbsp;±&nbsp;6&nbsp;µm.</p>
                     </div>
                     <div class="field">
                         <label for="k">Subgroup size <span class="sym">n</span></label>
                         <div class="input-unit"><input id="k" name="k" value="5" inputmode="numeric" data-optional data-label="subgroup size"><span class="unit">per subgroup</span></div>
-                        <p class="hint">Enter 1 for individual measurements; σ within then comes from the average moving range.</p>
+                        <p class="hint">How many parts were measured together each time; 4 or 5 is typical. Enter 1 for individual values: σ within then comes from the average moving range. Values left over after the last complete subgroup count only in the overall statistics.</p>
+                    </div>
+                    <div class="field" id="est-field">
+                        <label for="est">σ within from</label>
+                        <select id="est" name="est" class="input">
+                            <option value="rbar" selected>Average range, R̄/d₂ (AIAG)</option>
+                            <option value="sbar">Average standard deviation, s̄/c₄</option>
+                            <option value="pooled">Pooled standard deviation (Minitab)</option>
+                        </select>
+                        <p class="hint">R̄/d₂ matches an x̄–R chart and suits subgroups of 2–8. For larger subgroups, s̄/c₄ or the pooled value is more precise. Minitab’s capability analysis uses the pooled value.</p>
                     </div>
                 </div>
 
@@ -165,6 +203,7 @@
                             <div class="input-unit"><input id="n" name="n" value="100" inputmode="numeric" data-optional data-label="sample size"><span class="unit">values</span></div>
                         </div>
                     </div>
+                    <p class="hint" style="margin:-.4rem 0 .9rem">N is used only for the confidence interval of Ppk; leave it blank to skip the interval.</p>
                     <div class="field-row">
                         <div class="field">
                             <label for="sw">σ within <span class="sym">σ<sub>w</sub></span></label>
@@ -175,7 +214,7 @@
                             <div class="input-unit"><input id="so" name="so" value="1.293" inputmode="decimal" data-optional data-label="σ overall"><span class="unit">units</span></div>
                         </div>
                     </div>
-                    <p class="hint" style="margin-top:-.4rem">If you only have one standard deviation, enter it in both fields. Cp/Cpk and Pp/Ppk will then be equal.</p>
+                    <p class="hint" style="margin-top:-.4rem">σ within comes from your control chart: R̄/d₂ for an x̄–R chart (d₂ = 2.326 for subgroups of 5) or MR̄/1.128 for individual values. σ overall is the ordinary sample standard deviation of all values (STDEV.S in a spreadsheet). If you have only one standard deviation, enter it in both fields; Cp and Cpk then equal Pp and Ppk.</p>
                 </div>
 
                 <div class="pc-sub">Specification</div>
@@ -189,9 +228,11 @@
                         <div class="input-unit"><input id="usl" name="usl" value="56" inputmode="decimal" data-optional placeholder="blank = one-sided"></div>
                     </div>
                 </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">From the drawing or the customer’s specification. Leave one limit blank for a one-sided specification, such as flatness ≤ 0.05&nbsp;mm.</p>
                 <div class="field">
                     <label for="target">Target (optional) <span class="sym">T</span></label>
                     <div class="input-unit"><input id="target" name="target" value="50" inputmode="decimal" data-optional data-label="target" placeholder="for Cpm"></div>
+                    <p class="hint">The nominal value. It is used only for Cpm; leave it blank if there is none.</p>
                 </div>
             </div>
         </form>
@@ -200,25 +241,33 @@
             <div class="panel-head"><h2 id="results-h">Results</h2><span id="cap-badge" class="badge"></span></div>
             <div class="panel-body">
                 <div class="results">
-                    <div class="result primary"><span class="result-label">Cpk <span class="sym">within</span></span><output class="result-value" data-out="cpk">—</output></div>
-                    <div class="result"><span class="result-label">Cp</span><output class="result-value" data-out="cp">—</output></div>
+                    <div class="result primary"><span class="result-label">Cpk <span class="sym">within</span></span><output class="result-value" data-out="cpk">—</output>
+                        <span class="result-note">The nearer limit is 3&nbsp;×&nbsp;Cpk standard deviations from the mean: 1.00 is 3σ, 1.33 is 4σ, 1.67 is 5σ.</span></div>
+                    <div class="result"><span class="result-label">Cp</span><output class="result-value" data-out="cp">—</output>
+                        <span class="result-note">What Cpk would be with the mean centered between the limits.</span></div>
                     <div class="result"><span class="result-label">CPL · CPU</span><output class="result-value" data-out="cplu">—</output></div>
-                    <div class="result"><span class="result-label">Ppk <span class="sym">overall</span></span><output class="result-value" data-out="ppk">—</output></div>
+                    <div class="result"><span class="result-label">Ppk <span class="sym">overall</span></span><output class="result-value" data-out="ppk">—</output>
+                        <span class="result-note">Close to Cpk for a stable process. Clearly lower: the mean or the spread changed between subgroups.</span></div>
                     <div class="result"><span class="result-label">Pp</span><output class="result-value" data-out="pp">—</output></div>
-                    <div class="result"><span class="result-label">Ppk 95 % confidence interval</span><output class="result-value" data-out="ppkci">—</output>
-                        <span class="result-note">Bissell's approximation, based on the sample size.</span></div>
-                    <div class="result"><span class="result-label">Cpm <span class="sym">Taguchi</span></span><output class="result-value" data-out="cpm">—</output></div>
+                    <div class="result"><span class="result-label">Ppk 95&nbsp;% confidence interval</span><output class="result-value" data-out="ppkci">—</output>
+                        <span class="result-note">Bissell’s approximation, from the sample size: with 95&nbsp;% confidence, the true Ppk lies in this range.</span></div>
+                    <div class="result"><span class="result-label">Cpm <span class="sym">Taguchi</span></span><output class="result-value" data-out="cpm">—</output>
+                        <span class="result-note">Equals Cp when the mean is on target and falls as the mean moves away from it.</span></div>
                     <div class="result"><span class="result-label">Expected PPM, within</span><output class="result-value" data-out="ppmw">—</output>
                         <span class="result-note" data-out="ppmw-split">—</span></div>
                     <div class="result"><span class="result-label">Expected PPM, overall</span><output class="result-value" data-out="ppmo">—</output>
                         <span class="result-note" data-out="ppmo-split">—</span></div>
                     <div class="result"><span class="result-label">Observed PPM out of spec</span><output class="result-value" data-out="ppmobs">—</output>
                         <span class="result-note" data-out="obs-note">—</span></div>
-                    <div class="result"><span class="result-label">Z.bench <span class="sym">within · overall</span></span><output class="result-value" data-out="zb">—</output></div>
+                    <div class="result"><span class="result-label">Z.bench <span class="sym">within · overall</span></span><output class="result-value" data-out="zb">—</output>
+                        <span class="result-note">The one-sided z-value with the same total fraction out of specification. Six Sigma practice adds 1.5 to the overall value to quote a <a href="/tools/sigma-level/">sigma level</a>.</span></div>
+                    <div class="result"><span class="result-label">Normality <span class="sym">Anderson–Darling</span></span><output class="result-value" data-out="normal">—</output>
+                        <span class="result-note" data-out="normal-note">—</span></div>
                     <div class="result"><span class="result-label">Mean · N</span><output class="result-value" data-out="mean">—</output></div>
                     <div class="result"><span class="result-label">σ within</span><output class="result-value" data-out="sw">—</output>
                         <span class="result-note" data-out="sw-note">—</span></div>
-                    <div class="result"><span class="result-label">σ overall</span><output class="result-value" data-out="so">—</output></div>
+                    <div class="result"><span class="result-label">σ overall</span><output class="result-value" data-out="so">—</output>
+                        <span class="result-note">The sample standard deviation of all the values.</span></div>
                 </div>
             </div>
         </section>
@@ -226,59 +275,119 @@
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="hist-h">
         <div class="panel-head"><h2 id="hist-h">Distribution vs. specification</h2></div>
-        <div class="panel-body"><div id="hist-plot"></div></div>
+        <div class="panel-body"><div id="hist-plot"></div>
+            <p class="hint">Bars: your measurements. Curves: normal distributions with your mean and σ within (solid) or σ overall (dashed). Red areas: the expected fraction beyond the limits with σ overall; for a capable process they are too thin to see.</p></div>
+    </section>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="prob-h" id="prob-panel">
+        <div class="panel-head"><h2 id="prob-h">Normal probability plot</h2></div>
+        <div class="panel-body"><div id="prob-plot"></div>
+            <p class="hint">Each point is one measurement, placed by its rank on a scale on which a normal distribution is a straight line: the dashed line is the normal fit with σ overall. Points that bend away from it at the ends mean the tails are not normal, and the expected PPM is then unreliable. Where the line crosses LSL, the scale reads the expected percentage below it; at USL, 100&nbsp;% minus the reading is the percentage above.</p></div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
         <h2>How the capability indices are calculated</h2>
-        <p>Capability indices compare the specification width with the spread of the process. The <em>potential</em> indices Cp and Pp ignore where the process is centered. The <em>performance</em> indices Cpk and Ppk use the distance from the mean to the nearer limit:</p>
-        <div class="formula">\[ C_p = \frac{USL - LSL}{6\,\sigma_w}, \qquad C_{pk} = \min\!\left(\frac{USL - \bar{x}}{3\,\sigma_w},\ \frac{\bar{x} - LSL}{3\,\sigma_w}\right) \]</div>
-        <p>Pp and Ppk use the same expressions with the overall standard deviation \(\sigma_o\) in place of \(\sigma_w\). With a one-sided specification, only CPU (or CPL) exists, and Cpk equals it. Cp and Pp are undefined.</p>
-        <p>The two standard deviations come from different estimators:</p>
-        <div class="formula">\[ \sigma_w = \frac{\bar{R}}{d_2(n)} \ \text{(subgroups)}, \qquad \sigma_w = \frac{\overline{MR}}{1.128} \ \text{(individuals)}, \qquad \sigma_o = \sqrt{\frac{\sum (x_i - \bar{x})^2}{N-1}} \]</div>
-        <p>Here \(\bar R\) is the average subgroup range and \(\overline{MR}\) the average moving range of consecutive points. \(d_2\) is the bias-correction constant for the expected range of \(n\) normal values (2.326 for \(n = 5\)). The Taguchi index \(C_{pm}\) also penalizes distance from the target \(T\), which must lie within the limits:</p>
+        <p>Capability indices compare the width of the specification with the spread of the process, measured in standard deviations σ. Cp and Pp compare only the widths. Cpk and Ppk also account for where the process is centered, through the distance from the mean \(\bar x\) to the nearer limit (Kane, 1986):</p>
+        <div class="formula">\[ \begin{gathered} C_p = \frac{USL - LSL}{6\,\sigma_w} \\[6pt] C_{pk} = \min\!\left(\frac{USL - \bar{x}}{3\,\sigma_w},\ \frac{\bar{x} - LSL}{3\,\sigma_w}\right) \end{gathered} \]</div>
+        <p>Pp and Ppk use the same expressions with the overall standard deviation \(\sigma_o\) in place of \(\sigma_w\). With a one-sided specification, only CPU (or CPL) exists, and Cpk equals it; Cp and Pp are undefined. Because Cpk mixes spread and centering, the same Cpk can come from a centered process with a wide spread or an off-center process with a narrow one: compare it with Cp to tell them apart (Boyles, 1991).</p>
+        <figure class="cfig">
+            <svg viewBox="0 0 360 222" class="cfig-svg" role="img" aria-label="A normal curve centered between LSL and USL, each limit 4 standard deviations from the mean: Cp and Cpk are both 1.33, about 63 parts per million out of specification."><text class="t-title" x="14" y="20">Centered</text><text class="t-idx" x="346" y="20" text-anchor="end">Cp = 1.33 · Cpk = 1.33</text><path class="c-fill" d="M14,150 L16.8,150 L19.5,150 L22.3,150 L25.1,150 L27.8,150 L30.6,150 L33.4,150 L36.1,150 L38.9,150 L41.7,150 L44.4,150 L47.2,150 L50,150 L52.7,150 L55.5,149.9 L58.3,149.9 L61,149.9 L63.8,149.9 L66.6,149.8 L69.3,149.7 L72.1,149.6 L74.9,149.5 L77.6,149.4 L80.4,149.2 L83.2,148.9 L85.9,148.6 L88.7,148.2 L91.5,147.7 L94.2,147.1 L97,146.4 L99.8,145.5 L102.5,144.4 L105.3,143.1 L108.1,141.6 L110.8,139.9 L113.6,137.8 L116.4,135.5 L119.1,132.8 L121.9,129.8 L124.7,126.4 L127.4,122.7 L130.2,118.6 L133,114.2 L135.7,109.5 L138.5,104.5 L141.3,99.2 L144,93.8 L146.8,88.3 L149.6,82.7 L152.3,77.2 L155.1,71.8 L157.9,66.6 L160.6,61.8 L163.4,57.4 L166.2,53.5 L168.9,50.2 L171.7,47.5 L174.5,45.6 L177.2,44.4 L180,44 L182.8,44.4 L185.5,45.6 L188.3,47.5 L191.1,50.2 L193.8,53.5 L196.6,57.4 L199.4,61.8 L202.1,66.6 L204.9,71.8 L207.7,77.2 L210.4,82.7 L213.2,88.3 L216,93.8 L218.7,99.2 L221.5,104.5 L224.3,109.5 L227,114.2 L229.8,118.6 L232.6,122.7 L235.3,126.4 L238.1,129.8 L240.9,132.8 L243.6,135.5 L246.4,137.8 L249.2,139.9 L251.9,141.6 L254.7,143.1 L257.5,144.4 L260.2,145.5 L263,146.4 L265.8,147.1 L268.5,147.7 L271.3,148.2 L274.1,148.6 L276.8,148.9 L279.6,149.2 L282.4,149.4 L285.1,149.5 L287.9,149.6 L290.7,149.7 L293.4,149.8 L296.2,149.9 L299,149.9 L301.7,149.9 L304.5,149.9 L307.3,150 L310,150 L312.8,150 L315.6,150 L318.3,150 L321.1,150 L323.9,150 L326.6,150 L329.4,150 L332.2,150 L334.9,150 L337.7,150 L340.5,150 L343.2,150 L346,150 L346,150 L14,150 Z"/><path class="c-line" d="M14,150 L16.8,150 L19.5,150 L22.3,150 L25.1,150 L27.8,150 L30.6,150 L33.4,150 L36.1,150 L38.9,150 L41.7,150 L44.4,150 L47.2,150 L50,150 L52.7,150 L55.5,149.9 L58.3,149.9 L61,149.9 L63.8,149.9 L66.6,149.8 L69.3,149.7 L72.1,149.6 L74.9,149.5 L77.6,149.4 L80.4,149.2 L83.2,148.9 L85.9,148.6 L88.7,148.2 L91.5,147.7 L94.2,147.1 L97,146.4 L99.8,145.5 L102.5,144.4 L105.3,143.1 L108.1,141.6 L110.8,139.9 L113.6,137.8 L116.4,135.5 L119.1,132.8 L121.9,129.8 L124.7,126.4 L127.4,122.7 L130.2,118.6 L133,114.2 L135.7,109.5 L138.5,104.5 L141.3,99.2 L144,93.8 L146.8,88.3 L149.6,82.7 L152.3,77.2 L155.1,71.8 L157.9,66.6 L160.6,61.8 L163.4,57.4 L166.2,53.5 L168.9,50.2 L171.7,47.5 L174.5,45.6 L177.2,44.4 L180,44 L182.8,44.4 L185.5,45.6 L188.3,47.5 L191.1,50.2 L193.8,53.5 L196.6,57.4 L199.4,61.8 L202.1,66.6 L204.9,71.8 L207.7,77.2 L210.4,82.7 L213.2,88.3 L216,93.8 L218.7,99.2 L221.5,104.5 L224.3,109.5 L227,114.2 L229.8,118.6 L232.6,122.7 L235.3,126.4 L238.1,129.8 L240.9,132.8 L243.6,135.5 L246.4,137.8 L249.2,139.9 L251.9,141.6 L254.7,143.1 L257.5,144.4 L260.2,145.5 L263,146.4 L265.8,147.1 L268.5,147.7 L271.3,148.2 L274.1,148.6 L276.8,148.9 L279.6,149.2 L282.4,149.4 L285.1,149.5 L287.9,149.6 L290.7,149.7 L293.4,149.8 L296.2,149.9 L299,149.9 L301.7,149.9 L304.5,149.9 L307.3,150 L310,150 L312.8,150 L315.6,150 L318.3,150 L321.1,150 L323.9,150 L326.6,150 L329.4,150 L332.2,150 L334.9,150 L337.7,150 L340.5,150 L343.2,150 L346,150"/><path class="base" d="M14,150 H346"/><path class="lim" d="M52.3,30 V158"/><text class="t-lim" x="48.3" y="42" text-anchor="end">LSL</text><path class="lim" d="M307.7,30 V158"/><text class="t-lim" x="311.7" y="42" text-anchor="start">USL</text><path class="mean" d="M180,44 V172"/><path class="ar" d="M52.3,172 H180"/><path class="arh" d="M59.5,167.5 L52.3,172 L59.5,176.5"/><path class="arh" d="M172.8,167.5 L180,172 L172.8,176.5"/><path class="ar" d="M180,172 H307.7"/><path class="arh" d="M187.2,167.5 L180,172 L187.2,176.5"/><path class="arh" d="M300.5,167.5 L307.7,172 L300.5,176.5"/><text class="t-d" x="116.2" y="189" text-anchor="middle">4σ</text><text class="t-d" x="243.8" y="189" text-anchor="middle">4σ</text><text class="t-mean" x="180" y="189" text-anchor="middle">mean</text><text class="t-ppm" x="14" y="216">About 63 PPM out of specification</text></svg>
+            <svg viewBox="0 0 360 222" class="cfig-svg" role="img" aria-label="The same curve with its mean moved 2 standard deviations toward USL: USL is now 2 standard deviations from the mean and LSL 6, so Cp stays 1.33 but Cpk falls to 0.67, and the shaded tail beyond USL is about 2.3 percent of parts."><text class="t-title" x="14" y="20">Shifted 2σ toward USL</text><text class="t-idx" x="346" y="20" text-anchor="end">Cp = 1.33 · Cpk = 0.67</text><path class="c-fill" d="M14,150 L16.8,150 L19.5,150 L22.3,150 L25.1,150 L27.8,150 L30.6,150 L33.4,150 L36.1,150 L38.9,150 L41.7,150 L44.4,150 L47.2,150 L50,150 L52.7,150 L55.5,150 L58.3,150 L61,150 L63.8,150 L66.6,150 L69.3,150 L72.1,150 L74.9,150 L77.6,150 L80.4,150 L83.2,150 L85.9,150 L88.7,150 L91.5,150 L94.2,150 L97,150 L99.8,150 L102.5,150 L105.3,150 L108.1,150 L110.8,150 L113.6,150 L116.4,150 L119.1,149.9 L121.9,149.9 L124.7,149.9 L127.4,149.9 L130.2,149.8 L133,149.7 L135.7,149.7 L138.5,149.5 L141.3,149.4 L144,149.2 L146.8,149 L149.6,148.6 L152.3,148.3 L155.1,147.8 L157.9,147.2 L160.6,146.5 L163.4,145.6 L166.2,144.5 L168.9,143.2 L171.7,141.8 L174.5,140 L177.2,138 L180,135.7 L182.8,133 L185.5,130 L188.3,126.7 L191.1,123 L193.8,118.9 L196.6,114.5 L199.4,109.8 L202.1,104.9 L204.9,99.6 L207.7,94.2 L210.4,88.7 L213.2,83.1 L216,77.6 L218.7,72.2 L221.5,67 L224.3,62.2 L227,57.7 L229.8,53.8 L232.6,50.4 L235.3,47.7 L238.1,45.7 L240.9,44.5 L243.6,44 L246.4,44.3 L249.2,45.5 L251.9,47.3 L254.7,50 L257.5,53.2 L260.2,57.1 L263,61.5 L265.8,66.3 L268.5,71.4 L271.3,76.8 L274.1,82.3 L276.8,87.9 L279.6,93.4 L282.4,98.8 L285.1,104.1 L287.9,109.1 L290.7,113.8 L293.4,118.3 L296.2,122.4 L299,126.1 L301.7,129.5 L304.5,132.6 L307.3,135.3 L310,137.6 L312.8,139.7 L315.6,141.5 L318.3,143 L321.1,144.3 L323.9,145.4 L326.6,146.3 L329.4,147.1 L332.2,147.7 L334.9,148.2 L337.7,148.6 L340.5,148.9 L343.2,149.2 L346,149.4 L346,150 L14,150 Z"/><path class="c-tail" d="M307.7,135.7 L308.6,136.5 L309.6,137.3 L310.6,138.1 L311.5,138.8 L312.5,139.5 L313.4,140.2 L314.4,140.8 L315.4,141.4 L316.3,141.9 L317.3,142.5 L318.2,143 L319.2,143.5 L320.1,143.9 L321.1,144.3 L322.1,144.7 L323,145.1 L324,145.5 L324.9,145.8 L325.9,146.1 L326.8,146.4 L327.8,146.7 L328.8,146.9 L329.7,147.2 L330.7,147.4 L331.6,147.6 L332.6,147.8 L333.6,148 L334.5,148.1 L335.5,148.3 L336.4,148.4 L337.4,148.6 L338.3,148.7 L339.3,148.8 L340.3,148.9 L341.2,149 L342.2,149.1 L343.1,149.2 L344.1,149.2 L345,149.3 L346,149.4 L346,150 L307.7,150 Z"/><path class="c-line" d="M14,150 L16.8,150 L19.5,150 L22.3,150 L25.1,150 L27.8,150 L30.6,150 L33.4,150 L36.1,150 L38.9,150 L41.7,150 L44.4,150 L47.2,150 L50,150 L52.7,150 L55.5,150 L58.3,150 L61,150 L63.8,150 L66.6,150 L69.3,150 L72.1,150 L74.9,150 L77.6,150 L80.4,150 L83.2,150 L85.9,150 L88.7,150 L91.5,150 L94.2,150 L97,150 L99.8,150 L102.5,150 L105.3,150 L108.1,150 L110.8,150 L113.6,150 L116.4,150 L119.1,149.9 L121.9,149.9 L124.7,149.9 L127.4,149.9 L130.2,149.8 L133,149.7 L135.7,149.7 L138.5,149.5 L141.3,149.4 L144,149.2 L146.8,149 L149.6,148.6 L152.3,148.3 L155.1,147.8 L157.9,147.2 L160.6,146.5 L163.4,145.6 L166.2,144.5 L168.9,143.2 L171.7,141.8 L174.5,140 L177.2,138 L180,135.7 L182.8,133 L185.5,130 L188.3,126.7 L191.1,123 L193.8,118.9 L196.6,114.5 L199.4,109.8 L202.1,104.9 L204.9,99.6 L207.7,94.2 L210.4,88.7 L213.2,83.1 L216,77.6 L218.7,72.2 L221.5,67 L224.3,62.2 L227,57.7 L229.8,53.8 L232.6,50.4 L235.3,47.7 L238.1,45.7 L240.9,44.5 L243.6,44 L246.4,44.3 L249.2,45.5 L251.9,47.3 L254.7,50 L257.5,53.2 L260.2,57.1 L263,61.5 L265.8,66.3 L268.5,71.4 L271.3,76.8 L274.1,82.3 L276.8,87.9 L279.6,93.4 L282.4,98.8 L285.1,104.1 L287.9,109.1 L290.7,113.8 L293.4,118.3 L296.2,122.4 L299,126.1 L301.7,129.5 L304.5,132.6 L307.3,135.3 L310,137.6 L312.8,139.7 L315.6,141.5 L318.3,143 L321.1,144.3 L323.9,145.4 L326.6,146.3 L329.4,147.1 L332.2,147.7 L334.9,148.2 L337.7,148.6 L340.5,148.9 L343.2,149.2 L346,149.4"/><path class="base" d="M14,150 H346"/><path class="lim" d="M52.3,30 V158"/><text class="t-lim" x="48.3" y="42" text-anchor="end">LSL</text><path class="lim" d="M307.7,30 V158"/><text class="t-lim" x="311.7" y="42" text-anchor="start">USL</text><path class="mean" d="M243.8,44 V172"/><path class="ar" d="M52.3,172 H243.8"/><path class="arh" d="M59.5,167.5 L52.3,172 L59.5,176.5"/><path class="arh" d="M236.6,167.5 L243.8,172 L236.6,176.5"/><path class="ar" d="M243.8,172 H307.7"/><path class="arh" d="M251,167.5 L243.8,172 L251,176.5"/><path class="arh" d="M300.5,167.5 L307.7,172 L300.5,176.5"/><text class="t-d" x="148.1" y="189" text-anchor="middle">6σ</text><text class="t-d" x="275.8" y="189" text-anchor="middle">2σ</text><text class="t-mean" x="243.8" y="189" text-anchor="middle">mean</text><text class="t-ppm bad" x="14" y="216">About 22 750 PPM (2.3 %) above USL</text></svg>
+            <figcaption>Same spread and same limits, so Cp = 1.33 for both. Moving the mean 2σ toward USL leaves only 2σ to the nearer limit: Cpk falls from 1.33 to 0.67, and the expected scrap rises from about 63&nbsp;PPM to about 22&#8239;750&nbsp;PPM (2.3&nbsp;%), all above USL (shaded). Re-centering, not reducing the variation, would fix it.</figcaption>
+        </figure>
+        <p>The two standard deviations come from different estimators. Within subgroups of size \(n\), the calculator offers three:</p>
+        <div class="formula">\[ \sigma_w = \frac{\bar R}{d_2(n)} \quad\text{or}\quad \frac{\bar s}{c_4(n)} \quad\text{or}\quad \frac{s_p}{c_4(d+1)} \]</div>
+        <p>For individual values (\(n = 1\)) and for all the data:</p>
+        <div class="formula">\[ \sigma_w = \frac{\overline{MR}}{1.128}, \qquad \sigma_o = \sqrt{\frac{\sum (x_i - \bar{x})^2}{N-1}} \]</div>
+        <p>Here \(\bar R\) is the average subgroup range, \(\bar s\) the average subgroup standard deviation, \(s_p\) the pooled standard deviation of the \(k\) subgroups, with \(d = k(n-1)\) degrees of freedom, and \(\overline{MR}\) the average moving range of consecutive values. \(d_2\) and \(c_4\) correct the bias of the range and of the standard deviation for normal data: \(d_2(n)\) is the expected range of \(n\) values in units of σ (2.326 for \(n = 5\)), and \(c_4(m) = \sqrt{2/(m-1)}\,\Gamma(m/2)/\Gamma\big((m-1)/2\big)\) is the expected sample standard deviation of \(m\) values in units of σ (0.9400 for \(m = 5\)). The AIAG SPC manual estimates σ within with \(\bar R/d_2\) or \(\bar s/c_4\). Minitab’s capability analysis uses \(s_p/c_4(d+1)\) by default, so its Cpk can differ slightly from the default here; choose the same estimator to compare.</p>
+        <p>The Taguchi index \(C_{pm}\) also penalizes distance from the target \(T\), which must lie within the limits:</p>
         <div class="formula">\[ C_{pm} = \frac{\min(USL - T,\ T - LSL)}{3\sqrt{\sigma_o^2 + (\bar x - T)^2}} \]</div>
-        <p>With the target at the midpoint of the limits, the numerator is \((USL - LSL)/2\), the usual form of \(C_{pm}\). With a one-sided specification, only the given limit enters.</p>
-        <p>Expected nonconforming parts per million come from the normal model, \(\text{PPM}_{&lt;LSL} = 10^6\,\Phi\!\left(\frac{LSL - \bar x}{\sigma}\right)\) and \(\text{PPM}_{&gt;USL} = 10^6\,\Phi\!\left(\frac{\bar x - USL}{\sigma}\right)\). Z.bench, \(Z_\text{bench} = -\Phi^{-1}(p_\text{total})\), is the one-sided z-value that would give the same total fraction out of specification.</p>
+        <p>With the target at the midpoint of the limits, the numerator is \((USL - LSL)/2\), which gives the usual form of Chan, Cheng, and Spiring (1988) and Boyles (1991). With the target off the midpoint, the nearer limit counts. With a one-sided specification, only the given limit enters, as in the one-sided version of Chan, Cheng, and Spiring; Minitab uses the same rules. The root-mean-square distance from the target is estimated from \(\sigma_o\) and \(\bar x\), as in the NIST/SEMATECH e-Handbook; Minitab uses \(\sqrt{\sum (x_i - T)^2/N}\), which differs by a term of order \(1/N\).</p>
+        <p>Expected nonconforming parts per million come from the normal model, \(\text{PPM}_{&lt;LSL} = 10^6\,\Phi\!\left(\frac{LSL - \bar x}{\sigma}\right)\) and \(\text{PPM}_{&gt;USL} = 10^6\,\Phi\!\left(\frac{\bar x - USL}{\sigma}\right)\). Z.bench, \(Z_\text{bench} = -\Phi^{-1}(p_\text{total})\), is the one-sided z-value that would give the same total fraction out of specification. The 95&nbsp;% interval for Ppk uses Bissell’s (1990) approximation of its standard error, the same one Minitab and the NIST handbook use:</p>
+        <div class="formula">\[ \hat P_{pk} \pm 1.96\,\sqrt{\frac{1}{9N} + \frac{\hat P_{pk}^2}{2(N-1)}} \]</div>
+        <p>The normality check is the Anderson–Darling test with the mean and σ estimated from the data: its statistic \(A^2\) is multiplied by \(1 + 0.75/N + 2.25/N^2\), and the p-value comes from the approximation given by Stephens (1986). It needs at least 8 values. The probability plot places the value of rank \(i\) among \(N\), counted from the smallest, at the normal quantile of Filliben’s order-statistic median, \((i - 0.3175)/(N + 0.365)\), with \(0.5^{1/N}\) and \(1 - 0.5^{1/N}\) for the two extremes (NIST/SEMATECH e-Handbook, §1.3.3.21).</p>
 
         <h2>Cpk versus Ppk</h2>
-        <p>The AIAG SPC manual separates <strong>inherent</strong> variation (within subgroups, collected over a short time) from <strong>total</strong> variation (every measurement, including drift and shifts between subgroups). Cpk uses within-subgroup variation and describes what the process <em>could</em> do if special causes were eliminated. Ppk uses total variation and describes what the customer actually received during the study.</p>
-        <p>For a stable process the two are nearly equal. When Ppk is clearly below Cpk, there are shifts between subgroups: tool wear, lot changes, warm-up, or set-up differences. That is a stability problem to fix before quoting capability.</p>
+        <p>The AIAG SPC manual separates <strong>inherent</strong> variation, from common causes only and estimated within subgroups, from <strong>total</strong> variation, which also includes the drifts and shifts between subgroups and is estimated by the standard deviation of all the readings. Cpk uses the first: it shows what the process could do if the differences between subgroups were removed. Ppk uses the second: it describes what the customer actually received during the study.</p>
+        <p>Wheeler (2013) reads the four indices together. Cp is the best case: the process run predictably and on center. Ppk describes the process as it actually ran. For a stable, centered process, all four estimate nearly the same number. When Ppk is clearly below Cpk, the mean or the spread changed between subgroups (tool wear, lot changes, warm-up, set-up differences), and the gap shows what removing those causes is worth. That is a stability problem to fix before quoting capability. Wheeler also warns against calling Pp and Ppk “long-term capability”: an unstable process has no single long-term value to estimate.</p>
+        <p><strong>Names differ between standards.</strong> This calculator follows the AIAG SPC manual (2nd ed., 2005), the AIAG PPAP manual, and Minitab. ISO&nbsp;3534-2 and the ISO&nbsp;22514 series tie the name to stability instead: a <em>capability</em> index describes a process shown to be in statistical control, and a <em>performance</em> index one that has not been shown to be. The new AIAG &amp; VDA SPC manual (1st ed., 2026) is aligned with ISO&nbsp;22514 and ISO&nbsp;3534, according to VDA. In its public review draft, Cp/Cpk and Pp/Ppk are calculated the same way, from the overall variation, and the within-subgroup indices are renamed Cw and Cwk, for analysis rather than for reports.</p>
+        <table>
+            <thead><tr><th>σ used</th><th>This page</th><th>AIAG &amp; VDA draft</th></tr></thead>
+            <tbody>
+                <tr><td>Within subgroups</td><td>Cp, Cpk</td><td>Cw, Cwk (for analysis, not reports)</td></tr>
+                <tr><td>Overall</td><td>Pp, Ppk</td><td>Cp, Cpk if the process has been shown to be stable; Pp, Ppk if not</td></tr>
+            </tbody>
+        </table>
+        <p>Before comparing a number with a requirement, check which convention the requirement uses.</p>
 
         <h2>What counts as capable</h2>
         <table>
-            <thead><tr><th class="num">Cpk</th><th class="num">Distance to nearest limit</th><th class="num">Expected PPM (centered, two-sided)</th><th>Typical interpretation</th></tr></thead>
+            <thead><tr><th class="num">Cpk</th><th class="num">Limit at</th><th class="num">PPM</th><th>Typical reading</th></tr></thead>
             <tbody>
-                <tr><td class="num">1.00</td><td class="num">3σ</td><td class="num">2700</td><td>Barely capable; any drift produces scrap</td></tr>
-                <tr><td class="num">1.33</td><td class="num">4σ</td><td class="num">63</td><td>Common minimum for ongoing production</td></tr>
-                <tr><td class="num">1.67</td><td class="num">5σ</td><td class="num">0.57</td><td>Common requirement for new or safety/critical characteristics</td></tr>
-                <tr><td class="num">2.00</td><td class="num">6σ</td><td class="num">0.002</td><td>Six Sigma capability (short-term)</td></tr>
+                <tr><td class="num">1.00</td><td class="num">3σ</td><td class="num">2700</td><td>Barely capable: any drift puts parts out of specification</td></tr>
+                <tr><td class="num">1.33</td><td class="num">4σ</td><td class="num">63</td><td>Common minimum for a process in production</td></tr>
+                <tr><td class="num">1.67</td><td class="num">5σ</td><td class="num">0.57</td><td>Common requirement for new processes and critical characteristics</td></tr>
+                <tr><td class="num">2.00</td><td class="num">6σ</td><td class="num">0.002</td><td>Six Sigma (short-term) capability</td></tr>
             </tbody>
         </table>
-        <p>For initial process studies, the AIAG PPAP manual's acceptance criteria are commonly applied as follows. An index above 1.67 meets the criteria. Values from 1.33 to 1.67 may be acceptable with customer approval. Values below 1.33 do not meet them. Customer-specific requirements always take precedence.</p>
+        <p>The PPM column is for a centered process with each limit exactly 3, 4, 5, or 6σ from the mean (1.33 and 1.67 are 4/3 and 5/3 rounded), counting both tails of a normal distribution. The link between an index and a defect rate holds only for that model, so read any index as an indicator of the expected fraction nonconforming (Pearn, Kotz, and Johnson, 1992). The badge above the results applies the 1.00, 1.33, and 1.67 thresholds to Cpk.</p>
+        <p>Requirements differ by industry and customer, and a customer’s specific requirements always take precedence. Two common references:</p>
+        <table>
+            <thead><tr><th>Source</th><th>Minimum index</th></tr></thead>
+            <tbody>
+                <tr><td>AIAG PPAP manual, 4th ed.: initial process study (Cpk for a stable process with at least 100 values, otherwise Ppk)</td><td>Above 1.67 meets the criteria; 1.33–1.67 may be acceptable after review with the customer; below 1.33 does not meet them</td></tr>
+                <tr><td>Montgomery: recommended minimum, two-sided specification (one-sided in parentheses)</td><td>Existing process 1.33 (1.25); new process, or existing process with a safety, strength, or critical parameter, 1.50 (1.45); new process with such a parameter 1.67 (1.60)</td></tr>
+            </tbody>
+        </table>
+        <p>The PPAP criteria assume a normal distribution and a two-sided specification with the target at its center; for one-sided or non-normal characteristics, the criteria are agreed with the customer. The AIAG &amp; VDA draft gives example targets graded by how critical the characteristic is and adjusted for the sample size.</p>
 
         <h2>Worked example</h2>
-        <p>The default data are 100 measurements of a laser-scribe line width, in 20 subgroups of 5, with specification 50 ± 6 µm. The mean is 50.93 µm. The average range is \(\bar R = 2.992\) µm, so \(\sigma_w = 2.992/2.326 = 1.286\) µm. The overall standard deviation is 1.293 µm.</p>
-        <div class="formula">\[ C_p = \frac{56 - 44}{6 \times 1.286} = 1.56, \qquad C_{pk} = \frac{56 - 50.93}{3 \times 1.286} = 1.31 \]</div>
-        <p>The spread alone would support Cpk ≈ 1.56, but the mean sits 0.93 µm above target, so Cpk = 1.31 is just short of 1.33. About 40 PPM is expected above the USL. Re-centering the process at 50.0 µm, for example with a laser-power or focus offset, would raise Cpk to 1.56 and cut the expected nonconforming rate to about 3 PPM, without any reduction in variation. Ppk (1.31) is close to Cpk, which suggests the process was stable during the study. The 95 % interval for Ppk, roughly 1.11–1.50, is a reminder that 100 values pin the index down only to about ±0.2.</p>
+        <p>The default data are 100 measurements of a laser-scribe line width, in 20 subgroups of 5, with specification 50&nbsp;±&nbsp;6&nbsp;µm and target 50&nbsp;µm. The mean is 50.93&nbsp;µm. The average range is R̄ = 2.992&nbsp;µm, so σ<sub>w</sub> = 2.992/2.326 = 1.286&nbsp;µm. The overall standard deviation is 1.293&nbsp;µm.</p>
+        <div class="formula">\[ \begin{gathered} C_p = \frac{56 - 44}{6 \times 1.286} = 1.56 \\[6pt] C_{pk} = \frac{56 - 50.93}{3 \times 1.286} = 1.31 \end{gathered} \]</div>
+        <p>The spread alone would support Cpk ≈ 1.56, but the mean sits 0.93&nbsp;µm above target, so Cpk = 1.31 is just short of 1.33. About 40&nbsp;PPM is expected above the USL. Re-centering the process at 50.0&nbsp;µm, for example with a laser-power or focus offset, would raise Cpk to 1.56 and cut the expected nonconforming rate to about 3&nbsp;PPM, without any reduction in variation. Cpm = 1.26 replaces σ with the root-mean-square distance from the target, \(\sqrt{1.293^2 + 0.93^2} = 1.59\)&nbsp;µm.</p>
+        <p>Ppk (1.31) is close to Cpk, and an x̄–R chart of the same data in the <a href="/tools/control-chart/">control chart</a> tool shows no points outside its limits and no run-rule signals, so the process looks stable over the study. The normality test gives p = 0.49 and the probability plot is straight, so the normal-model PPM is reasonable. Two warnings about precision remain. The 95&nbsp;% interval for Ppk, 1.11–1.50, shows that 100 values pin the index down only to about ±0.2. And with s̄/c₄ or the pooled standard deviation instead of \(\bar R/d_2\), σ within is 1.361 or 1.339&nbsp;µm and Cpk 1.24 or 1.26: with 20 subgroups, the estimators differ by a few percent from sampling alone.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>Stability comes first.</strong> A capability index predicts future performance only if the process is in statistical control. Plot a <a href="/tools/control-chart/">control chart</a> before trusting the numbers.</li>
-            <li><strong>Normality.</strong> PPM and Z.bench assume a normal distribution, so tail estimates in the low-PPM range are only as good as that assumption. Check the histogram and a normal probability plot. For skewed characteristics such as flatness, runout, or burr height, use a transformation or a percentile-based method (ISO 22514-2) instead.</li>
-            <li><strong>Sample size.</strong> Capability estimates are noisy. Use at least 100 values (for example 25 subgroups of 4–5) and report the confidence interval, not just the point estimate.</li>
-            <li><strong>Measurement system.</strong> Observed variance is the sum of process and gauge variance, \(\sigma^2_\text{obs} = \sigma^2_\text{process} + \sigma^2_\text{gauge}\). A gauge with a high %GRR deflates Cpk, and poor resolution makes \(\bar R\) unreliable. AIAG MSA guidance treats %GRR under 10 % as acceptable, 10–30 % as conditionally acceptable, and over 30 % as unacceptable, with at least five distinct categories (ndc ≥ 5).</li>
+            <li><strong>Stability comes first.</strong> A capability index predicts future output only if the process is in statistical control; for an unstable process it describes only the past. Plot a <a href="/tools/control-chart/">control chart</a> before trusting the numbers. ISO&nbsp;22514-2 sorts process behavior into eight time-dependent distribution models; only in models A1 and A2 is the process in statistical control.</li>
+            <li><strong>Normality.</strong> The expected PPM, Z.bench, and the link between any index and a defect rate assume a normal distribution, and that model is least certain in the tails beyond about 3σ, exactly where the PPM is calculated and where few of your data fall to check it. Check the normality test and the probability plot. With several thousand values, or a gauge so coarse that many values repeat, the test also flags departures too small to matter; judge those from the plot. Characteristics bounded at zero, such as flatness, roundness, runout, or burr height, are skewed by nature. For them, fit a suitable distribution (a folded normal for form and position tolerances, for example) or transform the data (Box–Cox, Johnson), and use the quantile method of ISO&nbsp;22514-2 and the AIAG &amp; VDA draft, where \(X_{q}\) is the value below which \(q\)&nbsp;% of the fitted distribution lies:
+                <div class="formula">\[ \begin{gathered} P_p = \frac{USL - LSL}{X_{99.865} - X_{0.135}} \\[6pt] P_{pk} = \min\!\left(\frac{USL - X_{50}}{X_{99.865} - X_{50}},\ \frac{X_{50} - LSL}{X_{50} - X_{0.135}}\right) \end{gathered} \]</div>
+                For a normal distribution these reduce to the formulas above. Reading the quantiles straight from the data instead of from a fitted distribution needs about 2000 values or more (AIAG &amp; VDA draft). The draft also describes converting the fitted fraction beyond each limit into an equivalent normal index (Bothe’s method). This calculator does not fit non-normal distributions.</li>
+            <li><strong>Sample size.</strong> Capability estimates are noisy: 100 values pin Ppk down only to about ±0.2. Use at least 100 values; the AIAG &amp; VDA draft asks for 125, in 25 subgroups of 5, collected over a period long enough for the usual sources of variation (shifts, tool changes, material lots) to act. Report the confidence interval, not just the point estimate.</li>
+            <li><strong>Measurement system.</strong> Observed variance is the sum of process and gauge variance, \(\sigma^2_\text{obs} = \sigma^2_\text{process} + \sigma^2_\text{gauge}\), so a poor gauge makes the process look less capable than it is, and coarse resolution makes \(\bar R\) unreliable. The AIAG MSA manual treats %GRR under 10&nbsp;% as acceptable, 10–30&nbsp;% as possibly acceptable depending on the application, and over 30&nbsp;% as unacceptable, with at least five distinct categories (ndc ≥ 5). ISO&nbsp;22514-7 gives an alternative based on measurement uncertainty.</li>
             <li><strong>Rational subgroups.</strong> σ within is only meaningful if each subgroup was collected close together in time under the same conditions. Subgroups that span a shift change inflate \(\bar R\), which lowers Cpk toward Ppk and hides the between-subgroup instability that the comparison is meant to reveal.</li>
+            <li><strong>Other indices.</strong> Many variants exist, such as Cpmk, indices for non-normal data, and multivariate indices; de-Felipe and Benedito (2017) and Yum (2023) review them.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>AIAG, <em>Statistical Process Control (SPC) Reference Manual</em>, 2nd ed. (2005).</li>
-            <li>AIAG, <em>Measurement Systems Analysis (MSA) Reference Manual</em>, 4th ed. (2010).</li>
-            <li>AIAG, <em>Production Part Approval Process (PPAP)</em>, 4th ed. (2006).</li>
-            <li>D. C. Montgomery, <em>Introduction to Statistical Quality Control</em>, 8th ed., Wiley.</li>
-            <li>A. F. Bissell, “How reliable is your capability index?” <em>Journal of the Royal Statistical Society, Series C (Applied Statistics)</em> <strong>39</strong>(3), 331–340 (1990).</li>
+            <li>ISO&nbsp;22514-1:2014, Statistical methods in process management — Capability and performance — Part 1: General principles and concepts, confirmed in 2024 (when a capability or performance study is needed, and its preconditions).</li>
+            <li>ISO&nbsp;22514-2:2026, Statistical methods in process management — Capability and performance — Part 2: Process capability and performance of time-dependent process models, 3rd ed., replacing ISO&nbsp;22514-2:2017 (the eight time-dependent distribution models, and capability for processes that are not in statistical control).</li>
+            <li>ISO&nbsp;22514-7:2026, Statistical methods in process management — Capability and performance — Part 7: Capability of measurement processes, 3rd ed., replacing ISO&nbsp;22514-7:2021 (measurement capability based on uncertainty).</li>
+            <li>ISO&nbsp;3534-2:2006, Statistics — Vocabulary and symbols — Part 2: Applied statistics (the definitions of process capability and process performance).</li>
+            <li>AIAG and VDA, <em>AIAG &amp; VDA SPC Manual</em>, 1st ed. (2026), <a href="https://www.aiag.org/training-and-resources/manuals/details/spcav-1" target="_blank" rel="noopener">aiag.org</a>, <a href="https://webshop.vda.de/QMC/en/aiag-vda-spc-handbook_englisch" target="_blank" rel="noopener">webshop.vda.de</a> (aligned with ISO&nbsp;22514 and ISO&nbsp;3534); public review draft (Yellow Volume, February 2026), <a href="https://vda-qmc.de/wp-content/uploads/2026/01/AIAG-VDA-SPC-Yellow-Volume.pdf" target="_blank" rel="noopener">vda-qmc.de</a> (capability and performance names, Cw and Cwk, the quantile and z-score methods, 125 parts in 25 subgroups; the content cited on this page is from the draft).</li>
+            <li>AIAG, <em>Statistical Process Control (SPC) Reference Manual</em>, 2nd ed. (2005), ch. IV (inherent and total variation; Cp, Cpk, Pp, and Ppk).</li>
+            <li>AIAG, <em>Production Part Approval Process (PPAP)</em>, 4th ed. (2006), §2.2.11 (acceptance criteria for initial process studies).</li>
+            <li>AIAG, <em>Measurement Systems Analysis (MSA) Reference Manual</em>, 4th ed. (2010) (%GRR and ndc guidelines).</li>
+            <li>D. C. Montgomery, <em>Introduction to Statistical Quality Control</em>, 8th ed., Wiley (2019), ch. 8 (capability ratios, their confidence intervals, and recommended minimum values).</li>
+            <li>V. E. Kane, “Process capability indices,” <em>J. Qual. Technol.</em> <strong>18</strong>, 41–52 (1986), <a href="https://doi.org/10.1080/00224065.1986.11978984" target="_blank" rel="noopener">doi:10.1080/00224065.1986.11978984</a> (Cp, Cpk, CPU, and CPL).</li>
+            <li>L. K. Chan, S. W. Cheng, and F. A. Spiring, “A new measure of process capability: C<sub>pm</sub>,” <em>J. Qual. Technol.</em> <strong>20</strong>, 162–175 (1988), <a href="https://doi.org/10.1080/00224065.1988.11979102" target="_blank" rel="noopener">doi:10.1080/00224065.1988.11979102</a> (Cpm, including its one-sided form).</li>
+            <li>R. A. Boyles, “The Taguchi capability index,” <em>J. Qual. Technol.</em> <strong>23</strong>, 17–26 (1991), <a href="https://doi.org/10.1080/00224065.1991.11979279" target="_blank" rel="noopener">doi:10.1080/00224065.1991.11979279</a> (Cpm and its estimation, and why Cpk does not measure centering).</li>
+            <li>A. F. Bissell, “How reliable is your capability index?” <em>J. R. Stat. Soc. C (Appl. Stat.)</em> <strong>39</strong>, 331–340 (1990), <a href="https://doi.org/10.2307/2347383" target="_blank" rel="noopener">doi:10.2307/2347383</a> (the confidence interval for Ppk).</li>
+            <li>W. L. Pearn, S. Kotz, and N. L. Johnson, “Distributional and inferential properties of process capability indices,” <em>J. Qual. Technol.</em> <strong>24</strong>, 216–231 (1992), <a href="https://doi.org/10.1080/00224065.1992.11979403" target="_blank" rel="noopener">doi:10.1080/00224065.1992.11979403</a> (the indices as indicators of the expected fraction nonconforming).</li>
+            <li>S. Kotz and N. L. Johnson, <em>Process Capability Indices</em>, Chapman &amp; Hall (1993), <a href="https://doi.org/10.1007/978-1-4899-4465-8" target="_blank" rel="noopener">doi:10.1007/978-1-4899-4465-8</a> (Cp, Cpk, and Cpm, and their behavior for non-normal data).</li>
+            <li>D. R. Bothe, <em>Measuring Process Capability</em>, McGraw-Hill (1997) (capability of non-normal processes, and the equivalent index from the fraction out of specification).</li>
+            <li>M. A. Stephens, “Tests based on EDF statistics,” in R. B. D’Agostino and M. A. Stephens (eds.), <em>Goodness-of-Fit Techniques</em>, Marcel Dekker (1986), ch. 4, <a href="https://doi.org/10.1201/9780203753064-4" target="_blank" rel="noopener">doi:10.1201/9780203753064-4</a> (the Anderson–Darling test with estimated mean and σ, and its p-values).</li>
+            <li>D. de-Felipe and E. Benedito, “A review of univariate and multivariate process capability indices,” <em>Int. J. Adv. Manuf. Technol.</em> <strong>92</strong>, 1687–1705 (2017), <a href="https://doi.org/10.1007/s00170-017-0273-6" target="_blank" rel="noopener">doi:10.1007/s00170-017-0273-6</a> (a review that compares the indices; accepted version free at <a href="https://upcommons.upc.edu/handle/2117/119718" target="_blank" rel="noopener">upcommons.upc.edu</a>).</li>
+            <li>B.-J. Yum, “A bibliography of the literature on process capability indices (PCIs): 2010–2021, Part I,” <em>Qual. Reliab. Eng. Int.</em> <strong>39</strong>, 1413–1438 (2023), <a href="https://doi.org/10.1002/qre.3258" target="_blank" rel="noopener">doi:10.1002/qre.3258</a> (about 1080 books and papers since 2010; free to read).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>NIST/SEMATECH, “What is process capability?” <em>e-Handbook of Statistical Methods</em>, §6.1.6, <a href="https://www.itl.nist.gov/div898/handbook/pmc/section1/pmc16.htm" target="_blank" rel="noopener">itl.nist.gov</a> (Cp, Cpk, Cpm, their confidence limits, and non-normal data), and “Normal probability plot,” §1.3.3.21, <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/normprpl.htm" target="_blank" rel="noopener">itl.nist.gov</a>.</li>
+            <li>D. J. Wheeler, “The problem of long-term capability,” <em>Quality Digest</em> (July 2013), <a href="https://www.spcpress.com/pdf/DJW257.pdf" target="_blank" rel="noopener">spcpress.com</a> (how to read Cp, Pp, Cpk, and Ppk together, with worked examples).</li>
+            <li>Minitab, “Methods and formulas for Normal Capability Analysis,” <em>Minitab Support</em>, <a href="https://support.minitab.com/en-us/minitab/help-and-how-to/quality-and-process-improvement/capability-analysis/how-to/capability-analysis/normal-capability-analysis/methods-and-formulas/methods/" target="_blank" rel="noopener">support.minitab.com</a> (the formulas behind Minitab’s results, including the pooled standard deviation).</li>
+        </ul>
     </article>
 
     <section class="related">
@@ -292,13 +401,46 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const { fmt } = Calc;
-    const { normCdf, normInv, mean, stdev } = Calc.math;
+    const { normCdf, normInv, mean, stdev, linspace } = Calc.math;
     // d2 bias-correction constants for subgroup ranges (n = 2…25)
     const D2 = { 2: 1.128, 3: 1.693, 4: 2.059, 5: 2.326, 6: 2.534, 7: 2.704, 8: 2.847, 9: 2.970, 10: 3.078, 11: 3.173, 12: 3.258, 13: 3.336,
         14: 3.407, 15: 3.472, 16: 3.532, 17: 3.588, 18: 3.640, 19: 3.689, 20: 3.735, 21: 3.778, 22: 3.819, 23: 3.858, 24: 3.895, 25: 3.931 };
+    // ln Γ(x) for x > 0 (Lanczos, g = 7): relative error below 1e-13, enough for c₄ of any sample size
+    const LG = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
+        12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    function lnGamma(x) {
+        if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lnGamma(1 - x);
+        x -= 1;
+        let a = LG[0];
+        const t = x + 7.5;
+        for (let i = 1; i < 9; i++) a += LG[i] / (x + i);
+        return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+    }
+    // c₄(m): the expected sample standard deviation of m normal values, in units of σ
+    const c4 = m => Math.sqrt(2 / (m - 1)) * Math.exp(lnGamma(m / 2) - lnGamma((m - 1) / 2));
+    // ln Φ(z) without underflow far out in the tails (asymptotic series below z = −20)
+    const logPhi = z => z < -20 ? -0.5 * z * z - Math.log(-z) - 0.9189385332046727 + Math.log1p(-1 / (z * z))
+        : z < 0 ? Math.log(normCdf(z)) : Math.log1p(-normCdf(-z));
+    // Anderson–Darling test of normality with the mean and σ estimated from the data. A*² = A²(1 + 0.75/N + 2.25/N²) and
+    // the D'Agostino–Stephens p-value approximation; beyond A*² = 10 the p-value is below 1e-20 (the quadratic fit
+    // would turn up again far out, so it is not used there)
+    function andersonDarling(xs, m, s) {
+        const n = xs.length, z = xs.slice().sort((a, b) => a - b).map(x => (x - m) / s);
+        let S = 0;
+        for (let i = 0; i < n; i++) S += (2 * i + 1) * (logPhi(z[i]) + logPhi(-z[n - 1 - i]));
+        const a = (-n - S / n) * (1 + 0.75 / n + 2.25 / (n * n));
+        const p = !(a < 10) ? 0
+            : a >= 0.6 ? Math.exp(1.2937 - 5.709 * a + 0.0186 * a * a)
+            : a >= 0.34 ? Math.exp(0.9177 - 4.279 * a - 1.38 * a * a)
+            : a >= 0.2 ? 1 - Math.exp(-8.318 + 42.796 * a - 59.938 * a * a)
+            : 1 - Math.exp(-13.436 + 101.14 * a - 223.73 * a * a);
+        return { a, p: Math.min(1, Math.max(0, p)) };
+    }
 
     const rawBox = document.getElementById('raw-fields');
     const sumBox = document.getElementById('sum-fields');
+    const estField = document.getElementById('est-field');
+    const probPanel = document.getElementById('prob-panel');
     const badge = document.getElementById('cap-badge');
     let last = null;
 
@@ -332,6 +474,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const k = Math.min(hasL ? lower : Infinity, hasU ? upper : Infinity);
         return { potential, lower, upper, k };
     }
+    // probability-plot axis: the cumulative percentage at z, to two significant figures of the smaller tail (2.3 %, 97.7 %, 99.87 %)
+    function pctLabel(z) {
+        const p = normCdf(z) * 100, q = Math.min(p, 100 - p);
+        const r = q >= 10 ? Math.round(q) : parseFloat(q.toPrecision(2));
+        return String(parseFloat((p <= 50 ? r : 100 - r).toPrecision(7))) + ' %';
+    }
 
     Calc.create({
         form: '#calc',
@@ -345,10 +493,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // a comparison with a blank (NaN) limit or target is false, so only a target outside a given limit is refused
             if (T < lsl || T > usl) throw Calc.fail('The target must lie within the specification limits.', 'target');
 
-            let mu, sw, so, N, data = null, swNote, obs = null, obsNote = null;
+            let mu, sw, so, N, data = null, swNote, obs = null, obsNote = null, ad = null;
             if (raw) {
                 data = Calc.parseList(v.data, 'data');
                 const k = v.k;
+                estField.hidden = !(Number.isInteger(k) && k > 1);   // the estimator choice applies to subgroups only
+                if (!data.length) throw Calc.fail('No numbers found. Paste the measured values only, without units.', 'data');
                 if (!isFinite(k)) throw Calc.fail('Enter a subgroup size (1 for individual measurements).', 'k');
                 if (!Number.isInteger(k) || k < 1 || k > 25) throw Calc.fail('Subgroup size must be a whole number from 1 to 25.', 'k');
                 N = data.length;
@@ -364,22 +514,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     sw = mrBar / 1.128;
                     swNote = 'MR̄ = ' + fmt.num(mrBar, 4) + ', d₂ = 1.128 (individuals)';
                 } else {
+                    // range, standard deviation, and sum of squares of each complete subgroup
                     const groups = Math.floor(N / k);
-                    let rs = 0;
+                    let rs = 0, ss = 0, sq = 0;
                     for (let g = 0; g < groups; g++) {
-                        const sub = data.slice(g * k, g * k + k);
-                        rs += Math.max(...sub) - Math.min(...sub);
+                        let lo = Infinity, hi = -Infinity, m = 0, q = 0;
+                        for (let i = g * k; i < g * k + k; i++) { const x = data[i]; if (x < lo) lo = x; if (x > hi) hi = x; m += x; }
+                        m /= k;
+                        for (let i = g * k; i < g * k + k; i++) q += (data[i] - m) * (data[i] - m);
+                        rs += hi - lo; ss += Math.sqrt(q / (k - 1)); sq += q;
                     }
                     const rBar = rs / groups;
                     if (!(rBar > 0)) throw Calc.fail('Every subgroup has a range of zero, so σ within is zero. Check the gauge resolution and the subgroup size.', 'data');
-                    sw = rBar / D2[k];
                     const left = N - groups * k;
-                    swNote = 'R̄ = ' + fmt.num(rBar, 4) + ', d₂ = ' + D2[k] + ', ' + groups + ' subgroups' +
-                        (left ? ' (last ' + left + ' value' + (left > 1 ? 's' : '') + ' not in a complete subgroup)' : '');
+                    const tail = groups + ' subgroups' + (left ? ' (last ' + left + ' value' + (left > 1 ? 's' : '') + ' not in a complete subgroup)' : '');
+                    if (v.est === 'sbar') {
+                        const sBar = ss / groups, c = c4(k);
+                        sw = sBar / c;
+                        swNote = 's̄ = ' + fmt.num(sBar, 4) + ', c₄ = ' + c.toFixed(4) + ', ' + tail;
+                    } else if (v.est === 'pooled') {
+                        const df = groups * (k - 1), c = c4(df + 1), sp = Math.sqrt(sq / df);
+                        sw = sp / c;
+                        swNote = 'pooled s = ' + fmt.num(sp, 4) + ', c₄(' + (df + 1) + ') = ' + c.toFixed(4) + ', ' + df + ' degrees of freedom, ' + tail;
+                    } else {
+                        sw = rBar / D2[k];
+                        swNote = 'R̄ = ' + fmt.num(rBar, 4) + ', d₂ = ' + D2[k] + ', ' + tail;
+                    }
                 }
                 const out = data.filter(x => (isFinite(lsl) && x < lsl) || (isFinite(usl) && x > usl)).length;
                 obs = out / N * 1e6;
-                obsNote = out + ' of ' + N + ' values outside the specification';
+                obsNote = out + ' of ' + N + ' values outside the specification; one value is ' + fmt.num(1e6 / N, 3) + ' PPM';
+                if (N >= 8) ad = andersonDarling(data, mu, so);
             } else {
                 mu = v.mu; sw = v.sw; so = isFinite(v.so) ? v.so : v.sw; N = v.n;
                 if (!isFinite(mu)) throw Calc.fail('Enter the process mean.', 'mu');
@@ -422,12 +587,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 cpm: cpm === null ? null : idx(cpm),
                 ppmw: ppm(tw.total), 'ppmw-split': split(tw),
                 ppmo: ppm(to.total), 'ppmo-split': split(to),
-                ppmobs: obs === null ? null : ppm(obs), 'obs-note': obsNote || '',
+                // a note in a row whose value is null must be null too: an empty string would un-hide the row
+                ppmobs: obs === null ? null : ppm(obs), 'obs-note': obs === null ? null : obsNote,
                 zb: zbench(tw.total) + ' · ' + zbench(to.total),
+                normal: ad === null ? null : 'p = ' + (ad.p < 0.005 ? '< 0.005' : fmt.num(ad.p, 2)),
+                'normal-note': ad === null ? null : 'A*² = ' + fmt.num(ad.a, 3) + '. ' + (ad.p >= 0.05 ? 'No evidence against a normal distribution.'
+                    : 'The data are probably not normal: treat the expected PPM and Z.bench with caution, and look at the probability plot.'),
                 mean: fmt.num(mu, sigMu) + (isFinite(N) ? ' · ' + N : ''),
                 sw: fmt.num(sw, 4), 'sw-note': swNote,
                 so: fmt.num(so, 4)
             };
+        },
+        onError() {   // no valid result: clear both charts instead of leaving the last ones beside blank outputs
+            Plot.clear('#hist-plot'); Plot.clear('#prob-plot');
         },
         after() {
             const s = last;
@@ -451,20 +623,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 series.push({ type: 'bars', bins, color: 'var(--c1)', label: 'Measurements', opacity: 0.45 });
                 scale = s.data.length * w; yLabel = 'Count';
             }
-            const xs = Calc.math.linspace(lo, hi, 240);
+            const xs = linspace(lo, hi, 240);
             const pdf = (x, m, sd) => Math.exp(-0.5 * ((x - m) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI));
             series.push({ type: 'line', x: xs, y: xs.map(x => scale * pdf(x, s.mu, s.sw)), label: 'Normal fit (σ within)', color: 'var(--c4)' });
             series.push({ type: 'line', x: xs, y: xs.map(x => scale * pdf(x, s.mu, s.so)), label: 'Normal fit (σ overall)', color: 'var(--c2)', dash: true });
+            // the expected fraction beyond each limit with σ overall, shaded under the dashed curve (labeled once)
+            const shade = (a, b, label) => {
+                const tx = linspace(a, b, 80);
+                series.push({ type: 'band', x: tx, y: tx.map(x => scale * pdf(x, s.mu, s.so)), y0: tx.map(() => 0), color: 'var(--c5)', opacity: 0.4, label });
+            };
+            const shadeLabel = 'Expected out of spec (σ overall)';
+            if (isFinite(s.lsl) && s.lsl > lo) shade(lo, s.lsl, shadeLabel);
+            if (isFinite(s.usl) && s.usl < hi) shade(s.usl, hi, isFinite(s.lsl) && s.lsl > lo ? undefined : shadeLabel);
             const vlines = [];
             if (isFinite(s.lsl)) vlines.push({ x: s.lsl, label: 'LSL', color: 'var(--c5)' });
             if (isFinite(s.usl)) vlines.push({ x: s.usl, label: 'USL', color: 'var(--c5)' });
-            if (isFinite(s.T)) vlines.push({ x: s.T, label: 'Target', color: 'var(--muted)' });
+            const limits = [isFinite(s.lsl) ? 'LSL ' + fmt.num(s.lsl, 6) : '', isFinite(s.usl) ? 'USL ' + fmt.num(s.usl, 6) : ''].filter(Boolean).join(', ');
             Plot.draw('#hist-plot', {
                 height: 300,
                 x: { label: 'Measured value', min: lo, max: hi },
                 y: { label: yLabel, min: 0 },
-                series, vlines, legend: true,
+                series, vlines: isFinite(s.T) ? vlines.concat({ x: s.T, label: 'Target', color: 'var(--muted)' }) : vlines, legend: true,
+                ariaLabel: (s.raw ? 'Histogram of the ' + s.data.length + ' measurements with normal curves' : 'Normal curves') +
+                    ' for σ within (solid) and σ overall (dashed), against ' + limits + (isFinite(s.T) ? ' and target ' + fmt.num(s.T, 6) : '') +
+                    '. Shaded areas beyond the limits show the expected fraction out of specification.',
                 hover: { format: (x, hits) => 'x = ' + fmt.num(x, 5) + hits.map(h => ' · ' + h.series.label + ': ' + fmt.num(h.y, 3)).join('') }
+            });
+
+            // normal probability plot of the raw data: Filliben's order-statistic medians (NIST e-Handbook 1.3.3.21)
+            if (!s.raw) { probPanel.hidden = true; Plot.clear('#prob-plot'); return; }
+            probPanel.hidden = false;
+            const sorted = s.data.slice().sort((a, b) => a - b), n = sorted.length;
+            const un = Math.pow(0.5, 1 / n);
+            const pos = i => i === 0 ? 1 - un : i === n - 1 ? un : (i + 1 - 0.3175) / (n + 0.365);
+            const step = Math.max(1, Math.ceil(n / 1000));   // at most about 1000 points drawn; the largest value is always kept
+            const px = [], pz = [];
+            for (let i = 0; i < n; i++) {
+                if (i % step && i !== n - 1) continue;
+                px.push(sorted[i]); pz.push(normInv(pos(i)));
+            }
+            const zr = Math.max(3.3, Math.abs(pz[0]) + 0.3, Math.abs(pz[pz.length - 1]) + 0.3);
+            const lineX = linspace(lo, hi, 120);
+            Plot.draw('#prob-plot', {
+                height: 260,
+                x: { label: 'Measured value', min: lo, max: hi },
+                y: { label: 'Cumulative %', min: -zr, max: zr, ticks: 6, format: pctLabel },
+                series: [
+                    { type: 'line', x: lineX, y: lineX.map(x => (x - s.mu) / s.so), label: 'Normal fit (σ overall)', color: 'var(--c2)', dash: true },
+                    { type: 'points', x: px, y: pz, label: 'Measurements', color: 'var(--c1)', r: 3 }
+                ],
+                vlines, legend: true,
+                ariaLabel: 'Normal probability plot of the ' + n + ' measurements against ' + limits + ': values that follow the dashed straight line are consistent with a normal distribution.',
+                hover: {
+                    format: (x, hits) => {
+                        const h = hits.find(t => t.series.type === 'points');
+                        if (!h) return 'x = ' + fmt.num(x, 5);
+                        return 'x = ' + fmt.num(h.x, 5) + ' · plotted at ' + fmt.num(normCdf(h.y) * 100, 3) + ' % · normal fit: ' + fmt.num(normCdf((h.x - s.mu) / s.so) * 100, 3) + ' %';
+                    }
+                }
             });
         }
     });

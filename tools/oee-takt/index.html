@@ -23,16 +23,56 @@
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
-    .oee-bar .bar { display: flex; height: 44px; border-radius: 6px; overflow: hidden; }
-    .oee-bar .bar > span { flex: none; display: flex; align-items: center; justify-content: center; container-type: inline-size; overflow: hidden; white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--on-accent); }
-    .oee-bar b { font-weight: inherit; }
-    @container (max-width: 46px) { .oee-bar b { display: none; } }   /* a segment too narrow for its label shows none rather than a clipped one */
-    .oee-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.5rem 1.2rem; margin-top: 0.9rem; font-size: 0.86rem; color: var(--text-2); }
-    .oee-legend div { display: flex; gap: 0.5rem; align-items: baseline; }
-    .oee-legend i { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; transform: translateY(1px); }
-    .oee-legend b { font-family: var(--mono); font-weight: 600; color: var(--text); margin-left: auto; white-space: nowrap; }
-    .panel-body > .hint { font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
-    .oee-scale { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; }
+    /* OEE waterfall: one row per stage; each bar keeps the time left after the loss shown next to it (HTML, so the
+       labels stay at full size on a phone) */
+    .wf { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.95rem; }
+    .wf > li { display: grid; grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr); gap: 0.3rem 1rem; align-items: center; margin: 0; }
+    .wf-head { display: flex; flex-direction: column; line-height: 1.3; }
+    .wf-name { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .wf-val { font-family: var(--mono); font-size: 0.8rem; color: var(--text-2); }
+    .wf-track { position: relative; display: flex; height: 20px; border-radius: 4px; overflow: hidden; background: var(--surface-2); }
+    .wf-track > span { flex: none; height: 100%; }
+    .wf .k { background: var(--c1); opacity: 0.8; }
+    .wf .k.fp { background: var(--c3); opacity: 1; }
+    .wf .l-a { background: var(--c5); }
+    .wf .l-p { background: var(--c4); }
+    .wf .l-q { background: var(--c2); }
+    .wf .gain { background: repeating-linear-gradient(135deg, var(--warn) 0 3px, transparent 3px 7px); }
+    .wf-track > i { position: absolute; top: 0; bottom: 0; border-left: 2px dashed var(--text); }   /* planned time, when the bars overshoot it */
+    .wf-why { grid-column: 2; display: flex; gap: 0.45rem; align-items: baseline; font-size: 0.82rem; color: var(--text-2); line-height: 1.4; }
+    .wf-why > i { flex: none; width: 10px; height: 10px; border-radius: 2px; transform: translateY(1px); }
+    .wf-why.warn { color: var(--warn); }
+    .wf-sum { margin: 1rem 0 0; font-size: 0.92rem; color: var(--text-2); }
+    .wf-sum b { font-family: var(--mono); font-weight: 600; color: var(--text); }
+    @media (max-width: 560px) { .wf > li { grid-template-columns: minmax(0, 1fr); } .wf-why { grid-column: 1; } }
+
+    /* station load chart (operator balance chart), drawn at the container's pixel width like plot.js charts */
+    .lb-chart svg { display: block; width: 100%; height: auto; }
+    .lb-chart .bar { opacity: 0.8; }
+    .lb-chart .bar.slow { opacity: 1; stroke: var(--text); stroke-width: 2; }
+    .lb-chart .val { fill: var(--text-2); font-size: 11.5px; }
+    .lb-chart .slow-t { fill: var(--text); font-weight: 700; }
+    .lb-chart .val, .lb-chart .vlabel { paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }   /* legible where a label crosses a bar */
+    .lb-legend span.slow::before { height: 10px; width: 12px; border: 2px solid var(--text); background: transparent; box-sizing: border-box; border-radius: 2px; }
+    .st-opts { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-2); }
+    .st-opts select { width: auto; padding: 0.3rem 0.5rem; }
+
+    /* static figure: the time base of each metric */
+    .fig { width: 100%; max-width: 520px; height: auto; display: block; font-family: var(--font); }
+    .fig text { fill: var(--text-2); font-size: 12px; }
+    .fig .lab { fill: var(--text); font-weight: 600; }
+    .fig .in, .fig .side { fill: var(--muted); }
+    .fig .eq { fill: var(--text); font-size: 12.5px; }
+    .fig .tb-cal { fill: var(--border); stroke: var(--border-strong); }
+    .fig .tb-sch { fill: var(--accent-soft); stroke: var(--accent); }
+    .fig .tb-off { fill: none; stroke: var(--border-strong); stroke-dasharray: 4 3; }
+    .fig .tb-pln { fill: var(--c1); opacity: 0.55; }
+    .fig .tb-brk { fill: var(--muted); opacity: 0.45; }
+    .fig .tb-fp { fill: var(--c3); }
+    .fig .tb-q { fill: var(--c2); }
+    .fig .tb-s { fill: var(--c4); }
+    .fig .tb-d { fill: var(--c5); }
+    @media (max-width: 560px) { .fig text { font-size: 16px; } .fig .eq { font-size: 16.5px; } }
 </style>
 <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
 <script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
@@ -109,7 +149,17 @@
 
     <header class="page-head">
         <h1>OEE &amp; Takt Time Calculator</h1>
-        <p class="lede">Overall equipment effectiveness splits lost production into availability, performance, and quality losses. Takt time sets the pace a line has to hold to meet demand. Enter one shift's numbers to get both, along with a station-by-station line-balance check.</p>
+        <p class="lede">Overall equipment effectiveness (OEE) is the share of planned production time that a machine or line spends making good parts at full speed; the rest is lost to stops, slow running, and rejects. Takt time is the pace a line has to hold to meet customer demand. Enter one shift’s numbers to see where the time went and whether each station of a line keeps up with takt.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>OEE</dt><dd>Overall equipment effectiveness: the share of planned production time spent making good parts at the ideal speed. It multiplies availability, performance, and quality, so three factors of 90&nbsp;% each give only 73&nbsp;%.</dd>
+            <dt>Planned production time</dt><dd>The time the equipment was scheduled to produce: the shift minus breaks, meetings, and scheduled maintenance. Every stop inside it counts as a loss.</dd>
+            <dt>Downtime</dt><dd>Time the equipment was stopped when it should have been running: breakdowns, changeovers and setups, adjustments, and waiting for material. It lowers availability.</dd>
+            <dt>Ideal cycle time</dt><dd>The shortest time per part the process is designed or proven to sustain. Running slower than this, or stopping briefly, lowers performance.</dd>
+            <dt>First-pass quality</dt><dd>The share of parts that were good the first time. Scrap and parts that needed rework count as losses.</dd>
+            <dt>Six big losses</dt><dd>The classic causes from Total Productive Maintenance (TPM): equipment failures and setups (availability), minor stops and reduced speed (performance), and defects and start-up rejects (quality).</dd>
+            <dt>Takt time</dt><dd>Available working time divided by customer demand: one unit must be finished every takt to keep up. It comes from the customer, not from the equipment; a line that must make 840 units in 450 minutes has a takt of 32&nbsp;seconds.</dd>
+            <dt>Station cycle time</dt><dd>The time a station needs for one unit. The slowest station sets the line’s maximum output, and a well-balanced line loads every station close to, but below, takt.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -122,26 +172,28 @@
                 <div class="field">
                     <label for="planned">Planned production time</label>
                     <div class="input-unit"><input id="planned" name="planned" value="450" inputmode="decimal" data-positive><select data-dim="time" data-units="min,h,s" data-default="min"></select></div>
-                    <p class="hint">Shift length minus planned stops such as breaks, meetings, and scheduled maintenance.</p>
+                    <p class="hint">The time the equipment was scheduled to produce: shift length minus breaks, meetings, scheduled maintenance, and any time with nothing scheduled. An 8-hour shift with 30 minutes of breaks gives 450&nbsp;min.</p>
                 </div>
                 <div class="field">
-                    <label for="down">Unplanned downtime</label>
+                    <label for="down">Downtime</label>
                     <div class="input-unit"><input id="down" name="down" value="45" inputmode="decimal" data-nonneg><select data-dim="time" data-units="min,h,s" data-default="min"></select></div>
-                    <p class="hint">Breakdowns, changeovers, material shortages, and any stop long enough to log.</p>
+                    <p class="hint">Every stop during planned production time: breakdowns, changeovers and setups, adjustments, waiting for material or an operator. Log stops longer than a set threshold, often 2 to 5 minutes; shorter ones show up as performance loss.</p>
                 </div>
                 <div class="field">
                     <label for="ict">Ideal cycle time per part</label>
                     <div class="input-unit"><input id="ict" name="ict" value="30" inputmode="decimal" data-positive><select data-dim="time" data-units="s,min" data-default="s"></select></div>
-                    <p class="hint">The cycle time at the fastest sustainable rate, such as the nameplate or validated rate, not the average.</p>
+                    <p class="hint">The shortest time per part the process can sustain: the design (nameplate) rate or the best rate proven over a long run. Not the average, and not a standard time with allowances built in.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
                         <label for="total">Total count</label>
                         <div class="input-unit"><input id="total" name="total" value="740" inputmode="numeric" data-positive data-label="total count"><span class="unit">parts</span></div>
+                        <p class="hint">Every part made in the period, good or bad, including scrap and parts sent for rework.</p>
                     </div>
                     <div class="field">
                         <label for="good">Good count</label>
                         <div class="input-unit"><input id="good" name="good" value="715" inputmode="numeric" data-nonneg data-label="good count"><span class="unit">parts</span></div>
+                        <p class="hint">Parts that passed the first time, without rework.</p>
                     </div>
                 </div>
             </div>
@@ -151,13 +203,15 @@
             <div class="panel-head"><h2 id="oee-results-h">OEE results</h2><span id="oee-badge" class="badge"></span></div>
             <div class="panel-body">
                 <div class="results">
-                    <div class="result primary"><span class="result-label">OEE <span class="sym">A × P × Q</span></span><output class="result-value" data-out="oee">—</output></div>
+                    <div class="result primary"><span class="result-label">OEE <span class="sym">A × P × Q</span></span><output class="result-value" data-out="oee">—</output>
+                        <span class="result-note">The same as good count × ideal cycle time ÷ planned production time. Nakajima’s ideal for TPM plants is above 85&nbsp;%; ordinary plants often report 40 to 55&nbsp;% (see <a href="#is-85-world-class">below</a>).</span></div>
                     <div class="result"><span class="result-label">Availability <span class="sym">A</span></span><output class="result-value" data-out="a">—</output></div>
                     <div class="result"><span class="result-label">Performance <span class="sym">P</span></span><output class="result-value" data-out="p">—</output>
                         <span class="result-note" data-out="p-note"></span></div>
                     <div class="result"><span class="result-label">Quality <span class="sym">Q</span></span><output class="result-value" data-out="q">—</output></div>
                     <div class="result"><span class="result-label">Run time</span><output class="result-value" data-out="run">—</output></div>
-                    <div class="result"><span class="result-label">Good parts vs. theoretical maximum</span><output class="result-value" data-out="parts">—</output></div>
+                    <div class="result"><span class="result-label">Good parts vs. theoretical maximum</span><output class="result-value" data-out="parts">—</output>
+                        <span class="result-note">The theoretical maximum is planned production time ÷ ideal cycle time.</span></div>
                     <div class="result"><span class="result-label">Parts lost to all losses</span><output class="result-value" data-out="lost">—</output></div>
                 </div>
             </div>
@@ -167,9 +221,8 @@
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="loss-h">
         <div class="panel-head"><h2 id="loss-h">Where the planned time went</h2></div>
         <div class="panel-body">
-            <div class="oee-bar" id="oee-bar"></div>
-            <div class="oee-scale"><span>0</span><span id="oee-scale-max">planned time</span></div>
-            <div class="oee-legend" id="oee-legend"></div>
+            <ol class="wf" id="oee-wf"></ol>
+            <p class="wf-sum" id="oee-wf-sum"></p>
         </div>
     </section>
 
@@ -185,17 +238,24 @@
                     <div class="field">
                         <label for="avail">Available working time</label>
                         <div class="input-unit"><input id="avail" name="avail" value="450" inputmode="decimal" data-positive data-label="available time"><select data-dim="time" data-units="min,h,s" data-default="min"></select></div>
+                        <p class="hint">Scheduled working time minus planned breaks. Do not subtract changeovers or breakdowns: takt reflects demand, and losses are covered by running faster than takt.</p>
                     </div>
                     <div class="field">
                         <label for="demand">Customer demand</label>
                         <div class="input-unit"><input id="demand" name="demand" value="840" inputmode="numeric" data-positive data-label="customer demand"><span class="unit">units</span></div>
+                        <p class="hint">Units the customer needs in the same period, such as one shift or one day.</p>
                     </div>
                 </div>
-                <p class="hint" style="margin:-.3rem 0 .9rem">Use the same period for both, such as one shift or one day.</p>
                 <div class="field">
-                    <label for="stations">Station cycle times, in seconds (optional)</label>
+                    <label for="stations">Station cycle times (optional)</label>
                     <textarea class="input" id="stations" name="stations" rows="3" spellcheck="false" style="min-height:76px">28.5 31.0 24.0 33.5 27.0 29.5</textarea>
-                    <p class="hint">Manual work content plus machine time for each station, in line order. Leave blank to compute takt time only.</p>
+                    <div class="st-opts"><label for="stu">Times in</label><select class="input" id="stu" name="stu"><option value="s" selected>seconds</option><option value="min">minutes</option></select></div>
+                    <p class="hint">One time per station, in line order: the operator’s work plus any machine time the operator waits for. Separate them with spaces or commas, or paste one row or one column from a spreadsheet, without station numbers. Leave blank to compute takt time only.</p>
+                </div>
+                <div class="field">
+                    <label for="pct">Planned cycle time (optional)</label>
+                    <div class="input-unit"><input id="pct" name="pct" value="" inputmode="decimal" data-optional data-positive placeholder="blank: takt only" data-label="planned cycle time"><select data-dim="time" data-units="s,min" data-default="s"></select></div>
+                    <p class="hint">The pace you plan to run at, usually faster than takt so that changeovers, short stops, and scrap still leave time to meet demand. Rother suggests starting about 15&nbsp;% shorter than takt. Leave blank to compare the stations with takt only.</p>
                 </div>
             </div>
         </form>
@@ -209,10 +269,16 @@
                     <div class="result"><span class="result-label">Slowest station</span><output class="result-value" data-out="bneck">—</output>
                         <span class="result-note" data-out="bneck-note"></span></div>
                     <div class="result"><span class="result-label">Total work content</span><output class="result-value" data-out="wc">—</output></div>
-                    <div class="result"><span class="result-label">Minimum stations <span class="sym">⌈Σt / takt⌉</span></span><output class="result-value" data-out="nmin">—</output></div>
-                    <div class="result"><span class="result-label">Efficiency vs. takt <span class="sym">Σt / (N·takt)</span></span><output class="result-value" data-out="efft">—</output></div>
-                    <div class="result"><span class="result-label">Balance efficiency <span class="sym">Σt / (N·t<sub>max</sub>)</span></span><output class="result-value" data-out="effb">—</output></div>
-                    <div class="result"><span class="result-label">Capacity at slowest station</span><output class="result-value" data-out="cap">—</output></div>
+                    <div class="result"><span class="result-label">Minimum stations <span class="sym">⌈Σt / takt⌉</span></span><output class="result-value" data-out="nmin">—</output>
+                        <span class="result-note">A lower bound: tasks that cannot be split, or that must follow a set order, can need more stations.</span></div>
+                    <div class="result"><span class="result-label">Efficiency vs. takt <span class="sym">Σt / (N·takt)</span></span><output class="result-value" data-out="efft">—</output>
+                        <span class="result-note">The share of the stations’ time at takt that is spent on work.</span></div>
+                    <div class="result"><span class="result-label">Balance efficiency <span class="sym">Σt / (N·t<sub>max</sub>)</span></span><output class="result-value" data-out="effb">—</output>
+                        <span class="result-note">Average station time ÷ slowest station: 100&nbsp;% is a perfectly even line. The balance delay is the idle time this leaves at the faster stations.</span></div>
+                    <div class="result"><span class="result-label">Capacity at slowest station</span><output class="result-value" data-out="cap">—</output>
+                        <span class="result-note">The output if the line ran without stops at the slowest station’s pace. Downtime and cycle-to-cycle variation lower it.</span></div>
+                    <div class="result"><span class="result-label">Planned cycle time</span><output class="result-value" data-out="pc">—</output>
+                        <span class="result-note" data-out="pc-note"></span></div>
                 </div>
             </div>
         </section>
@@ -220,43 +286,104 @@
 
     <section class="panel" id="station-panel" style="margin-top:1.5rem" aria-labelledby="st-h">
         <div class="panel-head"><h2 id="st-h">Station load vs. takt</h2></div>
-        <div class="panel-body"><div id="station-plot"></div></div>
+        <div class="panel-body"><div id="station-plot" class="lb-chart"></div></div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
         <h2>How OEE is calculated</h2>
-        <p>OEE compares the good parts actually made with the most that could have been made at the ideal rate during planned production time. It is the product of three factors, each covering a different kind of loss:</p>
-        <div class="formula">\[ A = \frac{\text{run time}}{\text{planned production time}}, \qquad P = \frac{\text{ideal cycle time} \times \text{total count}}{\text{run time}}, \qquad Q = \frac{\text{good count}}{\text{total count}} \]</div>
-        <div class="formula">\[ \text{OEE} = A \times P \times Q = \frac{\text{good count} \times \text{ideal cycle time}}{\text{planned production time}} \]</div>
-        <p>The second form is a useful check: OEE is the fraction of planned time spent making good parts at full speed. The three factors match the “six big losses” of Total Productive Maintenance:</p>
+        <p>OEE compares the good parts actually made with the most that could have been made at the ideal rate during planned production time. Seiichi Nakajima, who made it the yardstick of Total Productive Maintenance (TPM), built it from three factors, each covering a different kind of loss:</p>
+        <div class="formula">\[ \begin{gathered} A = \frac{\text{run time}}{\text{planned production time}} \\[4pt] P = \frac{\text{ideal cycle time} \times \text{total count}}{\text{run time}} \\[4pt] Q = \frac{\text{good count}}{\text{total count}} \end{gathered} \]</div>
+        <div class="formula">\[ \begin{aligned} \text{OEE} &= A \times P \times Q \\[4pt] &= \frac{\text{good count} \times \text{ideal cycle time}}{\text{planned production time}} \end{aligned} \]</div>
+        <p>Run time is planned production time minus downtime. The second form is a useful check: OEE is the fraction of planned time spent making good parts at full speed. The chart above follows the time down this chain. Downtime turns planned production time into run time. Slow cycles and short stops turn run time into net run time, the time the parts made would have taken at the ideal rate (ideal cycle time × total count). Rejects leave the fully productive time (ideal cycle time × good count). Each factor is the ratio of one bar to the bar above it.</p>
+
+        <h3>The six big losses</h3>
+        <p>Each factor covers two of the six big losses that Nakajima named as the targets of TPM:</p>
         <ul>
-            <li><strong>Availability:</strong> equipment failures, and setups and adjustments.</li>
-            <li><strong>Performance:</strong> idling and minor stops, and reduced speed.</li>
-            <li><strong>Quality:</strong> process defects and rework, and start-up yield losses.</li>
+            <li><strong>Availability (downtime losses):</strong> equipment failures, and setup and adjustment, including changeovers.</li>
+            <li><strong>Performance (speed losses):</strong> idling and minor stoppages, and reduced speed below the design rate.</li>
+            <li><strong>Quality (defect losses):</strong> process defects, including parts that must be reworked, and reduced yield between start-up and stable production.</li>
         </ul>
-        <p>The often-quoted world-class benchmark of 85 % (90 % availability × 95 % performance × 99.9 % quality) is usually attributed to Nakajima's TPM work. It is a commonly cited reference point, not a standard. OEE is most useful for tracking one machine or line over time and for showing which loss to attack first, not for comparing different plants.</p>
+        <p>The calculator takes one downtime figure and one count of rejects, so the chart shows the three pairs. To see all six, log breakdowns separately from changeovers, short stops separately from slow cycles, and start-up rejects separately from the rest. The three factors do not change.</p>
+
+        <h2 id="is-85-world-class">Is 85&nbsp;% world class?</h2>
+        <p>The 85&nbsp;% figure comes from Nakajima’s <em>Introduction to TPM</em> (p.&nbsp;28). “Based on our experience,” he gave as ideal conditions an availability above 90&nbsp;%, a performance efficiency above 95&nbsp;%, and a rate of quality products above 99&nbsp;%, and multiplied them to “85+%” (the product is 84.6&nbsp;%). He added that all the companies that had won the PM Prize, the Japanese award for outstanding TPM plants, had an overall equipment effectiveness above 85&nbsp;%, so the figure was “not just a remote goal.”</p>
+        <p>What the source does not say matters as much. Nakajima calls these ideal conditions, not a world-class standard; his quality figure is 99&nbsp;%, not the 99.9&nbsp;% often quoted with it; and he gives no data beyond the remark about the prize winners. The figure describes Japanese TPM plants of the 1970s and 1980s, measured with his definitions. He also warned that companies calculate equipment effectiveness in widely different ways (p.&nbsp;21), so 85&nbsp;% in one plant need not mean what it means in another. Reported values for ordinary plants are much lower:</p>
+        <table>
+            <thead><tr><th>Source</th><th>What was measured</th><th class="num">OEE</th></tr></thead>
+            <tbody>
+                <tr><td>Nakajima 1988, p.&nbsp;28</td><td>His “ideal conditions”; all PM Prize-winning companies</td><td class="num">&gt;&nbsp;85&nbsp;%</td></tr>
+                <tr><td>Nakajima 1988, pp.&nbsp;27–28</td><td>A worked example “representative of the average company”: A&nbsp;87&nbsp;%, P&nbsp;50&nbsp;%, Q&nbsp;98&nbsp;%</td><td class="num">42.6&nbsp;%</td></tr>
+                <tr><td>Ljungberg 1998</td><td>About 20 industrial cases; performance (speed) losses dominated</td><td class="num">≈&nbsp;55&nbsp;%</td></tr>
+            </tbody>
+        </table>
+        <p>OEE is most useful for tracking one machine or line over time and for showing which loss to attack first. Compare figures between plants only when the definitions below are the same.</p>
+
+        <h2 id="definitions-that-differ">Definitions that differ</h2>
+        <p>The formulas above follow Nakajima. Standards, software, and plants differ in what counts as planned time, which stops count against availability, and which cycle time sets the speed. These choices can move OEE by many percentage points, so state them whenever you report or compare a figure.</p>
+        <figure>
+            <svg viewBox="0 0 520 296" class="fig" role="img" aria-label="Bar diagram of one day on a two-shift line: 24 hours of calendar time; 16 scheduled hours; 15 hours of planned production time after 1 hour of breaks; and 11.9 fully productive hours after 1.5 hours of downtime, 1.2 hours of speed loss, and 0.4 hours of quality loss. OEE divides the fully productive time by the planned production time (79 %); TEEP divides it by calendar time (50 %), which equals OEE times a utilization of 62.5 %."><text class="lab" x="6" y="18">Calendar time: 24 h</text><rect class="tb-cal" x="6" y="26" width="508" height="18"/><text class="lab" x="6" y="70">Scheduled: two 8-hour shifts, 16 h</text><rect class="tb-sch" x="6" y="78" width="338.7" height="18"/><rect class="tb-off" x="344.7" y="78" width="169.3" height="18"/><text class="in" x="429.3" y="91" text-anchor="middle">not scheduled</text><text class="lab" x="6" y="122">Planned production time: 15 h</text><rect class="tb-pln" x="6" y="130" width="317.5" height="18"/><rect class="tb-brk" x="323.5" y="130" width="21.2" height="18"/><text class="side" x="349.7" y="143">breaks, 1 h</text><text class="lab" x="6" y="174">Fully productive time: 11.9 h</text><rect class="tb-fp" x="6" y="182" width="252.2" height="18"/><rect class="tb-q" x="258.2" y="182" width="8.8" height="18"/><rect class="tb-s" x="267.1" y="182" width="24.7" height="18"/><rect class="tb-d" x="291.8" y="182" width="31.8" height="18"/><text class="side" x="328.5" y="195">OEE losses, 3.1 h</text><text class="eq" x="6" y="234">OEE = 11.9 h ÷ 15 h = 79 %</text><text class="eq" x="6" y="260">Utilization = 15 h ÷ 24 h = 62.5 %</text><text class="eq" x="6" y="286">TEEP = 11.9 h ÷ 24 h = 50 % = OEE × utilization</text></svg>
+            <figcaption>One day on a line that works two 8-hour shifts with an hour of breaks, with the same losses as the default example above. OEE divides the fully productive time by the planned production time. TEEP (total effective equipment performance) divides it by calendar time, which is the same as OEE × utilization. SEMI&nbsp;E79 also measures against total calendar time, so its OEE behaves like TEEP.</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th></th><th>Nakajima (TPM)</th><th>ISO&nbsp;22400-2</th><th>SEMI&nbsp;E79 (semiconductor)</th></tr></thead>
+            <tbody>
+                <tr><td>Name</td><td>Overall equipment effectiveness</td><td>Overall equipment effectiveness</td><td>Overall equipment efficiency</td></tr>
+                <tr><td>Time base</td><td>Loading time: available time minus planned downtime for scheduled maintenance and meetings</td><td>Planned busy time: planned operation time minus planned downtime</td><td>Total time: every calendar hour</td></tr>
+                <tr><td>Counts against availability</td><td>Breakdowns, setups, and adjustments</td><td>Downtime, setup, and delays</td><td>Scheduled and unscheduled downtime, and non-scheduled time</td></tr>
+                <tr><td>Speed reference</td><td>Ideal cycle time, from the design capacity</td><td>Planned run time per item</td><td>Theoretical production time</td></tr>
+                <tr><td>Quality</td><td>Good parts ÷ parts processed; rework is a defect</td><td>Good quantity ÷ produced quantity</td><td>Quality efficiency</td></tr>
+            </tbody>
+        </table>
+        <ul>
+            <li><strong>Planned time.</strong> Nakajima removes scheduled maintenance and meetings from the time base (pp.&nbsp;22–23), and ISO&nbsp;22400-2 removes planned downtime. Vorne’s widely used OEE.com guide instead lists planned maintenance under setup and adjustments, an availability loss. Either is defensible; mixing them is not.</li>
+            <li><strong>Changeovers.</strong> Nakajima and ISO&nbsp;22400-2 count setups and changeovers as downtime. A plant that schedules changeovers as planned stops reports a higher availability for the same day.</li>
+            <li><strong>Ideal or planned cycle time.</strong> ISO&nbsp;22400-2 measures speed against the planned run time per item: its effectiveness is planned run time per item × produced quantity ÷ actual production time. If the plan carries allowances, effectiveness can pass 100&nbsp;% and hide speed losses that Nakajima’s ideal cycle time would show. Schiraldi and Varisco found that the standard’s two OEE formulations diverge from each other and from Nakajima’s, and proposed equipment-state definitions that reconcile them.</li>
+            <li><strong>Utilization and TEEP.</strong> Dividing the fully productive time by calendar time gives TEEP = OEE × utilization, where utilization is planned production time ÷ calendar time. It shows how much capacity is left in hours that are not scheduled.</li>
+            <li><strong>Semiconductor fabs.</strong> SEMI&nbsp;E79 builds overall equipment efficiency on the six equipment states of SEMI&nbsp;E10: productive, standby, engineering, scheduled downtime, unscheduled downtime, and non-scheduled time. Availability is equipment uptime ÷ total time, and the speed factor is split into an operational efficiency (productive time ÷ uptime, so a tool idle for lack of wafers counts as a loss) and a rate efficiency. Measured against total time, wafer-fab OEEs are typically below 50&nbsp;%. De Ron and Rooda proposed an equipment effectiveness that leaves out time the tool waits for work, to separate the equipment’s own losses from those of the factory around it.</li>
+        </ul>
 
         <h2>Takt time and line balancing</h2>
-        <div class="formula">\[ \text{takt} = \frac{\text{available working time}}{\text{customer demand}}, \qquad N_\text{min} = \left\lceil \frac{\sum t_i}{\text{takt}} \right\rceil, \qquad \eta_\text{balance} = \frac{\sum t_i}{N \cdot t_\text{max}} \]</div>
-        <p>Takt time is the pace of demand. It is set by the customer, not by the equipment. Cycle time is how long a station actually takes. Every station must run at or below takt, or the line cannot meet demand without overtime. The slowest station, \(t_\text{max}\), sets the line's real output. Balance efficiency measures how evenly the work is spread across stations, and its complement, the balance delay, is idle time built into the line.</p>
+        <div class="formula">\[ \begin{gathered} \text{takt} = \frac{\text{available working time}}{\text{customer demand}} \\[4pt] N_\text{min} = \left\lceil \frac{\sum t_i}{\text{takt}} \right\rceil, \qquad \eta_\text{balance} = \frac{\sum t_i}{N \cdot t_\text{max}} \end{gathered} \]</div>
+        <p>Takt time is the pace of demand. It is set by the customer, not by the equipment, so the available time excludes planned breaks but not changeovers or breakdowns: Rother’s rule is to leave losses out of takt, so that it shows the real demand. Cycle time is how long a station actually takes per unit. Every station must finish within takt, and in practice within a planned cycle time somewhat shorter than takt that leaves room for changeovers, short stops, and scrap; otherwise the line cannot meet demand without overtime. Rother suggests starting with a planned cycle time about 15&nbsp;% shorter than takt, and keeping automatic machine cycles below about 90&nbsp;% of it. A line timed exactly to takt that runs at the default example’s OEE of 79&nbsp;% would deliver only 79&nbsp;% of the demand.</p>
+        <p>The slowest station, \(t_\text{max}\), sets the line’s maximum output: one unit every \(t_\text{max}\) at best. The minimum number of stations \(N_\text{min}\) is a lower bound that ignores the order of the tasks and the fact that a task cannot be split between stations, so a real line can need more. Line-balancing texts write the line efficiency as \(\sum t_i/(N c)\) for a cycle time \(c\). With \(c\) equal to takt, it measures how much of the stations’ time at the pace of demand is work (efficiency vs. takt, above). With \(c = t_\text{max}\), the pace the line can actually hold, it measures how evenly the work is spread (balance efficiency). Its complement, the balance delay, is idle time built into the line. The station chart above is an operator balance chart; the Lean Enterprise Institute recommends loading each operator to very nearly, but slightly less than, takt.</p>
 
         <h2>Worked examples</h2>
-        <p><strong>OEE.</strong> A 450-minute planned shift loses 45 minutes to unplanned stops, leaving 405 minutes of run time (A = 90.0 %). At an ideal 30 s per part, 740 parts should take 370 minutes, so P = 370/405 = 91.4 %. 715 of those parts are good (Q = 96.6 %). OEE = 0.900 × 0.9136 × 0.9662 = 79.4 %, the same as 715 good parts out of a theoretical 900. The loss bar shows that the 45 minutes of downtime is the largest loss, ahead of 35 minutes of speed loss and 12.5 minutes making parts that were later rejected.</p>
-        <p><strong>Takt.</strong> Demand of 840 units in 450 available minutes gives a takt of 32.1 s. Six stations with 173.5 s of total work need at least ⌈173.5/32.1⌉ = 6 stations, so the station count is right. But station 4, at 33.5 s, is 1.4 s over takt and limits the line to about 806 units per shift. Moving about 1.5 s of work from station 4 to station 3 (24.0 s) brings every station under takt without adding labor.</p>
+        <p><strong>OEE.</strong> A 450-minute planned shift loses 45 minutes to downtime, leaving 405 minutes of run time (A = 90.0&nbsp;%). At an ideal 30&nbsp;s per part, 740 parts should take 370 minutes, so P = 370/405 = 91.4&nbsp;%. 715 of those parts are good (Q = 96.6&nbsp;%). OEE = 0.900 × 0.9136 × 0.9662 = 79.4&nbsp;%, the same as 715 good parts out of a theoretical 900. The chart shows that the 45 minutes of downtime are the largest loss, ahead of 35 minutes of speed loss and 12.5 minutes spent making parts that were rejected.</p>
+        <p><strong>Takt.</strong> Demand of 840 units in 450 available minutes gives a takt of 32.1&nbsp;s. Six stations with 173.5&nbsp;s of total work need at least ⌈173.5/32.1⌉ = 6 stations, so the station count is right. But station 4, at 33.5&nbsp;s, is 1.4&nbsp;s over takt and limits the line to about 806 units per shift. Moving 1.5&nbsp;s of work from station 4 to station 3 (24.0&nbsp;s) brings every station under takt without adding labor, but leaves station 4 only 0.1&nbsp;s of margin. Moving 3&nbsp;s instead, if that work can be done earlier in the sequence, gives 27.0 and 30.5&nbsp;s: station 2, at 31.0&nbsp;s, becomes the slowest, every station has at least 1.1&nbsp;s of margin, and the balance efficiency rises from 86.3 to 93.3&nbsp;%. A planned cycle time 15&nbsp;% shorter than takt, 27.3&nbsp;s, would need at least ⌈173.5/27.3⌉ = 7 stations.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>The ideal cycle time decides the answer.</strong> If it is set to the average actual rate, performance looks perfect and speed losses disappear. A performance above 100 % means the ideal cycle time is too long.</li>
-            <li><strong>Definitions vary between plants.</strong> Some count changeovers as planned time. Some use calendar time, which gives TEEP rather than OEE. State the definitions whenever you compare figures.</li>
-            <li><strong>Count rework as a loss.</strong> Quality should use first-pass good parts. Parts that pass after rework still consumed run time.</li>
-            <li><strong>Station times vary.</strong> A station averaging just under takt will still miss it on some cycles. Plan station loads with margin for variation, walking, and handling, and confirm with time studies.</li>
+            <li><strong>The ideal cycle time decides the answer.</strong> If it is set to the average actual rate, or to a standard time with allowances, performance looks perfect and speed losses disappear. A performance above 100&nbsp;% means the ideal cycle time entered is longer than the process really takes, or the count is wrong.</li>
+            <li><strong>State the definitions.</strong> What counts as planned time, downtime, and a good part changes the result; see <a href="#definitions-that-differ">definitions that differ</a>.</li>
+            <li><strong>Count rework as a loss.</strong> Quality should use first-pass good parts, as Nakajima’s process-defect loss does: parts that pass after rework still consumed run time.</li>
+            <li><strong>Station times vary.</strong> The calculator treats each station time as fixed. A station that averages just under takt will still miss it on some cycles, and without buffers its neighbors then wait, so real output stays below one unit per \(t_\text{max}\). Plan station loads with margin for variation, walking, and handling, and confirm them with time studies.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>S. Nakajima, <em>Introduction to TPM: Total Productive Maintenance</em>, Productivity Press (1988).</li>
-            <li>M. Rother and J. Shook, <em>Learning to See: Value Stream Mapping to Add Value and Eliminate Muda</em>, Lean Enterprise Institute (1999).</li>
+            <li>S. Nakajima, <em>Introduction to TPM: Total Productive Maintenance</em>, Productivity Press (1988), ISBN 0-915299-23-2, translated from <em>TPM Nyūmon</em>, Japan Institute of Plant Maintenance (1984) (OEE and its three factors, pp.&nbsp;21–29; the six big losses, p.&nbsp;14; loading time and planned downtime, pp.&nbsp;22–23; the ideal conditions behind the 85&nbsp;% figure, p.&nbsp;28).</li>
+            <li>ISO&nbsp;22400-2:2014, Automation systems and integration — Key performance indicators (KPIs) for manufacturing operations management — Part 2: Definitions and descriptions, with Amd&nbsp;1:2017 (OEE as the product of availability, effectiveness, and quality ratio; a second edition is in preparation as ISO/DIS&nbsp;22400-2). ISO&nbsp;22400-1:2014, Part 1: Overview, concepts and terminology, confirmed in 2025, explains how the KPIs are meant to be used.</li>
+            <li>OPC Foundation and VDW, OPC&nbsp;40501-1, <em>OPC UA for Machine Tools — Part 1: Machine Monitoring and Job Management</em>, v1.02.0 (2024), Annex C.2.4, <a href="https://reference.opcfoundation.org/specs/OPC-40501-1/full" target="_blank" rel="noopener">reference.opcfoundation.org</a> (the ISO&nbsp;22400-2 formulas for availability, effectiveness, and quality rate, restated; free to read).</li>
+            <li>N. Kang, C. Zhao, J. Li, and J. A. Horst, “A hierarchical structure of key performance indicators for operation management and continuous improvement in production systems,” <em>Int. J. Prod. Res.</em> <strong>54</strong>, 6333–6350 (2016), <a href="https://doi.org/10.1080/00207543.2015.1136082" target="_blank" rel="noopener">doi:10.1080/00207543.2015.1136082</a> (the ISO&nbsp;22400-2 time elements and how they nest).</li>
+            <li>M. M. Schiraldi and M. Varisco, “Overall Equipment Effectiveness: consistency of ISO standard with literature,” <em>Comput. Ind. Eng.</em> <strong>145</strong>, 106518 (2020), <a href="https://doi.org/10.1016/j.cie.2020.106518" target="_blank" rel="noopener">doi:10.1016/j.cie.2020.106518</a> (where the OEE of ISO&nbsp;22400 departs from Nakajima’s).</li>
+            <li>SEMI&nbsp;E10-0422, Specification for Definition and Measurement of Equipment Reliability, Availability, and Maintainability (RAM) and Utilization, and SEMI&nbsp;E79-0422, Specification for Definition and Measurement of Equipment Productivity, SEMI (2022) (the six equipment states, and overall equipment efficiency in semiconductor manufacturing).</li>
+            <li>A. J. de Ron and J. E. Rooda, “Equipment effectiveness: OEE revisited,” <em>IEEE Trans. Semicond. Manuf.</em> <strong>18</strong>, 190–196 (2005), <a href="https://doi.org/10.1109/TSM.2004.836657" target="_blank" rel="noopener">doi:10.1109/TSM.2004.836657</a>, and “OEE and equipment effectiveness: an evaluation,” <em>Int. J. Prod. Res.</em> <strong>44</strong>, 4987–5003 (2006), <a href="https://doi.org/10.1080/00207540600573402" target="_blank" rel="noopener">doi:10.1080/00207540600573402</a> (the total-time base of semiconductor OEE, and an equipment-only alternative).</li>
+            <li>P. Muchiri and L. Pintelon, “Performance measurement using overall equipment effectiveness (OEE): literature review and practical application discussion,” <em>Int. J. Prod. Res.</em> <strong>46</strong>, 3517–3535 (2008), <a href="https://doi.org/10.1080/00207540601142645" target="_blank" rel="noopener">doi:10.1080/00207540601142645</a> (how OEE grew into TEEP and other plant-level measures, and where practice departs from theory).</li>
+            <li>L. del C. Ng Corrales, M. P. Lambán, M. E. Hernandez Korner, and J. Royo, “Overall Equipment Effectiveness: Systematic Literature Review and Overview of Different Approaches,” <em>Appl. Sci.</em> <strong>10</strong>, 6469 (2020), <a href="https://doi.org/10.3390/app10186469" target="_blank" rel="noopener">doi:10.3390/app10186469</a> (a review of 186 studies and of the measures derived from OEE; free to read).</li>
+            <li>Ö. Ljungberg, “Measurement of overall equipment effectiveness as a basis for TPM activities,” <em>Int. J. Oper. Prod. Manag.</em> <strong>18</strong>, 495–507 (1998), <a href="https://doi.org/10.1108/01443579810206334" target="_blank" rel="noopener">doi:10.1108/01443579810206334</a> (OEE of about 55&nbsp;% in about 20 cases, with speed losses dominating).</li>
+            <li>M. Rother and J. Shook, <em>Learning to See: Value Stream Mapping to Add Value and Eliminate Muda</em>, Lean Enterprise Institute (1999) (takt time in value-stream mapping).</li>
+            <li>M. Rother and R. Harris, <em>Creating Continuous Flow: An Action Guide for Managers, Engineers and Production Associates</em>, Lean Enterprise Institute (2001) (introducing continuous flow in cells and lines; the sequel to <em>Learning to See</em>).</li>
+            <li>A. Scholl, <em>Balancing and Sequencing of Assembly Lines</em>, 2nd ed., Physica-Verlag (1999), <a href="https://doi.org/10.1007/978-3-662-11223-6" target="_blank" rel="noopener">doi:10.1007/978-3-662-11223-6</a> (the assembly line balancing problem and line efficiency).</li>
+            <li>T. Pape, “Heuristics and lower bounds for the simple assembly line balancing problem type 1: Overview, computational tests and improvements,” <em>Eur. J. Oper. Res.</em> <strong>240</strong>, 32–42 (2015), <a href="https://doi.org/10.1016/j.ejor.2014.06.023" target="_blank" rel="noopener">doi:10.1016/j.ejor.2014.06.023</a> (the station lower bound ⌈Σt/c⌉, which ignores task order and station borders; free to read).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>Vorne Industries, “OEE calculation: definitions, formulas, and examples,” <a href="https://www.oee.com/calculating-oee/" target="_blank" rel="noopener">oee.com</a>, and “World-class OEE,” <a href="https://www.oee.com/world-class-oee/" target="_blank" rel="noopener">oee.com</a> (the calculation step by step with first-pass good parts, and why 85&nbsp;% is not a universal target).</li>
+            <li>Lean Enterprise Institute, Lean Lexicon, “Takt time,” <a href="https://www.lean.org/lexicon-terms/takt-time/" target="_blank" rel="noopener">lean.org</a>, and “Operator balance chart,” <a href="https://www.lean.org/lexicon-terms/operator-balance-chart/" target="_blank" rel="noopener">lean.org</a> (what takt is, and how to load stations against it).</li>
+            <li>M. Rother, <em>Improvement Kata Handbook</em>, v32.0 (2015), <a href="https://public.websites.umich.edu/~jmondisa/TK/Handbook/Full_IK_Handbook_v32.0.pdf" target="_blank" rel="noopener">free PDF</a> (takt time and planned cycle time with worked numbers, Current Condition section, pp.&nbsp;26–30; the 90&nbsp;% machine-cycle guideline, p.&nbsp;48).</li>
+            <li>J. Robinson, ed., “In-depth guide to OEE resources,” <em>FabTime Cycle Time Management Newsletter</em> <strong>2</strong>(4) (April 2001), <a href="https://www.inficon.com/media/11260/download/FabTimeNewsletter2.04.pdf" target="_blank" rel="noopener">inficon.com</a> (OEE for wafer-fab tools against total time, with worked numbers).</li>
+        </ul>
     </article>
 
     <section class="related">
@@ -279,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
         outputs: '#oee-results',
         id: 'oee',
         compute(v) {
-            if (v.down >= v.planned) throw Calc.fail('Unplanned downtime must be less than the planned production time.', 'down');
+            if (v.down >= v.planned) throw Calc.fail('Downtime must be less than the planned production time.', 'down');
             if (v.good > v.total) throw Calc.fail('Good count cannot exceed total count.', 'good');
             const run = v.planned - v.down;                       // all times in seconds
             const A = run / v.planned;
@@ -291,48 +418,145 @@ document.addEventListener('DOMContentLoaded', () => {
             if (P > 1) { badge.textContent = 'Performance above 100 %'; badge.className = 'badge badge-warn'; }   // the OEE is not a valid score to rate
             else if (oee >= 0.85) { badge.textContent = '≥ 85 % benchmark'; badge.className = 'badge badge-ok'; }
             else { badge.textContent = 'Below 85 % benchmark'; badge.className = 'badge'; }
-            lastOee = {
-                planned: v.planned, avail: v.down, speed: Math.max(0, run - v.total * v.ict),
-                quality: (v.total - v.good) * v.ict, productive: v.good * v.ict, over: P > 1
-            };
+            lastOee = { planned: v.planned, run, net: v.total * v.ict, fp: v.good * v.ict, A, P, Q, oee };
             return {
                 oee: pct(oee),
                 a: pct(A),
                 p: pct(P),
-                'p-note': P > 1 ? 'Above 100 %: the ideal cycle time is probably longer than the true design cycle time, or the total count is wrong.' : '',
+                'p-note': P > 1 ? 'Above 100 %: the ideal cycle time entered is longer than the process really takes, or the total count is wrong. Use the shortest proven cycle time.' : '',
                 q: pct(Q),
                 run: mins(run),
                 parts: fmt.num(v.good, 6) + ' of ' + fmt.num(theo, 4),
                 lost: fmt.num(Math.max(0, theo - v.good), 4) + ' parts'
             };
         },
-        onError() {                             // no valid result: clear the loss bar and legend left from the last one
-            document.getElementById('oee-bar').innerHTML = '';
-            document.getElementById('oee-legend').innerHTML = '';
-            document.getElementById('oee-scale-max').textContent = 'planned time';
+        onError() {                             // no valid result: clear the waterfall left from the last one
+            document.getElementById('oee-wf').innerHTML = '';
+            document.getElementById('oee-wf-sum').textContent = '';
         },
-        after() {
-            const s = lastOee;
-            const segs = [
-                { key: 'productive', label: 'Fully productive time', color: 'var(--c3)' },
-                { key: 'quality', label: 'Quality loss (rejects)', color: 'var(--c2)' },
-                { key: 'speed', label: 'Performance loss (slow cycles, minor stops)', color: 'var(--c4)' },
-                { key: 'avail', label: 'Availability loss (downtime)', color: 'var(--c5)' }
-            ];
-            const total = segs.reduce((a, g) => a + s[g.key], 0) || 1;
-            // HTML segments keep their labels at 12 px on any screen (a scaled SVG shrank them to about 6 px on a phone)
-            const segHtml = segs.filter(g => s[g.key] > 0).map(g => '<span style="width:' + (s[g.key] / total * 100).toFixed(3) + '%;background:' + g.color + '"><b>'
-                + fmt.num(s[g.key] / s.planned * 100, 3) + ' %</b></span>').join('');
-            document.getElementById('oee-bar').innerHTML =
-                '<div class="bar" role="img" aria-label="Breakdown of planned production time into productive time and losses">' + segHtml + '</div>';
-            document.getElementById('oee-scale-max').textContent = s.over   // the bar then spans more than the planned time
-                ? fmt.num(total / 60, 4) + ' min accounted for (' + fmt.num(s.planned / 60, 4) + ' planned)'
-                : fmt.num(s.planned / 60, 4) + ' min planned';
-            document.getElementById('oee-legend').innerHTML = segs.map(g =>
-                '<div><i style="background:' + g.color + '"></i><span>' + g.label + '</span><b>' + fmt.num(s[g.key] / 60, 4) + ' min</b></div>').join('') +
-                (s.over ? '<div style="grid-column:1/-1;color:var(--warn)">Performance is above 100 %, so speed loss is shown as zero and the bar is scaled to the time accounted for.</div>' : '');
-        }
+        after() { drawWaterfall(lastOee); }
     });
+
+    // Where the planned time went: each stage keeps the time left after one pair of the six big losses, so each factor
+    // is the ratio of a bar to the bar above it. HTML rows keep their labels at full size on a phone.
+    function drawWaterfall(s) {
+        const stages = [
+            { name: 'Planned production time', t: s.planned },
+            { name: 'Run time', t: s.run, sym: 'A', f: s.A, cls: 'l-a', loss: 'availability loss', why: 'equipment failures, setup and adjustment' },
+            { name: 'Net run time', t: s.net, sym: 'P', f: s.P, cls: 'l-p', loss: 'performance loss', why: 'idling and minor stops, reduced speed' },
+            { name: 'Fully productive time', t: s.fp, sym: 'Q', f: s.Q, cls: 'l-q', loss: 'quality loss', why: 'process defects and rework, start-up rejects' }
+        ];
+        const max = Math.max(...stages.map(g => g.t));          // more than the planned time only when performance is above 100 %
+        const w = t => (t / max * 100).toFixed(3) + '%';
+        const mark = max > s.planned * (1 + 1e-9) ? '<i style="left:' + w(s.planned) + '"></i>' : '';
+        const share = t => fmt.num(t / s.planned * 100, 3) + ' %';
+        document.getElementById('oee-wf').innerHTML = stages.map((g, i) => {
+            const prev = i ? stages[i - 1].t : g.t, d = prev - g.t;  // d > 0: time lost at this step; d < 0: more than the stage above
+            const k = '<span class="k' + (i === stages.length - 1 ? ' fp' : '') + '" style="width:' + w(Math.min(g.t, prev)) + '"></span>';
+            const track = k + (d > 0 ? '<span class="' + g.cls + '" style="width:' + w(d) + '"></span>' : d < 0 ? '<span class="gain" style="width:' + w(-d) + '"></span>' : '');
+            const why = !i ? ''
+                : d < 0 ? '<div class="wf-why warn"><i class="gain"></i><span>' + mins(-d) + ' more than the run time: performance is above 100 %, so check the ideal cycle time and the count.</span></div>'
+                : '<div class="wf-why"><i class="' + g.cls + '"></i><span>' + (d > 0 ? '−' + mins(d) + ' (' + share(d) + ')' : 'No') + ' ' + g.loss + ': ' + g.why + '</span></div>';
+            return '<li><div class="wf-head"><span class="wf-name">' + g.name + '</span><span class="wf-val">' + mins(g.t)
+                + (g.sym ? ' · ' + g.sym + ' = ' + pct(g.f) : '') + '</span></div>'
+                + '<div class="wf-track" aria-hidden="true">' + track + (i ? mark : '') + '</div>' + why + '</li>';
+        }).join('');
+        document.getElementById('oee-wf-sum').innerHTML = 'OEE = fully productive time ÷ planned production time = <b>'
+            + mins(s.fp) + ' ÷ ' + mins(s.planned) + ' = ' + pct(s.oee) + '</b>'
+            + (mark ? '. The dashed line marks the planned production time.' : '.');
+    }
+
+    // Station load (an operator balance chart): one bar per station against takt and, if given, the planned cycle time;
+    // the slowest station is outlined. Drawn at the container's pixel width, so 12 px labels stay 12 px on a phone,
+    // and redrawn when that width changes.
+    const NS = 'http://www.w3.org/2000/svg', stBox = document.getElementById('station-plot');
+    let stLast = null, stW = 0, stT = 0;
+    function el(tag, attrs, parent, text) {
+        const n = document.createElementNS(NS, tag);
+        for (const k in attrs) n.setAttribute(k, attrs[k]);
+        if (text !== undefined) n.textContent = text;
+        if (parent) parent.appendChild(n);
+        return n;
+    }
+    function clearStations() { stLast = null; clearTimeout(stT); stBox.innerHTML = ''; }
+    function drawStations(d) {
+        stLast = d;
+        const { takt, st, pc, f, u, ft } = d, hasPc = isFinite(pc);
+        const W = stW = Math.round(Math.max(300, Math.min(1100, stBox.clientWidth || 640))), H = 280;
+        const N = st.length, tmax = Math.max(...st), iMax = st.indexOf(tmax);
+        const top = Math.max(tmax, takt, hasPc ? pc : 0) / f * 1.14;   // headroom for the value labels
+        const ticks = Plot.ticks(0, top, 5), ymax = Math.max(top, ticks[ticks.length - 1]);
+        const tickText = t => String(parseFloat(t.toPrecision(6)));
+        const x0 = 38 + 7.5 * Math.max(...ticks.map(t => tickText(t).length)), x1 = W - 12, y1 = 12, y0 = H - 44;
+        const sy = v => y0 - v / ymax * (y0 - y1), slot = (x1 - x0) / N, bw = Math.max(2, Math.min(64, slot * 0.62));
+        const cx = i => x0 + (i + 0.5) * slot;
+        stBox.innerHTML = '';
+        const svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'plot', role: 'img', 'aria-label':
+            'Bar chart of station cycle times: ' + st.map((t, i) => 'station ' + (i + 1) + ', ' + ft(t)).join('; ') + '. Takt time ' + ft(takt)
+            + (hasPc ? ', planned cycle time ' + ft(pc) : '') + '. Station ' + (iMax + 1) + ' is the slowest' + (tmax > takt ? ' and is over takt.' : '.') }, stBox);
+        const grid = el('g', { class: 'grid' }, svg), axis = el('g', { class: 'axis' }, svg);
+        ticks.forEach(t => {
+            el('line', { x1: x0, x2: x1, y1: sy(t), y2: sy(t) }, grid);
+            el('text', { x: x0 - 8, y: sy(t) + 4, 'text-anchor': 'end' }, axis, tickText(t));
+        });
+        el('path', { d: 'M' + x0 + ',' + y1 + 'V' + y0 + 'H' + x1, fill: 'none' }, axis);
+        // station numbers: every k-th when they would collide, always the slowest, which is drawn bold
+        const k = Math.max(1, Math.ceil(N / Math.max(1, Math.floor((x1 - x0) / 26))));
+        st.forEach((t, i) => {
+            const show = i === iMax || ((i + 1) % k === 0 || i === 0) && Math.abs(cx(i) - cx(iMax)) >= 26;
+            if (show) el('text', { x: cx(i), y: y0 + 17, 'text-anchor': 'middle', class: i === iMax ? 'slow-t' : '' }, axis, String(i + 1));
+        });
+        el('text', { x: (x0 + x1) / 2, y: H - 6, 'text-anchor': 'middle', class: 'axis-label' }, svg, 'Station');
+        el('text', { x: 14, y: (y0 + y1) / 2, 'text-anchor': 'middle', class: 'axis-label', transform: 'rotate(-90 14 ' + (y0 + y1) / 2 + ')' }, svg, 'Cycle time (' + u + ')');
+        // takt and planned cycle time lines, drawn over the bars
+        const lines = [{ v: takt, c: 'var(--c2)', label: 'Takt ' + ft(takt) }];
+        if (hasPc) lines.push({ v: pc, c: 'var(--c6)', label: 'Planned ' + ft(pc) });
+        lines.forEach(l => { l.y = sy(l.v / f); });
+        const upward = lines.slice().sort((a, b) => b.y - a.y);   // lowest on screen first
+        const boxes = [];   // labels already placed: [left, right, top, bottom]
+        st.forEach((t, i) => {
+            const y = sy(t / f), slow = i === iMax;
+            const r = el('rect', { x: cx(i) - bw / 2, y, width: bw, height: Math.max(0, y0 - y), class: 'bar' + (slow ? ' slow' : ''), fill: t > takt ? 'var(--c5)' : 'var(--c1)' }, svg);
+            el('title', {}, r, 'Station ' + (i + 1) + ': ' + ft(t) + (t > takt ? ', ' + ft(t - takt, 3) + ' over takt' : ''));
+            if (!(slot >= 30 || slow)) return;
+            let yb = y - 5;   // a label that a line would run through (digits span about 9 px above the baseline) moves above that line
+            upward.forEach(l => { if (l.y > yb - 10 && l.y < yb + 2) yb = l.y - 5; });
+            const tx = el('text', { x: cx(i), y: yb, 'text-anchor': 'middle', class: 'val' + (slow ? ' slow-t' : '') }, svg, fmt.num(t / f, 4));
+            const w = tx.getComputedTextLength() || 7 * tx.textContent.length;
+            boxes.push([cx(i) - w / 2, cx(i) + w / 2, yb - 11, yb + 3]);
+        });
+        // a line label goes above its line at the right end; failing that (it would sit on another label, cross the other
+        // line, or leave the plot) below it, then at the left end, then further from the line. Takt is placed first.
+        lines.forEach(l => el('line', { x1: x0, x2: x1, y1: l.y, y2: l.y, class: 'vline', stroke: l.c }, svg));
+        lines.forEach(l => {
+            const tx = el('text', { x: x1 - 4, y: l.y - 5, 'text-anchor': 'end', class: 'vlabel', style: 'fill:' + l.c }, svg, l.label);
+            const w = tx.getComputedTextLength() || 7.5 * l.label.length;
+            const box = c => [c.left ? x0 + 4 : x1 - 4 - w, c.left ? x0 + 4 + w : x1 - 4, c.yb - 12, c.yb + 3];
+            const bad = c => {
+                const b = box(c);
+                return b[2] < y1 || b[3] > y0 || boxes.some(q => q[1] > b[0] - 1 && q[0] < b[1] + 1 && q[3] > b[2] && q[2] < b[3])
+                    || lines.some(o => o !== l && o.y > b[2] - 1 && o.y < b[3] + 1);
+            };
+            const cands = [];
+            [false, true].forEach(left => [-5, 15].forEach(dy => cands.push({ left, yb: l.y + dy })));
+            for (let k = 1; k <= 3; k++) cands.push({ left: false, yb: l.y - 5 - 15 * k }, { left: false, yb: l.y + 15 + 15 * k });
+            const c = cands.find(q => !bad(q)) || cands[0];
+            if (c.left) { tx.setAttribute('x', x0 + 4); tx.setAttribute('text-anchor', 'start'); }
+            tx.setAttribute('y', c.yb);
+            boxes.push(box(c));
+        });
+        const lg = document.createElement('div');
+        lg.className = 'plot-legend lb-legend';
+        lg.innerHTML = '<span style="--c:var(--c1)">Within takt</span><span style="--c:var(--c5)">Over takt</span><span class="slow">Slowest station</span>'
+            + '<span style="--c:var(--c2)">Takt</span>' + (hasPc ? '<span style="--c:var(--c6)">Planned cycle time</span>' : '');
+        stBox.appendChild(lg);
+    }
+    if ('ResizeObserver' in window) new ResizeObserver(() => {
+        const w = Math.round(stBox.clientWidth);
+        if (!stLast || !w || Math.abs(Math.max(300, Math.min(1100, w)) - stW) <= 24) return;
+        clearTimeout(stT);
+        stT = setTimeout(() => { if (stLast) drawStations(stLast); }, 80);
+    }).observe(stBox);
 
     let lastTakt = null;
     const stPanel = document.getElementById('station-panel');
@@ -342,16 +566,27 @@ document.addEventListener('DOMContentLoaded', () => {
         id: 'takt',
         compute(v) {
             const takt = v.avail / v.demand;                       // seconds per unit
-            const st = Calc.parseList(v.stations, 'stations');
+            const u = v.stu === 'min' ? 'min' : 's', f = u === 'min' ? 60 : 1;   // the unit the station times are typed in
+            const ft = (s, sig) => fmt.num(s / f, sig || 4) + ' ' + u;          // a time in that unit
+            const typed = Calc.parseList(v.stations, 'stations');
             // parseList reads text before the first number as a header, so a time typed with its unit ("28.5s") would vanish
             const odd = v.stations.split(/[\s,;]+/).find(t => /^[-+−]?\.?\d/.test(t) && !isFinite(Calc.parseNum(t)));
-            if (odd) throw Calc.fail('“' + odd + '” is not a number. Enter each station time in seconds, without a unit.', 'stations');
-            if (st.some(t => !(t > 0))) throw Calc.fail('Station cycle times must be greater than zero.', 'stations');
+            if (odd) throw Calc.fail('“' + odd + '” is not a number. Enter each station time as a plain number and choose seconds or minutes below the list.', 'stations');
+            // a pasted table (station numbers beside the times, or several timed cycles per station) would be read as extra stations
+            const rows = v.stations.split(/\r?\n/).map(l => l.split(/[\s,;]+/).filter(t => isFinite(Calc.parseNum(t)))).filter(r => r.length);
+            const numbered = rows.length > 1 && rows.every((r, i) => r.length === 2 && Calc.parseNum(r[0]) === i + 1);
+            if (numbered || (rows.length > 1 && /\t/.test(v.stations) && rows.some(r => r.length > 1)))
+                throw Calc.fail('The pasted data have more than one column. Paste the cycle times only, as one row or one column, without station numbers.', 'stations');
+            if (typed.some(t => !(t > 0))) throw Calc.fail('Station cycle times must be greater than zero.', 'stations');
+            const st = typed.map(t => t * f);                      // seconds
+            const pc = v.pct;                                      // planned cycle time in seconds; NaN when left blank
             const badge = document.getElementById('takt-badge');
-            lastTakt = { takt, st };
+            lastTakt = { takt, st, pc, f, u, ft };
             const out = {
                 takt: fmt.num(takt, 4) + ' s' + (takt >= 120 ? ' (' + fmt.num(takt / 60, 4) + ' min)' : ''),
-                rate: fmt.num(3600 / takt, 4) + ' units/h'
+                rate: fmt.num(3600 / takt, 4) + ' units/h',
+                pc: isFinite(pc) ? ft(pc) + ' · ' + fmt.num(pc / takt * 100, 3) + ' % of takt' : null,
+                'pc-note': isFinite(pc) ? (pc > takt ? 'Longer than takt: a line running at this pace cannot meet demand.' : '') : null   // '' keeps the row shown
             };
             if (!st.length) {
                 badge.textContent = ''; badge.className = 'badge';
@@ -362,34 +597,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const over = st.map((t, i) => t > takt ? i + 1 : null).filter(Boolean);
             if (over.length) { badge.textContent = over.length + ' station' + (over.length > 1 ? 's' : '') + ' over takt'; badge.className = 'badge badge-bad'; }
             else { badge.textContent = 'All stations within takt'; badge.className = 'badge badge-ok'; }
+            if (isFinite(pc) && pc <= takt) {
+                const above = st.map((t, i) => t > pc ? i + 1 : null).filter(Boolean);
+                out['pc-note'] = (!above.length ? 'Every station is within it. '
+                    : above.length > 8 ? above.length + ' stations are above it. '
+                    : 'Station' + (above.length > 1 ? 's ' + above.join(', ') + ' are' : ' ' + above[0] + ' is') + ' above it. ')
+                    + 'At this pace the line needs at least ' + Math.ceil(wc / pc - 1e-9) + ' stations.';
+            }
             return Object.assign(out, {
-                bneck: 'Station ' + (iMax + 1) + ' · ' + fmt.num(tmax, 4) + ' s',
-                'bneck-note': tmax > takt ? fmt.num(tmax - takt, 3) + ' s over takt' + (over.length > 1 ? '; stations over takt: ' + over.join(', ') : '') + '.'
-                    : fmt.num(takt - tmax, 3) + ' s of margin to takt.',
-                wc: fmt.num(wc, 5) + ' s',
+                bneck: 'Station ' + (iMax + 1) + ' · ' + ft(tmax),
+                'bneck-note': tmax > takt ? ft(tmax - takt, 3) + ' over takt' + (over.length > 1 ? '; stations over takt: ' + over.join(', ') : '') + '.'
+                    : ft(takt - tmax, 3) + ' of margin to takt.',
+                wc: ft(wc, 5),
                 nmin: Math.ceil(wc / takt - 1e-9) + ' (have ' + N + ')',
                 efft: pct(wc / (N * takt)),
                 effb: pct(wc / (N * tmax)) + ' · delay ' + pct(1 - wc / (N * tmax)),
                 cap: fmt.num(v.avail / tmax, 4) + ' units vs. ' + fmt.num(v.demand, 6) + ' demanded'
             });
         },
-        onError() { Plot.clear('#station-plot'); },   // no valid result: remove the chart left from the last one
+        onError() { clearStations(); },   // no valid result: remove the chart left from the last one
         after() {
-            const { takt, st } = lastTakt;
-            stPanel.hidden = !st.length;
-            if (!st.length) return;
-            const bins = (pred) => st.map((t, i) => ({ x0: i + 0.6, x1: i + 1.4, y: pred(t) ? t : 0 }));
-            Plot.draw('#station-plot', {
-                height: 260,
-                x: { label: 'Station', min: 0.4, max: st.length + 0.6, ticks: Math.min(st.length, 12) },   // whole-number ticks; plot.js labels fewer when they would collide
-                y: { label: 'Cycle time (s)', min: 0 },
-                series: [
-                    { type: 'bars', bins: bins(t => t <= takt), color: 'var(--c1)', label: 'Within takt', opacity: 0.75 },
-                    { type: 'bars', bins: bins(t => t > takt), color: 'var(--c5)', label: 'Over takt', opacity: 0.75 }
-                ],
-                hlines: [{ y: takt, label: 'Takt ' + fmt.num(takt, 4) + ' s', color: 'var(--c2)' }],
-                legend: true
-            });
+            stPanel.hidden = !lastTakt.st.length;
+            if (lastTakt.st.length) drawStations(lastTakt); else clearStations();
         }
     });
 });

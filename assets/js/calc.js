@@ -202,12 +202,29 @@
     };
 
     /* ── Math helpers ───────────────────────────────────────────────────── */
-    // erfc with fractional error < 1.2e-7 everywhere (Numerical Recipes erfcc)
+    // erfc to about 3e-15 relative error for every x where the result is a normal double (tested against mpmath):
+    // 1 − erf below x = 1 (erfc ≥ 0.157 there, so the subtraction costs no accuracy), Laplace's continued fraction
+    // from x = 1 (modified Lentz, at most about 190 terms at x = 1, 57 at x = 2, 6 at x = 26). e^(−x²) is evaluated as
+    // e^(−xh²)·e^(−(x−xh)(x+xh)) with xh = x rounded down to 1/16, so the large exponent is exact.
+    function expMinusSq(x) { var xh = Math.floor(x * 16) / 16; return Math.exp(-xh * xh) * Math.exp(-(x - xh) * (x + xh)); }
     function erfc(x) {
-        var z = Math.abs(x), t = 1 / (1 + 0.5 * z);
-        var r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 +
-            t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
-        return x >= 0 ? r : 2 - r;
+        if (x !== x) return NaN;
+        if (x < 0) return 2 - erfc(-x);
+        if (x < 0.5) return 1 - erf(x);
+        if (x < 1) {   // erf from its series of positive terms: 2/√π e^(−x²) Σ 2ⁿx^(2n+1)/(1·3·…·(2n+1))
+            var x2 = x * x, term = x, s = x;
+            for (var n = 1; n < 60 && term > 1e-17 * s; n++) { term *= 2 * x2 / (2 * n + 1); s += term; }
+            return 1 - 2 / Math.sqrt(Math.PI) * expMinusSq(x) * s;
+        }
+        if (x > 27.3) return 0;   // below the smallest subnormal
+        var f = x, C = x, D = 0, delta;   // x + (1/2)/(x + 1/(x + (3/2)/(x + 2/(x + …))))
+        for (var k = 1; k < 5000; k++) {
+            D = x + k / 2 * D; D = 1 / (D || 1e-300);
+            C = x + k / 2 / C;
+            delta = C * D; f *= delta;
+            if (Math.abs(delta - 1) < 1e-16) break;
+        }
+        return expMinusSq(x) / (Math.sqrt(Math.PI) * f);
     }
     function erf(x) {
         // Maclaurin series near zero, where 1 − erfc(x) would lose the relative precision (and the sign)
@@ -219,8 +236,16 @@
         return 1 - erfc(x);
     }
     function normCdf(z) { return 0.5 * erfc(-z / Math.SQRT2); }
-    // Acklam's inverse normal CDF (relative error < 1.2e-9)
+    // inverse normal CDF: Acklam's rational approximation (relative error < 1.2e-9), polished by one Halley step on
+    // normCdf to about 1e-15; the upper half uses Φ⁻¹(p) = −Φ⁻¹(1 − p), where 1 − p is exact
     function normInv(p) {
+        if (p > 0.5 && p < 1) return -normInv(1 - p);
+        var x = acklam(p);
+        if (!(x > -37.5 && x < 37.5)) return x;   // ±Infinity, or near where exp(x²/2) overflows
+        var e = normCdf(x) - p, u = e * Math.sqrt(2 * Math.PI) * Math.exp(x * x / 2);
+        return x - u / (1 + x * u / 2);
+    }
+    function acklam(p) {
         if (p <= 0) return -Infinity;
         if (p >= 1) return Infinity;
         var a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];

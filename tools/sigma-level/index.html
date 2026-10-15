@@ -29,11 +29,37 @@
     .sl-equiv strong { font-family: var(--mono); color: var(--text); font-weight: 600; }
     .sl-sub { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 1.2rem 0 0.7rem; font-weight: 650; }
     .sl-sub:first-child { margin-top: 0; }
+    .sl-shift .hint { flex: 1 0 100%; margin: 0; }
+    .sl-chart { margin: 1.4rem 0 0; }
+    .sl-chart figcaption { font-size: 0.8rem; color: var(--muted); line-height: 1.45; margin-top: 0.4rem; }
+    /* static figure: drawn from the normal density (sigma level 3 with the 1.5σ shift) */
+    .fig { width: 100%; height: auto; display: block; font-family: var(--font); }
+    .fig .axis, .fig .tk { stroke: var(--border-strong); fill: none; }
+    .fig .tick { fill: var(--muted); font-size: 12px; }
+    .fig .tick.strong { fill: var(--text-2); font-weight: 600; }
+    .fig .curve0 { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 6 5; }
+    .fig .curve1 { fill: none; stroke: var(--accent); stroke-width: 2.4; }
+    .fig .tailfill { fill: var(--danger); opacity: 0.32; }
+    .fig .limit { stroke: var(--text); stroke-width: 1.6; }
+    .fig .guide { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 2 3; }
+    .fig .guide.drift, .fig .dim.drift { stroke: var(--accent); }
+    .fig .dim { stroke: var(--text-2); stroke-width: 1.3; }
+    .fig .ahead { fill: var(--text-2); }
+    .fig .ahead.drift { fill: var(--accent); }
+    .fig .lab { fill: var(--text); font-size: 13px; font-weight: 600; }
+    .fig .sub { fill: var(--text-2); font-size: 12px; }
+    .fig .lab.drift { fill: var(--accent); }
+    .fig .lab.bad, .fig .sub.bad { fill: var(--danger); }
+    .fig .leader { stroke: var(--danger); stroke-width: 1; }
+    /* keep figure labels near 11 px or more where the figure renders narrower than its 640-unit viewBox */
+    @media (max-width: 680px) { .fig .tick, .fig .sub { font-size: 16px; } .fig .lab { font-size: 17px; } }
+    @media (max-width: 480px) { .fig .tick, .fig .sub { font-size: 20px; } .fig .lab { font-size: 21px; } }
 </style>
 <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
 <script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
 <script type="application/ld+json" id="ld-page">
 {
  "@context": "https://schema.org",
@@ -104,7 +130,17 @@
 
     <header class="page-head">
         <h1>Sigma Level, DPMO &amp; Yield Calculator</h1>
-        <p class="lede">A Six Sigma calculator that converts between defects per million opportunities (DPMO), defect rate, yield, and sigma level, with or without the conventional 1.5σ shift. Below that, it computes DPU, DPO, first-pass yield, and rolled throughput yield from production counts.</p>
+        <p class="lede">Six Sigma rates how often a process makes defects on one scale, the sigma level: the higher the level, the fewer the defects (3.4 per million opportunities at 6σ). Type a defect rate, a yield, or a sigma level and the other values follow, with or without the conventional 1.5σ shift. Below that, turn inspection counts into defects per million opportunities (DPMO), defects per unit, and first-pass yield, and see how the yields of several process steps multiply into the rolled throughput yield.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Defect</dt><dd>Any single failure to meet a requirement, such as a missing hole, a scratch, or a wrong label. A unit with one or more defects is a defective unit; one unit can carry several defects.</dd>
+            <dt>Opportunity</dt><dd>One place or feature on a unit where a defect could occur and that you inspect, such as a solder joint or a measured dimension. How many to count per unit is a definition you choose: write it down and keep it fixed.</dd>
+            <dt>DPMO</dt><dd>Defects per million opportunities: the defects found divided by the opportunities inspected, times one million. The Six Sigma goal is 3.4&nbsp;DPMO.</dd>
+            <dt>Yield</dt><dd>The share that comes out right. In the converter it is per opportunity (100&nbsp;% minus the defect rate). First-pass yield is per unit: the share of units that pass the first time, without rework.</dd>
+            <dt>Sigma level</dt><dd>A defect rate restated as a distance on the bell curve of process variation, counted in standard deviations (σ, the usual measure of spread). Higher is better: 66 807&nbsp;DPMO at 3σ, 6 210 at 4σ, and 3.4 at 6σ in the usual convention.</dd>
+            <dt>1.5σ shift</dt><dd>A convention from Motorola in the 1980s: it allows for the process average drifting toward a limit over time, so a quoted sigma level is 1.5 higher than the plain z-value of its defect rate. Whether to apply it is debated (see below).</dd>
+            <dt>Defects per unit (DPU)</dt><dd>The average number of defects found on each unit. A DPU of 0.03 means about 3 defects per 100 units.</dd>
+            <dt>Rolled throughput yield (RTY)</dt><dd>The chance that a unit gets through every step of a process the first time, with no rework. It is the step yields multiplied together, so five steps at 99&nbsp;% give about 95&nbsp;%.</dd>
+        </dl></details>
     </header>
 
     <section class="panel" id="conv" aria-labelledby="conv-h">
@@ -119,6 +155,7 @@
                     <input type="radio" id="sh-on" name="shift" value="1.5" checked><label for="sh-on">Short-term (with 1.5σ shift)</label>
                     <input type="radio" id="sh-off" name="shift" value="0"><label for="sh-off">Long-term (no shift)</label>
                 </div>
+                <p class="hint">Six Sigma tables and ISO&nbsp;13053-1 use the short-term level, with the 1.5σ shift: 6σ means 3.4&nbsp;DPMO. Choose no shift for the plain z-value of the defect rate, where 6σ means 0.001&nbsp;DPMO.</p>
             </div>
             <div class="conv-grid">
                 <div class="field"><label for="c-dpmo">Defects per million opportunities</label><div class="input-unit"><input id="c-dpmo" name="dpmo" inputmode="decimal"><span class="unit">DPMO</span></div></div>
@@ -126,7 +163,12 @@
                 <div class="field"><label for="c-yld">Yield</label><div class="input-unit"><input id="c-yld" name="yld" inputmode="decimal"><span class="unit">%</span></div></div>
                 <div class="field"><label for="c-sig">Sigma level</label><div class="input-unit"><input id="c-sig" name="sig" inputmode="decimal"><span class="unit">σ</span></div></div>
             </div>
+            <p class="hint">Type in any box and the others follow. The defect rate and the yield here are per opportunity, the same basis as DPMO.</p>
             <p class="sl-equiv" id="equiv" aria-live="polite"></p>
+            <figure class="sl-chart">
+                <div id="sl-plot"></div>
+                <figcaption>DPMO at each sigma level, with the 1.5σ shift (the Six Sigma tables) and without it, on a logarithmic scale: each step down the grid is a factor of 100. The dots mark your value; the horizontal line shows that the same defect rate reads 1.5σ higher with the shift.</figcaption>
+            </figure>
         </div>
     </section>
 
@@ -142,6 +184,7 @@
                     <div class="field">
                         <label for="defects">Defects found <span class="sym">D</span></label>
                         <div class="input-unit"><input id="defects" name="defects" value="38" inputmode="numeric" data-nonneg data-label="defects"><span class="unit">defects</span></div>
+                        <p class="hint">Every defect found, not defective units: a unit with three defects counts three.</p>
                     </div>
                     <div class="field">
                         <label for="units">Units inspected <span class="sym">U</span></label>
@@ -151,19 +194,20 @@
                 <div class="field-row">
                     <div class="field">
                         <label for="opp">Opportunities per unit <span class="sym">O</span></label>
-                        <div class="input-unit"><input id="opp" name="opp" value="12" inputmode="numeric" data-positive data-label="opportunities per unit"><span class="unit">per unit</span></div>
+                        <div class="input-unit"><input id="opp" name="opp" value="12" inputmode="numeric" data-min="1" data-label="opportunities per unit"><span class="unit">per unit</span></div>
+                        <p class="hint">The places or features on one unit that could be defective and that you inspect: one per solder joint, per checked dimension, or per defect type. DPMO depends on this choice, so define it once and keep it.</p>
                     </div>
                     <div class="field">
                         <label for="pass">Units passing first time</label>
                         <div class="input-unit"><input id="pass" name="pass" value="1163" inputmode="numeric" data-optional data-nonneg data-label="units passing first time"><span class="unit">units</span></div>
-                        <p class="hint">Optional: gives the observed first-pass yield.</p>
+                        <p class="hint">Optional: units with no defect at their first inspection, before any rework. Compared with the Poisson estimate, it shows whether defects cluster on a few units.</p>
                     </div>
                 </div>
                 <div class="sl-sub">Rolled throughput yield</div>
                 <div class="field">
                     <label for="steps">First-pass yield of each process step (%)</label>
                     <textarea class="input" id="steps" name="steps" rows="3" spellcheck="false" style="min-height:76px">98.5 99.2 97.8 99.6 98.9</textarea>
-                    <p class="hint">One value per step, separated by spaces, commas, or new lines. Leave blank to skip.</p>
+                    <p class="hint">In percent (98.5, not 0.985): for each step, the share of the units entering it that pass without rework. Separate the values with spaces, commas, or new lines; leave blank to skip.</p>
                 </div>
             </div>
         </form>
@@ -177,12 +221,16 @@
                         <span class="result-note" data-out="sigma-note">—</span></div>
                     <div class="result"><span class="result-label">Defects per unit <span class="sym">DPU</span></span><output class="result-value" data-out="dpu">—</output></div>
                     <div class="result"><span class="result-label">Defects per opportunity <span class="sym">DPO</span></span><output class="result-value" data-out="dpo">—</output></div>
-                    <div class="result"><span class="result-label">First-pass yield, Poisson <span class="sym">e<sup>−DPU</sup></span></span><output class="result-value" data-out="fpy">—</output></div>
+                    <div class="result"><span class="result-label">First-pass yield, Poisson <span class="sym">e<sup>−DPU</sup></span></span><output class="result-value" data-out="fpy">—</output>
+                        <span class="result-note">The chance that a unit has no defect if defects land on units at random.</span></div>
                     <div class="result"><span class="result-label">First-pass yield, observed</span><output class="result-value" data-out="fpyobs">—</output>
                         <span class="result-note" data-out="fpy-note">—</span></div>
-                    <div class="result"><span class="result-label">Rolled throughput yield <span class="sym">RTY</span></span><output class="result-value" data-out="rty">—</output></div>
-                    <div class="result"><span class="result-label">Normalized yield per step</span><output class="result-value" data-out="ny">—</output></div>
-                    <div class="result"><span class="result-label">Total defects per unit <span class="sym">−ln RTY</span></span><output class="result-value" data-out="tdpu">—</output></div>
+                    <div class="result"><span class="result-label">Rolled throughput yield <span class="sym">RTY</span></span><output class="result-value" data-out="rty">—</output>
+                        <span class="result-note" data-out="rty-note">—</span></div>
+                    <div class="result"><span class="result-label">Normalized yield per step</span><output class="result-value" data-out="ny">—</output>
+                        <span class="result-note">The yield every step would need to give the same RTY (the geometric mean of the step yields).</span></div>
+                    <div class="result"><span class="result-label">Total defects per unit <span class="sym">−ln RTY</span></span><output class="result-value" data-out="tdpu">—</output>
+                        <span class="result-note">The defects per unit summed over all steps that this RTY implies if each step’s defects follow the Poisson model.</span></div>
                 </div>
             </div>
         </section>
@@ -190,15 +238,28 @@
 
     <article class="prose" style="margin-top:3rem">
         <h2>How sigma level is calculated</h2>
-        <p>A sigma level is a way of writing a defect rate as a z-value. If a fraction \(p\) of opportunities is defective, the long-term z-value is the point on the standard normal distribution with that much area beyond it:</p>
-        <div class="formula">\[ Z_\text{LT} = -\Phi^{-1}(p), \qquad \sigma_\text{level} = Z_\text{LT} + 1.5 \ \ \text{(Six Sigma convention)} \]</div>
-        <p>DPMO is \(10^6 p\), yield is \(1 - p\), and \(\Phi^{-1}\) is the inverse standard normal CDF. The conversion is one-sided: it treats all defects as lying beyond a single limit. That matches the published Six Sigma tables, where 6σ corresponds to 3.4 DPMO.</p>
+        <p>A sigma level restates a defect rate as a z-value: a distance along the standard normal (bell) curve. If a fraction \(p\) of opportunities is defective, the long-term z-value is the point with that much area beyond it, and the Six Sigma convention adds 1.5:</p>
+        <div class="formula">\[ \begin{gathered} Z_\text{LT} = -\Phi^{-1}(p) \\[4pt] \sigma_\text{level} = Z_\text{LT} + 1.5 \ \ \text{(with the shift)} \\[4pt] \sigma_\text{level} = Z_\text{LT} \ \ \text{(no shift)} \end{gathered} \]</div>
+        <p>\(\Phi\) is the standard normal cumulative distribution function and \(\Phi^{-1}\) its inverse. DPMO is \(10^6 p\), the defect rate is \(100p\)&nbsp;%, and the yield per opportunity is \(100(1-p)\)&nbsp;%; in the other direction, \(p = \Phi(1.5 - \sigma_\text{level})\) with the shift. The conversion is one-sided: every defect counts in the tail beyond one specification limit. ISO&nbsp;13053-1 builds its sigma table this way (clauses 5.2 and 5.3, Table&nbsp;2 and Annex&nbsp;A), as do most Six Sigma tables, so that 6σ gives 3.4&nbsp;DPMO. Some textbook tables, such as Figure&nbsp;1.12 in Montgomery, also count the small tail beyond the far limit; that matters only below about 3σ (697 672 instead of 691 462&nbsp;DPMO at 1σ).</p>
+        <p>The line under the converter adds two comparisons. Ppk&nbsp;≈&nbsp;\(Z_\text{LT}/3\) is the performance index of a normally distributed process whose defects all lie beyond one limit (see the <a href="/tools/process-capability/">capability calculator</a>). A centered process with limits at \(\pm\sigma_\text{level}\) would make \(2\Phi(-\sigma_\text{level})\times10^6\) parts per million, the last column of the table below.</p>
 
-        <h2>The 1.5σ shift, honestly</h2>
-        <p>Motorola's Six Sigma program assumed that a process studied over a short period would drift by about 1.5 standard deviations over the long term. Sigma levels are therefore quoted as short-term capability: a “6σ” process is expected to deliver the long-term defect rate of a 4.5σ one-sided tail, 3.4 DPMO. Without the shift, 6σ would mean about 0.001 DPMO one-sided, or 0.002 two-sided.</p>
-        <p>The 1.5σ figure is a convention, not a law of nature. Some processes drift much less, such as a well-controlled laser process with closed-loop power monitoring. Others drift more, such as tool wear without compensation. Critics note that the shift makes the scale hard to interpret and can hide poor long-term performance. For engineering decisions, it is clearer to quote measured long-term performance directly, as Ppk or observed PPM, and to state which convention any sigma level uses.</p>
+        <h2>The 1.5σ shift: where it comes from</h2>
+        <figure>
+            <svg viewBox="0 0 640 300" class="fig" role="img" aria-label="Two bell curves and an upper specification limit 3 standard deviations from the target. The dashed curve is centered on the target. The solid curve has drifted 1.5 standard deviations toward the limit, which leaves only 1.5 standard deviations to it. The shaded tail of the drifted curve beyond the limit is 6.68 percent of the output: the 66 807 DPMO listed for sigma level 3."><defs><marker id="sl-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1L10,5L0,9Z" class="ahead"/></marker><marker id="sl-ahd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1L10,5L0,9Z" class="ahead drift"/></marker></defs><path class="tailfill" d="M432,236L432,182.8L435,186.7L438,190.4L441,194L444,197.3L447,200.5L450,203.5L453,206.4L456,209L459,211.5L462,213.8L465,215.9L468,217.9L471,219.7L474,221.4L477,223L480,224.4L483,225.6L486,226.8L489,227.8L492,228.8L495,229.6L498,230.4L501,231.1L504,231.7L507,232.3L510,232.7L513,233.2L516,233.6L519,233.9L522,234.2L525,234.4L528,234.7L531,234.9L534,235L537,235.2L540,235.3L543,235.4L546,235.5L549,235.6L552,235.6L555,235.7L558,235.7L561,235.8L564,235.8L567,235.9L570,235.9L573,235.9L576,235.9L579,235.9L582,235.9L585,236L588,236L591,236L594,236L597,236L600,236L603,236L606,236L609,236L612,236L612,236Z"/><line class="guide" x1="252" x2="252" y1="22" y2="236"/><line class="guide drift" x1="342" x2="342" y1="56" y2="236"/><path class="curve0" d="M36,235.7L39.1,235.7L42.2,235.6L45.3,235.6L48.3,235.5L51.4,235.4L54.5,235.3L57.6,235.1L60.7,235L63.8,234.8L66.9,234.6L69.9,234.4L73,234.1L76.1,233.8L79.2,233.4L82.3,233L85.4,232.5L88.5,232L91.5,231.4L94.6,230.7L97.7,230L100.8,229.1L103.9,228.2L107,227.2L110.1,226L113.1,224.7L116.2,223.3L119.3,221.8L122.4,220.1L125.5,218.2L128.6,216.2L131.7,214.1L134.7,211.7L137.8,209.2L140.9,206.5L144,203.5L147.1,200.4L150.2,197.1L153.3,193.7L156.3,190L159.4,186.1L162.5,182.1L165.6,177.8L168.7,173.5L171.8,168.9L174.9,164.2L177.9,159.4L181,154.5L184.1,149.5L187.2,144.5L190.3,139.4L193.4,134.3L196.5,129.2L199.5,124.1L202.6,119.1L205.7,114.2L208.8,109.4L211.9,104.8L215,100.4L218.1,96.3L221.1,92.3L224.2,88.7L227.3,85.3L230.4,82.3L233.5,79.6L236.6,77.3L239.7,75.4L242.7,73.9L245.8,72.9L248.9,72.2L252,72L255.1,72.2L258.2,72.9L261.3,73.9L264.3,75.4L267.4,77.3L270.5,79.6L273.6,82.3L276.7,85.3L279.8,88.7L282.9,92.3L285.9,96.3L289,100.4L292.1,104.8L295.2,109.4L298.3,114.2L301.4,119.1L304.5,124.1L307.5,129.2L310.6,134.3L313.7,139.4L316.8,144.5L319.9,149.5L323,154.5L326.1,159.4L329.1,164.2L332.2,168.9L335.3,173.5L338.4,177.8L341.5,182.1L344.6,186.1L347.7,190L350.7,193.7L353.8,197.1L356.9,200.4L360,203.5L363.1,206.5L366.2,209.2L369.3,211.7L372.3,214.1L375.4,216.2L378.5,218.2L381.6,220.1L384.7,221.8L387.8,223.3L390.9,224.7L393.9,226L397,227.2L400.1,228.2L403.2,229.1L406.3,230L409.4,230.7L412.5,231.4L415.5,232L418.6,232.5L421.7,233L424.8,233.4L427.9,233.8L431,234.1L434.1,234.4L437.1,234.6L440.2,234.8L443.3,235L446.4,235.1L449.5,235.3L452.6,235.4L455.7,235.5L458.7,235.6L461.8,235.6L464.9,235.7L468,235.7"/><path class="curve1" d="M126,235.7L129.5,235.7L132.9,235.6L136.4,235.5L139.9,235.4L143.4,235.3L146.8,235.2L150.3,235L153.8,234.8L157.2,234.6L160.7,234.3L164.2,234L167.7,233.6L171.1,233.2L174.6,232.7L178.1,232.1L181.5,231.4L185,230.7L188.5,229.8L192,228.8L195.4,227.7L198.9,226.5L202.4,225.1L205.8,223.5L209.3,221.8L212.8,219.9L216.3,217.8L219.7,215.4L223.2,212.9L226.7,210.1L230.1,207.2L233.6,203.9L237.1,200.4L240.6,196.7L244,192.8L247.5,188.6L251,184.1L254.4,179.5L257.9,174.6L261.4,169.5L264.9,164.2L268.3,158.8L271.8,153.3L275.3,147.6L278.7,141.9L282.2,136.2L285.7,130.4L289.2,124.7L292.6,119.1L296.1,113.6L299.6,108.3L303,103.2L306.5,98.3L310,93.8L313.5,89.5L316.9,85.7L320.4,82.3L323.9,79.3L327.3,76.8L330.8,74.8L334.3,73.3L337.8,72.4L341.2,72L344.7,72.2L348.2,72.9L351.6,74.1L355.1,75.9L358.6,78.1L362.1,80.9L365.5,84.1L369,87.8L372.5,91.8L375.9,96.3L379.4,101L382.9,106L386.4,111.2L389.8,116.6L393.3,122.2L396.8,127.9L400.2,133.6L403.7,139.4L407.2,145.1L410.7,150.8L414.1,156.4L417.6,161.9L421.1,167.2L424.5,172.3L428,177.3L431.5,182.1L435,186.6L438.4,190.9L441.9,195L445.4,198.8L448.8,202.4L452.3,205.7L455.8,208.8L459.3,211.7L462.7,214.3L466.2,216.8L469.7,219L473.1,221L476.6,222.8L480.1,224.4L483.6,225.9L487,227.2L490.5,228.3L494,229.4L497.4,230.3L500.9,231.1L504.4,231.8L507.9,232.4L511.3,232.9L514.8,233.4L518.3,233.8L521.7,234.2L525.2,234.5L528.7,234.7L532.2,234.9L535.6,235.1L539.1,235.3L542.6,235.4L546,235.5L549.5,235.6L553,235.7L556.5,235.7L559.9,235.8L563.4,235.8L566.9,235.9L570.3,235.9L573.8,235.9L577.3,235.9L580.8,235.9L584.2,236L587.7,236L591.2,236L594.6,236L598.1,236L601.6,236L605.1,236L608.5,236L612,236"/><line class="limit" x1="432" x2="432" y1="22" y2="236"/><path class="axis" d="M36,236H612"/><line class="tk" x1="72" x2="72" y1="236" y2="241"/><text class="tick" x="72" y="260" text-anchor="middle">−3σ</text><line class="tk" x1="132" x2="132" y1="236" y2="241"/><text class="tick" x="132" y="260" text-anchor="middle">−2σ</text><line class="tk" x1="192" x2="192" y1="236" y2="241"/><text class="tick" x="192" y="260" text-anchor="middle">−1σ</text><line class="tk" x1="252" x2="252" y1="236" y2="241"/><text class="tick strong" x="252" y="260" text-anchor="middle">Target</text><line class="tk" x1="312" x2="312" y1="236" y2="241"/><text class="tick" x="312" y="260" text-anchor="middle">+1σ</text><line class="tk" x1="372" x2="372" y1="236" y2="241"/><text class="tick" x="372" y="260" text-anchor="middle">+2σ</text><line class="tk" x1="432" x2="432" y1="236" y2="241"/><text class="tick strong" x="432" y="260" text-anchor="middle">Limit</text><line class="tk" x1="492" x2="492" y1="236" y2="241"/><text class="tick" x="492" y="260" text-anchor="middle">+4σ</text><line class="tk" x1="552" x2="552" y1="236" y2="241"/><text class="tick" x="552" y="260" text-anchor="middle">+5σ</text><line class="tk" x1="612" x2="612" y1="236" y2="241"/><text class="tick" x="612" y="260" text-anchor="middle">+6σ</text><line class="dim" x1="252" x2="432" y1="30" y2="30" marker-start="url(#sl-ah)" marker-end="url(#sl-ah)"/><text class="lab" x="342" y="23" text-anchor="middle">3σ</text><line class="dim drift" x1="252" x2="341" y1="56" y2="56" marker-end="url(#sl-ahd)"/><text class="lab drift" x="243" y="62" text-anchor="end">1.5σ shift</text><line class="dim" x1="343" x2="431" y1="56" y2="56" marker-start="url(#sl-ah)" marker-end="url(#sl-ah)"/><text class="sub" x="441" y="62">1.5σ to limit</text><text class="lab bad" x="441" y="132">66 807 DPMO</text><text class="sub bad" x="441" y="156">(6.68 % beyond)</text><line class="leader" x1="452" x2="448.8" y1="164" y2="219.2"/><text class="sub" x="42" y="140">centered</text><text class="sub" x="42" y="162">(dashed)</text></svg>
+            <figcaption>Sigma level 3 under the Six Sigma convention. The specification limit sits 3σ from the target. The dashed curve is the process centered on target; the solid curve has drifted 1.5σ toward the limit, which leaves only 1.5σ to it. The shaded tail beyond the limit, 6.68&nbsp;% of the output, is the 66 807&nbsp;DPMO in the table below; without the drift only 0.135&nbsp;% (1 350&nbsp;DPMO) would fall beyond the limit. At sigma level 6 the drifted curve sits 4.5σ from the limit and its tail is 3.4&nbsp;DPMO, far too thin to see on this scale: the chart in the converter shows it on a logarithmic one.</figcaption>
+        </figure>
+        <p>Six Sigma began at Motorola in the 1980s. Engineer Bill Smith proposed a 50&nbsp;% design margin for key product characteristics, which puts the specification limits six standard deviations from the target instead of three; from 1987, Motorola’s designers worked to ±6σ limits (Smith, 1993). Mikel Harry, whose team put the idea into practice, recalled that Smith believed the process average typically shifts by about 1.5σ from target over time (Harry, 2004), and Motorola’s 1988 guide to tolerancing by Harry and Stewart built a 1.5σ shift of the mean into its tolerance stack-ups. Statistical tolerancing already widened root-sum-square stack-ups by a factor of 1.5 to allow for drifting component means (Gilson, 1951, and Bender, 1962, both cited by de Treville et al., 2023; Evans, 1975, reviews such allowances), and de Treville et al. suggest that Harry’s number came from that allowance, from a confidence interval on the estimated mean, or from both. Harry later described the 1.5σ not as a literal movement of the mean but as an “equivalent mean shift” that allows for long-term random sampling error.</p>
+        <p>ISO&nbsp;13053-1 adopts the convention and explains it as an allowance for changes in the process mean between the short and the long term. A process quoted at 6σ is therefore expected to deliver, over the long term, the defect rate of a one-sided tail 4.5σ out: 3.4&nbsp;DPMO. Without the shift, 6σ would mean 0.001&nbsp;DPMO one-sided, or 0.002 two-sided.</p>
+
+        <h2>The 1.5σ shift: the debate</h2>
+        <ul>
+            <li><strong>For.</strong> Monitoring catches small shifts slowly. An X̄ chart with subgroups of four and 3σ limits needs on average about 2 subgroups to signal a 1.5σ shift, 6 for a 1σ shift, and 44 for a 0.5σ shift, so even a monitored process runs off center part of the time. Bothe (2002) uses this sensitivity of control charts as a statistical reason for the allowance. Montgomery calls the Six Sigma process “one way to model” the disturbances that move real processes: probably not exactly right, but “a useful way to think about process performance.”</li>
+            <li><strong>Against.</strong> Montgomery also notes an apparent inconsistency: performance can be predicted only for a stable process, and a mean that drifts may move more than the “allowed” 1.5σ. Wheeler (2003) observes that early documents allude to a research study behind the figure but never cite one, that shifts of 3σ and more are common in production, and that without monitoring there is no limit to them, so 1.5σ is a best case rather than a worst case; he also doubts parts-per-million figures taken this far into the tails of an assumed normal model. De Treville et al. (2023) argue that a literal 1.5σ shift contradicts statistical control: when the mean moves, the cause should be found and the process recentered. Coskun and Ialongo (2020) conclude that the shift should not be applied as a universal constant, only where there is evidence that the process in question drifts.</li>
+        </ul>
+        <p>The 1.5σ is a convention, not a law of nature. Processes that are recalibrated often or held on target by feedback control can drift much less; processes that nobody watches can drift much more. For engineering decisions it is clearer to quote measured long-term performance directly, as Ppk or observed parts per million, and to say which convention any sigma level uses.</p>
+        <p>The table converts whole sigma levels under each convention, computed from the normal distribution. The shifted DPMO agree with ISO&nbsp;13053-1 (Table&nbsp;2) and the centered two-sided values with Montgomery’s Figure&nbsp;1.12a.</p>
         <table>
-            <thead><tr><th class="num">Sigma level</th><th class="num">DPMO (1.5σ shift)</th><th class="num">Yield (1.5σ shift)</th><th class="num">DPMO, one-sided, no shift</th><th class="num">PPM, ±Zσ two-sided, centered</th></tr></thead>
+            <thead><tr><th class="num">Sigma<br>level</th><th class="num">DPMO<br>(1.5σ shift)</th><th class="num">Yield<br>(1.5σ shift)</th><th class="num">DPMO, no shift<br>(one-sided)</th><th class="num">PPM, centered<br>(limits ±σ level)</th></tr></thead>
             <tbody>
                 <tr><td class="num">1</td><td class="num">691 462</td><td class="num">30.85 %</td><td class="num">158 655</td><td class="num">317 311</td></tr>
                 <tr><td class="num">2</td><td class="num">308 538</td><td class="num">69.15 %</td><td class="num">22 750</td><td class="num">45 500</td></tr>
@@ -209,26 +270,56 @@
             </tbody>
         </table>
 
-        <h2>DPU, DPO, and first-pass yield</h2>
-        <div class="formula">\[ DPU = \frac{D}{U}, \qquad DPO = \frac{D}{U \cdot O}, \qquad DPMO = 10^6\,DPO, \qquad FPY \approx e^{-DPU} \]</div>
-        <p>If defects land on units at random, the number of defects per unit follows a Poisson distribution. The chance a unit has none is then \(e^{-DPU}\). If the observed first-pass yield is clearly higher than the Poisson estimate, defects are clustering on a few bad units, which points to a specific cause. The rolled throughput yield of a multi-step process is the product of each step's first-pass yield, \(RTY = \prod_i FPY_i\). It is the probability that a unit passes every step without rework, which is the yield the factory floor actually experiences.</p>
+        <h2>DPU, DPO, first-pass yield, and rolled throughput yield</h2>
+        <div class="formula">\[ \begin{gathered} DPU = \frac{D}{U}, \qquad DPO = \frac{D}{U \cdot O} \\[8pt] DPMO = 10^6\,DPO, \qquad FPY \approx e^{-DPU} \end{gathered} \]</div>
+        <p>If defects land on units at random, the number of defects on a unit follows a Poisson distribution with mean DPU, and the chance that a unit has none is \(e^{-DPU}\). This is an approximation: if each of the \(O\) opportunities on a unit fails independently with probability DPO, the exact chance is \((1-DPO)^O\). The two agree closely when DPO is small, the usual case (96.88&nbsp;% for both in the example below). With one opportunity per unit, each defect is on a different unit and the first-pass yield is exactly \(1 - DPU\).</p>
+        <p>If the observed first-pass yield is clearly higher than the Poisson estimate, defects are clustering on fewer units than chance would give, which points to a specific cause such as a bad batch or a station that damages some parts. The calculator calls the difference clear when it exceeds two standard deviations of the number of defect-free units under random placement, \(\sqrt{U e^{-DPU}\left(1-(1+DPU)\,e^{-DPU}\right)}\). Semiconductor yield models describe clustered defects with the negative binomial yield \(Y = (1 + DPU/\alpha)^{-\alpha}\), which always lies above \(e^{-DPU}\) and approaches it as the cluster parameter \(\alpha\) grows (Stapper, 1973; Cunningham, 1990).</p>
+        <div class="formula">\[ \begin{gathered} RTY = \prod_{i=1}^{n} FPY_i \approx e^{-\sum_i DPU_i} \\[4pt] Y_\text{norm} = RTY^{1/n}, \qquad TDPU = -\ln RTY \end{gathered} \]</div>
+        <p>The rolled throughput yield of a process with \(n\) steps is the product of the steps’ first-pass yields: the chance that a unit passes every step without rework, repair, or adjustment (ISO&nbsp;13053-1, clause&nbsp;5.4). A final yield that counts reworked units as good hides those losses; in the standard’s example, a final yield of 97.0&nbsp;% against an RTY of 89.7&nbsp;%. The normalized yield is the geometric mean of the step yields, and the total defects per unit, TDPU, is the number of defects per unit across all steps that the RTY implies under the Poisson model (Harry, 2004).</p>
+
+        <h2>Zero defects</h2>
+        <p>With no defects in \(n = U \cdot O\) opportunities, the defect rate is small, not zero. The calculator then reports a lower bound on the sigma level, from the exact one-sided 95&nbsp;% upper confidence limit of a binomial proportion (Clopper and Pearson, 1934):</p>
+        <div class="formula">\[ p_{95} = 1 - 0.05^{1/n} \approx \frac{3}{n} \]</div>
+        <p>\(3/n\) is the “rule of three” (Hanley and Lippman-Hand, 1983), close to the exact value for \(n\) above about 30. For 1200 units with 12 opportunities each, \(p_{95} = 2.08\times10^{-4}\), or 208&nbsp;DPMO, so the sigma level is at least 5.03 with the shift (3.53 without). The bound treats the opportunities as independent trials.</p>
 
         <h2>Worked example</h2>
-        <p>An inspection finds 38 defects on 1200 units, with 12 defect opportunities per unit. That gives DPU = 0.0317, DPO = 0.00264, and DPMO = 2639. This corresponds to Z = 2.79 long-term, or a 4.29σ short-term sigma level. The Poisson first-pass yield, \(e^{-0.0317} = 96.88\,\%\), matches the observed 1163/1200 = 96.92 %, so defects are spread randomly rather than clustered. Five steps with first-pass yields of 98.5, 99.2, 97.8, 99.6, and 98.9 % give RTY = 94.13 %. About one unit in seventeen needs rework somewhere, even though no single step looks worse than 97.8 %.</p>
+        <p>An inspection finds 38 defects on 1200 units, with 12 defect opportunities per unit. That gives DPU = 0.0317, DPO = 0.00264, and DPMO = 2639. This corresponds to Z = 2.79 long-term, or a 4.29σ sigma level with the shift. The Poisson first-pass yield, \(e^{-0.0317} = 96.88\,\%\), agrees with the observed 1163/1200 = 96.92&nbsp;%: the difference is 0.4 defect-free units, about half a standard deviation (0.76), so the defects look randomly spread rather than clustered. Five steps with first-pass yields of 98.5, 99.2, 97.8, 99.6, and 98.9&nbsp;% give RTY = 94.13&nbsp;%, a normalized yield of 98.80&nbsp;% per step, and TDPU = 0.0605. About one unit in seventeen needs rework somewhere, even though no single step looks worse than 97.8&nbsp;%.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>Opportunity counts are a judgment call.</strong> Counting more opportunities per unit lowers DPMO and raises the sigma level without any change to the product. Define opportunities once, document the definition, and keep it fixed when comparing over time.</li>
-            <li><strong>Normal tails.</strong> Converting a defect rate to a z-value assumes normally distributed variation. For attribute defects (missing features, contamination) the sigma level is only a common scale, not a physical distance to a limit.</li>
+            <li><strong>Opportunity counts are a judgment call.</strong> Counting more opportunities per unit lowers DPMO and raises the sigma level without any change to the product. In Wheeler’s example, 2.5 blemishes per 100 yards of cloth is 8 333&nbsp;DPMO with one opportunity per foot but 694&nbsp;DPMO with one per inch (3.9σ against 4.7σ). ISO&nbsp;13053-2 counts the critical-to-quality characteristics of a unit: a pizza delivery that can be late, cold, or the wrong pizza has three, so 36 defects in 50 000 deliveries is 240&nbsp;DPMO. Define opportunities once, document the definition, and keep it fixed when comparing over time.</li>
+            <li><strong>Normal tails.</strong> Converting a defect rate to a z-value assumes normally distributed variation, and at high sigma levels it relies on the far tails of the normal curve, where real processes rarely follow it. For attribute defects (missing features, contamination) the sigma level is only a common scale, not a physical distance to a limit.</li>
             <li><strong>One-sided convention.</strong> Every defect is assigned to one tail. For a centered process with two-sided limits, use the two-sided column in the table or the <a href="/tools/process-capability/">capability calculator</a>.</li>
-            <li><strong>Independent steps.</strong> RTY assumes step yields are independent. When the units that fail one step are also more likely to fail later ones (a weak part, a marginal setup), failures pile up on the same units and the true RTY is higher than the product. When failures at different steps tend to exclude each other, it is lower. Track units through the line to measure RTY directly when the difference matters.</li>
+            <li><strong>Random defects.</strong> The Poisson first-pass yield and the clustering check assume that defects land on units independently. With one opportunity per unit there is nothing to compare: each defect fails a different unit.</li>
+            <li><strong>Independent steps.</strong> The product of the step yields is the chance of passing every step when each step’s first-pass yield is counted on the units that came through the earlier steps without rework, or when the steps fail independently, as ISO&nbsp;13053-1 assumes. When the units that fail one step are also more likely to fail later ones (a weak part, a marginal setup), failures pile up on the same units and the true RTY is higher than the product of separately measured yields; when failures tend to exclude each other, it is lower. Track units through the line to measure RTY directly when the difference matters.</li>
+            <li><strong>Numerical range.</strong> The six digits shown are correct to within one unit in the last digit. With the shift, sigma levels from about −6.8 to 39 convert; beyond them the defect rate rounds to 100&nbsp;% or falls below 10<sup>−308</sup>, the smallest normal double-precision number.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>D. C. Montgomery, <em>Introduction to Statistical Quality Control</em>, 8th ed., Wiley (chapter on Six Sigma and process capability).</li>
-            <li>AIAG, <em>Statistical Process Control (SPC) Reference Manual</em>, 2nd ed. (2005).</li>
+            <li>ISO&nbsp;13053-1:2011, Quantitative methods in process improvement — Six Sigma — Part 1: DMAIC methodology (confirmed in 2022; DPMO in clause 5.2, the sigma table with the 1.5σ shift in clauses 5.2 and 5.3 and Annex A, rolled throughput yield in clause 5.4).</li>
+            <li>ISO&nbsp;13053-2:2011, Quantitative methods in process improvement — Six Sigma — Part 2: Tools and techniques (confirmed in 2022; DPMO over several critical-to-quality characteristics, with the pizza-delivery example).</li>
+            <li>D. C. Montgomery, <em>Introduction to Statistical Quality Control</em>, 8th ed., Wiley (2019), Section 1.4.1, Figure 1.12 (the Motorola Six Sigma concept, the 1.5σ shift, and its caveat about stability).</li>
+            <li>B. Smith, “Six-sigma design,” <em>IEEE Spectrum</em> <strong>30</strong>(9), 43–47 (1993), <a href="https://doi.org/10.1109/6.275174" target="_blank" rel="noopener">doi:10.1109/6.275174</a> (Motorola’s ±6σ design margins from 1987).</li>
+            <li>M. J. Harry and R. Stewart, <em>Six Sigma Mechanical Design Tolerancing</em>, Motorola (1988) (the 1.5σ shift of the mean in tolerance stack-ups).</li>
+            <li>M. J. Harry, “<a href="https://www.isixsigma.com/ask-six-sigma-methodology/where-did-name-six-sigma-come/" target="_blank" rel="noopener">Where did the name ‘Six Sigma’ come from?</a>,” “<a href="https://www.isixsigma.com/ask-dr-mikel-harry/can-you-explain-shifting-15-sigma-calculating-sigma-level-including-physical-meaning-shifting/" target="_blank" rel="noopener">Can you explain shifting of 1.5 sigma in calculating sigma level, including physical meaning of shifting?</a>” and “<a href="https://www.isixsigma.com/ask-dr-mikel-harry/how-can-i-determine-if-my-rolled-throughput-yield-rty-acceptable/" target="_blank" rel="noopener">How can I determine if my rolled throughput yield (RTY) is acceptable?</a>,” <em>iSixSigma</em> (February 2004) (Smith’s 1.5σ, the shift as a correction rather than a literal movement of the mean, and RTY, TDPU, and normalized yield).</li>
+            <li>S. de Treville, T. R. Browning, M. Holweg, and R. Shah, “Rethinking Six Sigma: Learning from practice in a digital age,” <em>J. Oper. Manag.</em> <strong>69</strong>(8), 1371–1376 (2023), <a href="https://doi.org/10.1002/joom.1284" target="_blank" rel="noopener">doi:10.1002/joom.1284</a> (Harry’s 2003 account of the shift, its likely sources in tolerancing, and the statistical-control critique; free to read).</li>
+            <li>D. H. Evans, “Statistical tolerancing: The state of the art. Part III. Shifts and drifts,” <em>J. Qual. Technol.</em> <strong>7</strong>(2), 72–76 (1975), <a href="https://doi.org/10.1080/00224065.1975.11980672" target="_blank" rel="noopener">doi:10.1080/00224065.1975.11980672</a> (allowances for drifting component means in tolerancing).</li>
+            <li>D. R. Bothe, “Statistical reason for the 1.5σ shift,” <em>Qual. Eng.</em> <strong>14</strong>(3), 479–487 (2002), <a href="https://doi.org/10.1081/QEN-120001884" target="_blank" rel="noopener">doi:10.1081/QEN-120001884</a> (control-chart sensitivity as a rationale for the shift).</li>
+            <li>D. J. Wheeler, “The Six-Sigma Zone,” Manuscript 177, SPC Press (2003), <a href="https://www.spcpress.com/pdf/DJW177.pdf" target="_blank" rel="noopener">spcpress.com</a> (a critique of the shift, of far-tail parts per million, and of opportunity counts; free to read).</li>
+            <li>A. Coskun and C. Ialongo, “Six Sigma revisited: We need evidence to include a 1.5 SD shift in the extraanalytical phase of the total testing process,” <em>Biochem. Med.</em> <strong>30</strong>(1), 010901 (2020), <a href="https://doi.org/10.11613/BM.2020.010901" target="_blank" rel="noopener">doi:10.11613/BM.2020.010901</a> (the shift as an evidence-based choice rather than a constant; free to read).</li>
+            <li>C. J. Clopper and E. S. Pearson, “The use of confidence or fiducial limits illustrated in the case of the binomial,” <em>Biometrika</em> <strong>26</strong>(4), 404–413 (1934), <a href="https://doi.org/10.1093/biomet/26.4.404" target="_blank" rel="noopener">doi:10.1093/biomet/26.4.404</a> (the exact zero-defect bound).</li>
+            <li>J. A. Hanley and A. Lippman-Hand, “If nothing goes wrong, is everything all right? Interpreting zero numerators,” <em>JAMA</em> <strong>249</strong>(13), 1743–1745 (1983), <a href="https://doi.org/10.1001/jama.1983.03330370053031" target="_blank" rel="noopener">doi:10.1001/jama.1983.03330370053031</a> (the rule of three).</li>
+            <li>C. H. Stapper, “Defect density distribution for LSI yield calculations,” <em>IEEE Trans. Electron Devices</em> <strong>20</strong>(7), 655–657 (1973), <a href="https://doi.org/10.1109/T-ED.1973.17719" target="_blank" rel="noopener">doi:10.1109/T-ED.1973.17719</a>; and J. A. Cunningham, “The use and evaluation of yield models in integrated circuit manufacturing,” <em>IEEE Trans. Semicond. Manuf.</em> <strong>3</strong>(2), 60–71 (1990), <a href="https://doi.org/10.1109/66.53188" target="_blank" rel="noopener">doi:10.1109/66.53188</a> (Poisson and negative binomial yield models for random and clustered defects).</li>
+            <li>AIAG, <em>Statistical Process Control (SPC) Reference Manual</em>, 2nd ed. (2005) (the process performance index Ppk).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>NIST/SEMATECH, “<a href="https://www.itl.nist.gov/div898/handbook/pmc/section3/pmc331.htm" target="_blank" rel="noopener">Counts control charts</a>,” <em>e-Handbook of Statistical Methods</em>, Section 6.3.3.1 (defects versus defective units, and the Poisson model for defect counts).</li>
+            <li>NIST/SEMATECH, “<a href="https://www.itl.nist.gov/div898/handbook/pmc/section1/pmc16.htm" target="_blank" rel="noopener">What is process capability?</a>,” <em>e-Handbook of Statistical Methods</em>, Section 6.1.6 (Cp and Cpk, and the reject rates of centered processes, from 0.27&nbsp;% at ±3σ to 2 parts per billion at ±6σ).</li>
+            <li>NIST/SEMATECH, “<a href="https://www.itl.nist.gov/div898/handbook/eda/section3/eda3671.htm" target="_blank" rel="noopener">Cumulative distribution function of the standard normal distribution</a>,” <em>e-Handbook of Statistical Methods</em>, Section 1.3.6.7.1 (the normal table behind sigma levels).</li>
+        </ul>
     </article>
 
     <section class="related">
@@ -243,10 +334,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     const { fmt } = Calc;
     const { normCdf, normInv } = Calc.math;
+    // significant digits in the converter: normCdf is good to about 1e-7, so a seventh digit could be off by one
+    const SIG = 6;
+    // the smallest normal double: a computed tail area below it has lost its significant digits
+    const MIN_P = 2.2250738585072014e-308;
     const shift = () => parseFloat(document.querySelector('input[name="shift"]:checked').value);
     const conv = document.getElementById('conv');
     const equiv = document.getElementById('equiv');
-    const yldInput = conv.querySelector('input[name="yld"]');
+    const plotBox = document.getElementById('sl-plot');
+    const box = name => conv.querySelector('input[name="' + name + '"]');
     let dpo = null;
 
     // base quantity: defect fraction p (per opportunity)
@@ -256,6 +352,10 @@ document.addEventListener('DOMContentLoaded', () => {
         yld:  { to: x => 1 - x / 100, from: p => (1 - p) * 100 },
         sig:  { to: s => normCdf(shift() - s), from: p => shift() - normInv(p) }
     };
+
+    // a value close to the top of its scale (a yield near 100 %, a DPMO near 10⁶) with enough decimals to show its
+    // distance from the top, gap, to two or three significant digits: 99.9999999 %, not a rounded 100
+    const nearTop = (v, gap, maxDec) => v.toFixed(Math.min(maxDec, Math.ceil(-Math.log10(gap)) + 2)).replace(/0+$/, '').replace(/\.$/, '');
 
     let lastField = 'sig';
     conv.addEventListener('input', e => { if (e.target.name in fields) lastField = e.target.name; });
@@ -269,36 +369,81 @@ document.addEventListener('DOMContentLoaded', () => {
         after() {
             if (!dpo) return;   // first run, before the other calculators exist
             dpo.run();
-            const inp = conv.querySelector('input[name="' + lastField + '"]');
+            const inp = box(lastField);
             if (inp) inp.dispatchEvent(new Event('input', { bubbles: true }));
         }
     });
 
+    // DPMO against sigma level under both conventions on a log axis, with the converter's value marked on each curve
+    const LBL_S = 'With the 1.5σ shift', LBL_0 = 'No shift (one-sided)';
+    function drawChart(p, zlt) {
+        const D = p * 1e6, s1 = zlt + 1.5, s0 = zlt;   // the same defect rate read with and without the shift
+        const xmin = Math.max(-5, Math.min(0, Math.floor(s0 - 0.5)));
+        const xmax = Math.min(12, Math.max(7, Math.ceil(s1 + 0.5)));
+        // 10 to 16 decades, so the log grid keeps one line per factor of 100
+        const ymin = Math.max(1e-10, Math.min(1e-4, Math.pow(10, Math.floor(Math.log10(D)) - 1)));
+        const xs = Calc.math.linspace(xmin, xmax, Math.round((xmax - xmin) * 40) + 1);
+        // each curve stops one point below the axis (clipped there), so no hover marker lands under the chart
+        const curve = f => { let below = false; return xs.map(s => { const y = 1e6 * normCdf(f(s)); if (below) return NaN; if (y < ymin) below = true; return y; }); };
+        const inView = D >= ymin && s1 <= xmax && s0 >= xmin;
+        const fmtD = y => (y >= 1e5 ? fmt.plain(y, 6) : fmt.num(y, 3)) + ' DPMO';   // 999767, not a rounded 1 × 10⁶
+        Plot.draw(plotBox, {
+            height: 300,
+            x: { label: 'Sigma level (σ)', min: xmin, max: xmax },
+            y: { label: 'DPMO', log: true, min: ymin, max: 1e6 },
+            series: [
+                { type: 'line', x: xs, y: curve(s => 1.5 - s), label: LBL_S, color: 'var(--c1)' },
+                { type: 'line', x: xs, y: curve(s => -s), label: LBL_0, color: 'var(--c2)' },
+                { type: 'points', x: inView ? [s1, s0] : [], y: inView ? [D, D] : [], colors: ['var(--c1)', 'var(--c2)'], r: 5 }
+            ],
+            hlines: inView ? [{ y: D, color: 'var(--muted)' }] : [],
+            includeLines: false,
+            ariaLabel: 'DPMO against sigma level on a logarithmic scale, with and without the 1.5σ shift. ' + (inView
+                ? 'Your value, ' + fmtD(D) + ', is ' + fmt.num(s1, 3) + 'σ with the shift and ' + fmt.num(s0, 3) + 'σ without.'
+                : 'Your value, ' + fmtD(D) + ', is off this chart.'),
+            hover: {
+                hint: inView ? 'Hover over or tap the chart to read both curves.' : 'Your value, ' + fmtD(D) + ', is off this chart. Hover over or tap it to read both curves.',
+                format(x, hits) {
+                    const a = hits.find(h => h.series.label === LBL_S), b = hits.find(h => h.series.label === LBL_0);
+                    return 'Sigma level ' + fmt.num(x, 3) + ': ' + (a ? fmtD(a.y) : 'below ' + fmtD(ymin)) + ' with the shift · '
+                        + (b ? fmtD(b.y) : 'below ' + fmtD(ymin)) + ' without';
+                }
+            }
+        });
+    }
+
     Calc.converter({
         root: '#conv',
         fields,
-        sig: 7,
+        sig: SIG,
         positive: false,   // a sigma level can be zero or negative; the defect-rate check below covers the rest
         initial: { field: 'sig', value: 6 },
         validate(p, n) {
+            if (n === 'sig' && p > 0 && p < MIN_P) return 'That sigma level is too high to convert: its defect rate is below 10⁻³⁰⁸.';
             if (p > 0 && p < 1) return null;
             if (n === 'sig') return 'That sigma level is too ' + (p <= 0 ? 'high' : 'low') + ' to convert: the defect rate rounds to ' + (p <= 0 ? '0' : '100 %') + '.';
             return 'The defect rate must be greater than 0 and less than 100 % (DPMO between 0 and 1,000,000, yield between 0 and 100 %).';
         },
         after(p, n) {
             lastField = n;
-            // keep enough yield digits to show the defect rate (99.9999999 %, not a rounded 100)
-            if (n !== 'yld' && p < 1e-5) {
-                const dec = Math.min(13, Math.ceil(-Math.log10(p * 100)) + 2);
-                yldInput.value = ((1 - p) * 100).toFixed(dec).replace(/0+$/, '').replace(/\.$/, '');
-            }
             // a typed sigma level is used as entered, so 1.5σ with the shift reads as z = 0, not a rounding residue
-            const zlt = n === 'sig' ? Calc.parseNum(conv.querySelector('input[name="sig"]').value) - shift() : -normInv(p);
-            const s = zlt + shift();
-            const zst = zlt + 1.5;
+            const typed = Calc.parseNum(box(n).value);
+            // the good fraction 1 − p, computed directly from a typed yield, or from a typed sigma level when p is near 1,
+            // where 1 − p would have lost its digits (yield 3.19 × 10⁻¹² % at −6σ, not 3.186)
+            const q = n === 'yld' ? typed / 100 : n === 'sig' && p > 0.5 ? normCdf(typed - shift()) : 1 - p;
+            if (n !== 'yld') box('yld').value = p < 1e-5 ? nearTop((1 - p) * 100, p * 100, 13) : fmt.plain(q * 100, SIG);
+            if (q < 1e-5) {   // defect rate within 0.001 % of 100 %: keep the digits that show how far below 100 % it is
+                if (n !== 'dpmo') box('dpmo').value = nearTop((1 - q) * 1e6, q * 1e6, 10);
+                if (n !== 'pct') box('pct').value = nearTop((1 - q) * 100, q * 100, 13);
+            }
+            if (n !== 'sig' && p > 0.5) box('sig').value = fmt.plain(shift() + normInv(q), SIG);   // −Φ⁻¹(p) = Φ⁻¹(1 − p)
+            const zlt = n === 'sig' ? typed - shift() : p > 0.5 ? normInv(q) : -normInv(p);
+            const s = zlt + shift(), zst = zlt + 1.5, two = 2 * normCdf(-s) * 1e6;
             equiv.innerHTML = 'Long-term z = <strong>' + fmt.num(zlt, 4) + '</strong> (Ppk ≈ ' + fmt.num(zlt / 3, 3) + ')' +
-                ' · short-term sigma level with the 1.5σ shift = <strong>' + fmt.num(zst, 4) + '</strong>' +
-                (s > 0 ? ' · two-sided centered process at ±' + fmt.num(s, 3) + 'σ: <strong>' + fmt.num(2 * normCdf(-s) * 1e6, 3) + '</strong> PPM' : '');
+                ' · sigma level with the 1.5σ shift = <strong>' + fmt.num(zst, 4) + '</strong>' +
+                // for comparison: a centered process with limits at ±s (omitted where the tail area underflows)
+                (s > 0 && two >= 1e-300 ? ' · a centered process with limits at ±' + fmt.num(s, 3) + 'σ: <strong>' + fmt.num(two, 3) + '</strong> PPM, both tails' : '');
+            drawChart(p, zlt);
         }
     });
 
@@ -309,12 +454,13 @@ document.addEventListener('DOMContentLoaded', () => {
         compute(v) {
             if (!Number.isInteger(v.defects)) throw Calc.fail('Defects must be a whole number.', 'defects');
             if (!Number.isInteger(v.units)) throw Calc.fail('Units inspected must be a whole number.', 'units');
-            const D = v.defects, U = v.units, O = v.opp;
-            if (!isFinite(U * O)) throw Calc.fail('Units × opportunities is too large to evaluate.', 'units');
-            const dpuV = D / U, dpoV = D / (U * O);
+            const D = v.defects, U = v.units, O = v.opp, n = U * O;
+            if (!isFinite(n)) throw Calc.fail('Units × opportunities is too large to evaluate.', 'units');
+            const dpuV = D / U, dpoV = D / n;
             if (dpoV >= 1) throw Calc.fail('Defects must be fewer than the total opportunities (D < U × O).', 'defects');
             const sh = shift();
-            let fpyObs = null, fpyNote = '';
+            // null hides the observed row and its note together (a note left non-null would show the row's stale value)
+            let fpyObs = null, fpyNote = null;
             if (isFinite(v.pass)) {
                 if (!Number.isInteger(v.pass)) throw Calc.fail('Units passing first time must be a whole number.', 'pass');
                 if (v.pass > U) throw Calc.fail('Units passing cannot exceed units inspected.', 'pass');
@@ -326,31 +472,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 const sd = Math.sqrt(U * pois * g), z = sd > 0 ? (v.pass - U * pois) / sd : 0;
                 fpyNote = D === 0 && failed === 0 ? 'No defects were found, so there is no Poisson comparison to make.'
                     : failed > D || failed * O < D ? 'Does not fit the defect count: check that both counts cover the same units.'
+                    : O === 1 ? 'With one opportunity per unit, each defect fails a different unit, so there is no clustering to detect.'
                     : Math.abs(z) < 2 ? 'Close to the Poisson estimate: defects look randomly distributed.'
                     : z > 0 ? 'Above the Poisson estimate: defects are clustering on fewer units.'
                     : 'Below the Poisson estimate: defects are spread more evenly than random, with few units carrying more than one.';
             }
             const steps = Calc.parseList(v.steps.replace(/%/g, ' '), 'steps');   // "98.5%", as copied from percent-formatted cells, reads as 98.5
-            let rty = null, ny = null, td = null;
+            let rty = null, rtyNote = null, ny = null, td = null;
             if (steps.length) {
                 if (steps.some(y => !(y > 0 && y <= 100))) throw Calc.fail('Each step yield must be greater than 0 and at most 100 %.', 'steps');
                 const r = steps.reduce((a, y) => a * y / 100, 1);
                 rty = fmt.pct(r, 4) + ' (' + steps.length + (steps.length === 1 ? ' step)' : ' steps)');
+                rtyNote = steps.every(y => y <= 1)
+                    ? 'Every step yield is 1 % or less. If these are fractions, enter them as percentages (98.5, not 0.985).'
+                    : 'The chance that a unit passes every step without rework.';
                 ny = fmt.pct(Math.pow(r, 1 / steps.length), 4);
                 td = fmt.num(-Math.log(r), 4);
             }
+            // zero defects: the exact one-sided 95 % upper bound on the defect rate, 1 − 0.05^(1/n) (Clopper–Pearson),
+            // which the rule of three, 3/n, approximates for n above about 30
+            const p95 = D === 0 ? -Math.expm1(Math.log(0.05) / n) : null;
             return {
                 dpmo: fmt.num(dpoV * 1e6, 4),
-                // zero defects: report a 95 % lower bound from the rule of three (p ≤ 3/n), not an open-ended claim
-                sigma: D === 0
-                    ? (3 / (U * O) < 1 ? '≥ ' + fmt.num(sh - normInv(3 / (U * O)), 3) + 'σ (95 % bound, zero defects)' : 'not estimable (too few opportunities)')
-                    : fmt.num(sh - normInv(dpoV), 3) + 'σ',
-                'sigma-note': sh ? 'Short-term, including the 1.5σ shift' : 'Long-term, no shift',
+                sigma: D === 0 ? '≥ ' + fmt.num(sh - normInv(p95), 3) + 'σ' : fmt.num(sh - normInv(dpoV), 3) + 'σ',
+                'sigma-note': (D === 0 ? 'No defects found: with 95 % confidence the DPMO is below ' + fmt.num(p95 * 1e6, 3) + ', so the sigma level is at least this. ' : '')
+                    + (sh ? 'Short-term, including the 1.5σ shift.' : 'Long-term, no shift.'),
                 dpu: fmt.num(dpuV, 4),
                 dpo: fmt.num(dpoV, 4),
                 fpy: fmt.pct(Math.exp(-dpuV), 4),
                 fpyobs: fpyObs, 'fpy-note': fpyNote,
-                rty, ny, tdpu: td
+                rty, 'rty-note': rtyNote, ny, tdpu: td
             };
         }
     });

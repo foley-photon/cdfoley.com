@@ -321,7 +321,7 @@
             var p = sy(l.y), c = l.color || 'var(--muted)';
             h('line', { x1: x0, x2: x1, y1: p, y2: p, class: 'vline', stroke: c }, svg);
             if (l.label) {
-                var t = h('text', { x: x1 - 4, y: p - 5, 'text-anchor': 'end', class: 'vlabel', fill: c }, svg);
+                var t = h('text', { x: x1 - 4, y: p - 5, 'text-anchor': 'end', class: 'vlabel', style: 'fill:' + c }, svg);
                 t.textContent = l.label; place(t, false);
             }
         });
@@ -331,7 +331,7 @@
             h('line', { x1: p, x2: p, y1: y1, y2: y0, class: 'vline', stroke: c }, svg);
             if (l.label) {
                 var right = p > (x0 + x1) / 2;
-                var t = h('text', { x: p + (right ? -5 : 5), y: y1 + 12, 'text-anchor': right ? 'end' : 'start', class: 'vlabel', fill: c }, svg);
+                var t = h('text', { x: p + (right ? -5 : 5), y: y1 + 12, 'text-anchor': right ? 'end' : 'start', class: 'vlabel', style: 'fill:' + c }, svg);
                 t.textContent = l.label; place(t, true);
             }
         });
