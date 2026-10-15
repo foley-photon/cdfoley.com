@@ -97,7 +97,7 @@
     "price": "0",
     "priceCurrency": "USD"
    },
-   "keywords": "oee takt time cycle time availability performance quality lean overall equipment effectiveness line balancing",
+   "keywords": "oee takt time cycle time availability performance quality lean overall equipment effectiveness line balancing six big losses tpm teep utilization planned cycle time operator balance chart yamazumi balance delay iso 22400 semi e79",
    "author": {
     "@type": "Person",
     "@id": "https://cdfoley.com/#person",
@@ -293,7 +293,7 @@
         <h2>How OEE is calculated</h2>
         <p>OEE compares the good parts actually made with the most that could have been made at the ideal rate during planned production time. Seiichi Nakajima, who made it the yardstick of Total Productive Maintenance (TPM), built it from three factors, each covering a different kind of loss:</p>
         <div class="formula">\[ \begin{gathered} A = \frac{\text{run time}}{\text{planned production time}} \\[4pt] P = \frac{\text{ideal cycle time} \times \text{total count}}{\text{run time}} \\[4pt] Q = \frac{\text{good count}}{\text{total count}} \end{gathered} \]</div>
-        <div class="formula">\[ \begin{aligned} \text{OEE} &= A \times P \times Q \\[4pt] &= \frac{\text{good count} \times \text{ideal cycle time}}{\text{planned production time}} \end{aligned} \]</div>
+        <div class="formula">\[ \begin{gathered} \text{OEE} = A \times P \times Q \\[4pt] {}= \frac{\text{good count} \times \text{ideal cycle time}}{\text{planned production time}} \end{gathered} \]</div>
         <p>Run time is planned production time minus downtime. The second form is a useful check: OEE is the fraction of planned time spent making good parts at full speed. The chart above follows the time down this chain. Downtime turns planned production time into run time. Slow cycles and short stops turn run time into net run time, the time the parts made would have taken at the ideal rate (ideal cycle time × total count). Rejects leave the fully productive time (ideal cycle time × good count). Each factor is the ratio of one bar to the bar above it.</p>
 
         <h3>The six big losses</h3>
@@ -343,7 +343,7 @@
         </ul>
 
         <h2>Takt time and line balancing</h2>
-        <div class="formula">\[ \begin{gathered} \text{takt} = \frac{\text{available working time}}{\text{customer demand}} \\[4pt] N_\text{min} = \left\lceil \frac{\sum t_i}{\text{takt}} \right\rceil, \qquad \eta_\text{balance} = \frac{\sum t_i}{N \cdot t_\text{max}} \end{gathered} \]</div>
+        <div class="formula">\[ \begin{gathered} \text{takt} = \frac{\text{available working time}}{\text{customer demand}} \\[4pt] N_\text{min} = \left\lceil \frac{\sum t_i}{\text{takt}} \right\rceil \\[4pt] \eta_\text{balance} = \frac{\sum t_i}{N \cdot t_\text{max}} \end{gathered} \]</div>
         <p>Takt time is the pace of demand. It is set by the customer, not by the equipment, so the available time excludes planned breaks but not changeovers or breakdowns: Rother’s rule is to leave losses out of takt, so that it shows the real demand. Cycle time is how long a station actually takes per unit. Every station must finish within takt, and in practice within a planned cycle time somewhat shorter than takt that leaves room for changeovers, short stops, and scrap; otherwise the line cannot meet demand without overtime. Rother suggests starting with a planned cycle time about 15&nbsp;% shorter than takt, and keeping automatic machine cycles below about 90&nbsp;% of it. A line timed exactly to takt that runs at the default example’s OEE of 79&nbsp;% would deliver only 79&nbsp;% of the demand.</p>
         <p>The slowest station, \(t_\text{max}\), sets the line’s maximum output: one unit every \(t_\text{max}\) at best. The minimum number of stations \(N_\text{min}\) is a lower bound that ignores the order of the tasks and the fact that a task cannot be split between stations, so a real line can need more. Line-balancing texts write the line efficiency as \(\sum t_i/(N c)\) for a cycle time \(c\). With \(c\) equal to takt, it measures how much of the stations’ time at the pace of demand is work (efficiency vs. takt, above). With \(c = t_\text{max}\), the pace the line can actually hold, it measures how evenly the work is spread (balance efficiency). Its complement, the balance delay, is idle time built into the line. The station chart above is an operator balance chart; the Lean Enterprise Institute recommends loading each operator to very nearly, but slightly less than, takt.</p>
 
@@ -416,8 +416,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const theo = v.planned / v.ict;
             const badge = document.getElementById('oee-badge');
             if (P > 1) { badge.textContent = 'Performance above 100 %'; badge.className = 'badge badge-warn'; }   // the OEE is not a valid score to rate
-            else if (oee >= 0.85) { badge.textContent = '≥ 85 % benchmark'; badge.className = 'badge badge-ok'; }
-            else { badge.textContent = 'Below 85 % benchmark'; badge.className = 'badge'; }
+            else if (oee >= 0.85) { badge.textContent = '≥ Nakajima’s 85 % ideal'; badge.className = 'badge badge-ok'; }
+            else { badge.textContent = 'Below Nakajima’s 85 % ideal'; badge.className = 'badge'; }
             lastOee = { planned: v.planned, run, net: v.total * v.ict, fp: v.good * v.ict, A, P, Q, oee };
             return {
                 oee: pct(oee),

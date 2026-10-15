@@ -306,23 +306,94 @@
             }
         });
 
-        // line labels: one that would overprint another (two vlines close together) moves down a line
+        // line labels go where they cover the least data: each label tries a few positions along its line and takes
+        // the first one with the lowest cost (the drawn length of curves under it, markers, bars, other labels, and
+        // the plot edges). Unobstructed labels keep their usual place: right end above an hline, top of a vline.
+        // Labels sit under the data and over the grid, with a halo in the panel color: where dense data leaves no
+        // clear position (a phone-width control chart), the points stay visible and the label stays legible.
+        var segs = [], boxes = [];
+        series.forEach(function (s) {
+            if (s.type === 'bars') {
+                s.bins.forEach(function (b) {
+                    var a = sx(b.x0), c = sx(b.x1), top = sy(Math.max(b.y, log.y ? ymin : 0));
+                    boxes.push({ x: Math.min(a, c), y: Math.min(top, baseY), width: Math.abs(c - a), height: Math.abs(baseY - top), w: 0.5 });
+                });
+                return;
+            }
+            if (s.type === 'band') return;   // a light shading, not data a label must avoid
+            if (s.type !== 'points' || s.line) {
+                var prev = null;
+                for (var k = 0; k < s.x.length; k++) {
+                    if (!drawable(s.x[k], s.y[k], log)) { prev = null; continue; }
+                    var pt = [sx(s.x[k]), sy(s.y[k])];
+                    if (prev) segs.push([prev[0], prev[1], pt[0], pt[1]]);
+                    prev = pt;
+                }
+            }
+            if (s.type === 'points') {
+                var r = (s.r || 3.5) + 1;
+                for (var m = 0; m < s.x.length; m++) {
+                    if (drawable(s.x[m], s.y[m], log)) boxes.push({ x: sx(s.x[m]) - r, y: sy(s.y[m]) - r, width: 2 * r, height: 2 * r, w: 12 });
+                }
+            }
+        });
+        // length of the segment (ax,ay)-(bx,by) inside box b (Liang–Barsky clipping)
+        var inLen = function (b, ax, ay, bx, by) {
+            var dx = bx - ax, dy = by - ay, t0 = 0, t1 = 1;
+            var p = [-dx, dx, -dy, dy], q = [ax - b.x, b.x + b.width - ax, ay - b.y, b.y + b.height - ay];
+            for (var i = 0; i < 4; i++) {
+                if (p[i] === 0) { if (q[i] < 0) return 0; continue; }
+                var t = q[i] / p[i];
+                if (p[i] < 0) { if (t > t1) return 0; if (t > t0) t0 = t; } else { if (t < t0) return 0; if (t < t1) t1 = t; }
+            }
+            return (t1 - t0) * Math.sqrt(dx * dx + dy * dy);
+        };
+        var overlap = function (a, b) {
+            return Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
+        };
         var placed = [];
-        var place = function (t, move) {
+        var cost = function (b) {
+            var g = { x: b.x - 2, y: b.y - 1, width: b.width + 4, height: b.height + 2 }, c = 0;
+            segs.forEach(function (s) { c += inLen(g, s[0], s[1], s[2], s[3]); });
+            boxes.forEach(function (q) { var a = overlap(g, q); if (a > 0) c += q.w ? q.w * Math.min(1, a / 4) + (q.w < 1 ? a / b.height : 0) : 0; });
+            placed.forEach(function (q) { if (overlap({ x: g.x - 1, y: g.y, width: g.width + 2, height: g.height }, q) > 0) c += 1000; });
+            if (b.y < 0 || b.y + b.height > y0 + 1 || b.x < x0 - 1 || b.x + b.width > W) c += 500;   // the top margin is free; the axes are not
+            return c;
+        };
+        // try each candidate {x, y (top of the text box), anchor, extra} in order; keep the cheapest
+        var place = function (t, cands) {
             var b = null;
             try { b = t.getBBox(); } catch (e) { /* not rendered */ }
             if (!b || !b.width) return;
-            var hits = function () { return placed.some(function (q) { return b.x < q.x + q.width + 3 && q.x < b.x + b.width + 3 && b.y < q.y + q.height && q.y < b.y + b.height; }); };
-            for (var n = 0; move && n < 5 && hits(); n++) { t.setAttribute('y', +t.getAttribute('y') + Math.ceil(b.height)); b = t.getBBox(); }
-            placed.push(b);
+            var asc = +t.getAttribute('y') - b.y, best = null;
+            cands.forEach(function (cd) {
+                t.setAttribute('x', cd.x); t.setAttribute('y', cd.top + asc); t.setAttribute('text-anchor', cd.anchor);
+                var bb = t.getBBox(), c = cost(bb) + (cd.extra || 0);
+                if (!best || c < best.c - 0.5) best = { c: c, cd: cd };
+            });
+            t.setAttribute('x', best.cd.x); t.setAttribute('y', best.cd.top + asc); t.setAttribute('text-anchor', best.cd.anchor);
+            placed.push(t.getBBox());
         };
+        var gLab = svg.insertBefore(document.createElementNS(NS, 'g'), gData);
+        var labelStyle = function (c) { return 'fill:' + c + ';stroke:var(--surface);stroke-width:3px;stroke-linejoin:round;paint-order:stroke'; };
         (o.hlines || []).forEach(function (l) {
             if (!(l.y >= ymin && l.y <= ymax)) return;
             var p = sy(l.y), c = l.color || 'var(--muted)';
             h('line', { x1: x0, x2: x1, y1: p, y2: p, class: 'vline', stroke: c }, svg);
             if (l.label) {
-                var t = h('text', { x: x1 - 4, y: p - 5, 'text-anchor': 'end', class: 'vlabel', style: 'fill:' + c }, svg);
-                t.textContent = l.label; place(t, false);
+                var t = h('text', { x: x1 - 4, y: p - 5, 'text-anchor': 'end', class: 'vlabel', style: labelStyle(c) }, gLab);
+                t.textContent = l.label;
+                var b0 = null; try { b0 = t.getBBox(); } catch (e) { /* not rendered */ }
+                var above = b0 ? b0.y : p - 17, below = p + 3, hw = b0 ? b0.width / 2 : 0;
+                var cands = [
+                    { x: x1 - 4, top: above, anchor: 'end' }, { x: x1 - 4, top: below, anchor: 'end' },
+                    { x: x0 + 4, top: above, anchor: 'start', extra: 0.5 }, { x: x0 + 4, top: below, anchor: 'start', extra: 0.5 }
+                ];
+                // then anywhere along the line, in 8 px steps from the right
+                for (var cx = x1 - 4 - hw - 8; cx > x0 + 4 + hw; cx -= 8) {
+                    cands.push({ x: cx, top: above, anchor: 'middle', extra: 1 }, { x: cx, top: below, anchor: 'middle', extra: 1 });
+                }
+                place(t, cands);
             }
         });
         (o.vlines || []).forEach(function (l) {
@@ -331,8 +402,16 @@
             h('line', { x1: p, x2: p, y1: y1, y2: y0, class: 'vline', stroke: c }, svg);
             if (l.label) {
                 var right = p > (x0 + x1) / 2;
-                var t = h('text', { x: p + (right ? -5 : 5), y: y1 + 12, 'text-anchor': right ? 'end' : 'start', class: 'vlabel', style: 'fill:' + c }, svg);
-                t.textContent = l.label; place(t, true);
+                var t = h('text', { x: p + (right ? -5 : 5), y: y1 + 12, 'text-anchor': right ? 'end' : 'start', class: 'vlabel', style: labelStyle(c) }, gLab);
+                t.textContent = l.label;
+                var bb0 = null; try { bb0 = t.getBBox(); } catch (e) { /* not rendered */ }
+                var top0 = bb0 && bb0.width ? bb0.y : y1, step = bb0 && bb0.height ? Math.ceil(bb0.height) : 15, cands = [];
+                // first the usual side, then the other side, moving down a line at a time (a small cost per line)
+                for (var n = 0; top0 + n * step + step <= y0; n++) {
+                    cands.push({ x: p + (right ? -5 : 5), top: top0 + n * step, anchor: right ? 'end' : 'start', extra: n * 0.6 });
+                    cands.push({ x: p + (right ? 5 : -5), top: top0 + n * step, anchor: right ? 'start' : 'end', extra: n * 0.6 + 0.5 });
+                }
+                place(t, cands);
             }
         });
 
