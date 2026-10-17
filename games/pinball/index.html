@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orbit Pinball: Free 3D Space Pinball Game Online</title>
-<meta name="description" content="Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the planets, with multiball. No ads.">
+<meta name="description" content="Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the solar system, with multiball. No ads.">
 <link rel="canonical" href="https://cdfoley.com/games/pinball/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Orbit Pinball">
-<meta property="og:description" content="Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the planets, with multiball. No ads.">
+<meta property="og:description" content="Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the solar system, with multiball. No ads.">
 <meta property="og:url" content="https://cdfoley.com/games/pinball/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-pinball.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Orbit Pinball: 3D Space Pinball: Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the planets, with multiball. No ads.">
+<meta property="og:image:alt" content="Orbit Pinball: 3D Space Pinball. Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the solar system, with multiball. No ads.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -60,7 +60,7 @@
     @media (pointer: coarse) { .pb-touch { display: grid; } }
     @media (max-width: 760px) {
         .pb { grid-template-columns: 1fr; }
-        .pb-hud { order: -1; grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; padding: 0.7rem 0.9rem; }
+        .pb-hud { grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; padding: 0.7rem 0.9rem; }
         .pb-score { font-size: 1.5rem; grid-column: 1 / -1; }
         .pb-mission, .pb-msg, .pb-btns { grid-column: 1 / -1; }
         .pb-msg { min-height: 1.3em; }
@@ -76,7 +76,7 @@
    "@type": "VideoGame",
    "name": "Orbit Pinball",
    "url": "https://cdfoley.com/games/pinball/",
-   "description": "Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the planets, with multiball. No ads.",
+   "description": "Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the solar system, with multiball. No ads.",
    "genre": "Pinball",
    "gamePlatform": "Web browser",
    "playMode": "SinglePlayer",
@@ -614,7 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ringPass(0, Math.PI);
         planetLights.forEach(l => { flat(c, circ(l.x, l.y, 10, 18), 0, '#1e1b4b'); floorText(c, l.label, l.x, l.y + 19, 10, 'rgba(226,232,240,.7)', 700); });
         floorText(c, 'ORBIT', 260, 762, 38, 'rgba(192,132,252,.85)', 900);
-        floorText(c, 'GRAND TOUR OF THE PLANETS', 260, 792, 11, 'rgba(226,232,240,.55)', 700);
+        floorText(c, 'GRAND TOUR OF THE SOLAR SYSTEM', 260, 792, 11, 'rgba(226,232,240,.55)', 700);
         multLights.forEach(l => { flat(c, circ(l.x, l.y, 9, 16), 0, '#1e1b4b'); floorText(c, l.m + '×', l.x, l.y + 17, 9, 'rgba(226,232,240,.6)', 700); });
         flat(c, circ(SHIELD_L[0], SHIELD_L[1], 12, 20), 0, '#052e16'); floorText(c, 'SHIELD', SHIELD_L[0], SHIELD_L[1] + 21, 10, 'rgba(134,239,172,.6)', 800);
         lanes.forEach(l => flat(c, circ(l.x, 172, 9, 16), 0, '#1e1b4b'));
@@ -709,10 +709,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!hudSeen && active) miniHud(c, m);
         if (tilted) { c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '900 ' + Math.round(cv.width / 9) + 'px Inter, system-ui, sans-serif'; c.fillStyle = 'rgba(248,113,113,.9)'; const p = P(260, 690, 0); c.fillText('TILT', p[0], p[1]); }
-        if (paused) { c.fillStyle = 'rgba(4,6,13,.55)'; c.fillRect(0, 0, cv.width, cv.height); c.fillStyle = '#e9d5ff'; c.font = '800 ' + Math.round(cv.width / 12) + 'px Inter, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Paused', cv.width / 2, cv.height / 2); c.font = '600 ' + Math.round(cv.width / 26) + 'px Inter, system-ui, sans-serif'; c.fillText(coarse.matches ? 'Tap the table to resume' : 'Press P to resume', cv.width / 2, cv.height / 2 + cv.width / 10); }
+        if (paused) { c.fillStyle = 'rgba(4,6,13,.55)'; c.fillRect(0, 0, cv.width, cv.height); }
+        if (paused && $('rules').hidden) { c.fillStyle = '#e9d5ff'; c.font = '800 ' + Math.round(cv.width / 12) + 'px Inter, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Paused', cv.width / 2, cv.height / 2); c.font = '600 ' + Math.round(cv.width / 26) + 'px Inter, system-ui, sans-serif'; c.fillText(coarse.matches ? 'Tap the table to resume' : 'Press P to resume', cv.width / 2, cv.height / 2 + cv.width / 10); }
     }
 
-    // When the scoreboard is scrolled out of view (phones: it sits above the table), the table shows the essentials:
+    // When the scoreboard is scrolled out of view (phones: it sits below the table), the table shows the essentials:
     // score and ball in the top-left corner, the mission in the top-right, and the latest message on the playfield.
     let hudSeen = true;
     const seen = new Map();
@@ -776,11 +777,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
         rulesPaused = (state === 'play' || state === 'bonus') && !paused;
         if (rulesPaused) setPaused(true);
-        releaseAll(); $('rules').hidden = false; $('rules-close').focus({ preventScroll: true });
+        releaseAll(); $('rules').hidden = false; redraw = true; $('rules-close').focus({ preventScroll: true });
     }
     function closeRules() {
         if ($('rules').hidden) return;
-        $('rules').hidden = true;
+        $('rules').hidden = true; redraw = true;
         if (rulesPaused) setPaused(false);
         rulesPaused = false;
         ($('overlay').hidden ? cv : $('start')).focus({ preventScroll: true });

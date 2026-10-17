@@ -14,7 +14,7 @@
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-block-drop.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Block Drop Game: Play Block Drop free online: turn and drop falling blocks to clear lines as the speed climbs. Hold, next-piece preview, ghost piece, keys or touch; no ads.">
+<meta property="og:image:alt" content="Block Drop Game. Play Block Drop free online: turn and drop falling blocks to clear lines as the speed climbs. Hold, next-piece preview, ghost piece, keys or touch; no ads.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -147,7 +147,7 @@
         </details>
         <details class="fold bd-fold">
             <summary>Turning, locking, and speed</summary>
-            <p>Each piece turns about the center of its 3 × 3 box (4 × 4 for the long bar; the square doesn’t turn). If the turned piece would overlap a wall or the stack, it tries these spots in order and takes the first that fits: one cell toward the turn (right for clockwise, left for counterclockwise), one cell the other way, one cell up, then one up and one toward the turn, and one up and one the other way. The long bar also tries two cells toward the turn and two cells the other way. If none fits, the piece doesn’t turn.</p>
+            <p>Each piece turns about the center of its 3 × 3 box (4 × 4 for the long bar; the square doesn’t turn). If the turned piece would overlap a wall or the stack, it tries these spots in order and takes the first that fits: one cell toward the turn (right for clockwise, left for counterclockwise), one cell the other way, one cell up, then one up and one toward the turn, and one up and one the other way. The long bar also tries two cells toward the turn, two cells the other way, and two cells up, so it can stand up while it lies flat on the floor or on the stack. If none fits, the piece doesn’t turn.</p>
             <p>A piece that lands has half a second before it locks in place. Moving or turning it restarts that half second, up to 15 times, and the count starts over when the piece drops to a row lower than it has been. At level 1 the pieces fall one row per second. Each level cuts the time per row by 18%, up to level 20, where they fall about 43 rows per second.</p>
         </details>
     </div>
@@ -158,13 +158,39 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const G = window.Games, $ = id => document.getElementById(id);
-    // Well: 10 columns × 22 rows, the top 2 hidden. Logical canvas units, with a side panel on each side.
-    const COLS = 10, ROWS = 22, HIDDEN = 2, C = 30, PAD = 8, PW = 120, GAP = 12;
-    const WX = PAD + PW + GAP, WY = PAD, WW = COLS * C, WH = (ROWS - HIDDEN) * C, RX = WX + WW + GAP, W = RX + PW + PAD, H = WY + WH + PAD;
+    // Well: 10 columns × 22 rows, the top 2 hidden. Logical canvas units, with a side panel on each side, or on a
+    // narrow screen one slim column on the right (Hold, Next, Level), which leaves room for a larger well.
+    const COLS = 10, ROWS = 22, HIDDEN = 2, C = 30, PAD = 8, WY = PAD, WW = COLS * C, WH = (ROWS - HIDDEN) * C, H = WY + WH + PAD;
+    const NARROW_PX = 520;                            // below this width of the game area, use the narrow layout
+    const LAYOUTS = {
+        wide: { name: 'wide', PW: 120, WX: PAD + 120 + 12, RX: PAD + 120 + 12 + WW + 12, W: PAD + 120 + 12 + WW + 12 + 120 + PAD,
+            hold: { x: PAD, y: WY, h: 112, s: 22, cy: 70 },
+            level: { x: PAD, y: WY + 124, h: 140, num: 38, numY: 72, barY: 88, font: 15, text: [34] },
+            next: { x: PAD + 120 + 12 + WW + 12, y: WY, h: 320, s0: 22, y0: 68, s: 16, y1: 76, step: 52 } },
+        narrow: { name: 'narrow', PW: 76, WX: PAD, RX: PAD + WW + 10, W: PAD + WW + 10 + 76 + PAD,
+            hold: { x: PAD + WW + 10, y: WY, h: 96, s: 15, cy: 62 },
+            next: { x: PAD + WW + 10, y: WY + 108, h: 280, s0: 15, y0: 62, s: 12, y1: 64, step: 46 },
+            level: { x: PAD + WW + 10, y: WY + 400, h: 150, num: 32, numY: 66, barY: 82, font: 14, text: [26, 44] } }
+    };
+    let lay = LAYOUTS.wide, WX = lay.WX, W = lay.W;
     const LOCK_MS = 500, MAX_RESETS = 15, SOFT_MS = 40, CLEAR_MS = 280, QUEUE = 5;
     const LINE_PTS = [0, 100, 300, 500, 800], CLEAR_NAME = ['', 'Single', 'Double', 'Triple', 'Quad'];
     const DEFAULTS = { das: 160, arr: 40 };
-    const cv = $('board'), view = G.canvas(cv, W, H, 0.74, () => draw()), ctx = view.ctx;
+    const cv = $('board'), ctx = cv.getContext('2d'), view = { ctx, scale: 1 };
+    // Canvas sizing as in games.js (to the width of the game area and at most 74% of the window height), here with
+    // a logical width that follows the layout.
+    const cvBox = cv.parentElement, cvHost = cvBox.parentElement;
+    function fit() {
+        const avail = cvHost.clientWidth;
+        lay = avail < NARROW_PX ? LAYOUTS.narrow : LAYOUTS.wide; WX = lay.WX; W = lay.W;
+        const maxH = Math.max(260, innerHeight * 0.74), dpr = Math.min(2, devicePixelRatio || 1);
+        const cssW = Math.max(200, Math.floor(Math.min(avail, maxH * W / H))), cssH = Math.round(cssW * H / W);
+        cvBox.style.width = cssW + 'px'; cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px';
+        cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+        view.scale = cv.width / W;
+    }
+    view.begin = () => ctx.setTransform(view.scale, 0, 0, view.scale, 0, 0);
+    fit();
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
     // Seven pieces, each in an n × n box. Colors are this site's own palette.
@@ -188,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         s.edge = mixHex(s.color, 0, 0.32); s.hi = mixHex(s.color, 255, 0.35);
     }
     // Wall kicks, [dx, dy] with dx in the direction of the turn (+1 = right for clockwise) and dy < 0 = up.
-    const KICKS = [[0, 0], [1, 0], [-1, 0], [0, -1], [1, -1], [-1, -1]], KICKS_I = KICKS.concat([[2, 0], [-2, 0]]);
+    const KICKS = [[0, 0], [1, 0], [-1, 0], [0, -1], [1, -1], [-1, -1]], KICKS_I = KICKS.concat([[2, 0], [-2, 0], [0, -2]]);
 
     let board = emptyBoard(), bag = [], queue = [], cur = null, hold = null, holdUsed = false;
     let score = 0, lines = 0, level = 1, startLevel = 1, state = 'title', paused = false, overAt = 0;
@@ -403,16 +429,16 @@ document.addEventListener('DOMContentLoaded', () => {
         bg.width = cv.width; bg.height = cv.height;
         const c = bgx; c.setTransform(view.scale, 0, 0, view.scale, 0, 0);
         c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
-        roundBox(c, PAD, WY, PW, 112, 'Hold');
-        roundBox(c, PAD, WY + 124, PW, 140, 'Level');
-        roundBox(c, RX, WY, PW, 320, 'Next');
+        roundBox(c, lay.hold.x, lay.hold.y, lay.PW, lay.hold.h, 'Hold');
+        roundBox(c, lay.level.x, lay.level.y, lay.PW, lay.level.h, 'Level');
+        roundBox(c, lay.next.x, lay.next.y, lay.PW, lay.next.h, 'Next');
         c.fillStyle = pal.well; c.fillRect(WX, WY, WW, WH);
         c.beginPath();
         for (let i = 1; i < COLS; i++) { c.moveTo(WX + i * C, WY); c.lineTo(WX + i * C, WY + WH); }
         for (let j = 1; j < ROWS - HIDDEN; j++) { c.moveTo(WX, WY + j * C); c.lineTo(WX + WW, WY + j * C); }
         c.strokeStyle = pal.grid; c.lineWidth = 1; c.stroke();
         c.strokeStyle = pal.edge; c.lineWidth = 2; c.strokeRect(WX - 1, WY - 1, WW + 2, WH + 2);
-        bgKey = cv.width + 'x' + cv.height + pal.key;
+        bgKey = lay.name + cv.width + 'x' + cv.height + pal.key;
     }
     function block(t, x, y, s) {
         const k = SHAPES[t], e = Math.max(1.5, s * 0.07);
@@ -427,19 +453,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const px = x => WX + x * C, py = y => WY + (y - HIDDEN) * C;
     function draw() {
         if (!pal) readPalette();
-        if (bgKey !== cv.width + 'x' + cv.height + pal.key) buildBg();
+        if (bgKey !== lay.name + cv.width + 'x' + cv.height + pal.key) buildBg();
         ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(bg, 0, 0);
         view.begin();
         // side panels
-        if (hold) { ctx.globalAlpha = holdUsed ? 0.35 : 1; mini(hold, PAD + PW / 2, WY + 70, 22); ctx.globalAlpha = 1; }
+        const PW = lay.PW, ho = lay.hold, lv = lay.level, nx = lay.next, lx = lv.x + PW / 2;
+        if (hold) { ctx.globalAlpha = holdUsed ? 0.35 : 1; mini(hold, ho.x + PW / 2, ho.y + ho.cy, ho.s); ctx.globalAlpha = 1; }
         ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-        ctx.fillStyle = pal.text; ctx.font = '800 38px ' + pal.font; ctx.fillText(String(level), PAD + PW / 2, WY + 124 + 72);
-        const into = lines % 10, bx = PAD + 14, bw = PW - 28, by = WY + 124 + 88;
+        ctx.fillStyle = pal.text; ctx.font = '800 ' + lv.num + 'px ' + pal.font; ctx.fillText(String(level), lx, lv.y + lv.numY);
+        const into = lines % 10, bx = lv.x + 14, bw = PW - 28, by = lv.y + lv.barY, togo = (10 - into) + (10 - into === 1 ? ' line' : ' lines');
         ctx.fillStyle = pal.grid; ctx.beginPath(); ctx.roundRect(bx, by, bw, 10, 5); ctx.fill();
         if (into) { ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.roundRect(bx, by, bw * into / 10, 10, 5); ctx.fill(); }
-        ctx.fillStyle = pal.text2; ctx.font = '500 15px ' + pal.font;
-        ctx.fillText((10 - into) + (10 - into === 1 ? ' line to go' : ' lines to go'), PAD + PW / 2, by + 34);
-        queue.forEach((t, i) => mini(t, RX + PW / 2, i ? WY + 76 + i * 52 : WY + 68, i ? 16 : 22));
+        ctx.fillStyle = pal.text2; ctx.font = '500 ' + lv.font + 'px ' + pal.font;
+        if (lv.text.length > 1) { ctx.fillText(togo, lx, by + lv.text[0]); ctx.fillText('to go', lx, by + lv.text[1]); }
+        else ctx.fillText(togo + ' to go', lx, by + lv.text[0]);
+        queue.forEach((t, i) => mini(t, nx.x + PW / 2, nx.y + (i ? nx.y1 + i * nx.step : nx.y0), i ? nx.s : nx.s0));
         // well
         ctx.save(); ctx.beginPath(); ctx.rect(WX, WY, WW, WH); ctx.clip();
         const fading = state === 'over';
@@ -621,10 +649,15 @@ document.addEventListener('DOMContentLoaded', () => {
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', repaint);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { bgKey = ''; draw(); });
 
+    let hostW = -1;
+    const refit = () => requestAnimationFrame(() => { fit(); draw(); });   // a new size or layout rebuilds the cached background
+    new ResizeObserver(() => { if (cvHost.clientWidth !== hostW) { hostW = cvHost.clientWidth; refit(); } }).observe(cvHost);
+    window.addEventListener('resize', refit);
+
     hud(); draw();
     window.__blocks = {
         newGame, shift, rotate, hardDrop, softStep, doHold, pressDir, releaseDir, setPause, update, draw, input, settings, stats,
-        fromBag, gravityMs, KICKS, SHAPES,
+        fromBag, gravityMs, KICKS, KICKS_I, SHAPES, get layout() { return lay.name; },
         get state() { return { state, paused, score, lines, level, hold, holdUsed, queue: queue.slice(), cur: cur && { ...cur }, clearing: !!clearing, lockT, lockResets, best }; },
         get board() { return board.map(r => r.map(c => c || '.').join('')); },
         setBoard(rows) { board = emptyBoard(); rows.forEach((s, i) => { const y = ROWS - rows.length + i; for (let x = 0; x < COLS; x++) board[y][x] = s[x] === '.' ? '' : s[x]; }); draw(); },

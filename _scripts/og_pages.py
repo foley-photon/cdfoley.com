@@ -128,5 +128,8 @@ for page, name, eyebrow, title in jobs:
     if h1 and not page.endswith(('tools/index.html', 'learn/index.html', 'games/index.html', 'formulas/index.html')):
         title = re.sub(r'<[^>]+>', '', h1.group(1)).strip()     # the page's own heading, e.g. "Laser Fluence & Irradiance Calculator"
     card('assets/img/og/%s.jpg' % name, eyebrow, html.unescape(title), desc)
-    point_page_at(page, '%s/assets/img/og/%s.jpg' % (SITE, name), '%s: %s' % (html.unescape(title), desc))
+    # Alt text: the title and the description as two sentences (after a colon the description's capital would be wrong,
+    # and lowercasing it would break descriptions that open with a name, such as Doppler or Planck's)
+    t = html.unescape(title)
+    point_page_at(page, '%s/assets/img/og/%s.jpg' % (SITE, name), '%s%s %s' % (t, '' if t.endswith(('.', '?', '!')) else '.', desc))
 print('share images: %d written to assets/img/og/' % len(jobs))

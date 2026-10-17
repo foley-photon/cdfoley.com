@@ -14,7 +14,7 @@
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-elements.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Periodic Table Quiz: Free periodic table quiz: find elements on the table, match names and symbols, or race a 60-second sprint. Three levels, up to all 118. No ads.">
+<meta property="og:image:alt" content="Periodic Table Quiz. Free periodic table quiz: find elements on the table, match names and symbols, or race a 60-second sprint. Three levels, up to all 118. No ads.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -74,6 +74,7 @@
     .pt-cell.right, .pt-cell.wrong { animation: pt-pop .25s ease; }
     @keyframes pt-pop { 0% { scale: 1; } 45% { scale: 1.18; } 100% { scale: 1; } }
     @media (prefers-reduced-motion: reduce) { .pt-cell.right, .pt-cell.wrong { animation: none; } }
+    @media (min-width: 900px) { .pt-cell { aspect-ratio: 1 / 0.92; } }   /* the question and the whole table fit on a 1366 × 768 or 1280 × 720 screen */
     .pq-overlay { justify-content: flex-start; padding-top: 2.2rem; }
     .pq-overlay .pq-missed { max-width: 34rem; font-size: .92rem; }
     .pq-sources { margin-top: .8rem; font-size: .85rem; color: var(--muted); }
@@ -389,12 +390,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const s = Math.ceil(remaining / 1000); $('time').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
     }
     const missedText = () => missed.length ? 'To review: ' + [...new Set(missed)].map(e => e.sym + ' (' + e.lower + ')').join(', ') + '.' : '';
-    function overlay(title, text, extra, button, action) {
+    function overlay(title, text, extra, button, action, quiet) {   // quiet: on page load, take no focus, scroll, or announcement
         $('ov-title').textContent = title; $('ov-text').textContent = text; $('ov-missed').textContent = extra; $('ov-missed').hidden = !extra;
         $('ov-go').textContent = button; ovAction = action; showOverlay(true);
-        $('ov-go').focus({ preventScroll: true });
-        $('overlay').scrollIntoView({ block: 'nearest', behavior: reduced.matches ? 'auto' : 'smooth' });
-        say(title + '. ' + text + ' ' + extra);
+        if (!quiet) {
+            $('ov-go').focus({ preventScroll: true });
+            $('overlay').scrollIntoView({ block: 'nearest', behavior: reduced.matches ? 'auto' : 'smooth' });
+            say(title + '. ' + text + ' ' + extra);
+        }
+    }
+    function showStage() {                            // scroll just enough to show the question and the whole table below the sticky header
+        const head = document.querySelector('.site-header'), top = $('quiz').getBoundingClientRect().top - (head ? head.offsetHeight : 0) - 8;
+        const dy = top < 0 ? top : Math.min(top, $('scroller').getBoundingClientRect().bottom + 8 - innerHeight);
+        if (dy > 0 || top < 0) window.scrollBy({ top: dy, behavior: 'instant' });
     }
     let ovAction = null;
     // While a message covers the stage, the quiz and table behind it leave the tab order
@@ -402,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function endRound() {
         q = null;
         const perfect = correct === ROUND;
-        overlay(perfect ? 'Perfect round!' : 'Round complete', correct + ' of ' + ROUND + ' correct. Best streak ' + best + '.', missedText(), 'Next round', newRound);
+        overlay(perfect ? 'Perfect round!' : 'Round complete', correct + ' of ' + ROUND + ' correct. Best streak ' + best + '.', missedText(), 'Next round', startRound);
         if (perfect) [523, 659, 784, 1046].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.12, 'square', 0.03), k * 100));
     }
 
@@ -438,7 +446,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
-    function newRound() {
+    function newRound(quiet) {                        // quiet (page load only): no focus, scroll, or announcement
+        quiet = quiet === true;
         clearTimeout(advance); advance = null; clearInterval(tick); tick = null;
         running = false; paused = false; remaining = SPRINT_MS;
         q = null; qn = 0; correct = 0; answered = 0; streak = 0; missed = []; revealed = false;
@@ -447,9 +456,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mode === 'sprint') {
             $('kicker').textContent = 'Sprint · ' + LEVELS[level]; $('prompt').textContent = 'Ready?'; $('sub').textContent = ''; $('fb').innerHTML = '';
             $('choices').hidden = true; $('choices').innerHTML = ''; $('next').hidden = true; hud();
-            overlay('60-second sprint', 'Match names and symbols, both ways, as fast as you can (' + LEVELS[level] + ' elements).', '', 'Start', startSprint);
+            overlay('60-second sprint', 'Match names and symbols, both ways, as fast as you can (' + LEVELS[level] + ' elements).', '', 'Start', startSprint, quiet);
         } else ask();
     }
+    const startRound = () => { newRound(); if (mode !== 'sprint') showStage(); };   // from a click: New round or Next round
 
     // ── Input ─────────────────────────────────────────────────────────────────────────────────
     table.addEventListener('click', e => {
@@ -463,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, true));
     $('next').addEventListener('click', next);
     $('ov-go').addEventListener('click', () => { if (ovAction) ovAction(); });
-    $('new').addEventListener('click', newRound);
+    $('new').addEventListener('click', startRound);
     $('mode').addEventListener('change', () => { mode = $('mode').value; G.set('elements-mode', mode); newRound(); });
     $('level').addEventListener('change', () => { level = +$('level').value; G.set('elements-level', level); newRound(); });
     G.soundButton($('sound'));
@@ -506,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (e.key === 'Enter' && revealed && !(e.target.matches && e.target.matches('button, a'))) { e.preventDefault(); next(); }
     });
 
-    newRound();
+    newRound(true);
     window.__elements = { EL, place, answer, next, newRound, endSprint, pause, resume, options,
         get state() { return { mode, level, qn, correct, answered, streak, best, revealed, running, paused, remaining, q: q && { z: q.e.z, type: q.type, opts: q.opts && q.opts.map(o => o.z) }, overlay: !$('overlay').hidden }; } };
 });

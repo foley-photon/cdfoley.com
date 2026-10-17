@@ -14,7 +14,7 @@
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-beam-path.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Beam Path Laser Puzzle: Play Beam Path free online: place and turn mirrors, beam splitters, and wave plates to steer a laser to every detector. 36 levels; no ads, no sign-up.">
+<meta property="og:image:alt" content="Beam Path Laser Puzzle. Play Beam Path free online: place and turn mirrors, beam splitters, and wave plates to steer a laser to every detector. 36 levels; no ads, no sign-up.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -32,6 +32,10 @@
     .bp-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .3rem .8rem; margin: 0 0 .5rem; }
     .bp-head h2 { font-size: 1.1rem; margin: 0; }
     .bp-head span { font-size: .85rem; color: var(--muted); }
+    .bp-head span.bp-hint { font-size: .9rem; font-weight: 600; color: var(--text); }
+    .bp-play { display: flex; flex-direction: column; }
+    .bp-play > * { width: 100%; }
+    @media (max-width: 640px) { .bp-play > .bp-note { order: 3; margin: .8rem 0 0; } .bp-head { margin-bottom: .3rem; } .bp-head span.bp-hint { line-height: 1.3; } }   /* on a phone the note follows the board and tray, so the first board fits on the first screen */
     .bp-note { margin: 0 0 .7rem; padding: .5rem .75rem; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: .9rem; color: var(--text-2); }
     .bp-note[hidden] { display: none; }
     .bp-board { position: relative; width: min(100%, calc(var(--w) / var(--h) * 62vh), 560px); aspect-ratio: var(--w) / var(--h); margin: 0 auto; border-radius: var(--radius); overflow: hidden;
@@ -49,7 +53,7 @@
     @keyframes bp-pulse { 0% { opacity: .9; transform: scale(.6); } 100% { opacity: 0; transform: scale(1.9); } }
     .bp-board.solved { box-shadow: 0 0 0 2px var(--bp-beam), 0 0 26px color-mix(in srgb, var(--bp-beam) 45%, transparent); transition: box-shadow .4s; }
     @media (prefers-reduced-motion: reduce) { .bp-flow, .bp-win-glow { animation: none; } .bp-win-glow { opacity: 0; } .bp-board.solved { transition: none; } }
-    .bp-tray { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 230px)); justify-content: center; gap: .45rem; margin: .8rem auto 0; max-width: 560px; }
+    .bp-tray { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); justify-content: center; gap: .45rem; margin: .8rem auto 0; width: 100%; max-width: min(560px, calc(var(--n, 3) * 236px)); }
     .bp-tray button { display: flex; align-items: center; gap: .45rem; padding: .3rem .6rem .3rem .4rem; min-height: 48px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 600 .86rem/1.15 var(--font); text-align: left; cursor: pointer; }
     .bp-tray button span { flex: 1; }
     .bp-tray button svg { width: 30px; height: 30px; flex: none; }
@@ -152,12 +156,14 @@
             </div>
         </div>
         <div class="bp-head"><h2 id="title">First light</h2><span id="par"></span></div>
+        <div class="bp-play">
         <p class="bp-note" id="note" hidden></p>
         <div class="game-stage">
             <div class="bp-board" id="board"><svg id="svg" aria-hidden="true"></svg><div class="bp-cells" id="cells" role="group" aria-label="Optical table"></div></div>
         </div>
         <div class="bp-tray" id="tray" role="group" aria-label="Pieces to place"></div>
         <div class="bp-win" id="win" hidden><h2 id="win-title">Level solved</h2><p id="win-text"></p><div><button class="btn btn-primary" type="button" id="next">Next level</button><button class="btn btn-secondary" type="button" id="replay">Play again</button></div></div>
+        </div>
         <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
         <div class="bp-opts"><label class="toggle"><input type="checkbox" id="notes" checked> Physics notes</label>&nbsp;&nbsp;<button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button></div>
         <p class="game-help"><strong>Tap</strong> an empty square to place the selected piece, tap it again to turn it, and once more to pick it up. <strong>Long-press</strong> or <strong>right-click</strong> a piece to pick it up at once. Pieces on a gray base are fixed; a curved arrow means it turns but can’t move. With a keyboard, the arrow keys move between squares, <kbd>Enter</kbd> or <kbd>Space</kbd> acts like a tap, <kbd>R</kbd> turns, <kbd>Delete</kbd> picks up, <kbd>1</kbd>–<kbd>4</kbd> choose a piece, and <kbd>U</kbd> or <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes. In the polarization levels, ticks across the beam mean it is polarized in the plane of the table (p) and dots mean perpendicular to it (s). Where beams overlap, their powers simply add (the game ignores interference). Your progress is saved in this browser.</p>
@@ -253,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ENGINE END
     // LEVELS START
     const LEVELS = [
-        { name: 'First light', par: 0, intro: 'mirror', map: [
+        { name: 'First light', par: 0, intro: 'mirror', hint: '{Tap} the mirror to turn it toward the detector.', map: [
             '. . . . .',
             '> . . r/ .',
             '. . . . .',
@@ -540,6 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
         prevLit = -1; update(false);
         if (res.solved) { solved = true; showWin(false); }
     }
+    const TAP = matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click';
     function showNote() {
         const n = L.intro && NOTES[L.intro], on = $('notes').checked;
         $('note').hidden = !(n && on);
@@ -616,7 +623,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildTray() {
         const tray = $('tray'); tray.innerHTML = '';
         const kinds = [...ORDER].filter(t => lv.inv[t]);
-        if (!kinds.length) { tray.innerHTML = '<span class="bp-empty">No pieces to place here: tap the turnable pieces to turn them.</span>'; return; }
+        tray.style.setProperty('--n', Math.max(1, kinds.length));
+        if (!kinds.length) { tray.innerHTML = '<span class="bp-empty">No pieces to place here: ' + TAP.toLowerCase() + ' the turnable pieces to turn them.</span>'; return; }
         if (!(left(sel) > 0)) { const k = kinds.find(t => left(t) > 0); if (k) sel = k; }
         kinds.forEach(t => {
             const b = document.createElement('button'); b.type = 'button'; b.dataset.t = t;
@@ -731,7 +739,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const used = usedCount();
         $('used').textContent = used;
         const best = prog.done[L.name];
-        $('par').textContent = (L.par ? 'Par ' + L.par + (L.par === 1 ? ' piece' : ' pieces') : 'Turn the pieces') + (best !== undefined ? ' · solved' + (best <= L.par ? ' ★' : '') : '');
+        $('par').textContent = (L.hint ? L.hint.replace('{Tap}', TAP) : L.par ? 'Par ' + L.par + (L.par === 1 ? ' piece' : ' pieces') : TAP + ' a piece with a curved arrow to turn it')
+            + (best !== undefined ? ' · solved' + (best <= L.par ? ' ★' : '') : '');
+        $('par').classList.toggle('bp-hint', !!L.hint || !L.par);
         $('undo').disabled = !hist.length;
         if (sound && res.lit > prevLit && prevLit >= 0 && !res.solved) G.tone(880, 990, 0.08, 'sine', 0.03);
         let text = msg ? msg + '. ' : '';
@@ -807,6 +817,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let press = null, suppressClick = false;
     cells.addEventListener('pointerdown', e => {
         const b = e.target.closest('button'); if (!b || e.button !== 0) return;
+        suppressClick = false;                              // a new press: any earlier long-press is over
         const i = +b.dataset.i; clearTimeout(press && press.t);
         press = { i, t: setTimeout(() => { if (pc[i] && !pc[i].lock && !solved) { remove(i); suppressClick = true; if (navigator.vibrate) try { navigator.vibrate(15); } catch (err) { /* ignore */ } } press = null; }, 520) };
     });
@@ -820,7 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     cells.addEventListener('click', e => {
         const b = e.target.closest('button'); if (!b) return;
-        if (suppressClick) { suppressClick = false; return; }
+        if (suppressClick) { suppressClick = false; if (e.detail !== 0) return; }   // the click that ends a long-press (not Enter or Space)
         const i = +b.dataset.i; focusCell(i, false); tap(i);
     });
     cells.addEventListener('keydown', e => {
