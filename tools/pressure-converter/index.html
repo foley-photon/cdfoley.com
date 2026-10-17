@@ -32,6 +32,26 @@
     .pc-summary .pc-v { font-size: 0.95rem; color: var(--text); }
     .pc-summary .pc-v.mono { font-family: var(--mono); font-weight: 600; }
     .pc-summary .pc-n { font-size: 0.82rem; color: var(--muted); margin-top: 0.15rem; }
+    .iso-ranges td.num { white-space: nowrap; }
+    /* Pressure ladder: a 400-unit-wide viewBox, at most 520 px wide, so labels render at 13.7 px on desktop and,
+       with the larger phone sizes, at 11.5 px in the 358 px column of a 390 px screen */
+    .ladder { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; font-family: var(--font); }
+    .ladder text { font-size: 10.5px; fill: var(--text-2); }
+    .ladder .lab { font-weight: 650; fill: var(--text); }
+    .ladder .seg { font-weight: 600; fill: var(--text); }
+    .ladder .tick { fill: var(--muted); }
+    .ladder .axt { font-weight: 500; }
+    .ladder .s0 { fill: var(--surface-2); stroke: var(--border-strong); }
+    .ladder .s1 { fill: var(--accent-soft); stroke: var(--border-strong); }
+    .ladder .grid { stroke: var(--border); stroke-dasharray: 2 3; fill: none; }
+    .ladder .axis { stroke: var(--border-strong); fill: none; }
+    .ladder .atm { stroke: var(--muted); stroke-dasharray: 4 3; fill: none; }
+    .ladder .lab, .ladder .gl, .ladder .tick, .ladder .axt { paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }   /* legible where the marker crosses */
+    .ladder .g-ind { fill: var(--c3); }
+    .ladder .g-dep { fill: var(--c2); }
+    .ladder .g-ext { opacity: 0.4; }
+    .ladder .mark { stroke: var(--c1); stroke-width: 2; fill: none; }
+    @media (max-width: 560px) { .ladder text { font-size: 12.8px; } }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -104,6 +124,15 @@
     <header class="page-head">
         <h1>Vacuum Pressure Unit Converter</h1>
         <p class="lede">Type a pressure in any unit and the rest update. The panel also shows the vacuum range for that value, which gauge types can measure it, and how far a nitrogen molecule travels between collisions at that pressure. Use it for Torr to mbar, mbar to Pa, mTorr to Pa, and psi to Torr conversions.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Absolute and gauge pressure</dt><dd>Absolute pressure is measured from a perfect vacuum, and every value here is absolute. Gauge pressure (psig, barg) is measured from the surrounding air, so a gauge-pressure dial shows a vacuum as a negative number.</dd>
+            <dt>Pascal, millibar, and torr</dt><dd>The pascal (Pa) is the SI unit, one newton per square meter. A millibar is 100&nbsp;Pa and is common on European equipment; a torr is 1/760 of a standard atmosphere, about 1.333&nbsp;mbar, and is common in North American labs.</dd>
+            <dt>Standard atmosphere</dt><dd>Exactly 101&#8239;325&nbsp;Pa (1013.25&nbsp;mbar, 760&nbsp;Torr, about 14.7&nbsp;psi): a fixed reference close to average sea-level air pressure. Real air pressure changes with the weather and the altitude.</dd>
+            <dt>Millimeter of mercury</dt><dd>The pressure under a 1&nbsp;mm column of mercury, using a conventional density and standard gravity. It differs from the torr by less than one part in seven million.</dd>
+            <dt>Vacuum range</dt><dd>A named band of pressure (rough, medium, high, ultra-high, or extreme-high vacuum) with its own pumps, gauges, and gas behavior. The boundaries are conventions, and two versions are in use.</dd>
+            <dt>Gas-dependent gauge</dt><dd>Pirani and ionization gauges work out the pressure from a property of the gas and are calibrated for nitrogen, so in other gases they read wrong unless corrected. Diaphragm gauges measure the force itself and read the same in any gas.</dd>
+            <dt>Mean free path</dt><dd>How far a molecule travels between collisions with other molecules. When it is longer than the chamber, molecules fly from wall to wall without meeting each other.</dd>
+        </dl></details>
     </header>
 
     <section class="panel" id="conv" aria-labelledby="conv-h">
@@ -134,12 +163,14 @@
                 <div class="field"><label for="c-psi">Pounds per square inch</label><div class="input-unit"><input id="c-psi" name="psi" inputmode="decimal"><span class="unit">psi</span></div></div>
                 <div class="field"><label for="c-inhg">Inches of mercury <span class="sym">0 °C</span></label><div class="input-unit"><input id="c-inhg" name="inhg" inputmode="decimal"><span class="unit">inHg</span></div></div>
             </div>
+            <p class="hint">All units are absolute pressure. To convert a gauge reading (psig, barg), first add the local atmospheric pressure, about 14.7&nbsp;psi or 1013&nbsp;mbar at sea level.</p>
 
             <div class="pc-summary" aria-live="polite">
                 <div>
                     <div class="pc-k">Vacuum range</div>
                     <div class="pc-v"><span id="pc-regime" class="badge">—</span></div>
                     <div class="pc-n" id="pc-regime-note"></div>
+                    <div class="pc-n" id="pc-iso" hidden></div>
                 </div>
                 <div>
                     <div class="pc-k">Typical gauges</div>
@@ -165,56 +196,77 @@
         <p>Everything converts through the pascal, \(1\ \text{Pa} = 1\ \text{N/m}^2\). The defining relations are</p>
         <div class="formula">\[ \begin{aligned} 1\ \text{atm} &= 101\,325\ \text{Pa}, \\ 1\ \text{Torr} &= \frac{101\,325}{760}\ \text{Pa} \\ &\approx 133.322\,368\ \text{Pa}, \\ 1\ \text{mbar} &= 100\ \text{Pa}. \end{aligned} \]</div>
         <table>
-            <thead><tr><th>Unit</th><th class="num">Pascals</th><th>Definition</th></tr></thead>
+            <thead><tr><th>Unit</th><th class="num">Pascals (exact)</th></tr></thead>
             <tbody>
-                <tr><td>bar</td><td class="num">100&nbsp;000</td><td>Exact</td></tr>
-                <tr><td>mbar (= hPa)</td><td class="num">100</td><td>Exact</td></tr>
-                <tr><td>atm</td><td class="num">101&nbsp;325</td><td>Exact (standard atmosphere)</td></tr>
-                <tr><td>Torr</td><td class="num">133.322 368 4…</td><td>Exact: 101 325 / 760</td></tr>
-                <tr><td>mmHg (conventional)</td><td class="num">133.322 387 415</td><td>Exact: 13.5951 g/cm³ × 9.806 65 m/s² × 1 mm</td></tr>
-                <tr><td>psi</td><td class="num">6&nbsp;894.757 293…</td><td>Exact: 1 lbf/in²</td></tr>
-                <tr><td>inHg (0 °C)</td><td class="num">3&nbsp;386.388 640 341</td><td>Exact: 25.4 conventional mmHg</td></tr>
+                <tr><td>bar</td><td class="num">100&#8239;000</td></tr>
+                <tr><td>mbar (= hPa)</td><td class="num">100</td></tr>
+                <tr><td>atm (standard atmosphere)</td><td class="num">101&#8239;325</td></tr>
+                <tr><td>Torr (101&#8239;325/760&nbsp;Pa)</td><td class="num">133.322&#8239;368&#8239;4…</td></tr>
+                <tr><td>mmHg, conventional (13.5951&nbsp;g/cm³ × \(g_n\) × 1&nbsp;mm)</td><td class="num">133.322&#8239;387&#8239;415</td></tr>
+                <tr><td>psi (1&nbsp;lbf/in²)</td><td class="num">6&#8239;894.757&#8239;293…</td></tr>
+                <tr><td>inHg, conventional (25.4&nbsp;mmHg, 0&nbsp;°C)</td><td class="num">3&#8239;386.388&#8239;640&#8239;341</td></tr>
             </tbody>
         </table>
-        <p>Handy anchors for vacuum work: 1 Torr ≈ 1.333 mbar, 1 mbar ≈ 0.750 Torr, and 1 mTorr ≈ 0.1333 Pa. A Torr and a millimeter of mercury differ by about one part in seven million, which is below the accuracy of any vacuum gauge. The two are interchangeable in practice, though only the Torr is defined exactly from the atmosphere.</p>
+        <p>Every value in the table is exact; “…” marks a decimal that does not end. The standard atmosphere is defined as 101&#8239;325&nbsp;Pa by the 10th CGPM (1954), and the bar, 10⁵&nbsp;Pa, is one of the non-SI units listed in the SI Brochure. The conventional mercury units assume mercury of density 13.5951&nbsp;g/cm³ (its density near 0&nbsp;°C) under standard gravity, \(g_n\) = 9.806&#8239;65&nbsp;m/s², and the pound-force is 0.453&#8239;592&#8239;37&nbsp;kg × \(g_n\). NIST SP&nbsp;811 lists the same factors to the seven digits it prints (1.333&#8239;224&nbsp;×&nbsp;10²&nbsp;Pa for the torr and the conventional mmHg, 3.386&#8239;389&nbsp;×&nbsp;10³&nbsp;Pa for the conventional inHg, and 6.894&#8239;757&nbsp;×&nbsp;10³&nbsp;Pa for the psi).</p>
+        <p>Handy anchors for vacuum work: 1&nbsp;Torr ≈ 1.333&nbsp;mbar, 1&nbsp;mbar ≈ 0.750&nbsp;Torr, and 1&nbsp;mTorr ≈ 0.1333&nbsp;Pa. A torr and a millimeter of mercury differ by about one part in seven million, which is below the accuracy of any vacuum gauge. The two are interchangeable in practice, though only the torr is defined exactly from the atmosphere.</p>
 
         <h2>Vacuum ranges</h2>
-        <p>The ranges below are the ones most often used in vacuum-industry literature. The current international vocabulary, ISO&nbsp;3529-1:2019, agrees down to 10⁻³&nbsp;mbar but puts the high/ultra-high boundary at 10⁻⁸&nbsp;mbar (10⁻⁶&nbsp;Pa) and starts extreme-high vacuum at 10⁻¹¹&nbsp;mbar (10⁻⁹&nbsp;Pa). Treat the ranges as conventions for talking about a system, not as physical thresholds. The converter calls anything from 900 to 1100 mbar atmospheric, since ambient air pressure varies about that much with weather and elevation.</p>
+        <p>The converter names the range of each value with the boundaries in the first table. Down to 10⁻⁷&nbsp;mbar they are those of the first edition of ISO&nbsp;3529-1 (1981), which many handbooks and gauge makers still use; extreme-high vacuum is everything below 10⁻¹²&nbsp;mbar (10⁻¹⁰&nbsp;Pa), as in CERN’s vacuum courses. Each range includes its lower boundary, so 10⁻³&nbsp;mbar is medium vacuum and 10⁻⁷&nbsp;mbar high vacuum. The converter also calls anything from 900 to 1100&nbsp;mbar atmospheric, since ambient air pressure varies about that much with weather and elevation. Treat the ranges as conventions for talking about a system, not as physical thresholds.</p>
         <table>
             <thead><tr><th>Range</th><th class="num">Pressure (mbar)</th><th>Gas behavior</th><th>Common gauges</th></tr></thead>
             <tbody>
                 <tr><td>Rough (low) vacuum</td><td class="num">1013 – 1</td><td>Viscous flow; gas behaves as a fluid</td><td>Capacitance diaphragm, piezoresistive, mechanical dial</td></tr>
                 <tr><td>Medium (fine) vacuum</td><td class="num">1 – 10⁻³</td><td>Transition from viscous to molecular flow</td><td>Pirani (thermal conductivity), capacitance diaphragm</td></tr>
                 <tr><td>High vacuum</td><td class="num">10⁻³ – 10⁻⁷</td><td>Molecular flow; wall outgassing dominates the gas load</td><td>Cold-cathode (inverted magnetron), hot-cathode ionization</td></tr>
-                <tr><td>Ultra-high vacuum</td><td class="num">10⁻⁷ – 10⁻¹²</td><td>Surfaces stay clean for minutes to days; mostly H₂ remains after bake-out</td><td>Bayard–Alpert or extractor ionization gauge, RGA</td></tr>
+                <tr><td>Ultra-high vacuum</td><td class="num">10⁻⁷ – 10⁻¹²</td><td>A clean surface stays clean for half a minute to weeks; mostly H₂ remains after bake-out</td><td>Bayard–Alpert, extractor, or inverted-magnetron gauge; RGA</td></tr>
                 <tr><td>Extreme-high vacuum</td><td class="num">&lt; 10⁻¹²</td><td>Gauge x-ray limits and outgassing of the gauge itself matter</td><td>Extractor and specialized ionization gauges</td></tr>
             </tbody>
         </table>
-        <p>Two points matter when reading a gauge. Thermal-conductivity (Pirani) and ionization gauges are <strong>gas-dependent</strong> and are normally calibrated for N₂, so in helium or argon they can be off by a large factor. Capacitance diaphragm gauges measure force per area directly and read the same for any gas.</p>
+        <p>The current edition, ISO&nbsp;3529-1:2019, keeps the boundaries down to 10⁻³&nbsp;mbar but ends high vacuum at 10⁻⁸&nbsp;mbar, because modern pumps reach that with elastomer seals and at most a mild bake-out, while lower pressures need metal seals and a bake-out of 150&nbsp;°C or more. Its extreme-high vacuum is everything below 10⁻¹¹&nbsp;mbar, its low vacuum reaches up to the prevailing atmospheric pressure, and each of its other ranges includes its lower boundary too. Between 10⁻⁸ and 10⁻⁷&nbsp;mbar and between 10⁻¹² and 10⁻¹¹&nbsp;mbar the two schemes use different names, and there the panel above shows the ISO name as well. The ISO&nbsp;3529-1:2019 ranges in pascals and millibars:</p>
+        <table class="iso-ranges">
+            <thead><tr><th>Range</th><th class="num">Pa</th><th class="num">mbar</th></tr></thead>
+            <tbody>
+                <tr><td>Low (rough) vacuum</td><td class="num">≥ 100</td><td class="num">≥ 1</td></tr>
+                <tr><td>Medium (fine) vacuum</td><td class="num">100 – 0.1</td><td class="num">1 – 10⁻³</td></tr>
+                <tr><td>High vacuum</td><td class="num">0.1 – 10⁻⁶</td><td class="num">10⁻³ – 10⁻⁸</td></tr>
+                <tr><td>Ultra-high vacuum</td><td class="num">10⁻⁶ – 10⁻⁹</td><td class="num">10⁻⁸ – 10⁻¹¹</td></tr>
+                <tr><td>Extreme-high vacuum</td><td class="num">&lt; 10⁻⁹</td><td class="num">&lt; 10⁻¹¹</td></tr>
+            </tbody>
+        </table>
+        <figure>
+            <svg viewBox="0 0 400 352" class="ladder" role="img" aria-label="Pressure ladder on a log scale from 10⁻¹⁴ to about 3000 mbar. ISO 3529-1:2019 ranges: low vacuum from atmosphere to 1 mbar, medium to 10⁻³ mbar, high to 10⁻⁸ mbar, ultra-high to 10⁻¹¹ mbar, extreme-high below. This converter’s labels: rough to 1 mbar, medium to 10⁻³ mbar, high to 10⁻⁷ mbar, ultra-high to 10⁻¹² mbar, extreme-high below. Typical gauge ranges: piezoresistive diaphragm 2000 to 1 mbar and capacitance diaphragm 1000 to 10⁻⁵ mbar, both reading the same in any gas; Pirani 1000 to 10⁻⁴ mbar, cold cathode 10⁻² to 10⁻⁹ mbar (UHV models to 10⁻¹¹), hot cathode Bayard–Alpert 10⁻³ to 10⁻¹⁰ mbar, and extractor 10⁻⁴ to 10⁻¹² mbar, all gas-dependent."><path class="grid" d="M55 20V290"/><path class="grid" d="M119.4 20V290"/><path class="grid" d="M183.9 20V290"/><path class="grid" d="M248.3 20V290"/><path class="grid" d="M312.8 20V290"/><path class="atm" d="M377.4 16V290"/><rect class="s0" x="312.8" y="20" width="64.6" height="20"/><rect class="s1" x="248.3" y="20" width="64.5" height="20"/><rect class="s0" x="140.9" y="20" width="107.4" height="20"/><rect class="s1" x="76.5" y="20" width="64.5" height="20"/><rect class="s0" x="12" y="20" width="64.5" height="20"/><rect class="s0" x="312.8" y="64" width="64.6" height="20"/><rect class="s1" x="248.3" y="64" width="64.5" height="20"/><rect class="s0" x="162.4" y="64" width="85.9" height="20"/><rect class="s1" x="55" y="64" width="107.4" height="20"/><rect class="s0" x="12" y="64" width="43" height="20"/><rect class="g-ind" x="312.8" y="129" width="70.9" height="8" rx="2"/><rect class="g-ind" x="205.4" y="157" width="171.9" height="8" rx="2"/><rect class="g-dep" x="226.9" y="185" width="150.4" height="8" rx="2"/><rect class="g-dep g-ext" x="76.5" y="213" width="43" height="8" rx="2"/><rect class="g-dep" x="119.4" y="213" width="150.4" height="8" rx="2"/><rect class="g-dep" x="97.9" y="241" width="150.4" height="8" rx="2"/><rect class="g-dep" x="55" y="269" width="171.9" height="8" rx="2"/><path class="axis" d="M12 290H388"/><path class="axis" d="M12 290V293"/><path class="axis" d="M33.5 290V293"/><path class="axis" d="M55 290V295"/><path class="axis" d="M76.5 290V293"/><path class="axis" d="M97.9 290V293"/><path class="axis" d="M119.4 290V295"/><path class="axis" d="M140.9 290V293"/><path class="axis" d="M162.4 290V293"/><path class="axis" d="M183.9 290V295"/><path class="axis" d="M205.4 290V293"/><path class="axis" d="M226.9 290V293"/><path class="axis" d="M248.3 290V295"/><path class="axis" d="M269.8 290V293"/><path class="axis" d="M291.3 290V293"/><path class="axis" d="M312.8 290V295"/><path class="axis" d="M334.3 290V293"/><path class="axis" d="M355.8 290V293"/><path class="axis" d="M377.3 290V295"/><rect class="g-ind" x="12" y="336" width="12" height="8" rx="2"/><rect class="g-dep" x="200" y="336" width="12" height="8" rx="2"/><path class="mark" id="ladder-mark" d="M183.9 16V290" style="display:none"/><text class="tick" x="374.4" y="12" text-anchor="end">1 atm</text><text class="lab" x="12" y="14">ISO 3529-1:2019</text><text class="seg" x="345.1" y="34.5" text-anchor="middle">Low</text><text class="seg" x="280.6" y="34.5" text-anchor="middle">Medium</text><text class="seg" x="194.6" y="34.5" text-anchor="middle">High</text><text class="seg" x="108.7" y="34.5" text-anchor="middle">UHV</text><text class="seg" x="44.2" y="34.5" text-anchor="middle">XHV</text><text class="lab" x="12" y="58">This converter’s labels</text><text class="seg" x="345.1" y="78.5" text-anchor="middle">Rough</text><text class="seg" x="280.6" y="78.5" text-anchor="middle">Medium</text><text class="seg" x="205.4" y="78.5" text-anchor="middle">High</text><text class="seg" x="108.7" y="78.5" text-anchor="middle">UHV</text><text class="seg" x="33.5" y="78.5" text-anchor="middle">XHV</text><text class="lab" x="12" y="104">Typical gauge measuring ranges</text><text class="gl" x="383.7" y="124" text-anchor="end">Piezoresistive diaphragm</text><text class="gl" x="377.3" y="152" text-anchor="end">Capacitance diaphragm</text><text class="gl" x="377.3" y="180" text-anchor="end">Pirani (thermal conductivity)</text><text class="gl" x="76.5" y="208" text-anchor="start">Cold cathode (inverted magnetron)</text><text class="gl" x="97.9" y="236" text-anchor="start">Hot cathode (Bayard–Alpert)</text><text class="gl" x="55" y="264" text-anchor="start">Extractor</text><text class="tick" x="55" y="305" text-anchor="middle">10⁻¹²</text><text class="tick" x="119.4" y="305" text-anchor="middle">10⁻⁹</text><text class="tick" x="183.9" y="305" text-anchor="middle">10⁻⁶</text><text class="tick" x="248.3" y="305" text-anchor="middle">10⁻³</text><text class="tick" x="312.8" y="305" text-anchor="middle">1</text><text class="tick" x="377.3" y="305" text-anchor="middle">10³</text><text class="axt" x="200" y="324" text-anchor="middle">Pressure (mbar), log scale</text><text class="gl" x="28" y="344">Same reading in any gas</text><text class="gl" x="216" y="344">Gas-dependent (N₂ scale)</text></svg>
+            <figcaption>The two range schemes on one pressure scale, with typical measuring ranges of common gauges (limits vary by model). A capacitance diaphragm head covers three to four decades below its full scale, so its bar spans several heads; the light part of the cold-cathode bar is reached only by UHV models. Green gauges read the same in any gas; orange gauges are calibrated for N₂ and need a correction in other gases. The blue line marks the pressure in the converter.</figcaption>
+        </figure>
+        <p>Two points matter when reading a gauge. Thermal-conductivity (Pirani) and ionization gauges are <strong>gas-dependent</strong> and are normally calibrated for N₂, so in helium or argon they can be off by a large factor. Capacitance diaphragm gauges measure force per area directly and read the same for any gas. And no gauge is as precise as the seven digits above: a hot-cathode ionization gauge is typically good to about ±10&nbsp;%, a cold-cathode gauge to ±25–50&nbsp;%, and a Pirani to about 10&nbsp;% of the reading between 10⁻³ and 1&nbsp;mbar and to about 30&nbsp;% over its whole range.</p>
 
         <h2>Worked example</h2>
-        <p>A turbo-pumped chamber reads 5 × 10⁻⁶ Torr. That is 5 × 10⁻⁶ × 133.322 = 6.67 × 10⁻⁴ Pa, or 6.67 × 10⁻⁶ mbar, which falls in the high vacuum range. At 20 °C the N₂ mean free path is about 6.48 mm·Pa ÷ 6.67 × 10⁻⁴ Pa ≈ 9.7 m, much longer than the chamber. Molecules cross the chamber without hitting each other, so the flow is molecular.</p>
+        <p>A turbo-pumped chamber reads 5&nbsp;×&nbsp;10⁻⁶&nbsp;Torr. That is 5&nbsp;×&nbsp;10⁻⁶ × 133.322 = 6.67&nbsp;×&nbsp;10⁻⁴&nbsp;Pa, or 6.67&nbsp;×&nbsp;10⁻⁶&nbsp;mbar, which falls in the high vacuum range of both schemes. At 20&nbsp;°C the N₂ mean free path is about 6.48&nbsp;mm·Pa ÷ 6.67&nbsp;×&nbsp;10⁻⁴&nbsp;Pa ≈ 9.7&nbsp;m, much longer than the chamber. Molecules cross the chamber without hitting each other, so the flow is molecular.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li>All units are absolute pressures. Gauge pressure (psig, barg) is measured relative to local atmosphere. Add the ambient pressure, about 14.7 psi or 1013 mbar at sea level, before converting.</li>
+            <li>All units are absolute pressures. Gauge pressure (psig, barg) is measured relative to local atmosphere. Add the ambient pressure, about 14.7&nbsp;psi or 1013&nbsp;mbar at sea level, before converting.</li>
             <li>Mercury-column units use the conventional density and standard gravity. Real manometer readings need temperature and local-gravity corrections.</li>
-            <li>Mean free path and number density assume an ideal gas at 20 °C. The N₂ mean free path uses a hard-sphere diameter of 3.75 Å. The panel flags pressures above about 17 atm, where λ falls under 10 molecular diameters and the gas is no longer dilute.</li>
+            <li>The vacuum range and the gauge types are for orientation. Measuring ranges differ between models, and each scheme’s boundaries are a convention.</li>
+            <li>Mean free path and number density assume an ideal gas at 20&nbsp;°C. The N₂ mean free path uses Kennard’s hard-sphere diameter of 3.75&nbsp;Å, derived from the viscosity at 15&nbsp;°C (see the <a href="/tools/mean-free-path/">mean free path calculator</a>). The panel flags pressures above about 17&nbsp;atm, where λ falls under 10 molecular diameters and the gas is no longer dilute.</li>
         </ul>
 
         <h2>References</h2>
         <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>A. Thompson and B. N. Taylor, <em>Guide for the Use of the International System of Units (SI)</em>, NIST Special Publication 811 (2008), <a href="https://doi.org/10.6028/NIST.SP.811e2008" target="_blank" rel="noopener">doi:10.6028/NIST.SP.811e2008</a>, Appendix B (conversion factors).</li>
+            <li>A. Thompson and B. N. Taylor, <em>Guide for the Use of the International System of Units (SI)</em>, NIST Special Publication 811 (2008), <a href="https://doi.org/10.6028/NIST.SP.811e2008" target="_blank" rel="noopener">doi:10.6028/NIST.SP.811e2008</a> (Tables 9 and 11: the bar and the millimeter of mercury, 1&nbsp;Torr = 101&#8239;325/760&nbsp;Pa and 1&nbsp;atm = 101&#8239;325&nbsp;Pa; Appendix B: conversion factors for the torr, the conventional mmHg and inHg, and the psi).</li>
+            <li>Bureau International des Poids et Mesures, <em>The International System of Units (SI)</em>, 9th ed. (2019), version 4.01 (2026), <a href="https://www.bipm.org/en/publications/si-brochure" target="_blank" rel="noopener">bipm.org</a> (the pascal; Table 8, the bar, 10⁵&nbsp;Pa; Appendix 1, the 10th CGPM’s 1954 definition of the standard atmosphere as 101&#8239;325&nbsp;N/m²).</li>
             <li>ISO&nbsp;3529-1:2019, <em>Vacuum technology — Vocabulary — Part 1: General terms</em>, 2nd ed. (2019, confirmed 2024) (the international vacuum ranges).</li>
-            <li>K. Jousten, “ISO standards for vacuum metrology,” in <em>Proceedings of the 7th IMEKO TC16 Conference on Pressure and Vacuum Measurement</em> (2023), <a href="https://doi.org/10.21014/tc16-2023.06" target="_blank" rel="noopener">doi:10.21014/tc16-2023.06</a> (the ISO&nbsp;3529-1:2019 range boundaries and why they changed).</li>
+            <li>K. Jousten, “ISO standards for vacuum metrology,” in <em>Proceedings of the 7th IMEKO TC16 Conference on Pressure and Vacuum Measurement</em> (2023), <a href="https://doi.org/10.21014/tc16-2023.06" target="_blank" rel="noopener">doi:10.21014/tc16-2023.06</a> (the ISO&nbsp;3529-1:2019 range boundaries, the 1981 high-vacuum limit they replaced, and why they changed).</li>
+            <li>Leybold GmbH, <em>Fundamentals of Vacuum Technology</em>, rev. W. Umrath, Cologne (2016) (the range table with high vacuum down to 10⁻⁷&nbsp;mbar; measuring ranges of Pirani, hot-cathode, and extractor gauges, and the Pirani’s accuracy of about 10&nbsp;% between 10⁻³ and 1&nbsp;mbar).</li>
+            <li>G. Pigny and A. Rocha, “Vacuum controls and diagnostics,” lecture notes, CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.03263" target="_blank" rel="noopener">arXiv:2006.03263</a> (2020) (ranges and typical uncertainties of piezoresistive, Pirani, inverted-magnetron, and Bayard–Alpert gauges).</li>
+            <li>C. Benvenuti, “Extreme high vacuum technology for particle accelerators,” in <em>Proceedings of the 2001 Particle Accelerator Conference</em>, 602–606, <a href="https://doi.org/10.1109/PAC.2001.987580" target="_blank" rel="noopener">doi:10.1109/PAC.2001.987580</a>, free at <a href="https://proceedings.jacow.org/p01/PAPERS/ROPB002.PDF" target="_blank" rel="noopener">jacow.org</a> (extreme-high vacuum as below about 10⁻¹²&nbsp;Torr, and the gauges that measure it).</li>
             <li>J. F. O’Hanlon, <em>A User’s Guide to Vacuum Technology</em>, 3rd ed., Wiley (2003), <a href="https://doi.org/10.1002/0471467162" target="_blank" rel="noopener">doi:10.1002/0471467162</a> (ch. 2, gas properties; ch. 5, pressure gauges).</li>
             <li>K. Jousten (ed.), <em>Handbook of Vacuum Technology</em>, 2nd ed., Wiley-VCH (2016), <a href="https://doi.org/10.1002/9783527688265" target="_blank" rel="noopener">doi:10.1002/9783527688265</a> (ch. 3, gas kinetics; ch. 13, total pressure gauges).</li>
         </ol>
         <h3>Free introductions</h3>
         <ul class="refs">
-            <li>E. Al-Dmour, “Fundamentals of vacuum physics and technology,” CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.01464" target="_blank" rel="noopener">arXiv:2006.01464</a> (pressure units, vacuum ranges, the mean free path, and flow regimes).</li>
-            <li>Pfeiffer Vacuum, <em>The Vacuum Technology Book</em> (online), <a href="https://www.pfeiffervacuum.com/global/en/knowledge/vacuum-technology/knowledge-book/table_of_content/" target="_blank" rel="noopener">pfeiffervacuum.com</a> (section 1.2 on the ISO vacuum ranges, the mean free path, and flow regimes).</li>
+            <li>E. Al-Dmour, “Fundamentals of vacuum physics and technology,” CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.01464" target="_blank" rel="noopener">arXiv:2006.01464</a> (pressure units, vacuum ranges with extreme-high vacuum below 10⁻¹²&nbsp;mbar, the mean free path, and flow regimes).</li>
+            <li>Pfeiffer Vacuum, <em>The Vacuum Technology Book</em> (online), <a href="https://www.pfeiffervacuum.com/global/en/knowledge/vacuum-technology/knowledge-book/table_of_content/" target="_blank" rel="noopener">pfeiffervacuum.com</a> (section 1.2 on the ISO vacuum ranges, the mean free path, and flow regimes; section 5 on total-pressure gauges, their measuring ranges, and typical accuracies).</li>
         </ul>
     </article>
 
@@ -243,17 +295,25 @@ document.addEventListener('DOMContentLoaded', () => {
         inhg:  { to: x => x * INHG,           from: p => p / INHG }
     };
 
-    // [upper bound in mbar (exclusive), label, badge class, gauges, note]
-    // 900–1100 mbar reads as atmospheric: ambient pressure varies that much with weather and elevation
+    // [upper bound in mbar (exclusive), label, badge class, gauges, note, ISO 3529-1:2019 name where it differs]
+    // The labels follow the 1981 ISO 3529-1 boundaries (high vacuum down to 1e-7 mbar) with extreme-high vacuum below
+    // 1e-12 mbar; the ultra-high rows split at 1e-11 and 1e-8 mbar, where ISO 3529-1:2019 draws its boundaries.
+    // Each range includes its lower bound, as in ISO 3529-1. 900–1100 mbar reads as atmospheric: ambient pressure
+    // varies that much with weather and elevation.
+    const UHV_GAUGES = 'Bayard–Alpert, extractor, or inverted-magnetron gauge; residual gas analyzer';
     const RANGES = [
-        [1e-12, 'Extreme-high vacuum (XHV)', 'badge-warn', 'Extractor or specialized ionization gauges; residual gas analyzer', 'Gauge x-ray limit and gauge outgassing dominate'],
-        [1e-7,  'Ultra-high vacuum (UHV)',   'badge-ok',   'Bayard–Alpert or extractor ionization gauge; residual gas analyzer', 'Usually needs bake-out and metal seals'],
-        [1e-3,  'High vacuum (HV)',          'badge-ok',   'Cold-cathode (inverted magnetron) or hot-cathode ionization gauge', 'Molecular flow; outgassing sets the gas load'],
-        [1,     'Medium (fine) vacuum',      'badge-ok',   'Pirani (thermal conductivity) or capacitance diaphragm gauge', 'Transition between viscous and molecular flow'],
-        [900,   'Rough (low) vacuum',        'badge-ok',   'Capacitance diaphragm, piezoresistive, or mechanical dial gauge', 'Viscous (continuum) flow'],
-        [1100,  'Atmospheric',               '',           'Barometer, piezoresistive, or capacitance diaphragm gauge', 'Around one standard atmosphere (1013 mbar)'],
-        [Infinity, 'Above atmospheric',      '',           'Bourdon tube or piezoresistive pressure transducer', 'Positive pressure relative to the atmosphere']
+        [1e-12, 'Extreme-high vacuum (XHV)', 'badge-warn', 'Extractor or specialized ionization gauges; residual gas analyzer', 'Gauge x-ray limit and gauge outgassing dominate', ''],
+        [1e-11, 'Ultra-high vacuum (UHV)',   'badge-ok',   UHV_GAUGES, 'Needs bake-out and metal seals', 'extreme-high vacuum (below 10⁻¹¹ mbar)'],
+        [1e-8,  'Ultra-high vacuum (UHV)',   'badge-ok',   UHV_GAUGES, 'Needs bake-out and metal seals', ''],
+        [1e-7,  'Ultra-high vacuum (UHV)',   'badge-ok',   UHV_GAUGES, 'Reachable with elastomer seals and at most a mild bake-out', 'high vacuum (down to 10⁻⁸ mbar)'],
+        [1e-3,  'High vacuum (HV)',          'badge-ok',   'Cold-cathode (inverted magnetron) or hot-cathode ionization gauge', 'Molecular flow; outgassing sets the gas load', ''],
+        [1,     'Medium (fine) vacuum',      'badge-ok',   'Pirani (thermal conductivity) or capacitance diaphragm gauge', 'Transition between viscous and molecular flow', ''],
+        [900,   'Rough (low) vacuum',        'badge-ok',   'Capacitance diaphragm, piezoresistive, or mechanical dial gauge', 'Viscous (continuum) flow', ''],
+        [1100,  'Atmospheric',               '',           'Barometer, piezoresistive, or capacitance diaphragm gauge', 'Around one standard atmosphere (1013 mbar)', ''],
+        [Infinity, 'Above atmospheric',      '',           'Bourdon tube or piezoresistive pressure transducer', 'Positive pressure relative to the atmosphere', '']
     ];
+    // pressure ladder figure: x = 12 + (log10(p / mbar) + 14) · 376/17.5 in its viewBox (see the figure's generator)
+    const mark = document.getElementById('ladder-mark');
 
     const kT20 = Calc.K.kB * 293.15;
     const dN2 = 3.75e-10;                                               // m, hard-sphere diameter of N₂
@@ -269,11 +329,19 @@ document.addEventListener('DOMContentLoaded', () => {
         validate: p => (p < 1e-30 || p > 1e30) ? 'Enter a pressure between 10⁻³⁰ and 10³⁰ Pa.' : null,
         after(p) {
             const mbar = p / 100;
-            const r = RANGES.find(x => mbar < x[0]);
+            // a value typed on a boundary in another unit can land a rounding step below it (1e-9 Pa → 9.99…e-12 mbar)
+            const r = RANGES.find(x => mbar < x[0] * (1 - 1e-9));
             el('pc-regime').textContent = r[1];
             el('pc-regime').className = 'badge ' + r[2];
             el('pc-regime-note').textContent = r[4];
+            el('pc-iso').textContent = r[5] ? 'ISO 3529-1:2019 calls this ' + r[5] + '.' : '';
+            el('pc-iso').hidden = !r[5];
             el('pc-gauge').textContent = r[3];
+            if (mark) {
+                const lg = Math.log10(mbar), on = lg >= -14 && lg <= 3.5;
+                mark.style.display = on ? '' : 'none';
+                if (on) mark.setAttribute('d', 'M' + (12 + (lg + 14) * 376 / 17.5).toFixed(1) + ' 16V290');
+            }
             el('pc-mfp').textContent = fmt.si(lambdaP / p, 'm', 3, { max: 3 });
             el('pc-mfp-note').hidden = lambdaP / p >= 10 * dN2;
             const n = p / kT20;

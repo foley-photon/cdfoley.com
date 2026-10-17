@@ -3,12 +3,17 @@
     python _scripts/build_glazing_weights.py <folder with source CSVs>
 
 Sources (download into the folder first):
-  ASTMG173.csv               ASTM G173-03 reference spectra (NREL, via pvlib-python data); 'direct' column
-                             = direct + circumsolar AM1.5, the solar weighting used by NFRC 300 / LBNL WINDOW (direct normal,
-                             successor of ASTM E891). ISO 9050 and EN 410 use the global AM1.5 spectrum instead.
+  ASTMG173.csv               ASTM G173-03 reference spectra (NREL tables, as in pvlib-python's data folder); the 'direct'
+                             column is direct + circumsolar at AM1.5. It is the engine's default solar weighting. NFRC 300
+                             and LBNL WINDOW weight with the older ASTM E891 direct-normal values (ISO 9845-1:1992, Table 1,
+                             column 2), which tools/glazing-performance loads from glazing-solar-e891.js; ISO 9050 and
+                             EN 410 use a global (direct plus diffuse) spectrum.
   CIE_std_illum_D65.csv      CIE standard illuminant D65, 1 nm (doi:10.25039/CIE.DS.hjfjmt59)
-  CIE_sle_photopic.csv       CIE photopic luminous efficiency V(λ), 1 nm
-  CIE_xyz_1931_2deg.csv      CIE 1931 2° color-matching functions, 1 nm
+  CIE_sle_photopic.csv       CIE photopic luminous efficiency V(λ), 1 nm (doi:10.25039/CIE.DS.dktna2s3)
+  CIE_xyz_1931_2deg.csv      CIE 1931 2° color-matching functions, 1 nm (doi:10.25039/CIE.DS.xvudnb9b)
+The CIE files are at https://files.cie.co.at/Publications-datasets/<file name>. With these four files (ASTMG173.csv
+with SHA-256 91964ac23c0ec82dbbda4a7f160a5f5faf551dfe18ffae7e2446d74b57ee7859), the script reproduces
+assets/js/glazing-weights.js byte for byte (checked 2026-10-16, Python 3.14 on Windows, which writes CRLF).
 Each table is integrated into 5 nm bins centered on 300, 305, …, 2500 nm and normalized.
 """
 import csv, json, os, sys

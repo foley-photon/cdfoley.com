@@ -98,6 +98,16 @@
     <header class="page-head">
         <h1>Mean Free Path &amp; Knudsen Number Calculator</h1>
         <p class="lede">How far a molecule travels between collisions, and what that means for flow in your chamber. The calculator also gives the number density, mean speed, how often molecules hit a surface, and how long a clean surface stays clean.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Mean free path</dt><dd>The average distance a gas molecule travels before it hits another molecule. In nitrogen at room temperature it is about 65&nbsp;µm at 1&nbsp;mbar and 65&nbsp;mm at 0.001&nbsp;mbar: ten times lower pressure, ten times longer path.</dd>
+            <dt>Knudsen number</dt><dd>The mean free path divided by the size of the pipe, gap, or chamber the gas is in (D here). It tells you which kind of flow you have.</dd>
+            <dt>Viscous and molecular flow</dt><dd>In viscous flow (Knudsen number below 0.01) molecules mostly hit each other and the gas flows like a fluid, as in a roughing line near atmosphere. In molecular flow (above 0.5) they mostly hit the walls and move independently, as in a high vacuum chamber. In between, the flow is transitional.</dd>
+            <dt>Collision diameter</dt><dd>The effective size of a molecule in a collision, treating it as a hard ball: about 0.37&nbsp;nm for nitrogen. The values here are worked out from each gas’s viscosity.</dd>
+            <dt>Number density</dt><dd>How many molecules are in each cubic centimeter: about 2.5&nbsp;×&nbsp;10¹⁹ at atmospheric pressure and room temperature, and still about 25&nbsp;billion at 10⁻⁶&nbsp;mbar.</dd>
+            <dt>Impingement rate</dt><dd>How many molecules strike each square centimeter of a surface every second: about 3&nbsp;×&nbsp;10¹⁴ for nitrogen at 10⁻⁶&nbsp;mbar and room temperature.</dd>
+            <dt>Monolayer time</dt><dd>How long a freshly cleaned surface takes to be covered by one layer of molecules if every molecule that hits it sticks: about 3&nbsp;ms at 10⁻³&nbsp;mbar, 3&nbsp;s at 10⁻⁶&nbsp;mbar, and 10&nbsp;hours at 10⁻¹⁰&nbsp;mbar.</dd>
+            <dt>Sticking coefficient</dt><dd>The fraction of the molecules hitting a surface that stay on it, from 0 to 1. Nitrogen, hydrogen, and the noble gases hardly stick to room-temperature metal; water, carbon monoxide, and carbon dioxide stick far more readily.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -121,6 +131,7 @@
                         <option value="xe">Xenon (Xe)</option>
                         <option value="custom">Custom</option>
                     </select>
+                    <p class="hint">Fills in the diameter and molar mass from the table below. Edit either value, or choose Custom, for another gas.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
@@ -132,23 +143,26 @@
                         <div class="input-unit"><input id="M" name="M" value="28.0134" inputmode="decimal" data-positive data-label="molar mass"><span class="unit">g/mol</span></div>
                     </div>
                 </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The diameter is an equivalent hard-sphere diameter from viscosity (see Gas data used). A Lennard-Jones σ or a molecular-sieve “kinetic diameter” is a different quantity and gives a wrong λ. The molar mass sets only the speed, the wall flux, and the monolayer time; λ does not depend on it.</p>
                 <div class="field">
                     <label for="p">Pressure <span class="sym">p</span></label>
                     <div class="input-unit"><input id="p" name="p" value="1e-3" inputmode="decimal" data-positive><select data-dim="pressure" data-units="Pa,mbar,Torr,mTorr,atm,psi" data-default="mbar"></select></div>
+                    <p class="hint">Absolute pressure. Pirani and ionization gauges read correctly only in the gas they are calibrated for, usually N₂.</p>
                 </div>
                 <div class="field">
                     <label for="T">Temperature <span class="sym">T</span></label>
                     <div class="input-unit"><input id="T" name="T" value="20" inputmode="decimal" data-positive data-label="temperature (absolute)"><select data-dim="temperature" data-units="°C,K,°F" data-default="°C"></select></div>
+                    <p class="hint">Gas temperature. The listed diameters belong to 15&nbsp;°C; far from room temperature a note under the result gives λ from the gas’s viscosity at this temperature.</p>
                 </div>
                 <div class="field">
                     <label for="D">Characteristic dimension <span class="sym">D</span></label>
                     <div class="input-unit"><input id="D" name="D" value="100" inputmode="decimal" data-positive><select data-dim="length" data-units="µm,mm,cm,m,in" data-default="mm"></select></div>
-                    <p class="hint">Pipe diameter, chamber size, or gap width that sets the flow regime.</p>
+                    <p class="hint">The inside diameter of the pipe, or the chamber size or gap width, that sets the flow regime: for example 25&nbsp;mm for a DN25 roughing line.</p>
                 </div>
                 <div class="field">
                     <label for="s">Sticking coefficient <span class="sym">s</span></label>
                     <div class="input-unit"><input id="s" name="s" value="1" inputmode="decimal" data-nonneg data-max="1" data-label="sticking coefficient"><span class="unit">0–1</span></div>
-                    <p class="hint">Fraction of impinging molecules that stay on the surface. Used only for the monolayer time.</p>
+                    <p class="hint">The fraction of the molecules hitting the surface that stay on it; used only for the monolayer time. 1 gives the shortest possible time.</p>
                 </div>
             </div>
         </form>
@@ -165,7 +179,7 @@
                     <div class="result"><span class="result-label">Collision rate per molecule<span class="sym">v̄/λ</span></span><output class="result-value" data-out="z">—</output></div>
                     <div class="result"><span class="result-label">Wall impingement rate<span class="sym">Φ</span></span><output class="result-value" data-out="flux">—</output></div>
                     <div class="result"><span class="result-label">Monolayer formation time<span class="sym">τ</span></span><output class="result-value" data-out="tmono">—</output>
-                        <span class="result-note">Assumes 10¹⁵ adsorption sites per cm² and the sticking coefficient above.</span></div>
+                        <span class="result-note">Assumes 10¹⁵ adsorption sites per cm² and the sticking coefficient above; with s = 1 it is the shortest possible time.</span></div>
                 </div>
             </div>
         </section>
@@ -173,17 +187,17 @@
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
         <div class="panel-head"><h2 id="plot-h">Mean free path vs. pressure</h2></div>
-        <div class="panel-body"><div id="mfp-plot"></div></div>
+        <div class="panel-body"><div id="mfp-plot"></div><p class="hint" id="plot-note" hidden></p></div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
-        <h2>How the mean free path is calculated</h2>
+        <h2>How it is calculated</h2>
         <p>Treating molecules as hard spheres of diameter \(d\) in an ideal gas at temperature \(T\), the mean free path is</p>
         <div class="formula">\[ \begin{gathered} \lambda = \frac{k_B T}{\sqrt{2}\,\pi d^2\, p} = \frac{1}{\sqrt{2}\, n\, \pi d^2}, \\[8pt] n = \frac{p}{k_B T}. \end{gathered} \]</div>
-        <p>The \(\sqrt2\) accounts for the motion of the collision partners (Maxwell–Boltzmann velocities). At a fixed temperature the product \(\lambda p\) is constant. For N₂ at 20&nbsp;°C it is 6.48&nbsp;mm·Pa, or about 6.5 × 10⁻³&nbsp;cm·mbar. So \(\lambda \approx 6.5\)&nbsp;mm at 1&nbsp;Pa, and it scales as \(1/p\): about 6.5&nbsp;cm at 10⁻³&nbsp;mbar and 65&nbsp;m at 10⁻⁶&nbsp;mbar.</p>
+        <p>The \(\sqrt2\) accounts for the motion of the collision partners: in a Maxwell–Boltzmann gas the mean speed of two molecules relative to each other is \(\sqrt2\) times the mean speed. At a fixed temperature the product \(\lambda p\) is constant. For N₂ at 20&nbsp;°C it is 6.48&nbsp;mm·Pa, or about 6.5&nbsp;×&nbsp;10⁻³&nbsp;cm·mbar. So \(\lambda \approx 6.5\)&nbsp;mm at 1&nbsp;Pa, and it scales as \(1/p\): about 6.5&nbsp;cm at 10⁻³&nbsp;mbar and 65&nbsp;m at 10⁻⁶&nbsp;mbar.</p>
         <p>The other kinetic quantities follow from the Maxwell–Boltzmann distribution, with molecular mass \(m = M/N_A\):</p>
-        <div class="formula">\[ \begin{gathered} \bar v = \sqrt{\frac{8 k_B T}{\pi m}}, \\[8pt] \Phi = \frac{n \bar v}{4} = \frac{p}{\sqrt{2\pi m k_B T}}, \\[8pt] \tau_\text{mono} = \frac{n_s}{s\,\Phi}. \end{gathered} \]</div>
-        <p>Here \(\Phi\) is the number of molecules striking a unit area of wall per second, \(n_s \approx 10^{15}\)&nbsp;cm⁻² is the number of adsorption sites in a monolayer, and \(s\) is the sticking coefficient.</p>
+        <div class="formula">\[ \begin{gathered} \bar v = \sqrt{\frac{8 k_B T}{\pi m}}, \qquad z = \frac{\bar v}{\lambda}, \\[8pt] \Phi = \frac{n \bar v}{4} = \frac{p}{\sqrt{2\pi m k_B T}}, \\[8pt] \tau_\text{mono} = \frac{n_s}{s\,\Phi}. \end{gathered} \]</div>
+        <p>Here \(z\) is how often one molecule collides with others, \(\Phi\) is the number of molecules striking a unit area of wall per second, \(n_s \approx 10^{15}\)&nbsp;cm⁻² is the number of adsorption sites in a monolayer, and \(s\) is the sticking coefficient. The Boltzmann constant \(k_B\) and the Avogadro constant \(N_A\) are exact in the SI.</p>
 
         <h2>Knudsen number and flow regime</h2>
         <p>The Knudsen number \(\mathrm{Kn} = \lambda/D\) compares the mean free path with the size of the system. It decides whether gas behaves as a fluid or as independent molecules bouncing between walls:</p>
@@ -195,7 +209,21 @@
                 <tr><td class="num" style="white-space:nowrap">&gt; 0.5</td><td>Molecular</td><td>Molecules mostly hit walls. Conductance is independent of pressure.</td></tr>
             </tbody>
         </table>
-        <p>These boundaries are common in vacuum-industry literature. Some texts put the start of molecular flow at Kn = 1. The change between regimes is gradual, not sharp.</p>
+        <p>These boundaries are common in vacuum-industry literature. Some texts put the start of molecular flow at Kn = 1. The change between regimes is gradual, not sharp. The chart above shades the molecular and viscous regimes for the D you enter.</p>
+
+        <h2>Typical values</h2>
+        <p>Nitrogen at 20&nbsp;°C, from the formulas above. The monolayer time assumes every molecule sticks (\(s = 1\)).</p>
+        <table>
+            <thead><tr><th class="num">Pressure (mbar)</th><th class="num">Mean free path</th><th class="num">Monolayer time</th></tr></thead>
+            <tbody>
+                <tr><td class="num">1013 (1&nbsp;atm)</td><td class="num">64&nbsp;nm</td><td class="num">3.4&nbsp;ns</td></tr>
+                <tr><td class="num">1</td><td class="num">65&nbsp;µm</td><td class="num">3.4&nbsp;µs</td></tr>
+                <tr><td class="num">10⁻³</td><td class="num">65&nbsp;mm</td><td class="num">3.4&nbsp;ms</td></tr>
+                <tr><td class="num">10⁻⁶</td><td class="num">65&nbsp;m</td><td class="num">3.4&nbsp;s</td></tr>
+                <tr><td class="num">10⁻⁹</td><td class="num">65&nbsp;km</td><td class="num">57&nbsp;min</td></tr>
+                <tr><td class="num">10⁻¹²</td><td class="num">65&#8239;000&nbsp;km</td><td class="num">40&nbsp;days</td></tr>
+            </tbody>
+        </table>
 
         <h2>Gas data used</h2>
         <table>
@@ -212,33 +240,45 @@
                 <tr><td>Xe</td><td class="num">4.85</td><td class="num">131.293</td><td class="num">3.87</td></tr>
             </tbody>
         </table>
-        <p>The diameters are hard-sphere collision diameters derived from gas viscosity near 0&nbsp;°C. They are consistent with the Chapman–Enskog hard-sphere relation between viscosity and diameter to within a few percent, and published tables differ from each other by a similar amount. The value for water vapor is the least certain, because H₂O is strongly polar.</p>
+        <p>The diameters are Kennard’s equivalent hard-sphere diameters (1938, table on p.&nbsp;149). He calculated them from the viscosity \(\eta\) of each gas at 15&nbsp;°C, using Chapman and Enskog’s result for hard spheres, \(\eta = 0.499\,\rho \bar v \lambda\) with gas density \(\rho = nm\), which gives</p>
+        <div class="formula">\[ d = \sqrt{\frac{0.499\, m \bar v}{\sqrt2\,\pi\,\eta}}. \]</div>
+        <p>The calculator uses them because most vacuum texts tabulate these values, so its λ matches the literature, and because they still match current data: recomputed from NIST viscosities at 15&nbsp;°C, eight of the nine agree within 0.5&nbsp;%, and water vapor within 0.8&nbsp;%. The same formula gives a diameter for a gas that is not listed: for N₂, \(\eta = 17.33\ \mu\text{Pa}\cdot\text{s}\) at 15&nbsp;°C gives \(d = 3.75\)&nbsp;Å.</p>
+        <p>Do not enter a Lennard-Jones σ instead (Svehla’s table, for example, gives N₂ 3.80&nbsp;Å, He 2.55&nbsp;Å, and H₂O 2.64&nbsp;Å). It is a parameter of a soft intermolecular potential and gives the viscosity only together with temperature-dependent collision integrals; in the hard-sphere formula it puts λ off by up to a factor of three (for water vapor). Water vapor is also the least certain entry in the table: Kennard derived it from a measurement on saturated vapor, and because H₂O is strongly polar its effective diameter changes fastest with temperature.</p>
 
         <h2>Worked example</h2>
-        <p>N₂ at 10⁻³&nbsp;mbar (0.1&nbsp;Pa) and 20&nbsp;°C, in a 100&nbsp;mm diameter tube:</p>
+        <p>N₂ at 10⁻³&nbsp;mbar (0.1&nbsp;Pa) and 20&nbsp;°C, in a 100&nbsp;mm diameter tube (the default inputs):</p>
         <ul>
-            <li>\(\lambda = 6.48\ \text{mm}\cdot\text{Pa} / 0.1\ \text{Pa} = 64.8\ \text{mm}\), so Kn = 0.65 and the flow is molecular.</li>
-            <li>\(n = 0.1/(1.381\times10^{-23}\times293.15) = 2.47\times10^{13}\ \text{cm}^{-3}\). Even at “high vacuum” there are tens of trillions of molecules in every cubic centimeter.</li>
-            <li>\(\bar v = 471\)&nbsp;m/s, and the wall is hit at \(\Phi = 2.9\times10^{17}\)&nbsp;cm⁻²&nbsp;s⁻¹. With \(s = 1\), a clean surface is covered in about 3.4&nbsp;ms. At 10⁻⁶&nbsp;mbar the same estimate gives 3.4&nbsp;s, which is why surface-science work needs ultra-high vacuum.</li>
+            <li>\(\lambda = 6.48\ \text{mm}\cdot\text{Pa} / 0.1\ \text{Pa} = 64.8\ \text{mm}\), so Kn = 0.65 and the flow is molecular. In this tube it turns viscous above about 0.065&nbsp;mbar (Kn = 0.01).</li>
+            <li>\(n = 0.1/(1.381\times10^{-23}\times293.15) = 2.47\times10^{19}\ \text{m}^{-3} = 2.47\times10^{13}\ \text{cm}^{-3}\). Even at “high vacuum” there are tens of trillions of molecules in every cubic centimeter.</li>
+            <li>\(\bar v = 471\)&nbsp;m/s, so each molecule collides with another about \(\bar v/\lambda \approx 7300\) times per second, and the wall is hit at \(\Phi = 2.9\times10^{17}\)&nbsp;cm⁻²&nbsp;s⁻¹. With \(s = 1\), a clean surface is covered in about 3.4&nbsp;ms. At 10⁻⁶&nbsp;mbar the same estimate gives 3.4&nbsp;s, which is why surface-science work needs ultra-high vacuum.</li>
         </ul>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li>Ideal, dilute gas with hard-sphere collisions and a single species. The calculator flags results where λ is under 10 molecular diameters (above about 17&nbsp;atm for N₂ at 20&nbsp;°C). Mixtures need a collision diameter and reduced mass for each pair of species.</li>
-            <li>The diameters are fitted to viscosity near 0&nbsp;°C, but real molecules attract and repel, so the effective cross-section falls as T rises (a Sutherland-type correction). For N₂ and air the error in λ stays within about 10&nbsp;% from 200&nbsp;K to 400&nbsp;K. At 77&nbsp;K the true mean free path of N₂ is about 40&nbsp;% shorter than this calculator gives, and at 1000&nbsp;K about 30&nbsp;% longer. Gases with stronger attraction, such as CO₂, Xe and H₂O, deviate more. The calculator flags temperatures outside 200–400&nbsp;K.</li>
-            <li>With \(s = 1\) the monolayer time is a lower bound: the fastest a clean surface can be covered. Real sticking coefficients for N₂ and Ar on room-temperature surfaces are far below 1, so these gases take much longer; for water and hydrocarbons \(s\) can approach 1. Sticking also falls as the surface fills, so in the Langmuir model \(n_s/(s\Phi)\) is the time to about 63&nbsp;% coverage, not a complete monolayer.</li>
+            <li>Ideal, dilute gas with hard-sphere collisions and a single species. The calculator flags results where λ is under 10 molecular diameters (above about 17&nbsp;atm for N₂ at 20&nbsp;°C). Mixtures need a collision diameter and reduced mass for each pair of species; dry air is treated as one gas with an effective diameter, as in Kennard’s table.</li>
+            <li><strong>Temperature.</strong> The diameters belong to 15&nbsp;°C. Real molecules also attract each other, which deflects slow molecules more than fast ones, so the effective cross-section shrinks as the temperature rises; a fixed diameter misses this (Bird, 1983). With NIST viscosity data at the actual temperature, Kennard’s formula gives a mean free path of N₂ that is 40&nbsp;% shorter than the fixed-diameter value at 77&nbsp;K, 11&nbsp;% shorter at 200&nbsp;K, 9&nbsp;% longer at 400&nbsp;K, and 29&nbsp;% longer at 1000&nbsp;K; at 20&nbsp;°C the two differ by 0.4&nbsp;%. Gases with stronger attraction deviate more: at 400&nbsp;K by 15&nbsp;% for CO₂ and Xe and by 23&nbsp;% for water vapor. For the listed gases, within the temperature range of the viscosity data, the calculator shows the viscosity-based value under the result whenever the two differ by more than 5&nbsp;%. For a custom gas, or outside that range, it flags temperatures outside 200–400&nbsp;K.</li>
+            <li>With \(s = 1\) the monolayer time is a lower bound: the fastest a clean surface can be covered. N₂, H₂, CH₄, and the noble gases have negligible sticking coefficients on room-temperature metal, so they take far longer; H₂O, CO, CO₂, O₂, and heavier hydrocarbons stick much more readily (Chiggiato). Sticking also falls as the surface fills: in Langmuir’s model only empty sites adsorb, so \(n_s/(s\Phi)\) is the time to \(1 - 1/e \approx 63\)&nbsp;% coverage, not a complete monolayer. The site density of 10¹⁵&nbsp;cm⁻² is an order of magnitude.</li>
         </ul>
 
         <h2>References</h2>
         <h3>Primary sources and standards</h3>
         <ol class="refs">
+            <li>E. H. Kennard, <em>Kinetic Theory of Gases, with an Introduction to Statistical Mechanics</em>, McGraw-Hill (1938) (§64, eq. 106d: the hard-sphere mean free path; §86, eq. 126b and the table on p.&nbsp;149: the viscosity of hard spheres and the nine diameters used here).</li>
+            <li>S. Chapman and T. G. Cowling, <em>The Mathematical Theory of Non-Uniform Gases</em>, 3rd ed., Cambridge University Press (1970) (hard-sphere kinetic theory of the mean free path and viscosity).</li>
+            <li>G. A. Bird, “Definition of mean free path for real gases,” <em>Phys. Fluids</em> <strong>26</strong>, 3222–3223 (1983), <a href="https://doi.org/10.1063/1.864095" target="_blank" rel="noopener">doi:10.1063/1.864095</a> (why a fixed hard-sphere diameter is inconsistent with how the viscosity of a real gas changes with temperature).</li>
+            <li>E. W. Lemmon, I. H. Bell, M. L. Huber, and M. O. McLinden, “Thermophysical properties of fluid systems,” in <em>NIST Chemistry WebBook</em>, NIST Standard Reference Database 69, P. J. Linstrom and W. G. Mallard (eds.), <a href="https://doi.org/10.18434/T4D303" target="_blank" rel="noopener">doi:10.18434/T4D303</a> (the dilute-gas viscosities behind the diameter check and the temperature correction).</li>
+            <li>E. W. Lemmon and R. T. Jacobsen, “Viscosity and thermal conductivity equations for nitrogen, oxygen, argon, and air,” <em>Int. J. Thermophys.</em> <strong>25</strong>, 21–69 (2004), <a href="https://doi.org/10.1023/B:IJOT.0000022327.04529.f3" target="_blank" rel="noopener">doi:10.1023/B:IJOT.0000022327.04529.f3</a> (the viscosity of dry air).</li>
+            <li>R. A. Svehla, <em>Estimated Viscosities and Thermal Conductivities of Gases at High Temperatures</em>, NASA Technical Report R-132 (1962), <a href="https://ntrs.nasa.gov/citations/19630012982" target="_blank" rel="noopener">ntrs.nasa.gov</a> (Table I: Lennard-Jones σ and ε/k fitted to viscosity, for comparison).</li>
+            <li>J. O. Hirschfelder, C. F. Curtiss, and R. B. Bird, <em>Molecular Theory of Gases and Liquids</em>, Wiley (1954) (the Lennard-Jones model of gas viscosity and its collision integrals).</li>
+            <li>I. Langmuir, “The adsorption of gases on plane surfaces of glass, mica and platinum,” <em>J. Am. Chem. Soc.</em> <strong>40</strong>, 1361–1403 (1918), <a href="https://doi.org/10.1021/ja02242a004" target="_blank" rel="noopener">doi:10.1021/ja02242a004</a> (adsorption on empty sites only, which gives the 63&nbsp;% coverage).</li>
+            <li>P. Chiggiato, “Outgassing properties of vacuum materials for particle accelerators,” lecture notes, CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.07124" target="_blank" rel="noopener">arXiv:2006.07124</a> (2020) (which gases stick to room-temperature vacuum materials; the Langmuir isotherm).</li>
+            <li>P. J. Mohr, D. B. Newell, B. N. Taylor, and E. Tiesinga, “CODATA recommended values of the fundamental physical constants: 2022,” <em>Rev. Mod. Phys.</em> <strong>97</strong>, 025002 (2025), <a href="https://doi.org/10.1103/RevModPhys.97.025002" target="_blank" rel="noopener">doi:10.1103/RevModPhys.97.025002</a> (\(k_B\) and \(N_A\), exact in the SI).</li>
             <li>J. F. O’Hanlon, <em>A User’s Guide to Vacuum Technology</em>, 3rd ed., Wiley (2003), <a href="https://doi.org/10.1002/0471467162" target="_blank" rel="noopener">doi:10.1002/0471467162</a>, ch. 2 (gas properties).</li>
             <li>K. Jousten (ed.), <em>Handbook of Vacuum Technology</em>, 2nd ed., Wiley-VCH (2016), <a href="https://doi.org/10.1002/9783527688265" target="_blank" rel="noopener">doi:10.1002/9783527688265</a> (ch. 3, gas kinetics).</li>
-            <li>S. Chapman and T. G. Cowling, <em>The Mathematical Theory of Non-Uniform Gases</em>, 3rd ed., Cambridge University Press (1970) (hard-sphere kinetic theory of the mean free path and viscosity).</li>
         </ol>
         <h3>Free introductions</h3>
         <ul class="refs">
-            <li>E. Al-Dmour, “Fundamentals of vacuum physics and technology,” CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.01464" target="_blank" rel="noopener">arXiv:2006.01464</a> (the mean free path, the Knudsen number, and the flow-regime boundaries Kn&nbsp;&lt;&nbsp;0.01, 0.01–0.5, and &gt;&nbsp;0.5).</li>
+            <li>E. Al-Dmour, “Fundamentals of vacuum physics and technology,” CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.01464" target="_blank" rel="noopener">arXiv:2006.01464</a> (the mean free path, the impingement rate and monolayer time with about 10¹⁵ molecules per cm², the Knudsen number, and the flow-regime boundaries Kn&nbsp;&lt;&nbsp;0.01, 0.01–0.5, and &gt;&nbsp;0.5).</li>
             <li>Pfeiffer Vacuum, <em>The Vacuum Technology Book</em> (online), <a href="https://www.pfeiffervacuum.com/global/en/knowledge/vacuum-technology/knowledge-book/table_of_content/" target="_blank" rel="noopener">pfeiffervacuum.com</a> (section 1.2 on the mean free path, a λ·p table, and the same Knudsen-number flow regimes).</li>
         </ul>
     </article>
@@ -254,7 +294,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const { fmt, K } = Calc;
-    // hard-sphere diameters from viscosity (Å), molar masses (g/mol)
+    // Kennard's (1938) equivalent hard-sphere diameters from viscosity at 15 °C (Å), molar masses (g/mol)
     const GASES = {
         n2:  { d: 3.75, M: 28.0134, label: 'N₂' },
         air: { d: 3.72, M: 28.966,  label: 'Dry air' },
@@ -265,6 +305,21 @@ document.addEventListener('DOMContentLoaded', () => {
         h2o: { d: 4.60, M: 18.015,  label: 'H₂O' },
         co2: { d: 4.59, M: 44.009,  label: 'CO₂' },
         xe:  { d: 4.85, M: 131.293, label: 'Xe' }
+    };
+    // [T (K), λ from the viscosity at T ÷ λ from the listed diameter] = (d / d_T)², with d_T² = 0.499 m v̄ / (√2 π η(T))
+    // (Kennard's eq. 126b) and dilute-gas viscosities η(T) from the NIST WebBook (SRD 69), air from Lemmon & Jacobsen
+    // (2004). Interpolated linearly in ln T: within 0.6 % of the direct value (1.2 % for helium at 100–125 K, where the
+    // WebBook's helium viscosity dips); no correction outside each gas's range.
+    const VISC = {
+        n2:  [[77, 0.596], [100, 0.676], [150, 0.803], [200, 0.892], [250, 0.959], [288.15, 0.999], [350, 1.052], [400, 1.087], [500, 1.141], [600, 1.182], [800, 1.242], [1000, 1.286]],
+        air: [[77, 0.592], [100, 0.672], [150, 0.801], [200, 0.892], [250, 0.960], [288.15, 1.002], [350, 1.056], [400, 1.092], [500, 1.147], [600, 1.190], [800, 1.252], [1000, 1.297]],
+        o2:  [[77, 0.572], [100, 0.654], [150, 0.787], [200, 0.882], [250, 0.954], [288.15, 0.999], [350, 1.058], [400, 1.096], [500, 1.157], [600, 1.203], [800, 1.270], [1000, 1.318]],
+        ar:  [[90, 0.598], [100, 0.633], [150, 0.771], [200, 0.872], [250, 0.951], [288.15, 1.000], [350, 1.065], [400, 1.108], [500, 1.177], [600, 1.230], [800, 1.306], [1000, 1.360]],
+        he:  [[77, 0.827], [100, 0.855], [125, 0.867], [150, 0.893], [200, 0.937], [250, 0.974], [288.15, 1.000], [350, 1.036], [400, 1.063], [500, 1.110], [600, 1.151], [800, 1.220], [1000, 1.278]],
+        h2:  [[77, 0.751], [100, 0.802], [150, 0.877], [200, 0.929], [250, 0.971], [288.15, 0.998], [350, 1.036], [400, 1.063], [500, 1.110], [600, 1.151], [800, 1.220], [1000, 1.277]],
+        h2o: [[273.16, 0.995], [288.15, 1.017], [350, 1.128], [400, 1.227], [500, 1.423], [600, 1.607], [800, 1.926], [1000, 2.185]],
+        co2: [[220, 0.877], [250, 0.931], [288.15, 0.995], [350, 1.085], [400, 1.148], [500, 1.251], [600, 1.331], [800, 1.445], [1000, 1.524]],
+        xe:  [[170, 0.752], [200, 0.819], [250, 0.922], [288.15, 0.991], [350, 1.087], [400, 1.153], [500, 1.257], [600, 1.336], [750, 1.427]]
     };
     const NS = 1e19;   // adsorption sites per m² (1e15 cm⁻²)
     const YEAR = 365.25 * 86400;   // s
@@ -293,8 +348,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Math.abs(dA - g.d) > 1e-6 || Math.abs(M - g.M) > 1e-9) gasSel.value = 'custom';
     }));
 
+    // the viscosity-based correction factor for a listed gas with its own diameter and molar mass (an edited link can
+    // pair a gas with other values), or null outside the gas's data range
+    function viscRatio(v) {
+        const g = GASES[v.gas], tab = VISC[v.gas];
+        if (!g || !tab || Math.abs(v.d * 1e10 - g.d) > 1e-6 || Math.abs(v.M - g.M) > 1e-9) return null;
+        if (!(v.T >= tab[0][0] && v.T <= tab[tab.length - 1][0])) return null;
+        for (let i = 1; i < tab.length; i++) {
+            if (v.T <= tab[i][0]) {
+                const [T0, r0] = tab[i - 1], [T1, r1] = tab[i];
+                return r0 + (r1 - r0) * Math.log(v.T / T0) / Math.log(T1 / T0);
+            }
+        }
+        return null;
+    }
+
     const regime = document.getElementById('regime');
-    const plotBox = document.getElementById('mfp-plot');
+    const plotBox = document.getElementById('mfp-plot'), plotNote = document.getElementById('plot-note');
     const lamNote = document.getElementById('lam-note'), knNote = document.getElementById('kn-note'), lampNote = document.getElementById('lamp-note');
     function regimeOf(kn) {
         if (kn < 0.01) return ['Viscous flow', 'badge'];
@@ -326,7 +396,12 @@ document.addEventListener('DOMContentLoaded', () => {
             lampNote.hidden = false;
             const cautions = [];
             if (lam < 10 * v.d) cautions.push('λ is under 10 molecular diameters (a dense gas), so these dilute-gas results lose accuracy.');
-            if (v.T < 200 || v.T > 400) cautions.push('T is outside 200–400\u00a0K, where the fixed diameter can put λ off by more than 10\u00a0% (see Assumptions and limits).');
+            const r = viscRatio(v);
+            if (r !== null && Math.abs(r - 1) > 0.05)
+                cautions.push('The listed diameter belongs to 15\u00a0°C. At this temperature the viscosity of ' + (v.gas === 'air' ? 'dry air' : GASES[v.gas].label) +
+                    ' gives λ ≈ ' + fmtLam(lam * r, 3) + ', ' + fmt.num(r, 3) + ' times the value above (see Assumptions and limits).');
+            else if (r === null && (v.T < 200 || v.T > 400))
+                cautions.push('T is outside 200–400\u00a0K, where a fixed diameter can put λ off by more than 10\u00a0% (see Assumptions and limits).');
             lamNote.textContent = cautions.join(' ');
             lamNote.hidden = !cautions.length;
             return {
@@ -347,29 +422,42 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onError() {                             // hide the badge, notes, and plot left from the last valid result
             regime.textContent = ''; regime.hidden = true;
-            [lamNote, knNote, lampNote].forEach(el => { el.hidden = true; });
+            [lamNote, knNote, lampNote, plotNote].forEach(el => { el.hidden = true; });
             clearTimeout(plotBox._plotT); plotBox._plot = null;   // stop plot.js redrawing the old chart on resize
             plotBox.innerHTML = '';
         },
         after(v) {
             const unit = v.$unit.p || 'Pa';
             const toU = pa => Calc.fromSI('pressure', unit, pa);
+            const atP = pa => fmt.unit(pa, 'pressure', unit, 3);
             const kT = K.kB * v.T;
             const lp = kT / (Math.SQRT2 * Math.PI * v.d * v.d);
             // default span 10⁻⁸–10⁵ Pa, widened so the marker stays a decade inside the line
-            const pPa = Calc.math.logspace(Math.min(1e-8, v.p / 10), Math.max(1e5, v.p * 10), 140);
+            const pLo = Math.min(1e-8, v.p / 10), pHi = Math.max(1e5, v.p * 10);
+            const pPa = Calc.math.logspace(pLo, pHi, 140);
+            // flow regimes in this D: molecular below pMol (Kn > 0.5), viscous above pVisc (Kn < 0.01)
+            const pMol = lp / (0.5 * v.D), pVisc = lp / (0.01 * v.D);
+            // y range rounded to quarter decades, as plot.js would, and set here so the regime bands fill the plot height
+            const yLo = Math.pow(10, Math.floor(Math.log10(lp / pHi) * 4) / 4), yHi = Math.pow(10, Math.ceil(Math.log10(lp / pLo) * 4) / 4);
+            const band = (a, b, label, color) => b > a ? { type: 'band', x: [toU(a), toU(b)], y: [yHi, yHi], y0: [yLo, yLo], label, color, opacity: 0.13 } : null;
+            const where = 'For D = ' + fmt.si(v.D, 'm', 3) + ' the flow is molecular below ' + atP(pMol) + ' and viscous above ' + atP(pVisc);
             Plot.draw('#mfp-plot', {
                 height: 300,
+                ariaLabel: 'Mean free path against pressure, both on log scales. ' + where + '. Your input: ' + atP(v.p) + ', mean free path ' + fmtLam(lp / v.p, 4) + '.',
                 x: { label: 'Pressure (' + unit + ')', log: true },
-                y: { label: 'Mean free path (m)', log: true },
+                y: { label: 'Mean free path (m)', log: true, min: yLo, max: yHi },
                 series: [
-                    { type: 'line', x: pPa.map(toU), y: pPa.map(p => lp / p), label: 'λ', color: 'var(--c1)' },
+                    band(pLo, Math.min(pMol, pHi), 'Molecular flow (Kn > 0.5)', 'var(--c6)'),
+                    band(Math.max(pVisc, pLo), pHi, 'Viscous flow (Kn < 0.01)', 'var(--c4)'),
+                    { type: 'line', x: pPa.map(toU), y: pPa.map(p => lp / p), label: 'Mean free path λ', color: 'var(--c1)' },
                     { type: 'points', x: [toU(v.p)], y: [lp / v.p], color: 'var(--c2)', r: 5 }
-                ],
+                ].filter(Boolean),
                 hlines: [{ y: v.D, label: 'D = ' + fmt.si(v.D, 'm', 3), color: 'var(--c3)' }],
                 includeLines: false,
-                hover: { format: (x, hits) => hits.length ? `p = ${fmt.num(hits[0].x, 3)} ${unit} · λ = ${fmtLam(hits[0].y, 3)} · Kn = ${fmt.num(hits[0].y / v.D, 3)}` : '' }
+                hover: { format: (x, hits) => hits.length ? `p = ${fmt.num(hits[0].x, 3)} ${unit} · λ = ${fmtLam(hits[0].y, 3)} · Kn = ${fmt.num(hits[0].y / v.D, 3)} (${regimeOf(hits[0].y / v.D)[0].toLowerCase()})` : '' }
             });
+            plotNote.textContent = 'Shading: ' + where.charAt(0).toLowerCase() + where.slice(1) + ', and transitional in between. The dot is your input.';
+            plotNote.hidden = false;
         }
     });
 });

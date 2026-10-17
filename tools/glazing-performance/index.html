@@ -29,6 +29,7 @@
 <script defer src="/assets/js/plot.js"></script>
 <script defer src="/assets/js/glazing-weights.js"></script>
 <script defer src="/assets/js/glazing-engine.js"></script>
+<script defer src="/assets/js/glazing-solar-e891.js"></script>
 <style>
     .gl-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.8rem 0.9rem 0.1rem; margin-bottom: 0.9rem; background: var(--surface); }
     .gl-card h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 0 0 0.6rem; font-weight: 650; display: flex; justify-content: space-between; }
@@ -42,7 +43,7 @@
     .xsec svg { display: block; width: 100%; height: auto; }
     .xsec { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.4rem; }
     svg .lbl { fill: var(--text-2); font: 500 13px var(--font); }
-    svg .lbl-s { fill: var(--muted); font: 500 11px var(--font); }
+    svg .lbl-s { fill: var(--muted); font: 500 12px var(--font); }
     svg .lbl-t { fill: var(--c2); font: 600 12px var(--font); }
     svg .glass { fill: var(--c6); fill-opacity: 0.18; stroke: var(--c6); stroke-width: 1.2; }
     svg .gapf { fill: var(--surface-2); }
@@ -59,6 +60,36 @@
     .imp-list b { color: var(--text); font-weight: 600; }
     .imp-msg { font-size: 0.85rem; margin-top: 0.5rem; }
     .imp-msg.bad { color: var(--danger); } .imp-msg.ok { color: var(--ok); }
+    .rb-bar { display: flex; height: 26px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-strong); margin-bottom: 0.9rem; }
+    .rb-bar span { display: block; height: 100%; min-width: 3px; }
+    .rb-bar span + span { border-left: 1px solid var(--surface); }
+    .rb-film { background: color-mix(in srgb, var(--c2) 70%, var(--surface)); }
+    .rb-glass { background: color-mix(in srgb, var(--c6) 70%, var(--surface)); }
+    .rb-gap { background: color-mix(in srgb, var(--c1) 70%, var(--surface)); }
+    .rb-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+    .rb-table th, .rb-table td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .rb-table th { color: var(--text); font-weight: 600; background: var(--surface-2); white-space: nowrap; }
+    .rb-table td.num, .rb-table th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .rb-table tfoot td { font-weight: 600; color: var(--text); border-bottom: 0; }
+    .rb-chip { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 0.4rem; vertical-align: 0; }
+    .rb-how { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 0.1rem; }
+    .prose table.tv th, .prose table.tv td { padding: 0.5rem 0.5rem; }
+    .prose table.tv td.num { white-space: nowrap; }
+    .hfig { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.8rem 1rem; justify-items: center; }
+    .hfig > figcaption { grid-column: 1 / -1; justify-self: stretch; }
+    .hfig-svg { width: 100%; max-width: 440px; height: auto; display: block; font-family: var(--font); }
+    @media (min-width: 800px) { .hfig { grid-template-columns: 1fr 1fr; } .hfig-svg { max-width: none; } }
+    .hfig-svg text { font-size: 12px; fill: var(--text-2); }
+    .hfig-svg .t-title { font-size: 13px; font-weight: 650; fill: var(--text); }
+    .hfig-svg .t-muted { fill: var(--muted); }
+    .hfig-svg .g-glass { fill: var(--c6); fill-opacity: 0.18; stroke: var(--c6); stroke-width: 1.2; }
+    .hfig-svg .g-gap { fill: var(--surface-2); }
+    .hfig-svg .g-gap.vac { fill: var(--c4); fill-opacity: 0.08; }
+    .hfig-svg .g-coat { stroke: var(--c4); stroke-width: 4; }
+    .hfig-svg .g-pillar, .hfig-svg .g-seal { fill: var(--muted); }
+    .hfig-svg .a-line, .hfig-svg .a-wave, .hfig-svg .a-loop { fill: none; stroke: var(--c2); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .hfig-svg .a-loop { stroke: var(--c1); }
+    .hfig-svg .a-head { fill: var(--c2); }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -130,7 +161,17 @@
 
     <header class="page-head">
         <h1>Glazing Performance Calculator: U-Factor, SHGC &amp; VT</h1>
-        <p class="lede">Build a single, double, triple, or vacuum glazing unit pane by pane: clear or low-iron glass at any standard thickness, low-e coatings on any surface, and air, argon, krypton, xenon, or vacuum gaps. The calculator returns visible and solar transmittance and reflectance, solar heat gain coefficient, center-of-glass U-factor, color, surface temperatures, and full spectra, following the same standards as LBNL WINDOW. Load measured spectra to model specific manufacturer products.</p>
+        <p class="lede">How well does a window’s glass insulate, how much solar heat does it let in, and how much daylight? Build a single, double, triple, or vacuum glazing unit pane by pane (clear or low-iron glass, low-e coatings on any surface, and air, argon, krypton, xenon, or vacuum gaps) and get its center-of-glass U-factor, solar heat gain coefficient (SHGC), and visible transmittance (VT), calculated the way NFRC rates them, plus reflectance, color, surface temperatures, and spectra. Use it to compare glazing options, see what a coating or a gas fill changes, or evaluate the measured spectra of a specific product.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>U-factor</dt><dd>The heat that flows through each square meter of glazing for each degree of temperature difference between inside and outside, in W/m²·K (US units: Btu/h·ft²·°F; 1&nbsp;Btu/h·ft²·°F = 5.678&nbsp;W/m²·K). Lower insulates better. The R-value is its inverse.</dd>
+            <dt>Center of glass</dt><dd>The middle of the glazing, away from the edge seal and the frame. These results are center-of-glass values; the whole-window U-factor on an NFRC label also counts the frame and the edges and comes out higher.</dd>
+            <dt>SHGC</dt><dd>Solar heat gain coefficient: the fraction of the sunlight striking the glass that ends up as heat indoors, transmitted directly or absorbed in the panes and released inward. It runs from 0 to 1: low values keep rooms cool, high values help passive solar heating.</dd>
+            <dt>Visible transmittance (VT)</dt><dd>The fraction of daylight that passes through, weighted by the eye’s sensitivity. Clear double glazing transmits about 80&nbsp;%.</dd>
+            <dt>Low-e coating</dt><dd>A thin, transparent coating of doped tin oxide or silver that reflects the long-wave infrared radiated by room-temperature surfaces. Its emissivity, from 0 to 1, says how strongly a surface radiates heat: 0.84 for bare glass, about 0.15 for a tin-oxide hard coat, and 0.02–0.04 for silver coatings.</dd>
+            <dt>Surface numbers</dt><dd>Glass surfaces are counted from outdoors: a double unit has surfaces #1 (outdoor face) to #4 (indoor face), so a coating on #2 is on the inner face of the outer pane, inside the sealed gap.</dd>
+            <dt>Gas fill</dt><dd>Argon, krypton, or xenon conducts heat less well than air, so a filled gap insulates better. Here a gas fill is 90&nbsp;% gas and 10&nbsp;% air.</dd>
+            <dt>Vacuum insulating glass (VIG)</dt><dd>Two panes a fraction of a millimeter apart with the air pumped out, held apart by a grid of small pillars and sealed at the edges. Heat crosses only by radiation and through the pillars, so a VIG can insulate about as well as triple glazing at roughly the thickness of a single pane.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -152,7 +193,7 @@
                     <div class="field">
                         <label for="H">Glazing height</label>
                         <div class="input-unit"><input id="H" name="H" value="1" inputmode="decimal" data-positive data-label="glazing height"><select data-dim="length" data-units="m,mm,in,ft" data-default="m"></select></div>
-                        <p class="hint">Sets gap and indoor convection. NFRC uses 1 m.</p>
+                        <p class="hint">Height of the glass. It sets the convection in the gaps and on the indoor surface, so U changes slightly with it. LBNL WINDOW reports glazing systems at 1&nbsp;m, the NFRC default; whole-window ratings use the product’s own height.</p>
                     </div>
                 </div>
                 <div id="stack"></div>
@@ -163,21 +204,25 @@
             <div class="panel-head"><h2 id="out-h">Performance</h2><span class="badge">NFRC 100 / 200</span></div>
             <div class="panel-body">
                 <div class="xsec" data-out="xsec" role="img" aria-label="Cross-section of the glazing unit with surface numbers, coatings, gaps, and winter surface temperatures"></div>
-                <p class="hint" style="margin:.4rem 0 0">Purple line: low-e coating. Orange: surface temperatures (°C) at NFRC 100 winter conditions.</p>
+                <p class="hint" style="margin:.4rem 0 0">Purple line: low-e coating. Orange: surface temperatures (°C) at NFRC 100 winter conditions, −18&nbsp;°C outside and 21&nbsp;°C inside.</p>
                 <div class="kpis">
                     <div class="kpi"><b data-out="kU">—</b><span>U-factor, W/m²·K</span></div>
                     <div class="kpi"><b data-out="kUip">—</b><span>U-factor, Btu/h·ft²·°F</span></div>
                     <div class="kpi"><b data-out="kSHGC">—</b><span>SHGC</span></div>
                     <div class="kpi"><b data-out="kVT">—</b><span>Visible transmittance</span></div>
                 </div>
+                <p class="hint" style="margin:.5rem 0 0">Center of glass. For scale: about 5.8&nbsp;W/m²·K for single glass, 2.7 for clear double glazing, 1.4 for low-e double glazing with argon, and 0.6–0.7 for low-e triple glazing.</p>
                 <div class="swatches" data-out="swatches"></div>
                 <div class="results" style="margin-top:1rem">
                     <div class="result"><span class="result-label">Visible reflectance, outside / inside</span><output class="result-value" data-out="rvis">—</output></div>
                     <div class="result"><span class="result-label">Solar transmittance</span><output class="result-value" data-out="tsol">—</output></div>
                     <div class="result"><span class="result-label">Solar reflectance, outside / inside</span><output class="result-value" data-out="rsol">—</output></div>
-                    <div class="result"><span class="result-label">Solar absorptance by pane</span><output class="result-value" data-out="asol">—</output></div>
-                    <div class="result"><span class="result-label">UV transmittance <span class="sym">300–380 nm</span></span><output class="result-value" data-out="tuv">—</output></div>
-                    <div class="result"><span class="result-label">Light-to-solar gain <span class="sym">VT/SHGC</span></span><output class="result-value" data-out="lsg">—</output></div>
+                    <div class="result"><span class="result-label">Solar absorptance by pane</span><output class="result-value" data-out="asol">—</output>
+                        <span class="result-note">Pane 1 is the outdoor pane. Most of the heat absorbed in the outdoor pane flows back outside; most of the heat absorbed in the room-side pane flows indoors.</span></div>
+                    <div class="result"><span class="result-label">UV transmittance <span class="sym">310–380 nm</span></span><output class="result-value" data-out="tuv">—</output>
+                        <span class="result-note" data-out="tuvnote"></span></div>
+                    <div class="result"><span class="result-label">Light-to-solar gain <span class="sym">VT/SHGC</span></span><output class="result-value" data-out="lsg">—</output>
+                        <span class="result-note">Daylight per unit of solar heat: about 1.1 for clear glass, typically 1.25–2 or more for spectrally selective low-e glazing.</span></div>
                     <div class="result"><span class="result-label">R-value <span class="sym">center of glass</span></span><output class="result-value" data-out="rval">—</output></div>
                     <div class="result"><span class="result-label">Indoor glass temperature, winter</span><output class="result-value" data-out="tin">—</output>
                         <span class="result-note" data-out="dew"></span></div>
@@ -186,16 +231,25 @@
         </section>
     </div>
 
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="rb-h">
+        <div class="panel-head"><h2 id="rb-h">Thermal resistance, center of glass</h2><span class="badge">NFRC 100 winter</span></div>
+        <div class="panel-body">
+            <p class="hint" style="margin:0 0 .8rem">The layers resist heat flow in series: their resistances add up to 1/U, and each takes a share of the 39&nbsp;K between indoor and outdoor air in proportion to its resistance. Within a gap, radiation and the gas (or the pillars of a vacuum gap) carry heat side by side, so their coefficients add. R is in m²·K/W, ΔT in kelvin, and the coefficients in W/m²·K.</p>
+            <div class="rb-bar" data-out="rbar" aria-hidden="true"></div>
+            <div data-out="rtable"></div>
+        </div>
+    </section>
+
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="sp-h">
         <div class="panel-head"><h2 id="sp-h">Spectral transmittance and reflectance</h2></div>
         <div class="panel-body"><div id="glz-plot"></div>
-            <p class="hint" style="margin:.4rem 0 0">Shaded: solar spectrum (ASTM G173, AM1.5 direct + circumsolar). The visible band, 380–780 nm, is marked.</p></div>
+            <p class="hint" style="margin:.4rem 0 0">Shaded: the solar spectrum that weights the solar values, AM1.5 direct normal as NFRC&nbsp;300 specifies (ISO&nbsp;9845-1:1992, the ASTM&nbsp;E891 values). The visible band, 380–780&nbsp;nm, is marked.</p></div>
     </section>
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="imp-h">
         <div class="panel-head"><h2 id="imp-h">Use measured product data</h2></div>
         <div class="panel-body">
-            <p style="margin:0 0 .7rem;color:var(--text-2);font-size:.94rem">Paste or load spectral data for a specific glass or coated product, for example a file exported from LBNL Optics in IGDB format, a product record from the <a href="https://igsdb.lbl.gov/" target="_blank" rel="noopener">IGSDB</a>, or a manufacturer's data. Imported products appear in the glass list for every pane, where you choose which way the product's measured front face points. They stay in this browser and are not uploaded.</p>
+            <p style="margin:0 0 .7rem;color:var(--text-2);font-size:.94rem">Paste or load spectral data for a specific glass or coated product: a file exported from LBNL Optics in IGDB format, a product record (JSON) from LBNL’s <a href="https://igsdb.lbl.gov/" target="_blank" rel="noopener">IGSDB</a> (sign-in required), or a manufacturer’s table. Each data row needs the wavelength, T, R<sub>front</sub>, and R<sub>back</sub>, with wavelengths in µm or nm and values as fractions or percent; use a period as the decimal mark. The data should cover 300–2500&nbsp;nm, and emissivities should be hemispherical, as in IGDB files. Imported products appear in the glass list for every pane, where you choose which way the product’s measured front face points. They stay in this browser and are not uploaded.</p>
             <textarea id="imp-text" class="input" rows="7" aria-label="Spectral data to import" placeholder="{ Thickness } 5.7&#10;{ Emissivity, forward, back } Emis= 0.840 0.037&#10;{ Product Name: … }  { Manufacturer: … }&#10;0.300  0.000  0.047  0.048&#10;0.305  0.002  0.047  0.048&#10;…   (wavelength, T, Rfront, Rback; µm or nm; fractions or %)"></textarea>
             <div class="btn-row" style="margin-top:.7rem">
                 <button type="button" class="btn btn-primary btn-sm" id="imp-add">Add product</button>
@@ -207,45 +261,131 @@
     </section>
 
     <article class="prose" style="margin-top:3rem">
-        <h2>How the calculator works</h2>
-        <p>Each pane is described by its spectral transmittance \(T(\lambda)\) and front and back reflectance \(R_f(\lambda)\), \(R_b(\lambda)\) from 300 to 2500 nm. Panes are combined with the net-radiation (multiple-reflection) method, which tracks light bouncing between every pair of surfaces. For two panes,</p>
+        <h2>How it is calculated</h2>
+        <p>The calculator works the way LBNL WINDOW does for a glazing system. It finds the spectral transmittance and reflectance of each pane, combines the panes optically, and then solves the heat balance of every glass surface under the NFRC conditions.</p>
+
+        <h3>Light and solar radiation</h3>
+        <p>Each pane is described by its spectral transmittance \(T(\lambda)\) and its front and back reflectance \(R_f(\lambda)\) and \(R_b(\lambda)\) from 300 to 2500&nbsp;nm, in 5&nbsp;nm steps. The panes are combined with the net-radiation (multiple-reflection) method, which follows light bouncing between every pair of surfaces. For two panes,</p>
         <div class="formula">\[ \begin{gathered} T = \frac{T_1 T_2}{1 - R_{b,1} R_{f,2}}, \\ R_f = R_{f,1} + \frac{T_1^2 R_{f,2}}{1 - R_{b,1} R_{f,2}}, \end{gathered} \]</div>
-        <p>and the same bookkeeping gives the fraction of sunlight absorbed in each pane. Visible transmittance and reflectance are weighted by the CIE D65 illuminant and the photopic eye response \(V(\lambda)\) from 380 to 780 nm. Solar values are weighted by the ASTM G173 AM1.5 direct-plus-circumsolar spectrum from 300 to 2500 nm, about 53 % of which is visible. Color is CIELAB under D65 with the 1931 2° observer.</p>
+        <p>and the same bookkeeping gives the fraction of sunlight absorbed in each pane. The visible and solar values are weighted averages over the spectrum:</p>
+        <div class="formula">\[ \begin{gathered} \tau_v = \frac{\sum D_{65}(\lambda)\,V(\lambda)\,T(\lambda)}{\sum D_{65}(\lambda)\,V(\lambda)}, \\ \tau_s = \frac{\sum E(\lambda)\,T(\lambda)}{\sum E(\lambda)} \end{gathered} \]</div>
+        <p>Here \(D_{65}\) is the CIE daylight illuminant and \(V(\lambda)\) the eye’s daylight (photopic) sensitivity, summed over 380–780&nbsp;nm. \(E(\lambda)\) is the AM1.5 direct-normal solar spectrum that NFRC&nbsp;300 specifies (ISO&nbsp;9845-1:1992, Table&nbsp;1, column&nbsp;2, the values of ASTM&nbsp;E891), summed over 300–2500&nbsp;nm; about half of its energy is visible light. Reflectances are weighted the same way. The UV transmittance is the solar-weighted average from 310 to 380&nbsp;nm, calculated the way LBNL WINDOW does it. Color is CIELAB under D65 with the CIE 1931 2° observer.</p>
+
+        <h3>Heat transfer and U-factor</h3>
+        <p>The thermal model is the ISO&nbsp;15099 center-of-glass method, which NFRC&nbsp;100 prescribes and LBNL WINDOW implements. Every glass surface has its own temperature. The model solves the heat balance of all surfaces together and repeats it with updated, temperature-dependent coefficients until it converges.</p>
+        <figure class="hfig">
+            <svg viewBox="0 0 360 262" class="hfig-svg" role="img" aria-label="Cross-section of a double glazing with a low-e coating on surface 2 and an argon-filled gap, drawn to scale. Heat flows from the room to the inner pane by convection (2.4 watts per square meter kelvin) and radiation (4.7), crosses the gap by radiation (0.11, small because of the coating) and by gas conduction and convection (1.72), and leaves the outer pane by convection (26) and radiation (3.2)."><text class="t-title" x="12.0" y="18.0">Double glazing, argon, low-e on #2</text><text class="t" x="12.0" y="38.0">Outdoors</text><text class="t" x="348.0" y="38.0" text-anchor="end">Indoors</text><rect class="g-gap" x="144.0" y="44" width="72.0" height="156"/><rect class="g-glass" x="110.0" y="44" width="34.0" height="156"/><rect class="g-glass" x="216.0" y="44" width="34.0" height="156"/><path class="g-coat" d="M144.0,44 V200"/><path class="a-line" d="M106.0,86 H24"/><path class="a-head" d="M16.0,86.0 L24.0,81.5 L24.0,90.5 Z"/><text class="t" x="14.0" y="78.0">convection 26</text><path class="a-wave" d="M106.0,146.0 L104.5,148.8 L103.0,148.8 L101.5,145.9 L100.0,143.2 L98.5,143.3 L96.9,146.1 L95.4,148.8 L93.9,148.7 L92.4,145.8 L90.9,143.1 L89.4,143.3 L87.9,146.2 L86.4,148.9 L84.9,148.6 L83.4,145.7 L81.9,143.1 L80.3,143.4 L78.8,146.4 L77.3,148.9 L75.8,148.5 L74.3,145.6 L72.8,143.0 L71.3,143.5 L69.8,146.5 L68.3,149.0 L66.8,148.5 L65.3,145.5 L63.7,143.0 L62.2,143.6 L60.7,146.6 L59.2,149.0 L57.7,148.4 L56.2,145.3 L54.7,143.0 L53.2,143.6 L51.7,146.7 L50.2,149.1 L48.7,148.3 L47.1,145.2 L45.6,142.9 L44.1,143.7 L42.6,146.8 L41.1,149.1 L39.6,148.2 L38.1,145.1 L36.6,142.9 L35.1,143.8 L33.6,147.0 L32.1,149.1 L30.5,148.1 L29.0,145.0 L27.5,142.9 L26.0,143.9 L24.5,147.1 L23.0,149.2"/><path class="a-head" d="M16.0,146.0 L24.0,141.5 L24.0,150.5 Z"/><text class="t" x="14.0" y="134.0">radiation 3.2</text><path class="a-line" d="M344,86 H262.0"/><path class="a-head" d="M254.0,86.0 L262.0,81.5 L262.0,90.5 Z"/><text class="t" x="348.0" y="78.0" text-anchor="end">convection 2.4</text><path class="a-wave" d="M344.0,146.0 L342.5,148.8 L341.0,148.8 L339.5,145.9 L338.0,143.2 L336.5,143.3 L334.9,146.1 L333.4,148.8 L331.9,148.7 L330.4,145.8 L328.9,143.1 L327.4,143.3 L325.9,146.2 L324.4,148.9 L322.9,148.6 L321.4,145.7 L319.9,143.1 L318.3,143.4 L316.8,146.4 L315.3,148.9 L313.8,148.5 L312.3,145.6 L310.8,143.0 L309.3,143.5 L307.8,146.5 L306.3,149.0 L304.8,148.5 L303.3,145.5 L301.7,143.0 L300.2,143.6 L298.7,146.6 L297.2,149.0 L295.7,148.4 L294.2,145.3 L292.7,143.0 L291.2,143.6 L289.7,146.7 L288.2,149.1 L286.7,148.3 L285.1,145.2 L283.6,142.9 L282.1,143.7 L280.6,146.8 L279.1,149.1 L277.6,148.2 L276.1,145.1 L274.6,142.9 L273.1,143.8 L271.6,147.0 L270.1,149.1 L268.5,148.1 L267.0,145.0 L265.5,142.9 L264.0,143.9 L262.5,147.1 L261.0,149.2"/><path class="a-head" d="M254.0,146.0 L262.0,141.5 L262.0,150.5 Z"/><text class="t" x="348.0" y="134.0" text-anchor="end">radiation 4.7</text><path class="a-wave" d="M213.0,84.0 L211.5,86.8 L210.0,86.7 L208.5,83.9 L206.9,81.2 L205.4,81.3 L203.9,84.2 L202.4,86.9 L200.9,86.7 L199.4,83.8 L197.9,81.1 L196.4,81.4 L194.8,84.3 L193.3,86.9 L191.8,86.6 L190.3,83.6 L188.8,81.0 L187.3,81.5 L185.8,84.5 L184.3,87.0 L182.7,86.5 L181.2,83.4 L179.7,81.0 L178.2,81.6 L176.7,84.7 L175.2,87.1 L173.7,86.3 L172.2,83.3 L170.6,80.9 L169.1,81.7 L167.6,84.8 L166.1,87.1 L164.6,86.2 L163.1,83.1 L161.6,80.9 L160.1,81.8 L158.5,85.0 L157.0,87.1 L155.5,86.1 L154.0,82.9"/><path class="a-head" d="M147.0,84.0 L155.0,79.5 L155.0,88.5 Z"/><text class="t" x="180.0" y="58.0" text-anchor="middle">radiation</text><text class="t" x="180.0" y="74.0" text-anchor="middle">0.11</text><path class="a-loop" d="M207.0,176 V114 Q207.0,104 180.0,104 Q153.0,104 153.0,114 V176 Q153.0,186 180.0,186 Q207.0,186 207.0,176"/><path class="a-head" d="M207.0,122 L202.5,130 L211.5,130 Z"/><path class="a-head" d="M153.0,168 L148.5,160 L157.5,160 Z"/><text class="t" x="180.0" y="140.0" text-anchor="middle">gas</text><text class="t" x="180.0" y="156.0" text-anchor="middle">1.72</text><text class="t" x="180.0" y="222.0" text-anchor="middle">Gap: radiation + gas conduction</text><text class="t" x="180.0" y="238.0" text-anchor="middle">and convection, side by side</text></svg>
+            <svg viewBox="0 0 360 262" class="hfig-svg" role="img" aria-label="Cross-section of a vacuum glazing with the gap enlarged: radiation crosses the gap (0.18 watts per square meter kelvin) and support pillars conduct heat across it (0.80); the edge seal at the bottom also conducts but is not part of the center-of-glass U-factor. The surface films are the same as in double glazing."><text class="t-title" x="12.0" y="18.0">Vacuum glazing, low-e on #2</text><text class="t" x="12.0" y="38.0">Outdoors</text><text class="t" x="348.0" y="38.0" text-anchor="end">Indoors</text><rect class="g-gap vac" x="166.0" y="44" width="28.0" height="156"/><rect class="g-glass" x="143.3" y="44" width="22.7" height="156"/><rect class="g-glass" x="194.0" y="44" width="22.7" height="156"/><path class="g-coat" d="M166.0,44 V200"/><path class="a-line" d="M139.3,86 H24"/><path class="a-head" d="M16.0,86.0 L24.0,81.5 L24.0,90.5 Z"/><text class="t" x="14.0" y="78.0">convection 26</text><path class="a-wave" d="M139.3,146.0 L137.8,148.8 L136.3,148.7 L134.8,145.9 L133.3,143.2 L131.8,143.3 L130.3,146.1 L128.8,148.9 L127.2,148.7 L125.7,145.8 L124.2,143.1 L122.7,143.4 L121.2,146.3 L119.7,148.9 L118.2,148.6 L116.7,145.6 L115.2,143.1 L113.6,143.5 L112.1,146.4 L110.6,149.0 L109.1,148.5 L107.6,145.5 L106.1,143.0 L104.6,143.5 L103.1,146.6 L101.6,149.0 L100.0,148.4 L98.5,145.4 L97.0,143.0 L95.5,143.6 L94.0,146.7 L92.5,149.1 L91.0,148.3 L89.5,145.2 L88.0,142.9 L86.5,143.7 L84.9,146.9 L83.4,149.1 L81.9,148.2 L80.4,145.1 L78.9,142.9 L77.4,143.8 L75.9,147.0 L74.4,149.1 L72.9,148.1 L71.3,144.9 L69.8,142.9 L68.3,144.0 L66.8,147.1 L65.3,149.2 L63.8,148.0 L62.3,144.8 L60.8,142.8 L59.3,144.1 L57.7,147.3 L56.2,149.2 L54.7,147.9 L53.2,144.7 L51.7,142.8 L50.2,144.2 L48.7,147.4 L47.2,149.2 L45.7,147.8 L44.2,144.5 L42.6,142.8 L41.1,144.3 L39.6,147.5 L38.1,149.2 L36.6,147.6 L35.1,144.4 L33.6,142.8 L32.1,144.4 L30.6,147.6 L29.0,149.2 L27.5,147.5 L26.0,144.3 L24.5,142.8 L23.0,144.6"/><path class="a-head" d="M16.0,146.0 L24.0,141.5 L24.0,150.5 Z"/><text class="t" x="14.0" y="134.0">radiation 3.2</text><path class="a-line" d="M344,86 H228.7"/><path class="a-head" d="M220.7,86.0 L228.7,81.5 L228.7,90.5 Z"/><text class="t" x="348.0" y="78.0" text-anchor="end">convection 2.1</text><path class="a-wave" d="M344.0,146.0 L342.5,148.8 L341.0,148.7 L339.5,145.9 L338.0,143.2 L336.4,143.3 L334.9,146.1 L333.4,148.9 L331.9,148.7 L330.4,145.8 L328.9,143.1 L327.4,143.4 L325.9,146.3 L324.4,148.9 L322.8,148.6 L321.3,145.6 L319.8,143.1 L318.3,143.5 L316.8,146.4 L315.3,149.0 L313.8,148.5 L312.3,145.5 L310.8,143.0 L309.3,143.5 L307.7,146.6 L306.2,149.0 L304.7,148.4 L303.2,145.4 L301.7,143.0 L300.2,143.6 L298.7,146.7 L297.2,149.1 L295.7,148.3 L294.1,145.2 L292.6,142.9 L291.1,143.7 L289.6,146.9 L288.1,149.1 L286.6,148.2 L285.1,145.1 L283.6,142.9 L282.1,143.8 L280.5,147.0 L279.0,149.1 L277.5,148.1 L276.0,144.9 L274.5,142.9 L273.0,144.0 L271.5,147.1 L270.0,149.2 L268.5,148.0 L267.0,144.8 L265.4,142.8 L263.9,144.1 L262.4,147.3 L260.9,149.2 L259.4,147.9 L257.9,144.7 L256.4,142.8 L254.9,144.2 L253.4,147.4 L251.8,149.2 L250.3,147.8 L248.8,144.5 L247.3,142.8 L245.8,144.3 L244.3,147.5 L242.8,149.2 L241.3,147.6 L239.8,144.4 L238.2,142.8 L236.7,144.4 L235.2,147.6 L233.7,149.2 L232.2,147.5 L230.7,144.3 L229.2,142.8 L227.7,144.6"/><path class="a-head" d="M220.7,146.0 L228.7,141.5 L228.7,150.5 Z"/><text class="t" x="348.0" y="134.0" text-anchor="end">radiation 4.7</text><rect class="g-pillar" x="166.0" y="66" width="28.0" height="9"/><rect class="g-pillar" x="166.0" y="176" width="28.0" height="9"/><path class="a-wave" d="M192.0,122.0 L190.5,124.4 L188.9,122.9 L187.4,120.0 L185.8,120.4 L184.3,123.5 L182.7,124.1 L181.2,121.3 L179.6,119.6 L178.1,121.8 L176.5,124.3 L175.0,123.0"/><path class="a-head" d="M168.0,122.0 L176.0,117.5 L176.0,126.5 Z"/><rect class="g-seal" x="166.0" y="192" width="28.0" height="8"/><text class="t" x="180.0" y="222.0" text-anchor="middle">Gap: radiation 0.18 +</text><text class="t" x="180.0" y="238.0" text-anchor="middle">pillar conduction 0.80</text><text class="t-muted" x="180.0" y="256.0" text-anchor="middle">Edge seal (not in center-of-glass U)</text></svg>
+            <figcaption>How heat crosses a glazing in winter, with the heat transfer coefficients the calculator finds for its default double glazing (left, drawn to scale) and for a vacuum glazing with 0.5&nbsp;mm pillars 25&nbsp;mm apart (right, gap and pillars enlarged), in W/m²·K. In series, the layer with the smallest coefficient dominates: here the gap. The low-e coating cuts radiation across the gap to about a thirtieth of its value between bare glass surfaces, so gas conduction and convection, or the pillars of a vacuum glazing, carry most of the heat.</figcaption>
+        </figure>
+        <p>Across each gap, heat flows by radiation between the two facing surfaces,</p>
+        <div class="formula">\[ h_r = \frac{\sigma\,(T_1^2 + T_2^2)(T_1 + T_2)}{1/\varepsilon_1 + 1/\varepsilon_2 - 1}, \]</div>
+        <p>and by conduction and convection of the gas, \(h_c = \mathrm{Nu}\,k/d\), for a gap of width \(d\) and height \(H\). The Nusselt number Nu depends on the Rayleigh number of the gap:</p>
+        <div class="formula">\[ \begin{gathered} \mathrm{Ra} = \frac{\rho^2 d^3 g\, c_p\, \Delta T}{\mu\, k\, T_m}, \\ \mathrm{Nu} = \max\!\left(\mathrm{Nu}_1,\ 0.242\left(\frac{\mathrm{Ra}\,d}{H}\right)^{0.272}\right) \end{gathered} \]</div>
+        <p>\(\mathrm{Nu}_1\) is Wright’s (1996) correlation for vertical window cavities: \(0.0673838\,\mathrm{Ra}^{1/3}\) above \(\mathrm{Ra} = 5\times10^4\), \(0.028154\,\mathrm{Ra}^{0.4134}\) from \(10^4\) to \(5\times10^4\), and \(1 + 1.7596678\times10^{-10}\,\mathrm{Ra}^{2.2984755}\) below \(10^4\). The second term, from ElSherbiny, Raithby, and Hollands (1982), matters only in short cavities. At low Ra, Nu approaches 1: the gas only conducts, and \(h_c = k/d\). The gas properties vary linearly with temperature and are taken at the mean gap temperature \(T_m\). The 90&nbsp;% fills contain 10&nbsp;% air, mixed by the ISO&nbsp;15099 rules (Wilke’s rule for viscosity, Mason and Saxena’s for thermal conductivity). Glass conducts with \(k = 1.0\)&nbsp;W/m·K.</p>
+        <p>On the outdoor surface, wind convection is \(h_c = 4 + 4v = 26\)&nbsp;W/m²·K at the NFRC wind speed of 5.5&nbsp;m/s, and the glass radiates to surroundings at the outdoor air temperature. On the indoor surface, natural convection follows the ISO&nbsp;15099 correlation for a vertical plate as tall as the glazing, \(\mathrm{Nu}_H = 0.56\,\mathrm{Ra}_H^{1/4}\), with a turbulent branch above \(\mathrm{Ra}_H \approx 1.1\times10^{11}\) and air properties at \(T_i + (T_s - T_i)/4\). The glass also exchanges radiation with a room at the indoor air temperature. NFRC&nbsp;100 sets the winter conditions: −18&nbsp;°C outside with 5.5&nbsp;m/s wind, 21&nbsp;°C inside, and no sun. At the converged temperatures, the layers act as thermal resistances in series:</p>
+        <div class="formula">\[ \frac{1}{U} = \frac{1}{h_o} + \sum_j \frac{t_j}{k_j} + \sum_k \frac{1}{h_{r,k} + h_{c,k}} + \frac{1}{h_i} \]</div>
+        <p>Here \(h_o\) and \(h_i\) are the outdoor and indoor surface coefficients, convection plus radiation. The table under the results lists these resistances for your glazing. The R-value is \(1/U\); in US units, \(U\) in Btu/h·ft²·°F is \(U/5.678263\).</p>
+
+        <h3>Vacuum glazing</h3>
+        <p>A vacuum gap has no gas conduction or convection. Heat crosses it by radiation, with the same \(h_r\), and through the support pillars. Each pillar of radius \(a\) touches the glass on a small circle, and the heat it carries must spread out from that contact into each sheet: a spreading resistance of \(1/(4ka)\) per sheet (Collins et al., 1991). A square array of pillars with spacing \(\lambda\) therefore conducts</p>
+        <div class="formula">\[ C_p = \frac{2\,k\,a}{\lambda^2} \]</div>
+        <p>per unit area of glass with conductivity \(k\) (Collins and Fischer-Cripps, 1991). For example, 0.5&nbsp;mm pillars 25&nbsp;mm apart conduct 0.80&nbsp;W/m²·K. The formula assumes pillars that conduct much better than glass, such as metal ones. A pillar of conductivity \(k_p\) and height \(h\) adds its own resistance, \(C_p = 2ka/[\lambda^2(1 + 2kh/(k_p \pi a))]\), as LBNL WINDOW models it. For a steel pillar 0.2&nbsp;mm high and 0.5&nbsp;mm across (\(k_p \approx 16\)&nbsp;W/m·K), that lowers \(C_p\) by about 3&nbsp;%; for a glass pillar (\(k_p \approx 1\)&nbsp;W/m·K), by about a third.</p>
+        <p>Residual gas is neglected. At 0.1&nbsp;Pa the mean free path of air molecules, about 66&nbsp;mm (see the <a href="/tools/mean-free-path/">mean free path calculator</a>), is far larger than the gap, so the gas conducts as free molecules, \(C_g = \alpha\,\frac{\gamma + 1}{\gamma - 1}\sqrt{\frac{R}{8\pi M T}}\;p\) (Corruccini, 1959), where \(\alpha\) is the combined accommodation coefficient and \(\gamma\) the heat-capacity ratio. With the accommodation coefficients LBNL uses (0.5 at each surface), air at 0.1&nbsp;Pa adds about 0.04&nbsp;W/m²·K, ten times less at 0.01&nbsp;Pa.</p>
+
+        <h3>Solar heat gain</h3>
+        <p>SHGC is the solar transmittance plus the fraction of the absorbed sunlight that flows inward. The calculator solves the heat balance twice under the NFRC&nbsp;200 summer conditions: 32&nbsp;°C outside with 2.75&nbsp;m/s wind (so \(h_c = 15\)&nbsp;W/m²·K) and 24&nbsp;°C inside. The first solution includes 783&nbsp;W/m² of sunlight at normal incidence absorbed in the panes, the second has none, and the difference in heat flow into the room is the inward-flowing part:</p>
+        <div class="formula">\[ \begin{aligned} \mathrm{SHGC} &= \tau_s + \frac{q_\text{in}(I_s) - q_\text{in}(0)}{I_s} \\ &= \tau_s + \sum_i N_i\,\alpha_{s,i} \end{aligned} \]</div>
+        <p>Here \(\alpha_{s,i}\) is the solar absorptance of pane \(i\) and \(N_i\) its inward-flowing fraction. Each pane’s absorbed heat is split equally between its two surfaces. In the default unit, about 7&nbsp;% of the heat absorbed in the outer pane flows inward, and 84&nbsp;% of the heat absorbed in the inner pane.</p>
 
         <h2>Generic glass and low-e coatings</h2>
-        <p>Generic panes use a soda-lime glass model: a refractive index near 1.52 and an absorption spectrum set by iron. Ferrous iron (Fe²⁺) absorbs a broad band centered near 1050 nm, which gives clear glass its green edge and cuts near-infrared transmission; ferric iron and the silicate network absorb in the ultraviolet. Low-iron glass has about a tenth of the iron. The model reproduces typical published values, such as 89 % visible and about 80 % solar transmittance for 6 mm clear float and 91 % and 90 % for 6 mm low-iron glass.</p>
-        <p>The four generic coatings represent the main low-e families: a pyrolytic (hard-coat) tin oxide with an emissivity near 0.15, and sputtered single-, double-, and triple-silver stacks with emissivities of about 0.04, 0.025, and 0.015. The silver stacks add a sharp rise in near-infrared reflectance, and more silver layers mean a steeper edge, so less solar heat passes for the same visible light. The emissivity of the coated surface sets the radiative heat transfer across the gap. Real products vary, so use measured spectra for a specific product.</p>
-        <div class="callout"><p><strong>Surface numbering.</strong> Surfaces are numbered from the outside: a double-pane unit has surfaces #1 (outdoor face) through #4 (indoor face). In heating-dominated climates a low-e coating on #3 keeps more solar gain; in cooling climates a coating on #2 rejects more solar heat. Both give about the same U-factor.</p></div>
+        <p>Generic panes use a soda-lime glass model: a refractive index near 1.52 and an absorption spectrum set by iron (Rubin, 1985). Ferrous iron (Fe²⁺) absorbs in a broad band centered near 1050&nbsp;nm whose tail reaches into the red. That band cuts near-infrared transmission and gives clear glass its blue-green tint, plainest at the edge. Ferric iron (Fe³⁺) absorbs mainly in the ultraviolet (Shelby, 2015). Low-iron glass has less iron, more of it ferric. For 6&nbsp;mm clear float, the model gives 89&nbsp;% visible and 80&nbsp;% solar transmittance, against 88&nbsp;% and 77&nbsp;% for LBNL’s generic 5.7&nbsp;mm clear glass. For 6&nbsp;mm low-iron glass it gives 91&nbsp;% and 90&nbsp;%, against 91&nbsp;% and 89&nbsp;% for the 5&nbsp;mm low-iron glass of the EnergyPlus dataset.</p>
+        <p>The four generic coatings stand for the main low-e families: a pyrolytic (hard-coat) doped tin oxide with an emissivity of 0.15, and sputtered single-, double-, and triple-silver stacks with emissivities of 0.04, 0.025, and 0.015. These, like all emissivities on this page, are hemispherical values as NFRC&nbsp;301 defines them; a European “corrected emissivity” (EN&nbsp;12898) runs 3–4&nbsp;% lower for low-e coatings, and the <a href="/tools/low-e-sheet-resistance/">low-e coating calculator</a> gives both from a sheet resistance. LBNL’s documentation gives about 0.15 as typical of hard coats (0.1 or less for newer ones), 0.04 of sputtered coatings, and 0.02 for the best available. More silver layers make a steeper rise in near-infrared reflectance, so less solar heat passes for the same daylight. The emissivity of the coated surface sets the radiation across the gap. Real products vary, so use measured spectra for a specific product.</p>
+        <div class="callout"><p><strong>Surface numbering.</strong> Surfaces are numbered from the outside: a double unit has surfaces #1 (outdoor face) to #4 (indoor face). Moving a coating from #2 to #3 leaves the U-factor unchanged but raises SHGC, because the sunlight the coating absorbs then heats the inner pane, whose heat flows mostly indoors. For the default double-silver unit, SHGC is 0.37 with the coating on #2 and 0.42 on #3. So #3 is the usual choice where solar gain is welcome, and #2 where it is not.</p></div>
 
-        <h2>Heat transfer and U-factor</h2>
-        <p>The thermal model follows the ISO 15099 center-of-glass method used by NFRC and LBNL WINDOW. Each surface has its own temperature, and the model iterates until the energy balance closes. Heat crosses each gap by radiation between the two facing surfaces,</p>
-        <div class="formula">\[ h_r = \frac{\sigma\,(T_1^2 + T_2^2)(T_1 + T_2)}{1/\varepsilon_1 + 1/\varepsilon_2 - 1}, \]</div>
-        <p>and by conduction and convection of the fill gas, using the ISO 15099 vertical-cavity Nusselt correlations with temperature-dependent properties of air, argon, krypton, and xenon. The 90 % fills contain 10 % air, and the mixture's conductivity and viscosity follow the ISO 15099 mixing rules. A vacuum gap has no gas conduction, so heat crosses only by radiation and through the support pillars. For a square array of pillars of radius \(a\) and spacing \(\lambda\), their conductance is about \(2k_\text{glass}a/\lambda^2\) (Collins and Simko).</p>
-        <p>The indoor surface exchanges heat with the room by radiation and by natural convection, from the ISO 15099 correlation for a vertical surface as tall as the glazing. The U-factor uses NFRC 100 winter conditions: −18 °C outside with 5.5 m/s wind, 21 °C inside, no sun. SHGC uses NFRC 200 summer conditions: 32 °C outside with 2.75 m/s wind, 24 °C inside, 783 W/m² of sun. SHGC is the solar transmittance plus the inward-flowing fraction of the sunlight absorbed in the panes.</p>
+        <h2>Typical values</h2>
+        <p>Center-of-glass results of this calculator for common glazings, with generic layers under NFRC conditions, 1&nbsp;m tall. Double units have 6&nbsp;mm panes and a 12.7&nbsp;mm gap.</p>
+        <table class="tv">
+            <thead><tr><th>Glazing</th><th class="num">U, W/m²·K<br>(Btu/h·ft²·°F)</th><th class="num">SHGC</th><th class="num">VT</th></tr></thead>
+            <tbody>
+                <tr><td>Single, 6&nbsp;mm clear</td><td class="num">5.81 (1.02)</td><td class="num">0.84</td><td class="num">89&nbsp;%</td></tr>
+                <tr><td>Double, clear, air</td><td class="num">2.68 (0.47)</td><td class="num">0.73</td><td class="num">80&nbsp;%</td></tr>
+                <tr><td>Double, hard coat on #3, argon</td><td class="num">1.63 (0.29)</td><td class="num">0.69</td><td class="num">75&nbsp;%</td></tr>
+                <tr><td>Double, single silver on #2, argon</td><td class="num">1.40 (0.25)</td><td class="num">0.55</td><td class="num">73&nbsp;%</td></tr>
+                <tr><td>Double, double silver on #2, argon (the default)</td><td class="num">1.37 (0.24)</td><td class="num">0.37</td><td class="num">74&nbsp;%</td></tr>
+                <tr><td>Triple, 4&nbsp;mm panes, single silver on #2 and #5, 12&nbsp;mm argon</td><td class="num">0.73 (0.13)</td><td class="num">0.47</td><td class="num">62&nbsp;%</td></tr>
+                <tr><td>Triple, 4&nbsp;mm panes, double silver on #2 and #5, 12&nbsp;mm krypton</td><td class="num">0.60 (0.11)</td><td class="num">0.32</td><td class="num">63&nbsp;%</td></tr>
+                <tr><td>Vacuum, 4&nbsp;mm panes, single silver on #2, 0.5&nbsp;mm pillars 25&nbsp;mm apart</td><td class="num">0.83 (0.15)</td><td class="num">0.57</td><td class="num">74&nbsp;%</td></tr>
+                <tr><td>The same with pillars 40&nbsp;mm apart</td><td class="num">0.45 (0.08)</td><td class="num">0.57</td><td class="num">74&nbsp;%</td></tr>
+            </tbody>
+        </table>
+        <p>Typical inputs: uncoated glass has an emissivity of 0.84; LBNL gives about 0.15 for pyrolytic and 0.04 for sputtered silver coatings, and 0.02 for the best. Under NFRC winter conditions, U is lowest with gaps of about 12&nbsp;mm for air or argon, 8&nbsp;mm for krypton, and 6&nbsp;mm for xenon; wider gaps convect more. Vacuum glazings have gaps of 0.1–0.2&nbsp;mm, evacuated below 0.1&nbsp;Pa, with pillars about 0.25–1&nbsp;mm across and 2–5&nbsp;cm apart (Simko et al., 1995; Curcija and Hart, 2018).</p>
+
+        <h2>Worked example</h2>
+        <p>The default unit: two 6&nbsp;mm clear panes, the double-silver coating (ε&nbsp;=&nbsp;0.025) on #2, and a 12.7&nbsp;mm gap of 90&nbsp;% argon, 1&nbsp;m tall. Under NFRC&nbsp;100 winter conditions the surfaces settle at −16.2, −15.9, 13.1, and 13.5&nbsp;°C (#1 to #4).</p>
+        <ul>
+            <li><strong>Outdoor surface:</strong> \(h_o = 26.0 + 3.20 = 29.2\)&nbsp;W/m²·K, so \(R_o = 0.0342\)&nbsp;m²·K/W.</li>
+            <li><strong>Glass:</strong> \(t/k = 0.006/1.0 = 0.0060\)&nbsp;m²·K/W per pane.</li>
+            <li><strong>Gap:</strong> at the mean gap temperature of −1.4&nbsp;°C the argon–air mixture conducts \(k = 0.0170\)&nbsp;W/m·K. With 29.0&nbsp;K across the gap, \(\mathrm{Ra} = 1.04\times10^4\) and \(\mathrm{Nu} = 1.29\), so \(h_c = 1.29 \times 0.0170/0.0127 = 1.72\)&nbsp;W/m²·K. Radiation adds only \(h_r = 0.11\)&nbsp;W/m²·K because of the coating; bare glass would give 3.3 at the same temperatures. \(R_\text{gap} = 1/1.837 = 0.5445\)&nbsp;m²·K/W.</li>
+            <li><strong>Indoor surface:</strong> natural convection \(h_c = 2.41\) (\(\mathrm{Ra}_H = 8.0\times10^8\)) plus radiation \(h_r = 4.67\) gives \(h_i = 7.07\)&nbsp;W/m²·K, so \(R_i = 0.1414\)&nbsp;m²·K/W.</li>
+        </ul>
+        <p>In total, \(R = 0.0342 + 0.0060 + 0.5445 + 0.0060 + 0.1414 = 0.7321\)&nbsp;m²·K/W, so \(U = 1.37\)&nbsp;W/m²·K (0.241&nbsp;Btu/h·ft²·°F, R-4.16). The gap holds 74&nbsp;% of the resistance and takes 29&nbsp;K of the 39&nbsp;K difference. Under NFRC&nbsp;200 summer conditions, τ<sub>s</sub>&nbsp;=&nbsp;0.333, and the panes absorb 27.6&nbsp;% and 2.1&nbsp;% of the sunlight. Their inward-flowing heat adds 0.035, so SHGC&nbsp;=&nbsp;0.368. VT is 73.8&nbsp;%, and VT/SHGC&nbsp;=&nbsp;2.0.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li>Center-of-glass values only. Whole-window ratings include the frame and the edge spacer, which raise the U-factor by roughly 10–30 % for a typical residential window.</li>
-            <li>Generic layers are representative, typically within a few percent of real products. Use measured spectra for product selection or code compliance.</li>
-            <li>Specular (non-scattering) layers at normal incidence. Laminated glass interlayers, frits, films, and shades are not modeled.</li>
-            <li>Gas fills are ideal mixtures at atmospheric pressure. Vacuum gaps neglect residual gas conduction, which is small below about 0.1 Pa.</li>
+            <li><strong>Center of glass only.</strong> Whole-window ratings add the frame and the edges of the glazing, and the better the glass, the more they matter. In LBNL’s example windows of 1.2&nbsp;×&nbsp;1.5&nbsp;m, a low-e double glazing of 1.65&nbsp;W/m²·K at the center rated 1.77 in a wood frame and 2.12 in a thermally broken aluminum frame; a triple glazing of 0.60 rated 0.87 and 1.26 (Curcija and Hart, 2018). The edges are also the coldest part of the indoor glass, so condensation starts there.</li>
+            <li><strong>Vacuum glazing.</strong> The pillar formula assumes metal pillars on a square grid in glass much thicker than the pillar radius, and residual gas is neglected (see above). The edge seal, often fused solder glass, conducts heat around the vacuum and is not part of the center-of-glass value. In tests of a prototype in a wood casement frame at −18&nbsp;°C outside and 21&nbsp;°C inside, the indoor glass at the sightline was at 3.6&nbsp;°C where the edge sat flush and 8.7&nbsp;°C where it was recessed 12.7&nbsp;mm into the sash, against 16.5&nbsp;°C at the center (Simko et al., 1995). In LBNL’s example windows, a vacuum glazing of 0.52&nbsp;W/m²·K at the center rated 0.82–0.86 in a wood frame (Curcija and Hart, 2018). EN&nbsp;673:2024 and ISO&nbsp;9050:2026 exclude vacuum glazing; EN&nbsp;673 refers to EN&nbsp;674 or ISO&nbsp;19916-1 for its U value.</li>
+            <li><strong>NFRC conditions and spectrum.</strong> European U<sub>g</sub> values (EN&nbsp;673) use other standardized boundary conditions and gas data, and g-values (EN&nbsp;410, ISO&nbsp;9050) weight solar quantities with a global (direct plus diffuse) spectrum, so they differ from NFRC numbers for the same glass. ASTM&nbsp;G173, which replaced E891 as the reference spectrum, has more visible light: with it, SHGC would come out up to 0.023 higher and solar transmittance about 2 points higher for the silver coatings here.</li>
+            <li><strong>Color.</strong> CIELAB here uses the CIE 1931 2° observer. LBNL WINDOW and most glass datasheets quote D65 with the 1964 10° observer (ASTM&nbsp;E308), which can differ by up to about one unit in a* or b* for coated glass.</li>
+            <li><strong>Generic layers.</strong> They stand for product families, not products: the glass is within about 3 points of typical solar transmittance, and the coatings show what each family can do. For product selection or code compliance, use measured spectra or NFRC-certified ratings.</li>
+            <li><strong>Imported spectra.</strong> Data are resampled to the 5&nbsp;nm grid by linear interpolation, as NFRC&nbsp;300 specifies, and the first and last values are held outside the measured range. The emissivities come from the file header and must be hemispherical values (NFRC&nbsp;301), as IGDB files give them; LBNL WINDOW can recompute them from far-infrared data in the file, which can shift U slightly. For color, CIE&nbsp;15 recommends higher-order interpolation of data coarser than 5&nbsp;nm, so a* and b* from such data can be off by a few tenths.</li>
+            <li><strong>Geometry and optics.</strong> Layers are specular (non-scattering) and the light arrives at normal incidence, as NFRC rates SHGC and VT. Laminated interlayers, frits, films, and shades are not modeled. The glazing is vertical; tilt changes the convection. Gas fills are ideal mixtures at atmospheric pressure, and the panes stay flat, although real units bow with temperature and pressure (LBNL WINDOW can model that).</li>
+            <li><strong>Gap convection.</strong> Wright’s correlation was fitted to cavities more than 40 times taller than wide, with Ra up to 10⁶. In shorter glazings the ElSherbiny term takes over.</li>
+            <li><strong>Dew point.</strong> The condensation note uses the Magnus formula for 21&nbsp;°C room air, \(T_d = b\gamma/(a - \gamma)\) with \(\gamma = \ln(\mathrm{RH}) + aT/(b + T)\), \(a = 17.62\), and \(b = 243.12\)&nbsp;°C. Here it is within 0.02&nbsp;°C of the IAPWS saturation curve.</li>
+            <li><strong>Validation.</strong> With the same layers, the results match LBNL’s Windows-CalcEngine (pyWinCalc 3.3.1) for 27 glazing systems and five LBNL product files: U within 0.01&nbsp;%, SHGC and solar and visible transmittance within 0.001, and surface temperatures within 0.003&nbsp;K.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>ISO 15099:2003, <em>Thermal performance of windows, doors and shading devices — Detailed calculations</em>.</li>
-            <li>NFRC 100 (U-factor), NFRC 200 (SHGC and VT), and NFRC 300 (optical properties) procedures.</li>
-            <li>ISO 9050:2003, <em>Glass in building — Determination of light transmittance, solar direct transmittance, total solar energy transmittance, ultraviolet transmittance and related glazing factors</em>.</li>
-            <li>M. Rubin, “Optical properties of soda lime silica glasses,” <em>Solar Energy Materials</em> 12, 275–288 (1985).</li>
-            <li>R. E. Collins and T. M. Simko, “Current status of the science and technology of vacuum glazing,” <em>Solar Energy</em> 62, 189–213 (1998).</li>
-            <li>ASTM G173-03 reference solar spectra (NREL); CIE D65, V(λ), and 1931 color-matching functions (CIE).</li>
-            <li>Lawrence Berkeley National Laboratory, <a href="https://windows.lbl.gov/software/window" target="_blank" rel="noopener">WINDOW</a> and the International Glazing Database, the reference tools for this calculation.</li>
+            <li>ISO&nbsp;15099:2003, <em>Thermal performance of windows, doors and shading devices — Detailed calculations</em>, 1st ed., confirmed in 2026 (the center-of-glass thermal model: surface heat balances, linear gas properties and mixing rules, the cavity and indoor convection correlations, and SHGC).</li>
+            <li>ANSI/NFRC&nbsp;100-2026 [E0A1], <em>Procedure for Determining Fenestration Product U-factors</em>, National Fenestration Rating Council (2026), §4.3.1, <a href="https://nfrc.org/" target="_blank" rel="noopener">nfrc.org</a> (the winter conditions, the 26.00&nbsp;W/m²·K outdoor film, indoor convection from the product height, and the requirement to model vacuum insulating glass).</li>
+            <li>ANSI/NFRC&nbsp;200-2026 [E0A0], <em>Procedure for Determining Fenestration Product Solar Heat Gain Coefficient and Visible Transmittance at Normal Incidence</em>, NFRC (2026), §4.3.1 (the summer conditions and 783&nbsp;W/m² of sun for center-of-glazing SHGC).</li>
+            <li>NFRC&nbsp;300-2026 [E0A0], <em>Test Method for Determining the Solar Optical Properties of Glazing Materials and Systems</em>, NFRC (2026), §7.2 (the solar spectrum of ISO&nbsp;9845-1:1992, Table&nbsp;1, column&nbsp;2; D65 with the 1931 color-matching function ȳ = V(λ); linear interpolation; trapezoidal integration).</li>
+            <li>NFRC&nbsp;301-2023, <em>Standard Test Method for Emittance of Glazing Products</em>, NFRC (2023), §9, Eq.&nbsp;9-3 (hemispherical emissivity of coated glazing from its normal emissivity at 300&nbsp;K, after Rubin, Arasteh, and Hartmann; 0.84 for uncoated float glass).</li>
+            <li>ISO&nbsp;9845-1:1992, <em>Solar energy — Reference solar spectral irradiance at the ground at different receiving conditions — Part&nbsp;1: Direct normal and hemispherical solar irradiance for air mass 1,5</em>, withdrawn in 2022 (replaced by ISO&nbsp;9845-1:2022) but still the spectrum NFRC&nbsp;300 specifies; its direct-normal column holds the values of ASTM&nbsp;E891-87, used here as tabulated in LBNL’s Windows-CalcEngine.</li>
+            <li>ASTM&nbsp;G173-23, <em>Standard Tables for Reference Solar Spectral Irradiances: Direct Normal and Hemispherical on 37° Tilted Surface</em>, ASTM International (2023), <a href="https://store.astm.org/g0173-23.html" target="_blank" rel="noopener">store.astm.org</a> (the current reference spectrum, used for the comparison under Assumptions and limits).</li>
+            <li>CIE&nbsp;015:2018, <em>Colorimetry</em>, 4th ed., <a href="https://doi.org/10.25039/TR.015.2018" target="_blank" rel="noopener">doi:10.25039/TR.015.2018</a>, with the CIE datasets for illuminant D65 (<a href="https://doi.org/10.25039/CIE.DS.hjfjmt59" target="_blank" rel="noopener">doi:10.25039/CIE.DS.hjfjmt59</a>), the photopic luminous efficiency V(λ) (<a href="https://doi.org/10.25039/CIE.DS.dktna2s3" target="_blank" rel="noopener">doi:10.25039/CIE.DS.dktna2s3</a>), and the 1931 2° color-matching functions (<a href="https://doi.org/10.25039/CIE.DS.xvudnb9b" target="_blank" rel="noopener">doi:10.25039/CIE.DS.xvudnb9b</a>) (the visible weighting and CIELAB).</li>
+            <li>J. L. Wright, “A correlation to quantify convective heat transfer between vertical window glazings,” <em>ASHRAE Trans.</em> <strong>102</strong>(1), 940–946 (1996), <a href="https://hdl.handle.net/10012/11574" target="_blank" rel="noopener">hdl:10012/11574</a> (the vertical-cavity Nusselt correlation, fitted to data for aspect ratios above 40 and Ra up to 10⁶).</li>
+            <li>S. M. ElSherbiny, G. D. Raithby, and K. G. T. Hollands, “Heat transfer by natural convection across vertical and inclined air layers,” <em>J. Heat Transfer</em> <strong>104</strong>, 96–102 (1982), <a href="https://doi.org/10.1115/1.3245075" target="_blank" rel="noopener">doi:10.1115/1.3245075</a> (the aspect-ratio term 0.242(Ra/A)<sup>0.272</sup>).</li>
+            <li>C. R. Wilke, “A viscosity equation for gas mixtures,” <em>J. Chem. Phys.</em> <strong>18</strong>, 517–519 (1950), <a href="https://doi.org/10.1063/1.1747673" target="_blank" rel="noopener">doi:10.1063/1.1747673</a>, and E. A. Mason and S. C. Saxena, “Approximate formula for the thermal conductivity of gas mixtures,” <em>Phys. Fluids</em> <strong>1</strong>, 361–369 (1958), <a href="https://doi.org/10.1063/1.1724352" target="_blank" rel="noopener">doi:10.1063/1.1724352</a> (the mixing rules ISO&nbsp;15099 adopts).</li>
+            <li>D. C. Curcija, S. Vidanovic, R. Hart, J. Jonsson, R. Powles, and R. Mitchell, <em>WINDOW Technical Documentation</em>, Lawrence Berkeley National Laboratory (2018), <a href="https://windows.lbl.gov/window-documentation" target="_blank" rel="noopener">windows.lbl.gov</a> (§5.1.2.3, the ISO&nbsp;15099 boundary conditions, cavity correlations, and gas mixtures as WINDOW implements them; §9, vacuum glazing, with typical emissivities and pillar geometry).</li>
+            <li>D. C. Curcija and R. G. Hart, “Modeling thermal performance of VIG: WINDOW and THERM software tools,” 1st China (Qingdao) International Glass &amp; Equipment Technology Seminar, LBNL (August 2018), <a href="https://windows.lbl.gov/sites/default/files/software/WINDOW/Modeling%20Thermal%20Performance%20of%20VIG_with%20Ref.pdf" target="_blank" rel="noopener">windows.lbl.gov</a> (the pillar-array and low-pressure gas formulas in WINDOW, pillar spacings of 2–5&nbsp;cm, and center-of-glass versus whole-window U-factors).</li>
+            <li>LBNL, <em>WINDOW 8.1 User Manual</em> (October 2026), <a href="https://windows-downloads.lbl.gov/software/window/WINDOW81UserManual2026-10.pdf" target="_blank" rel="noopener">windows-downloads.lbl.gov</a> (§20.2: glazing-system U-factors at a 1&nbsp;m height, the NFRC default; the default optical standard with ASTM&nbsp;E891 and UV transmittance from 310 to 380&nbsp;nm).</li>
+            <li>R. E. Collins and T. M. Simko, “Current status of the science and technology of vacuum glazing,” <em>Solar Energy</em> <strong>62</strong>, 189–213 (1998), <a href="https://doi.org/10.1016/S0038-092X(98)00007-3" target="_blank" rel="noopener">doi:10.1016/S0038-092X(98)00007-3</a> (a review of vacuum glazing: heat flow by radiation, pillars, and the edge).</li>
+            <li>R. E. Collins, L. Poladian, B. A. Pailthorpe, and R. C. McPhedran, “Heat conduction through support pillars in evacuated windows,” <em>Aust. J. Phys.</em> <strong>44</strong>, 73–86 (1991), <a href="https://doi.org/10.1071/PH910073" target="_blank" rel="noopener">doi:10.1071/PH910073</a> (heat flow through a short circular contact between two sheets: the spreading resistance).</li>
+            <li>R. E. Collins and A. C. Fischer-Cripps, “Design of support pillar arrays in flat evacuated windows,” <em>Aust. J. Phys.</em> <strong>44</strong>, 545–564 (1991), <a href="https://doi.org/10.1071/PH910545" target="_blank" rel="noopener">doi:10.1071/PH910545</a> (the conductance of a pillar array and its trade-off with glass stress).</li>
+            <li>T. M. Simko, R. E. Collins, F. A. Beck, and D. Arasteh, “Edge conduction in vacuum glazing,” in <em>Thermal Performance of the Exterior Envelopes of Buildings VI</em> (Clearwater Beach, FL, December 1995), ASHRAE (1996), pp.&nbsp;601–611; LBL-36958, <a href="https://doi.org/10.2172/211577" target="_blank" rel="noopener">doi:10.2172/211577</a> (gaps of 0.1–0.2&nbsp;mm, evacuation below 0.1&nbsp;Pa, the solder-glass edge seal, and measured edge temperatures).</li>
+            <li>J. Peng, Y. Tan, Y. Fang, H. Yang, A. Song, C. Curcija, and S. Selkowitz, “Excellent insulation vacuum glazing for low-carbon buildings: fabrication, modeling, and evaluation,” <em>Engineering</em> <strong>53</strong>, 18–39 (2025), <a href="https://doi.org/10.1016/j.eng.2024.11.027" target="_blank" rel="noopener">doi:10.1016/j.eng.2024.11.027</a> (an open-access review: pillar-array design trade-offs, pressure below 0.1&nbsp;Pa, and edge effects).</li>
+            <li>R. J. Corruccini, “Gaseous heat conduction at low pressures and temperatures,” <em>Vacuum</em> <strong>7–8</strong>, 19–29 (1959), <a href="https://doi.org/10.1016/0042-207X(59)90766-3" target="_blank" rel="noopener">doi:10.1016/0042-207X(59)90766-3</a> (free-molecular gas conduction between parallel surfaces).</li>
+            <li>M. Rubin, “Optical properties of soda lime silica glasses,” <em>Solar Energy Materials</em> <strong>12</strong>, 275–288 (1985), <a href="https://doi.org/10.1016/0165-1633(85)90052-8" target="_blank" rel="noopener">doi:10.1016/0165-1633(85)90052-8</a>; free preprint LBL-13572 at <a href="https://escholarship.org/uc/item/8vm0x7jd" target="_blank" rel="noopener">escholarship.org</a> (optical constants of clear and low-iron glass, and the role of FeO and Fe<sub>2</sub>O<sub>3</sub>).</li>
+            <li>EN&nbsp;673:2024, <em>Glass in building — Determination of thermal transmittance (U value) — Calculation method</em>, CEN (2024), replacing EN&nbsp;673:2011 (European U<sub>g</sub>; vacuum glazing excluded, referred to EN&nbsp;674 or ISO&nbsp;19916-1). ISO&nbsp;9050:2026, <em>Glass in building — Determination of light transmittance, solar direct transmittance, total solar energy transmittance, ultraviolet transmittance and related glazing factors</em>, replacing ISO&nbsp;9050:2003 (excludes vacuum glazing). EN&nbsp;410:2011, <em>Glass in building — Determination of luminous and solar characteristics of glazing</em>. EN&nbsp;12898:2019, <em>Glass in building — Determination of the emissivity</em> (the European corrected emissivity). ISO&nbsp;19916-1:2018, <em>Glass in building — Vacuum insulating glass — Part&nbsp;1</em>.</li>
+            <li>ISO&nbsp;13837:2008, <em>Road vehicles — Safety glazing materials — Method for the determination of solar transmittance</em>, §4.2, <a href="https://law.resource.org/pub/us/cfr/ibr/inc/iso/iso.13837.2008.pdf" target="_blank" rel="noopener">law.resource.org</a> (ISO&nbsp;9050 and EN&nbsp;410 use the air-mass-1 global spectrum of CIE&nbsp;85, Table&nbsp;4).</li>
+            <li>O. A. Alduchov and R. E. Eskridge, “Improved Magnus form approximation of saturation vapor pressure,” <em>J. Appl. Meteorol.</em> <strong>35</strong>, 601–609 (1996), <a href="https://doi.org/10.1175/1520-0450(1996)035%3C0601:IMFAOS%3E2.0.CO;2" target="_blank" rel="noopener">doi:10.1175/1520-0450(1996)035&lt;0601:IMFAOS&gt;2.0.CO;2</a> (the Magnus form for the dew point), checked against IAPWS R7-97(2012), <a href="https://iapws.org/technical-guidance/release/IF97-Rev" target="_blank" rel="noopener">iapws.org</a>.</li>
+            <li>LBNL, pyWinCalc and Windows-CalcEngine (BSD license), <a href="https://github.com/LBNL-ETA/pyWinCalc" target="_blank" rel="noopener">github.com/LBNL-ETA/pyWinCalc</a> (used to check this calculator), and the EnergyPlus window glass dataset, <a href="https://github.com/NatLabRockies/EnergyPlus/blob/develop/datasets/WindowGlassMaterials.idf" target="_blank" rel="noopener">WindowGlassMaterials.idf</a> (generic clear and low-iron glass).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>NFRC, “Window ratings” and “Types and parts,” <em>Consumer Guide to Windows</em>, <a href="https://efficientwindows.org/window-ratings/" target="_blank" rel="noopener">efficientwindows.org</a> and <a href="https://efficientwindows.org/types_parts/" target="_blank" rel="noopener">efficientwindows.org</a> (U-factor, SHGC, and VT on the NFRC label; glazing, low-e coatings, gas fills, and spacers).</li>
+            <li>E. S. Lee, <em>Spectrally Selective Glazings</em>, Federal Technology Alert DOE/EE-0173, U.S. Department of Energy, Federal Energy Management Program (1998), <a href="https://eta-publications.lbl.gov/sites/default/files/femp-spec-sel-low-e.pdf" target="_blank" rel="noopener">eta-publications.lbl.gov</a> (how low-e coatings separate daylight from solar heat; light-to-solar gain typically 1.25–2).</li>
+            <li>J. E. Shelby, “Color in commercial glasses,” Glass Processing Course, Lecture&nbsp;4, IMI-NFG, Lehigh University (2015), <a href="https://www.lehigh.edu/imi/teched/GlassProcess/Lectures/Lecture04_Shelby_ColoredGlass.pdf" target="_blank" rel="noopener">lehigh.edu</a> (the iron absorption bands of float glass and the colors they give).</li>
+            <li>LBNL, WINDOW software, free, with its documentation, <a href="https://windows.lbl.gov/window-documentation" target="_blank" rel="noopener">windows.lbl.gov</a> (the reference tool that this calculator follows, for whole windows and products from the International Glazing Database).</li>
+        </ul>
     </article>
 
     <section class="related">
         <h2>Related tools</h2>
-        <div data-related="fresnel-equations,optical-density,blackbody,article:vacuum-fundamentals"></div>
+        <div data-related="low-e-sheet-resistance,color-converter,fresnel-equations,blackbody,article:vacuum-fundamentals"></div>
     </section>
 </main>
 
@@ -254,10 +394,14 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const { fmt } = Calc;
-    const E = window.GlazingEngine, Wt = window.GlazingWeights;
+    const E = window.GlazingEngine;
+    // NFRC 300 weighting for every solar quantity: the AM1.5 direct-normal spectrum of ISO 9845-1:1992 (Table 1,
+    // column 2, the ASTM E891 values), in the 5 nm bins of glazing-weights.js, plus its 310–380 nm table for the UV value
+    const S891 = window.GlazingSolarE891;
     const $ = id => document.getElementById(id);
     const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const THICK = [2.5, 3, 4, 5, 6, 8, 10, 12, 15, 19];
+    const SIG = 5.670374419e-8;
 
     // ── Imported products (kept in this browser only) ──
     let imports = [];
@@ -287,52 +431,115 @@ document.addEventListener('DOMContentLoaded', () => {
               '<div class="field" data-gen="' + i + '"><label for="p' + i + 't">Thickness</label><select id="p' + i + 't" name="p' + i + 't" class="input">' + THICK.map(t => '<option value="' + t + '"' + (t === d.t ? ' selected' : '') + '>' + t + ' mm</option>').join('') + '</select></div>' +
               '<div class="field" data-gen="' + i + '"><label for="p' + i + 'c">Low-e coating</label><select id="p' + i + 'c" name="p' + i + 'c" class="input">' + coatOptions.replace('value="' + d.c + '"', 'value="' + d.c + '" selected') + '</select></div>' +
               '<div class="field" data-side="' + i + '"><label for="p' + i + 's">Coated side</label><select id="p' + i + 's" name="p' + i + 's" class="input"><option value="front"' + (d.s === 'front' ? ' selected' : '') + '>Faces outdoors</option><option value="back"' + (d.s === 'back' ? ' selected' : '') + '>Faces indoors</option></select></div>' +
-            '</div></div>';
+            '</div>' +
+            (i === 1 ? '<p class="hint" style="margin:-.2rem 0 .8rem">The coated side sets the surface number: on this pane, facing indoors is #2. Choose an imported product in the Glass list to use its measured spectra.</p>' : '') +
+            '</div>';
         if (i < 3) {
             html += '<div class="gl-card gap" data-gap="' + i + '"><h3><span>Gap ' + i + '</span></h3><div class="field-row">' +
                 '<div class="field"><label for="g' + i + 'f">Fill</label><select id="g' + i + 'f" name="g' + i + 'f" class="input">' + fillOptions.replace('value="argon"', 'value="argon" selected') + '</select></div>' +
                 '<div class="field" data-gas="' + i + '"><label for="g' + i + 'w">Width</label><div class="input-unit"><input id="g' + i + 'w" name="g' + i + 'w" value="12.7" inputmode="decimal" data-positive data-label="gap width"><select data-dim="length" data-units="mm,in" data-default="mm"></select></div></div>' +
                 '<div class="field" data-vac="' + i + '"><label for="g' + i + 'ps">Pillar spacing</label><div class="input-unit"><input id="g' + i + 'ps" name="g' + i + 'ps" value="25" inputmode="decimal" data-positive data-label="pillar spacing"><select data-dim="length" data-units="mm" data-default="mm"></select></div></div>' +
                 '<div class="field" data-vac="' + i + '"><label for="g' + i + 'pd">Pillar diameter</label><div class="input-unit"><input id="g' + i + 'pd" name="g' + i + 'pd" value="0.5" inputmode="decimal" data-positive data-label="pillar diameter"><select data-dim="length" data-units="mm" data-default="mm"></select></div></div>' +
-                '</div></div>';
+                '</div>' +
+                (i === 1 ? '<p class="hint" data-gas="' + i + '" style="margin:-.2rem 0 .8rem">Gas fills are 90&nbsp;% gas and 10&nbsp;% air. Under NFRC winter conditions U is lowest for gaps of about 12&nbsp;mm with air or argon, 8&nbsp;mm with krypton, and 6&nbsp;mm with xenon.</p>' +
+                    '<p class="hint" data-vac="' + i + '" style="margin:-.2rem 0 .8rem">Square grid, typically 0.25–1&nbsp;mm pillars 2–5&nbsp;cm apart. Pillar conduction grows as diameter/spacing²: fewer, thinner pillars insulate better but stress the glass more.</p>' : '') +
+                '</div>';
         }
     }
     $('stack').innerHTML = html;
 
-    // ── Cross-section drawing ──
+    // ── Cross-section drawing, laid out at the width of its box so that the labels keep their font size ──
+    let lastX = null;
     function xsecSVG(np, layers, gaps, temps, coat) {
-        const W = 480, H = 228, x0 = 84, x1 = W - 84, top = 50, bot = 190;   // narrow enough that the labels stay legible on a phone
+        const box = document.querySelector('[data-out="xsec"]'), cs = box && getComputedStyle(box);
+        const inner = box && box.clientWidth ? box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) : 0;
+        const W = Math.round(Math.min(560, Math.max(300, inner || 480))), H = 232, x0 = 78, x1 = W - 78, top = 54, bot = 188;
         const disp = [];
         for (let i = 0; i < np; i++) {
-            disp.push({ kind: 'pane', w: Math.max(layers[i].t * 1000, 2) });
-            if (i < np - 1) disp.push({ kind: 'gap', w: gaps[i].fill === 'vacuum' ? 2.5 : Math.max(gaps[i].width * 1000, 3), g: gaps[i] });
+            disp.push({ kind: 'pane', mm: layers[i].t * 1000, min: 22 });
+            if (i < np - 1) disp.push({ kind: 'gap', mm: gaps[i].fill === 'vacuum' ? 0 : gaps[i].width * 1000, min: 24, g: gaps[i] });
         }
-        const tot = disp.reduce((a, d) => a + d.w, 0), k = (x1 - x0) / tot;
-        let x = x0, g = '', surf = 1;
+        // widths in proportion to thickness, but at least 22 px of glass and 24 px of gap so that every label fits
+        let free = disp.slice();
+        for (let pass = 0; pass < disp.length && free.length; pass++) {
+            const room = (x1 - x0) - disp.filter(d => !free.includes(d)).reduce((a, d) => a + d.w, 0);
+            const mm = free.reduce((a, d) => a + d.mm, 0);
+            free.forEach(d => { d.w = mm > 0 ? d.mm * room / mm : room / free.length; });
+            const small = free.filter(d => d.w < d.min);
+            if (!small.length) break;
+            small.forEach(d => { d.w = d.min; });
+            free = free.filter(d => !small.includes(d));
+        }
+        let x = x0, g = '';
         const sx = [];
-        g += '<text class="lbl" x="' + (x0 - 14) + '" y="' + (top - 26) + '" text-anchor="end">Outdoors</text>';
-        g += '<text class="lbl" x="' + (x1 + 14) + '" y="' + (top - 26) + '">Indoors</text>';
-        g += '<path class="sun" d="M20 70 L' + (x0 - 12) + ' 110"/><path class="sunh" d="M' + (x0 - 12) + ' 110 l-11 -2 l6 -8 z"/><circle class="sunh" cx="18" cy="66" r="7"/>';
-        disp.forEach((d, j) => {
-            const w = d.w * k;
+        g += '<text class="lbl" x="' + (x0 - 12) + '" y="' + (top - 30) + '" text-anchor="end">Outdoors</text>';
+        g += '<text class="lbl" x="' + (x1 + 12) + '" y="' + (top - 30) + '">Indoors</text>';
+        g += '<path class="sun" d="M18 76 L' + (x0 - 14) + ' 114"/><path class="sunh" d="M' + (x0 - 14) + ' 114 l-11 -2 l6 -8 z"/><circle class="sunh" cx="16" cy="72" r="7"/>';
+        disp.forEach(d => {
+            const w = d.w, xs = x.toFixed(1);
             if (d.kind === 'pane') {
-                g += '<rect class="glass" x="' + x + '" y="' + top + '" width="' + w + '" height="' + (bot - top) + '"/>';
+                g += '<rect class="glass" x="' + xs + '" y="' + top + '" width="' + w.toFixed(1) + '" height="' + (bot - top) + '"/>';
                 sx.push(x, x + w);
             } else {
-                const vac = d.g.fill === 'vacuum';
-                g += '<rect class="' + (vac ? 'vac' : 'gapf') + '" x="' + x + '" y="' + top + '" width="' + w + '" height="' + (bot - top) + '"/>';
-                if (vac) [-62, -36, 36, 62].forEach(dy => { g += '<rect class="pillar" x="' + (x + w / 2 - 1.5) + '" y="' + ((top + bot) / 2 + dy - 1.5) + '" width="3" height="3"/>'; });   // clear of the label
-                g += '<text class="lbl-s" transform="translate(' + (x + w / 2 + 4) + ',' + ((top + bot) / 2) + ') rotate(-90)" text-anchor="middle">' +
+                const vac = d.g.fill === 'vacuum', cx = x + w / 2;
+                g += '<rect class="' + (vac ? 'vac' : 'gapf') + '" x="' + xs + '" y="' + top + '" width="' + w.toFixed(1) + '" height="' + (bot - top) + '"/>';
+                if (vac) [-56, 56].forEach(dy => { g += '<rect class="pillar" x="' + (cx - 2).toFixed(1) + '" y="' + ((top + bot) / 2 + dy - 2) + '" width="4" height="4"/>'; });   // clear of the label
+                g += '<text class="lbl-s" transform="translate(' + (cx + 4).toFixed(1) + ',' + ((top + bot) / 2) + ') rotate(-90)" text-anchor="middle">' +
                     (vac ? 'vacuum' : esc((Math.round(d.g.width * 1e4) / 10) + ' mm ' + E.FILLS[d.g.fill].label.split(' ')[0].toLowerCase())) + '</text>';
             }
             x += w;
         });
         sx.forEach((xs, i) => {
-            g += '<text class="lbl-s" x="' + xs + '" y="' + (top - 6) + '" text-anchor="middle">#' + (i + 1) + '</text>';
-            if (coat[i]) g += '<line class="coat" x1="' + xs + '" y1="' + top + '" x2="' + xs + '" y2="' + bot + '"/>';
-            if (temps) g += '<text class="lbl-t" x="' + xs + '" y="' + (bot + 16 + (i % 2) * 14) + '" text-anchor="middle">' + String(Math.round((temps[i] - 273.15) * 10) / 10).replace('-', '−') + '°</text>';
+            g += '<text class="lbl-s" x="' + xs.toFixed(1) + '" y="' + (top - 8) + '" text-anchor="middle">#' + (i + 1) + '</text>';
+            if (coat[i]) g += '<line class="coat" x1="' + xs.toFixed(1) + '" y1="' + top + '" x2="' + xs.toFixed(1) + '" y2="' + bot + '"/>';
+            if (temps) g += '<text class="lbl-t" x="' + xs.toFixed(1) + '" y="' + (bot + 18 + (i % 2) * 16) + '" text-anchor="middle">' + String(Math.round((temps[i] - 273.15) * 10) / 10).replace('-', '−') + '°</text>';
         });
         return '<svg viewBox="0 0 ' + W + ' ' + H + '">' + g + '</svg>';
+    }
+
+    // UV transmittance as LBNL WINDOW reports it: weighted by the E891 table points from 310 to 380 nm, trapezoid rule
+    function tuvWindow(T, table) {
+        const at = nm => { const p = (nm - 300) / 5, i = Math.floor(p + 1e-9), f = p - i; return i >= T.length - 1 ? T[T.length - 1] : T[i] + f * (T[i + 1] - T[i]); };
+        let num = 0, den = 0;
+        for (let j = 1; j < table.length; j++) {
+            const a = table[j - 1], b = table[j], dl = b[0] - a[0];
+            num += 0.5 * (at(a[0]) * a[1] + at(b[0]) * b[1]) * dl;
+            den += 0.5 * (a[1] + b[1]) * dl;
+        }
+        return num / den;
+    }
+
+    // Series thermal resistances at the converged winter temperatures; they add up to 1/U
+    function resistances(layers, gaps, w, c) {
+        const n = layers.length, T = w.temps, rows = [];
+        const hro = layers[0].ef * SIG * (T[0] * T[0] + c.To * c.To) * (T[0] + c.To);
+        rows.push({ kind: 'film', name: 'Outdoor surface', R: 1 / (c.hco + hro), how: 'convection ' + fmt.num(c.hco, 3) + ' + radiation ' + fmt.num(hro, 2) });
+        for (let k = 0; k < n; k++) {
+            rows.push({ kind: 'glass', name: 'Pane ' + (k + 1) + ', ' + fmt.num(layers[k].t * 1000, 3) + '\u00a0mm', R: layers[k].t / layers[k].k, how: 'conduction, k = ' + fmt.num(layers[k].k, 3) + ' W/m·K' });
+            if (k < n - 1) {
+                const T1 = T[2 * k + 1], T2 = T[2 * k + 2], h = w.gapH[k], vac = gaps[k].fill === 'vacuum';
+                const hr = SIG * (T1 * T1 + T2 * T2) * (T1 + T2) / (1 / layers[k].eb + 1 / layers[k + 1].ef - 1);
+                rows.push({ kind: 'gap', name: 'Gap ' + (k + 1) + ', ' + (vac ? 'vacuum' : fmt.num(gaps[k].width * 1000, 3) + '\u00a0mm ' + E.FILLS[gaps[k].fill].label.split(' ')[0].toLowerCase()),
+                    R: 1 / h, how: 'radiation ' + fmt.num(hr, 2) + ' + ' + (vac ? 'pillars ' : 'gas ') + fmt.num(h - hr, 3) });
+            }
+        }
+        const Tb = T[2 * n - 1], hri = layers[n - 1].eb * SIG * (Tb * Tb + c.Ti * c.Ti) * (Tb + c.Ti);
+        rows.push({ kind: 'film', name: 'Indoor surface', R: 1 / w.hin, how: 'convection ' + fmt.num(w.hin - hri, 2) + ' + radiation ' + fmt.num(hri, 2) });
+        const Rt = rows.reduce((s, r) => s + r.R, 0);
+        rows.forEach(r => { r.share = r.R / Rt; r.dT = (c.Ti - c.To) * r.share; });
+        return { rows, Rt };
+    }
+    function resistanceHTML(b, c) {
+        const share = s => fmt.num(100 * s, 2) + '&nbsp;%';
+        const bar = b.rows.map(r => '<span class="rb-' + r.kind + '" style="width:' + (100 * r.share).toFixed(3) + '%"></span>').join('');
+        const rows = b.rows.map(r => '<tr><td><i class="rb-chip rb-' + r.kind + '"></i>' + esc(r.name) + (r.kind === 'glass' ? '' : '<span class="rb-how">' + r.how + '</span>') + '</td>' +
+            '<td class="num">' + fmt.num(r.R, 3) + '</td><td class="num">' + share(r.share) + '</td><td class="num">' + fmt.num(r.dT, 3) + '</td></tr>').join('');
+        return {
+            bar,
+            table: '<table class="rb-table"><caption class="visually-hidden">Thermal resistance of each layer, its share of the total, and the temperature drop across it at NFRC 100 winter conditions</caption>' +
+                '<thead><tr><th>Layer</th><th class="num">R</th><th class="num">Share</th><th class="num">ΔT</th></tr></thead><tbody>' + rows + '</tbody>' +
+                '<tfoot><tr><td>Total = 1/U</td><td class="num">' + fmt.num(b.Rt, 3) + '</td><td class="num">100&nbsp;%</td><td class="num">' + fmt.num(c.Ti - c.To, 3) + '</td></tr></tfoot></table>'
+        };
     }
 
     const pct = x => fmt.num(100 * x, 3) + ' %';
@@ -343,8 +550,10 @@ document.addEventListener('DOMContentLoaded', () => {
         form: '#glz',
         outputs: 'main',
         compute(v) {
+            if (!S891 || !S891.solarE891) throw Calc.fail('The solar spectrum did not load. Reload the page.');
             const np = parseInt(v.np, 10);
             const layers = [], gaps = [], coat = [];
+            let uvStart = 300;   // the shortest wavelength every imported layer covers
             for (let i = 1; i <= 3; i++) {
                 const card = document.querySelector('[data-pane="' + i + '"]');
                 card.hidden = i > np;
@@ -359,6 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!p) throw Calc.fail('Imported product for pane ' + i + ' is not in this browser. Load it below or choose another glass.', 'p' + i + 'g');
                     layer = E.imported(p, side === 'back');
                     coat.push(layer.ef < 0.5, layer.eb < 0.5);
+                    uvStart = Math.max(uvStart, p.wl[0]);
                 } else {
                     const c = v['p' + i + 'c'];
                     layer = E.pane(gsel, parseFloat(v['p' + i + 't']), c, side);
@@ -378,10 +588,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     gaps.push({ fill, width: vac ? 0.0003 : v['g' + i + 'w'], pillarSpacing: v['g' + i + 'ps'], pillarRadius: v['g' + i + 'pd'] / 2 });
                 }
             }
-            const r = E.evaluate(layers, gaps, v.H);
+            const r = E.evaluate(layers, gaps, v.H, { solar: S891.solarE891 });
             last = r;
+            lastX = [np, layers, gaps, r.winter.temps, coat];
             const Uip = r.U / 5.678263;
             const Tin = r.winter.temps[2 * np - 1] - 273.15;
+            const tuv = uvStart > 310 ? null : tuvWindow(r.sys.T, S891.tuvTable);
+            const rb = resistanceHTML(resistances(layers, gaps, r.winter, E.CONDITIONS.winter), E.CONDITIONS.winter);
             // dew point of 21 °C indoor air at a given relative humidity (Magnus)
             const dp = rh => { const a = 17.62, b = 243.12, g = Math.log(rh) + a * 21 / (b + 21); return b * g / (a - g); };
             const sw = (c, label) => '<span class="sw"><i style="background:rgb(' + c.rgb.join(',') + ')"></i><span>' + label + '<br>L* ' + fmt.num(c.L, 3) + ', a* ' + fmt.num(c.a, 2) + ', b* ' + fmt.num(c.b, 2) + '</span></span>';
@@ -393,16 +606,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 tsol: pct(r.Tsol),
                 rsol: pct(r.Rsol) + ' / ' + pct(r.RsolIn),
                 asol: r.Asol.map(pct).join(' · '),
-                tuv: pct(r.Tuv),
+                tuv: tuv === null ? '—' : pct(tuv),
+                tuvnote: tuv === null ? 'Not available: the imported data start at ' + Math.round(uvStart) + ' nm.' : 'Weighted by the solar spectrum, as LBNL WINDOW reports it.',
                 lsg: fmt.num(r.Tvis / r.SHGC, 3),
                 rval: 'R-' + fmt.num(1 / Uip, 3) + '  (' + fmt.num(1 / r.U, 3) + ' m²·K/W)',
                 tin: fmt.num(Tin, 3) + ' °C',
-                dew: Tin < dp(0.5) ? 'Below the 50 % RH dew point of ' + fmt.num(dp(0.5), 3) + ' °C: condensation likely in humid rooms.'
-                    : 'Above the dew point of 21 °C air at 50 % RH (' + fmt.num(dp(0.5), 3) + ' °C).'
+                dew: (Tin < dp(0.5) ? 'Below the 50 % RH dew point of ' + fmt.num(dp(0.5), 3) + ' °C: condensation likely in humid rooms.'
+                    : 'Above the dew point of 21 °C air at 50 % RH (' + fmt.num(dp(0.5), 3) + ' °C).') + ' The edges of the glass are colder.',
+                rbar: { html: rb.bar },
+                rtable: { html: rb.table }
             };
         },
         onError() {                             // no valid result: remove the spectra left from the last one (a resize must not redraw them)
             last = null;
+            lastX = null;
             if (window.Plot) Plot.clear('#glz-plot');
         },
         after() { drawPlot(); }
@@ -410,14 +627,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawPlot() {
         if (!last || !window.Plot) return;
-        const x = Array.from(E.LAM), s = last.sys;
-        const smax = Math.max(...Wt.solar);
+        const x = Array.from(E.LAM), s = last.sys, sol = S891.solarE891;
+        const smax = Math.max(...sol);
         Plot.draw('#glz-plot', {
             height: 300,
             x: { label: 'Wavelength (nm)', min: 300, max: 2500 },
             y: { label: 'Percent', min: 0, max: 100 },
             series: [
-                { type: 'band', x, y: Wt.solar.map(w => 100 * w / smax), y0: x.map(() => 0), color: 'var(--c2)' },
+                { type: 'band', x, y: Array.from(sol, w => 100 * w / smax), y0: x.map(() => 0), color: 'var(--c2)' },
                 { type: 'line', x, y: Array.from(s.T, t => 100 * t), label: 'Transmittance', color: 'var(--c1)' },
                 { type: 'line', x, y: Array.from(s.Rf, t => 100 * t), label: 'Reflectance, outside', color: 'var(--c5)' },
                 { type: 'line', x, y: Array.from(s.Rb, t => 100 * t), label: 'Reflectance, inside', color: 'var(--c4)', dash: true }
@@ -426,7 +643,13 @@ document.addEventListener('DOMContentLoaded', () => {
             hover: { format: (xv, hits) => fmt.num(xv, 4) + ' nm · ' + hits.filter(h => h.series.label).map(h => h.series.label + ' ' + fmt.num(h.y, 3) + ' %').join(' · ') }
         });
     }
-    window.addEventListener('resize', () => { clearTimeout(drawPlot.t); drawPlot.t = setTimeout(drawPlot, 150); });
+    window.addEventListener('resize', () => {
+        clearTimeout(drawPlot.t);
+        drawPlot.t = setTimeout(() => {
+            drawPlot();
+            if (lastX) document.querySelector('[data-out="xsec"]').innerHTML = xsecSVG(...lastX);   // re-laid out at the new width
+        }, 150);
+    });
 
     // ── Import parsing ──
     function parseProduct(text, fname) {
@@ -450,11 +673,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const em = text.match(new RegExp('Emis\\s*=\\s*' + NUM + '[\\s,]+' + NUM, 'i')) || text.match(new RegExp('emissivity[^\\d\\n]*?' + NUM + '[\\s,]+' + NUM, 'i'));
         if (em) { meta.ef = parseFloat(em[1]); meta.eb = parseFloat(em[2]); }
         const pts = [];
+        let comma = '';
         text.split(/\r?\n/).forEach(line => {
             if (/[{}]/.test(line)) return;
-            const nums = line.trim().split(/[\s,;\t]+/).map(Number);
+            const s = line.trim();
+            // a comma between digits in a row whose columns are separated by spaces, tabs, or semicolons is a decimal comma:
+            // splitting at it would shift every column, so refuse the data rather than guess
+            if (!comma && /[\s;]/.test(s) && /(^|[\s;])[-+]?\d*,\d/.test(s)) comma = s.split(/[\s;]+/).find(t => /\d,\d/.test(t)) || s;
+            const nums = s.split(/[\s,;\t]+/).map(Number);
             if (nums.length >= 4 && nums.slice(0, 4).every(isFinite)) pts.push(nums.slice(0, 4));
         });
+        if (comma) throw new Error('“' + comma + '” has a decimal comma. Use a period as the decimal mark (0.85, not 0,85); commas may separate the columns');
         return finish(pts, Object.assign(meta, { name: meta.name || fname || 'Imported product' }));
     }
     function finish(pts, meta) {
@@ -463,21 +692,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const micron = pts[pts.length - 1][0] < 50;
         const pctData = pts.some(p => p[1] > 1.5 || p[2] > 1.5 || p[3] > 1.5);
         const s = pctData ? 0.01 : 1;
-        const wl = pts.map(p => micron ? p[0] * 1000 : p[0]);
+        // repeated wavelengths are averaged, so that the interpolation nodes are distinct
+        const rows = [];
+        pts.forEach(p => {
+            const q = rows[rows.length - 1];
+            if (q && q[0] === p[0]) { q[4]++; for (let j = 1; j < 4; j++) q[j] += (p[j] - q[j]) / q[4]; } else rows.push([p[0], p[1], p[2], p[3], 1]);
+        });
+        const wl = rows.map(p => micron ? p[0] * 1000 : p[0]);
         if (wl[0] > 400 || wl[wl.length - 1] < 2000) throw new Error('spectra should span at least 400–2000 nm (found ' + Math.round(wl[0]) + '–' + Math.round(wl[wl.length - 1]) + ' nm)');
+        // transmittance and reflectances between 0 and 1, and T + R at most 1, allowing for measurement noise
+        const badAt = rows.findIndex(p => [p[1], p[2], p[3]].some(x => x * s < -0.005 || x * s > 1.005) || (p[1] + Math.max(p[2], p[3])) * s > 1.01);
+        if (badAt >= 0) {
+            const p = rows[badAt], f = x => fmt.num(x * s, 3);
+            throw new Error('at ' + fmt.num(wl[badAt], 4) + ' nm the data give T = ' + f(p[1]) + ', Rf = ' + f(p[2]) + ', Rb = ' + f(p[3]) + '; each must lie between 0 and 1 (0 and 100 %), and T + R may not exceed 1');
+        }
         const given = x => x !== undefined && x !== null && x !== '' && !isNaN(x);
         if ([meta.ef, meta.eb].some(e => given(e) && !(e > 0 && e <= 1))) throw new Error('emissivities must be between 0 and 1 (found ' + meta.ef + ' and ' + meta.eb + ')');
-        const assumed = [];
+        const assumed = [], notes = [];
         if (!(meta.thickness > 0)) assumed.push('thickness 6 mm');
         if (!(meta.ef > 0 && meta.eb > 0)) assumed.push('emissivity 0.84 (uncoated glass)');
+        if (wl[0] > 300) notes.push('below ' + Math.round(wl[0]) + ' nm the first measured values are used' + (wl[0] > 310 ? ', so no UV transmittance is shown' : ''));
+        if (wl[wl.length - 1] < 2500) notes.push('above ' + Math.round(wl[wl.length - 1]) + ' nm the last measured values are used');
+        const clip = x => Math.min(1, Math.max(0, x * s));
         const p = {
             id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
             name: (meta.manufacturer ? meta.manufacturer + ' ' : '') + meta.name + (meta.thickness ? ' (' + meta.thickness + ' mm)' : ''),
             thickness: meta.thickness > 0 ? meta.thickness : 6, k: meta.k > 0 ? meta.k : 1.0,
             ef: meta.ef > 0 ? meta.ef : 0.84, eb: meta.eb > 0 ? meta.eb : 0.84,
-            wl, T: pts.map(q => q[1] * s), Rf: pts.map(q => q[2] * s), Rb: pts.map(q => q[3] * s)
+            wl, T: rows.map(q => clip(q[1])), Rf: rows.map(q => clip(q[2])), Rb: rows.map(q => clip(q[3]))
         };
-        return { p, assumed };
+        return { p, assumed, notes };
     }
     function refreshSelects() {
         for (let i = 1; i <= 3; i++) { const sel = $('p' + i + 'g'), cur = sel.value; sel.innerHTML = glassOptions(cur); if (sel.value !== cur) sel.value = 'clear'; }
@@ -486,10 +730,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function addText(text, fname) {
         const msg = $('imp-msg');
         try {
-            const { p, assumed } = parseProduct(text, fname);
+            const { p, assumed, notes } = parseProduct(text, fname);
             imports.push(p); saveImports(); refreshSelects();
             msg.className = 'imp-msg ok';
-            msg.textContent = 'Added ' + p.name + '. Choose it in a pane’s glass list.' + (assumed.length ? ' Not in the data, so assumed: ' + assumed.join(', ') + '.' : '');
+            msg.textContent = 'Added ' + p.name + '. Choose it in a pane’s glass list.' + (assumed.length ? ' Not in the data, so assumed: ' + assumed.join(', ') + '.' : '') +
+                (notes.length ? ' Note: ' + notes.join('; ') + '.' : '');
         } catch (e) { msg.className = 'imp-msg bad'; msg.textContent = 'Could not read ' + (fname || 'the data') + ': ' + e.message + '.'; }
     }
     $('imp-add').addEventListener('click', () => addText($('imp-text').value, ''));

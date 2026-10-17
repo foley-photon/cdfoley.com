@@ -22,6 +22,10 @@
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
+<style>
+    /* the typical-values table: slightly tighter cells, so its four columns fit a 390 px phone without scrolling */
+    .prose table.tv th, .prose table.tv td { padding-left: 0.55rem; padding-right: 0.55rem; }
+</style>
 <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
 <script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
@@ -97,7 +101,17 @@
 
     <header class="page-head">
         <h1>Doppler Broadening &amp; Linewidth Calculator</h1>
-        <p class="lede">Compute the Doppler (Gaussian) width of an emission or absorption line from gas temperature and particle mass, the natural (Lorentzian) width from the upper-state lifetime, and the combined Voigt width with optional pressure, Stark, and instrument broadening. Results are shown in wavelength, frequency, and wavenumber.</p>
+        <p class="lede">How wide is a spectral line from a gas or plasma, and which effect sets that width? Enter the line’s wavelength, the gas temperature, and the mass of the emitting atom to get the Doppler width from thermal motion. Add the lifetime of the excited state, any pressure or Stark broadening, and your spectrometer’s resolution to get the width you would actually measure, the Voigt width. Use it to compare a measured line width with what a temperature predicts, to check whether a spectrometer can resolve a line, or to see whether a laser is narrower than the line it probes. Every width is given in wavelength, frequency, and wavenumber.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Linewidth (FWHM)</dt><dd>The width of a spectral line at half its peak height, the full width at half maximum. It can be quoted as a wavelength (pm or nm), a frequency (MHz or GHz), or a wavenumber (cm⁻¹).</dd>
+            <dt>Doppler broadening</dt><dd>Atoms moving toward you emit or absorb at a slightly higher frequency, atoms moving away at a lower one. In a gas, thermal motion spreads a line into a bell-shaped (Gaussian) profile that widens with temperature and is narrower for heavier atoms.</dd>
+            <dt>Natural linewidth</dt><dd>The width set by how long the excited state lives: the shorter the lifetime, the broader the line. For strong lines it is a few MHz to about 100&nbsp;MHz, usually far below the Doppler width.</dd>
+            <dt>Pressure and Stark broadening</dt><dd>Collisions with other atoms (pressure broadening) and the electric fields of nearby electrons and ions in a plasma (Stark broadening) disturb the emitting atom and widen the line. Both grow with the density of the gas or plasma.</dd>
+            <dt>Gaussian, Lorentzian, and Voigt profiles</dt><dd>Line shapes. A Gaussian falls off quickly beyond its half width; a Lorentzian has much broader wings. When both kinds of broadening act, the line is a Voigt profile, a blend of the two.</dd>
+            <dt>Instrument function</dt><dd>The shape a perfectly narrow line takes in your spectrometer, set mainly by its slits or pixels. Its width, the instrumental resolution, adds to every measured line width.</dd>
+            <dt>Wavenumber</dt><dd>The number of waves per centimeter, 1/λ, in cm⁻¹. Like frequency, it is proportional to photon energy, so a width in cm⁻¹ or GHz is the same energy spread at any wavelength; a width in nm is not.</dd>
+            <dt>Air and vacuum wavelength</dt><dd>Light is slightly slower in air, so its wavelength there is about 0.03&nbsp;% shorter. Many tables list visible lines in air (Hα: 656.28&nbsp;nm in air, 656.46&nbsp;nm in vacuum). The calculator expects the vacuum value, but an air value changes the widths by at most 0.03&nbsp;%.</dd>
+        </dl></details>
     </header>
 
     <div class="tool-layout">
@@ -110,10 +124,12 @@
                 <div class="field">
                     <label for="wl">Line center wavelength <span class="sym">λ₀</span></label>
                     <div class="input-unit"><input id="wl" name="wl" value="656.28" inputmode="decimal" data-positive data-label="line wavelength"><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <p class="hint">The vacuum wavelength of the line, for example from the <a href="https://physics.nist.gov/PhysRefData/ASD/lines_form.html" target="_blank" rel="noopener">NIST Atomic Spectra Database</a>, which lists air wavelengths between 200 and 2000&nbsp;nm unless you ask for vacuum. An air wavelength changes the widths by at most 0.03&nbsp;%.</p>
                 </div>
                 <div class="field">
                     <label for="T">Gas temperature <span class="sym">T</span></label>
                     <div class="input-unit"><input id="T" name="T" value="10000" inputmode="decimal" data-positive data-label="absolute temperature"><select data-dim="temperature" data-units="K,°C" data-default="K"></select></div>
+                    <p class="hint">The kinetic temperature of the emitting atoms or ions: about 300&nbsp;K for a gas or vapor cell at room temperature, thousands of kelvin in flames, arcs, and plasmas. In a plasma, use the gas or ion temperature, which can be far below the electron temperature.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
@@ -140,19 +156,21 @@
                         <div class="input-unit"><input id="mass" name="mass" value="1.008" inputmode="decimal" data-positive data-label="particle mass"><span class="unit">u</span></div>
                     </div>
                 </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">Standard atomic weights (CIAAW&nbsp;2024), averaged over the natural mix of isotopes; argon’s 39.948&nbsp;u is the value for argon separated from air. For a single isotope, type its mass (⁸⁷Rb: 86.909&nbsp;u). For a molecule, add the atomic weights (N₂: 28.014&nbsp;u).</p>
                 <div class="field">
                     <label for="tau">Upper-state radiative lifetime <span class="sym">τ</span></label>
                     <div class="input-unit"><input id="tau" name="tau" value="10" inputmode="decimal" data-optional data-positive placeholder="optional"><select data-dim="time" data-units="ps,ns,µs,ms" data-default="ns"></select></div>
-                    <p class="hint">Strong allowed transitions are typically 1–100 ns. If the lower level also decays, enter the effective lifetime 1/(1/τ<sub>u</sub> + 1/τ<sub>l</sub>). Leave blank to ignore natural broadening.</p>
+                    <p class="hint">How long the upper level lives: 1 divided by the sum of its transition probabilities (Einstein A values, listed in the NIST database) to all lower levels. Strong allowed lines have 1–100&nbsp;ns; see the table below. If the lower level also decays, enter the effective lifetime 1/(1/τ<sub>u</sub> + 1/τ<sub>l</sub>). Leave blank to ignore natural broadening.</p>
                 </div>
                 <div class="field">
                     <label for="extra">Additional Lorentzian FWHM (pressure, Stark) <span class="sym">Δλ<sub>L,extra</sub></span></label>
                     <div class="input-unit"><input id="extra" name="extra" value="" inputmode="decimal" data-optional data-nonneg data-label="additional Lorentzian FWHM" placeholder="optional"><select data-dim="length" data-units="pm,nm" data-default="pm"></select></div>
+                    <p class="hint">Collisions (pressure broadening) and, in plasmas, the electric fields of electrons and ions (Stark broadening) add widths that grow with density. Stark broadening usually dominates in discharges and plasmas: hydrogen’s Hβ line is about 1&nbsp;nm wide at an electron density of 10¹⁶&nbsp;cm⁻³. Leave blank if negligible.</p>
                 </div>
                 <div class="field">
                     <label for="instr">Instrument FWHM (Gaussian) <span class="sym">Δλ<sub>inst</sub></span></label>
                     <div class="input-unit"><input id="instr" name="instr" value="" inputmode="decimal" data-optional data-nonneg data-label="instrument FWHM" placeholder="optional"><select data-dim="length" data-units="pm,nm" data-default="pm"></select></div>
-                    <p class="hint">Spectrometer slit functions are usually closer to Gaussian than Lorentzian. This width is added in quadrature with the Doppler width.</p>
+                    <p class="hint">Your spectrometer’s resolution: the measured FWHM of a line much narrower than it (a low-pressure lamp line or a single-frequency laser), or the bandpass from the <a href="/tools/grating-equation/">diffraction grating calculator</a>. It is treated as a Gaussian and added to the Doppler width in quadrature.</p>
                 </div>
             </div>
         </form>
@@ -161,53 +179,92 @@
             <div class="panel-head"><h2 id="results-h">Results</h2><span id="regime" class="badge" hidden></span></div>
             <div class="panel-body">
                 <div class="results">
-                    <div class="result primary"><span class="result-label">Doppler FWHM (wavelength)<span class="sym">Δλ<sub>D</sub></span></span><output class="result-value" data-out="dlD">—</output></div>
+                    <div class="result primary"><span class="result-label">Doppler FWHM (wavelength)<span class="sym">Δλ<sub>D</sub></span></span><output class="result-value" data-out="dlD">—</output>
+                        <span class="result-note">The width thermal motion alone gives. It grows as √(T/m), so a 10&nbsp;% error in a measured width is a 20&nbsp;% error in the temperature it implies.</span></div>
                     <div class="result"><span class="result-label">Doppler FWHM (frequency)<span class="sym">Δν<sub>D</sub></span></span><output class="result-value" data-out="dnuD">—</output></div>
                     <div class="result"><span class="result-label">Doppler FWHM (wavenumber)<span class="sym">\(\Delta\tilde\nu_D\)</span></span><output class="result-value" data-out="dwnD">—</output></div>
                     <div class="result"><span class="result-label">Fractional width<span class="sym">Δλ<sub>D</sub>/λ₀</span></span><output class="result-value" data-out="frac">—</output></div>
-                    <div class="result"><span class="result-label">Line-of-sight rms speed<span class="sym">√(k<sub>B</sub>T/m)</span></span><output class="result-value" data-out="sigv">—</output></div>
-                    <div class="result"><span class="result-label">Natural FWHM<span class="sym">1/(2πτ)</span></span><output class="result-value" data-out="nat">—</output></div>
+                    <div class="result"><span class="result-label">Line-of-sight rms speed<span class="sym">√(k<sub>B</sub>T/m)</span></span><output class="result-value" data-out="sigv">—</output>
+                        <span class="result-note">The spread (standard deviation) of the atoms’ velocities along the line of sight.</span></div>
+                    <div class="result"><span class="result-label">Natural FWHM<span class="sym">1/(2πτ)</span></span><output class="result-value" data-out="nat">—</output>
+                        <span class="result-note">Usually far below the Doppler width: for the lines in the table below at room temperature, 1/70 to 1/800 of it.</span></div>
                     <div class="result"><span class="result-label">Total Lorentzian FWHM<span class="sym">f<sub>L</sub></span></span><output class="result-value" data-out="fL">—</output></div>
-                    <div class="result" hidden><span class="result-label">Total Gaussian FWHM<span class="sym">f<sub>G</sub></span></span><output class="result-value" data-out="fG">—</output></div>
-                    <div class="result"><span class="result-label">Voigt FWHM (Olivero–Longbothum)<span class="sym">f<sub>V</sub></span></span><output class="result-value" data-out="fV">—</output></div>
-                    <div class="result"><span class="result-label">Voigt FWHM (numerical convolution)</span><output class="result-value" data-out="fVnum">—</output></div>
-                    <div class="result"><span class="result-label">Lorentzian / Gaussian width ratio</span><output class="result-value" data-out="ratio">—</output></div>
+                    <div class="result" hidden><span class="result-label">Total Gaussian FWHM<span class="sym">f<sub>G</sub></span></span><output class="result-value" data-out="fG">—</output>
+                        <span class="result-note">Doppler and instrument widths added in quadrature.</span></div>
+                    <div class="result"><span class="result-label">Voigt FWHM (Olivero–Longbothum)<span class="sym">f<sub>V</sub></span></span><output class="result-value" data-out="fV">—</output>
+                        <span class="result-note">The width you would measure, with every broadening entered combined. The formula is within 0.024&nbsp;% of the exact Voigt width.</span></div>
+                    <div class="result"><span class="result-label">Voigt FWHM (numerical convolution)</span><output class="result-value" data-out="fVnum">—</output>
+                        <span class="result-note">Read from the numerically computed profile, as a cross-check of the formula.</span></div>
+                    <div class="result"><span class="result-label">Lorentzian / Gaussian width ratio</span><output class="result-value" data-out="ratio">—</output>
+                        <span class="result-note">Below 0.1 the line is essentially Gaussian (the Voigt width is at most 5.4&nbsp;% above the Gaussian width); above 10 it is essentially Lorentzian (at most 1.1&nbsp;% above the Lorentzian width).</span></div>
                 </div>
             </div>
         </section>
     </div>
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="prof-h">
-        <div class="panel-head"><h2 id="prof-h">Line profiles (peak-normalized)</h2></div>
+        <div class="panel-head" style="flex-wrap:wrap"><h2 id="prof-h">Line profiles (peak-normalized)</h2>
+            <span class="seg" role="radiogroup" aria-label="Intensity scale"><input type="radio" id="ax-lin" name="axis" value="lin" checked><label for="ax-lin">Linear</label><input type="radio" id="ax-log" name="axis" value="log"><label for="ax-log">Log</label></span></div>
         <div class="panel-body"><div id="prof-plot"></div><p class="hint" id="prof-note" style="font-size:.82rem;color:var(--muted);margin:.4rem 0 0"></p></div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
         <h2>How it is calculated</h2>
-        <p><strong>Doppler broadening.</strong> Thermal motion along the line of sight shifts each emitter's frequency by \(\nu_0 v_z/c\). A Maxwell–Boltzmann velocity distribution turns this into a Gaussian line shape with full width at half maximum</p>
+        <p><strong>Doppler broadening.</strong> Thermal motion along the line of sight shifts each emitter’s frequency by \(\nu_0 v_z/c\). A Maxwell–Boltzmann velocity distribution turns this into a Gaussian line shape with full width at half maximum</p>
         <div class="formula">\[ \begin{gathered} \Delta\nu_D = \nu_0\sqrt{\frac{8 k_B T \ln 2}{m c^2}} \\[4pt] \frac{\Delta\lambda_D}{\lambda_0} = \frac{\Delta\nu_D}{\nu_0} \approx 7.162\times10^{-7}\sqrt{\frac{T\,[\text{K}]}{M\,[\text{u}]}} \end{gathered} \]</div>
-        <p><strong>Natural broadening.</strong> A state that decays with lifetime \(\tau\) has an energy uncertainty that gives a Lorentzian line with \(\Delta\nu_N = 1/(2\pi\tau)\). If the lower level also decays, the rates add: \(\Delta\nu_N = (1/\tau_u + 1/\tau_l)/(2\pi)\). Pressure (collisional) and Stark broadening are also mainly Lorentzian. Enter those as the additional FWHM, and the Lorentzian widths add linearly.</p>
-        <p><strong>Voigt profile.</strong> When both mechanisms act, the line is the convolution of the Gaussian and the Lorentzian. Gaussian widths add in quadrature, so an instrument width enters as \(f_G = \sqrt{\Delta\lambda_D^2 + \Delta\lambda_\text{inst}^2}\), and \(f_L\) is the sum of the Lorentzian widths. The Voigt FWHM is well approximated by Olivero and Longbothum's fit, which is accurate to about 0.02 %:</p>
+        <p>Here \(m = M m_u\), with \(m_u\) the atomic mass constant (1&nbsp;u), and the factor \(\sqrt{8k_B\ln 2/(m_u c^2)} = 7.1623\times10^{-7}\) follows from the CODATA 2022 constants; NIST’s atomic spectroscopy compendium gives the same formula with 7.16&nbsp;×&nbsp;10⁻⁷.</p>
+        <p><strong>Natural broadening.</strong> A level that decays exponentially with lifetime \(\tau\) emits a Lorentzian line with FWHM \(\Delta\nu_N = 1/(2\pi\tau)\), where \(1/\tau\) is the level’s total decay rate, the sum of its Einstein A coefficients. If the lower level also decays, the rates add: \(\Delta\nu_N = (1/\tau_u + 1/\tau_l)/(2\pi)\). Pressure (collisional) and Stark broadening often give approximately Lorentzian profiles too; enter their widths as the additional FWHM. Lorentzian widths add linearly, because two Lorentzians convolve to a Lorentzian whose width is the sum.</p>
+        <p><strong>Voigt profile.</strong> When both kinds of broadening act, the line is the convolution of the Gaussian and the Lorentzian. Gaussian widths add in quadrature, so an instrument width enters as \(f_G = \sqrt{\Delta\lambda_D^2 + \Delta\lambda_\text{inst}^2}\), and \(f_L\) is the sum of the Lorentzian widths. The Voigt FWHM is well approximated by Olivero and Longbothum’s fit:</p>
         <div class="formula">\[ f_V \approx 0.5346\, f_L + \sqrt{0.2166\, f_L^2 + f_G^2} . \]</div>
-        <p>The calculator also computes the Voigt profile numerically and reports the FWHM it measures from that profile, as a cross-check. Widths convert between units with \(\Delta\lambda = \lambda_0^2\Delta\nu/c\) and \(\Delta\tilde\nu = \Delta\nu/c\). These conversions take \(\lambda_0\) as the vacuum wavelength. With a tabulated air wavelength (Hα: 656.28 nm in air, 656.46 nm in vacuum), the frequency and wavenumber widths come out about 0.03 % high.</p>
+        <p>Compared with the exact Voigt width, the fit is never off by more than 0.024&nbsp;% (the largest error is near \(f_L \approx 0.3\,f_G\)), which matches the 0.02&nbsp;% usually quoted for it. The calculator also computes the Voigt profile itself, by numerical convolution, and reports the FWHM it measures from that profile as a cross-check. Widths convert between units with \(\Delta\lambda = \lambda_0^2\Delta\nu/c\) and \(\Delta\tilde\nu = \Delta\nu/c\), which hold for widths much smaller than \(\lambda_0\). These conversions take \(\lambda_0\) as the vacuum wavelength. If you enter a tabulated air wavelength instead (Hα: 656.28&nbsp;nm in air, 656.46&nbsp;nm in vacuum), the results change by at most about 0.03&nbsp;%, far less than the uncertainty of a temperature or lifetime.</p>
+
+        <h2>Typical values</h2>
+        <p>Natural and Doppler linewidths (FWHM) of some strong resonance lines of hydrogen (H), the alkali metals sodium, potassium, rubidium, and cesium (Na, K, Rb, Cs), and mercury (Hg), in a gas at 300&nbsp;K (27&nbsp;°C), with their vacuum wavelengths. The lifetimes are 1/A from the NIST Atomic Spectra Database, and the Doppler widths come from this calculator with the standard atomic weights. At room temperature the Doppler width is 70 to 800 times the natural width, so these lines are Doppler-dominated unless the atoms are cooled or a Doppler-free method is used.</p>
+        <table class="tv">
+            <thead><tr><th>Line,<br>λ (nm)</th><th class="num">Lifetime<br>τ (ns)</th><th class="num">Natural<br>(MHz)</th><th class="num">Doppler,<br>300&nbsp;K<br>(MHz)</th></tr></thead>
+            <tbody>
+                <tr><td><span class="nowrap">H Lyman-α</span><br>121.567</td><td class="num">1.60</td><td class="num">99.7</td><td class="num">30&#8239;500</td></tr>
+                <tr><td>Na D₂<br>589.158</td><td class="num">16.2</td><td class="num">9.80</td><td class="num">1320</td></tr>
+                <tr><td>K D₂<br>766.701</td><td class="num">26.5</td><td class="num">6.01</td><td class="num">776</td></tr>
+                <tr><td>Rb D₂<br>780.241</td><td class="num">26.2</td><td class="num">6.07</td><td class="num">516</td></tr>
+                <tr><td>Cs D₂<br>852.347</td><td class="num">30.5</td><td class="num">5.22</td><td class="num">378</td></tr>
+                <tr><td>Hg<br>253.728</td><td class="num">119</td><td class="num">1.34</td><td class="num">1030</td></tr>
+            </tbody>
+        </table>
+        <p>The alkali lines also have hyperfine components (the ground level is split by 1.77&nbsp;GHz in sodium, 6.83&nbsp;GHz in ⁸⁷Rb, and 9.19&nbsp;GHz in cesium), and the mercury line has isotope components as well; the Doppler width applies to each component. Steck’s alkali data sheets (free introductions below) give the sodium, rubidium, and cesium values in more detail.</p>
 
         <h2>Worked example</h2>
-        <p>Hydrogen Balmer-α (656.28 nm) emitted from a 10 000 K gas: \(\Delta\lambda_D = 656.28\ \text{nm}\times 7.162\times10^{-7}\sqrt{10\,000/1.008} = 46.8\) pm, equal to 32.6 GHz or 1.087 cm⁻¹. A 10 ns lifetime adds only 15.9 MHz (0.023 pm) of natural width, so the line is almost purely Gaussian. (For Hα itself, the 1.6 ns lifetime of the 2p lower level dominates, so the natural width of its strongest components is about 110 MHz, still negligible.) Adding 10 pm of Stark broadening widens the Voigt FWHM to about 52.4 pm.</p>
+        <p>Hydrogen Balmer-α (656.28&nbsp;nm) emitted from a 10&#8239;000&nbsp;K gas: \(\Delta\lambda_D = 656.28\ \text{nm}\times 7.162\times10^{-7}\sqrt{10\,000/1.008} = 46.8\)&nbsp;pm, equal to 32.6&nbsp;GHz or 1.087&nbsp;cm⁻¹. A 10&nbsp;ns lifetime adds only 15.9&nbsp;MHz (0.023&nbsp;pm) of natural width, so the line is almost purely Gaussian. (For Hα itself, the upper 3d level lives 15.5&nbsp;ns and the lower 2p level only 1.60&nbsp;ns, so the natural width of its strongest components is \((1/15.5\ \text{ns} + 1/1.60\ \text{ns})/2\pi \approx 110\)&nbsp;MHz, still negligible.) Adding 10&nbsp;pm of Stark broadening as the additional Lorentzian FWHM widens the Voigt FWHM to 52.4&nbsp;pm. Read the other way, a measured Doppler width of 46.8&nbsp;pm means 10&#8239;000&nbsp;K, and because the width grows as \(\sqrt{T}\), a width 10&nbsp;% larger would mean a gas 21&nbsp;% hotter.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>Thermal equilibrium.</strong> The emitters have a Maxwellian velocity distribution at a single temperature, with no bulk flow and no sight-line averaging over temperature gradients.</li>
-            <li><strong>Inhomogeneous vs. homogeneous.</strong> Doppler broadening is inhomogeneous; natural, pressure, and Stark broadening are treated as homogeneous Lorentzians. Real Stark profiles can be asymmetric and shifted.</li>
-            <li><strong>No fine, hyperfine, or isotope structure.</strong> Unresolved components can make a line appear wider than its Doppler width. In Hα, for example, the two main fine-structure components are about 0.33 cm⁻¹ (14 pm) apart, which widens the observed line by roughly 6 % at 10 000 K and by more than half at 1000 K.</li>
-            <li><strong>Instrument function.</strong> A spectrometer's slit function is often closer to Gaussian or triangular. Enter its FWHM as the instrument width: the calculator treats it as a Gaussian and adds it to \(\Delta\lambda_D\) in quadrature, which is exact for a Gaussian slit function and within about 5 % for a triangular one. If the instrument function is closer to Lorentzian, enter it in the additional Lorentzian FWHM instead.</li>
-            <li><strong>Narrow lines.</strong> The first-order Doppler shift and the linear conversions between wavelength, frequency, and wavenumber assume the width is a small fraction of \(\lambda_0\). Above about 10 % of \(\lambda_0\), the results are only approximate and the badge says so.</li>
+            <li><strong>Thermal equilibrium.</strong> The emitters have a Maxwellian velocity distribution at a single temperature, with no bulk flow and no sight-line averaging over temperature gradients. In a plasma the Doppler width measures the temperature of the emitting atoms or ions, which can be far below the electron temperature.</li>
+            <li><strong>Inhomogeneous vs. homogeneous.</strong> Doppler broadening is inhomogeneous; natural, pressure, and Stark broadening are treated as homogeneous Lorentzians. Real pressure- and Stark-broadened profiles can be asymmetric and shifted (van der Waals broadening, for example, shifts a line toward the red by about a third of its width), so treat the Voigt width as an estimate there.</li>
+            <li><strong>No fine, hyperfine, or isotope structure.</strong> Unresolved components can make a line appear wider than its Doppler width. In Hα, for example, the two main fine-structure components are about 0.33&nbsp;cm⁻¹ (14&nbsp;pm) apart. Summing all seven components, each weighted by its expected intensity (g·A, for statistically populated levels), widens the observed line by about 6&nbsp;% at 10&#8239;000&nbsp;K and about 70&nbsp;% at 1000&nbsp;K.</li>
+            <li><strong>Instrument function.</strong> A spectrometer’s slit function is often close to Gaussian or triangular. Enter its FWHM as the instrument width: the calculator treats it as a Gaussian and adds it to \(\Delta\lambda_D\) in quadrature, which is exact for a Gaussian slit function. For a triangular one (equal entrance and exit slits) the quadrature sum can be up to 6&nbsp;% too small, the worst case being a triangle about three times as wide as the Gaussian. If the instrument function is closer to Lorentzian, enter it in the additional Lorentzian FWHM instead.</li>
+            <li><strong>Other broadening.</strong> Transit-time broadening (atoms crossing a narrow laser beam) and power broadening (strong resonant light) are not modeled. Saturated-absorption and two-photon spectroscopy remove most of the Doppler width, leaving the natural and pressure widths.</li>
+            <li><strong>Narrow lines.</strong> The first-order Doppler shift and the linear conversions between wavelength, frequency, and wavenumber assume the width is a small fraction of \(\lambda_0\). Above about 10&nbsp;% of \(\lambda_0\), the results are only approximate and the badge says so.</li>
         </ul>
 
         <h2>References</h2>
+        <h3>Primary sources and standards</h3>
         <ol class="refs">
-            <li>W. Demtröder, <em>Laser Spectroscopy 1: Basic Principles</em>, 5th ed., Springer (2014) — widths and profiles of spectral lines.</li>
-            <li>J. J. Olivero and R. L. Longbothum, “Empirical fits to the Voigt line width: A brief review,” <em>J. Quant. Spectrosc. Radiat. Transfer</em> <strong>17</strong>, 233–236 (1977).</li>
+            <li>W. Demtröder, <em>Laser Spectroscopy 1: Basic Principles</em>, 5th ed., Springer (2014), <a href="https://doi.org/10.1007/978-3-642-53859-9" target="_blank" rel="noopener">doi:10.1007/978-3-642-53859-9</a>, ch. 3, “Widths and Profiles of Spectral Lines,” pp. 75–111 (natural, Doppler, collisional, transit-time, and power broadening, and how they combine).</li>
+            <li>J. J. Olivero and R. L. Longbothum, “Empirical fits to the Voigt line width: A brief review,” <em>J. Quant. Spectrosc. Radiat. Transfer</em> <strong>17</strong>, 233–236 (1977), <a href="https://doi.org/10.1016/0022-4073(77)90161-3" target="_blank" rel="noopener">doi:10.1016/0022-4073(77)90161-3</a> (the Voigt width formula).</li>
+            <li>P. F. Bernath, <em>Spectra of Atoms and Molecules</em>, 5th ed., Oxford University Press (2025), <a href="https://doi.org/10.1093/oso/9780197754498.001.0001" target="_blank" rel="noopener">doi:10.1093/oso/9780197754498.001.0001</a>, ch. 1 (Doppler, pressure, and lifetime broadening).</li>
+            <li>A. Thorne, U. Litzén, and S. Johansson, <em>Spectrophysics: Principles and Applications</em>, Springer (1999), the rewritten successor of A. P. Thorne, <em>Spectrophysics</em>, 2nd ed., Chapman and Hall (1988), <a href="https://doi.org/10.1007/978-94-009-1193-2" target="_blank" rel="noopener">doi:10.1007/978-94-009-1193-2</a>, ch. 10, “Width and shape of spectral lines” (textbook treatment of line broadening).</li>
+            <li>A. Kramida, Yu. Ralchenko, J. Reader, and NIST ASD Team, <em>NIST Atomic Spectra Database</em>, version 5.12 (2024), <a href="https://doi.org/10.18434/T4W30F" target="_blank" rel="noopener">doi:10.18434/T4W30F</a> (the wavelengths and transition probabilities in the table and the worked example; its <a href="https://physics.nist.gov/PhysRefData/ASD/Html/lineshelp.html" target="_blank" rel="noopener">help page</a> gives the default of air wavelengths from 200 to 2000&nbsp;nm).</li>
+            <li>W. L. Wiese and J. R. Fuhr, “Accurate atomic transition probabilities for hydrogen, helium, and lithium,” <em>J. Phys. Chem. Ref. Data</em> <strong>38</strong>, 565–720 (2009), <a href="https://doi.org/10.1063/1.3077727" target="_blank" rel="noopener">doi:10.1063/1.3077727</a> (the hydrogen transition probabilities behind the 2p and 3d lifetimes in the worked example; free from NIST).</li>
+            <li>T. Prohaska et al., “Standard atomic weights of the elements 2021 (IUPAC Technical Report),” <em>Pure Appl. Chem.</em> <strong>94</strong>, 573–600 (2022), <a href="https://doi.org/10.1515/pac-2019-0603" target="_blank" rel="noopener">doi:10.1515/pac-2019-0603</a>, and the current table, Commission on Isotopic Abundances and Atomic Weights, “Standard Atomic Weights 2024,” <a href="https://www.ciaaw.org/atomic-weights.htm" target="_blank" rel="noopener">ciaaw.org</a> (the species masses; CIAAW’s <a href="https://www.ciaaw.org/argon.htm" target="_blank" rel="noopener">argon page</a> gives 39.948 for argon separated from air).</li>
+            <li>M. Wang, W. J. Huang, F. G. Kondev, G. Audi, and S. Naimi, “The AME 2020 atomic mass evaluation (II). Tables, graphs and references,” <em>Chin. Phys. C</em> <strong>45</strong>, 030003 (2021), <a href="https://doi.org/10.1088/1674-1137/abddaf" target="_blank" rel="noopener">doi:10.1088/1674-1137/abddaf</a> (isotope masses, such as 2.014&nbsp;u for deuterium and 86.909&nbsp;u for ⁸⁷Rb).</li>
         </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>W. C. Martin and W. L. Wiese, “Atomic Spectroscopy: A Compendium of Basic Ideas, Notation, Data, and Formulas,” NIST, version 2.2, sec. 20, “Spectral line shapes, widths, and shifts,” <a href="https://www.nist.gov/pml/atomic-spectroscopy-compendium-basic-ideas-notation-data-and-formulas/atomic-spectroscopy-6" target="_blank" rel="noopener">nist.gov</a> (the Doppler width formula; pressure, van der Waals, and Stark broadening, with the Hβ Stark widths behind the hint above).</li>
+            <li>R. Paschotta, “Doppler broadening,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/398" target="_blank" rel="noopener">doi:10.61835/398</a> (what Doppler broadening is, and the Doppler-free methods that avoid it).</li>
+            <li>R. Paschotta, “Homogeneous broadening,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/x7b" target="_blank" rel="noopener">doi:10.61835/x7b</a> (natural and collisional broadening, and why they give Lorentzian lines).</li>
+            <li>D. A. Steck, “Sodium D Line Data,” “Rubidium 87 D Line Data,” and “Cesium D Line Data,” version 2.3.4 (2025), <a href="https://steck.us/alkalidata/" target="_blank" rel="noopener">steck.us/alkalidata</a> (lifetimes, natural linewidths, and hyperfine structure of the alkali D lines).</li>
+        </ul>
     </article>
 
     <section class="related">
@@ -261,12 +318,57 @@ document.addEventListener('DOMContentLoaded', () => {
         return 2 * lo;
     }
 
-    // widths in pm or larger (like the inputs and the plot), with frequency and wavenumber;
-    // no-break spaces keep each number with its unit when a narrow screen wraps the line
-    const wlw = x => fmt.si(x, 'm', 4, { min: -12 });
+    // widths in pm or larger (like the inputs and the plot), with frequency and wavenumber; a width below 0.001 pm
+    // (a long-lived level) stays in pm, as 2.9 × 10⁻⁴ pm, rather than switching to metres.
+    // No-break spaces keep each number with its unit when a narrow screen wraps the line.
+    const wlw = x => x > 0 && x < 1e-15 ? fmt.sci(x / 1e-12, 4) + ' pm' : fmt.si(x, 'm', 4, { min: -12 });
     const nb = s => s.replace(/ /g, String.fromCharCode(160));
     const width = (dl, wl) => { const dnu = K.c * dl / (wl * wl); return nb(wlw(dl)) + ' (' + nb(fmt.si(dnu, 'Hz', 4)) + ', ' + nb(fmt.num(dnu / (K.c * 100), 4) + ' cm⁻¹') + ')'; };
-    let widths;                                 // set by compute(), drawn by after()
+    const axisLog = document.getElementById('ax-log');
+    let widths = null;                          // set by compute(), drawn by drawProfile(); null while an input is invalid
+
+    // The peak-normalized Gaussian, Lorentzian, and Voigt profiles, on a linear scale or on a log scale that shows the
+    // wings, where the shapes differ most. Redrawn when the scale changes.
+    function drawProfile() {
+        if (!widths) return;
+        const { fG, fL, fV, inst } = widths;
+        const log = axisLog.checked, FLOOR = 1e-6;
+        const unit = fV < 1e-9 ? { f: 1e-12, s: 'pm' } : { f: 1e-9, s: 'nm' };
+        const span = (log ? 5 : 3) * fV;
+        const xs = Calc.math.linspace(-span, span, log ? 601 : 401);
+        const xu = xs.map(x => x / unit.f);
+        const g = xs.map(x => Math.exp(-4 * Math.LN2 * (x / fG) ** 2));
+        const v0 = voigt(0, fG, fL);
+        const vv = xs.map(x => voigt(x, fG, fL) / v0);
+        const drawL = fL >= 0.05 * fG;
+        const series = [{ type: 'line', x: xu, y: g, label: inst > 0 ? 'Gaussian (Doppler + instrument)' : 'Doppler (Gaussian)', color: 'var(--c1)', dash: true }];
+        if (drawL) series.push({ type: 'line', x: xu, y: xs.map(x => 1 / (1 + 4 * (x / fL) ** 2)), label: 'Lorentzian', color: 'var(--c2)', dash: true });
+        series.push({ type: 'line', x: xu, y: vv, label: 'Voigt', color: 'var(--c3)', width: 2.5 });
+        // on the log scale, say whether the Lorentzian wings rise above the plot floor within the range drawn
+        const wingShows = log && fL > 0 && vv[0] > FLOOR && vv[0] > 2 * g[0];
+        note.textContent = !(fL > 0)
+            ? 'No Lorentzian width is entered, so the Voigt profile is the Gaussian itself.'
+            : !drawL
+            ? 'The Lorentzian width (' + wlw(fL) + ') is under 5 % of the Gaussian width, so it is not drawn and the Voigt profile is nearly Gaussian. ' +
+              (!log ? 'The log scale shows where it still matters: in the far wings.'
+                    : wingShows ? 'It still sets the far wings: there the Voigt profile falls off slowly, as 1/Δλ², while the Gaussian drops much faster.'
+                    : 'Its wings stay below 10⁻⁶ of the peak in the range drawn.')
+            : log ? 'Voigt profile computed by numerical convolution of the Gaussian and Lorentzian components. Its wings follow the Lorentzian, which falls off far more slowly than the Gaussian.'
+            : 'Voigt profile computed by numerical convolution of the Gaussian and Lorentzian components.';
+        Plot.draw(plotBox, {
+            height: 280,
+            x: { label: 'Detuning from line center (' + unit.s + ')' },
+            y: log ? { label: 'Normalized intensity', log: true, min: FLOOR, max: 1.5 } : { label: 'Normalized intensity', min: 0, max: 1.05 },
+            series,
+            hlines: [{ y: 0.5, label: 'half maximum', color: 'var(--muted)' }],
+            vlines: [{ x: -fV / 2 / unit.f, label: '', color: 'var(--border-strong)' }, { x: fV / 2 / unit.f, label: '', color: 'var(--border-strong)' }],
+            includeLines: false,
+            ariaLabel: 'Peak-normalized line profiles on a ' + (log ? 'logarithmic' : 'linear') + ' intensity scale: Gaussian FWHM ' + wlw(fG) +
+                (drawL ? ', Lorentzian FWHM ' + wlw(fL) : '') + ', Voigt FWHM ' + wlw(fV) + ', marked by the lines at half maximum.',
+            hover: { format: (x, hits) => 'Δλ = ' + fmt.num(x, 4) + ' ' + unit.s + hits.map(h => ' · ' + h.series.label + ' ' + fmt.num(h.y, 3)).join('') }
+        });
+    }
+    document.querySelectorAll('input[name="axis"]').forEach(r => r.addEventListener('change', drawProfile));
 
     Calc.create({
         form: '#calc',
@@ -308,31 +410,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 ratio: fmt.num(r, 3)
             };
         },
-        after() {
-            const { fG, fL, fV, inst } = widths;
-            const unit = fV < 1e-9 ? { f: 1e-12, s: 'pm' } : { f: 1e-9, s: 'nm' };
-            const span = 3 * fV;
-            const xs = Calc.math.linspace(-span, span, 401);
-            const g = xs.map(x => Math.exp(-4 * Math.LN2 * (x / fG) ** 2));
-            const v0 = voigt(0, fG, fL);
-            const vv = xs.map(x => voigt(x, fG, fL) / v0);
-            const series = [{ type: 'line', x: xs.map(x => x / unit.f), y: g, label: inst > 0 ? 'Gaussian (Doppler + instrument)' : 'Doppler (Gaussian)', color: 'var(--c1)', dash: true }];
-            if (fL >= 0.05 * fG) series.push({ type: 'line', x: xs.map(x => x / unit.f), y: xs.map(x => 1 / (1 + 4 * (x / fL) ** 2)), label: 'Lorentzian', color: 'var(--c2)', dash: true });
-            series.push({ type: 'line', x: xs.map(x => x / unit.f), y: vv, label: 'Voigt', color: 'var(--c3)', width: 2.5 });
-            note.textContent = !(fL > 0)
-                ? 'No Lorentzian width is entered, so the Voigt profile is the Gaussian itself.'
-                : fL < 0.05 * fG
-                ? 'The Lorentzian width (' + wlw(fL) + ') is under 5 % of the Gaussian width, so it is not drawn and the Voigt profile is nearly Gaussian.'
-                : 'Voigt profile computed by numerical convolution of the Gaussian and Lorentzian components.';
-            Plot.draw('#prof-plot', {
-                height: 280,
-                x: { label: 'Detuning from line center (' + unit.s + ')' },
-                y: { label: 'Normalized intensity', min: 0, max: 1.05 },
-                series,
-                hover: { format: (x, hits) => 'Δλ = ' + fmt.num(x, 4) + ' ' + unit.s + hits.map(h => ' · ' + h.series.label + ' ' + fmt.num(h.y, 3)).join('') }
-            });
-        },
+        after: drawProfile,
         onError() {                             // clear the badge, note, and plot left from the last valid result
+            widths = null;                      // a scale change must not bring the old chart back
             regime.textContent = ''; regime.hidden = true;
             note.textContent = '';
             clearTimeout(plotBox._plotT); plotBox._plot = null;   // stop plot.js redrawing the old chart on resize

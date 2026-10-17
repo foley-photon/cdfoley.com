@@ -1,5 +1,5 @@
 // V11 (WP4): classic = live parity. For eight configurations, GlazingBeta.evaluateModels with view 'classic' and
-// the G173 spectrum must give E.evaluate results Object.is-equal to the live page's own construction
+// the E891 spectrum must give E.evaluate results Object.is-equal to the live page's own construction
 // (tools/glazing-performance/index.html: E.pane(g, t, c, side) and E.evaluate(layers, gaps, H) with its gap
 // objects, copied below). Spec 5.3, V11.
 import test from 'node:test';
@@ -20,11 +20,11 @@ function live(v) {
             gaps.push({ fill, width: vac ? 0.0003 : v['g' + i + 'w'], pillarSpacing: v['g' + i + 'ps'], pillarRadius: v['g' + i + 'pd'] / 2 });
         }
     }
-    return E.evaluate(layers, gaps, v.H);
+    return E.evaluate(layers, gaps, v.H, { solar: ctx.GlazingSolarE891.solarE891 });
 }
 
 const base = {
-    view: 'classic', sol: 'g173', H: 1,
+    view: 'classic', sol: 'e891', H: 1,
     p1g: 'clear', p1t: '6', p1c: 'none', p1s: 'front', p2g: 'clear', p2t: '6', p2c: 'none', p2s: 'front', p3g: 'clear', p3t: '6', p3c: 'none', p3s: 'front',
     g1f: 'argon', g1w: 0.0127, g1ps: 0.025, g1pd: 0.0005, g2f: 'argon', g2w: 0.0127, g2ps: 0.025, g2pd: 0.0005
 };
@@ -49,7 +49,7 @@ function flatten(x, p = '', out = []) {
     return out;
 }
 
-test('classic model with G173 is bitwise identical to the live page for 8 configurations', () => {
+test('classic model with E891 is bitwise identical to the live page for 8 configurations', () => {
     let total = 0;
     const deps = { E, open: true, P: ctx.GlazingProducts, solarE891: ctx.GlazingSolarE891.solarE891, getProduct: () => undefined, getImport: () => undefined };
     for (const [name, o] of Object.entries(CONFIGS)) {
