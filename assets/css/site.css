@@ -434,6 +434,20 @@ a.card h3 { color: var(--text); }
 .key-terms dd { margin: 0; color: var(--text-2); line-height: 1.5; }
 @media (max-width: 560px) { .key-terms dl { grid-template-columns: 1fr; gap: 0.15rem; } .key-terms dd { margin-bottom: 0.45rem; } }
 @media print { .key-terms { break-inside: avoid; } .key-terms:not([open]) > dl { display: grid; } }
+/* Long expert detail folded out of the reading path: <details class="fold"><summary>Show the …</summary> … </details>.
+   Styled like .key-terms; printed expanded (::details-content where supported, and pages may open folds on beforeprint). */
+.fold { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface, transparent); margin: 1.2rem 0; padding: 0 0.9rem; }
+.fold > summary { cursor: pointer; margin: 0 -0.9rem; padding: 0.55rem 0.9rem; font-size: 0.9rem; font-weight: 600; color: var(--text); list-style-position: inside; }
+.fold > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+.fold[open] { padding-bottom: 0.2rem; }
+.fold[open] > summary { border-bottom: 1px solid var(--border); margin-bottom: 0.9rem; }
+.fold > summary + * { margin-top: 0; }
+@media (max-width: 560px) {   /* phones: thinner side padding, so folded formulas keep the width they have outside a fold */
+    .fold { padding: 0 0.3rem; }
+    .fold > summary { margin: 0 -0.3rem; padding: 0.55rem 0.7rem; }
+    .fold .formula { padding-left: 0.3rem; padding-right: 0.3rem; }
+}
+@media print { .fold::details-content { content-visibility: visible; display: block; } .fold > summary { border-bottom: 1px solid var(--border); margin-bottom: 0.9rem; } }
 
 /* ==========================================================================
    Tools

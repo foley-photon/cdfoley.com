@@ -64,7 +64,7 @@
     "price": "0",
     "priceCurrency": "USD"
    },
-   "keywords": "conductance pumping speed pump down time effective speed tube orifice calculator vacuum pumpdown outgassing base pressure",
+   "keywords": "conductance pumping speed pump down time effective speed tube orifice calculator vacuum pumpdown outgassing base pressure ultimate pressure knudsen transitional",
    "author": {
     "@type": "Person",
     "@id": "https://cdfoley.com/#person",
@@ -245,8 +245,8 @@
                         <span class="result-note">The line and any other conductance in series, at the pressure p₁.</span></div>
                     <div class="result"><span class="result-label">Molecular-flow conductance of the line<span class="sym">C<sub>mol</sub></span></span><output class="result-value" data-out="cmol">—</output>
                         <span class="result-note">The line’s conductance at high vacuum, where it no longer depends on pressure: no pump behind this line can give the chamber more.</span></div>
-                    <div class="result"><span class="result-label">Knudsen number in the line at p₁</span><output class="result-value" data-out="kn">—</output>
-                        <span class="result-note">Below 0.01 the flow is viscous, above 0.5 molecular, and transitional in between.</span></div>
+                    <div class="result"><span class="result-label">Knudsen number in the line (mean pressure)</span><output class="result-value" data-out="kn">—</output>
+                        <span class="result-note">With the chamber at p₁, at the mean pressure in the line, which is lower than p₁ because the pump end is at a lower pressure. Below 0.01 the flow is viscous, above 0.5 molecular, and transitional in between.</span></div>
                     <div class="result"><span class="result-label">Reynolds number in the line at p₀</span><output class="result-value" data-out="re">—</output>
                         <span class="result-note">Laminar below about 2300; above about 4000 the flow is turbulent and the line conducts less than calculated. “Choked”: the gas would have to move faster than sound. Either way, the real pump-down near atmosphere is slower.</span></div>
                     <div class="result"><span class="result-label">Time constant at p₁<span class="sym">V/S<sub>eff</sub></span></span><output class="result-value" data-out="tau">—</output>
@@ -272,7 +272,7 @@
     </section>
 
     <article class="prose" style="margin-top:3rem">
-        <h2>How the calculation works</h2>
+        <h2>How it is calculated</h2>
         <figure>
             <svg viewBox="0 0 400 196" class="pd-fig" role="img" aria-label="Diagram: a chamber of volume V at pressure p, whose walls release an outgassing load Q equal to q times A, is connected through a line of bore d and length L, with conductance C, to a pump of speed S that has its own base pressure. The speed at the chamber is S times C divided by S plus C.">
                 <text class="sub" x="65" y="22" text-anchor="middle">Outgassing Q = qA</text>
@@ -390,8 +390,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const { fmt, K } = Calc;
-    // outgassing-rate units, SI = Pa·m³/(s·m²) = Pa·m/s (page-local until calc.js has this dimension)
-    if (!Calc.UNITS.outgassing) Calc.UNITS.outgassing = { 'mbar·L/(s·cm²)': 1000, 'Torr·L/(s·cm²)': 10 * K.torr, 'Pa·m/s': 1 };
     // molar mass (g/mol); viscosity at 20 °C (µPa·s, NIST Chemistry WebBook; air within 0.5 % of its N₂, O₂, and Ar values mixed)
     // and the exponent w of η ∝ T^w fitted to the NIST data from 200 K to 600 K (within 3 % there); hard-sphere diameter (Å)
     const GASES = {

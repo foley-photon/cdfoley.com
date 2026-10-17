@@ -47,7 +47,7 @@
     "price": "0",
     "priceCurrency": "USD"
    },
-   "keywords": "sheet resistance ohms per square low-e emissivity silver ito fto tin oxide four point probe eddy current rf shielding coating calculator",
+   "keywords": "sheet resistance ohms per square ohm/sq ohms/sq low-e emissivity hemispherical emissivity corrected emissivity normal emissivity nfrc 301 en 12898 iso 10292 silver thickness thin film resistivity ito fto tin oxide four point probe eddy current emissometer rf shielding radio attenuation cell signal coating calculator",
    "author": {
     "@type": "Person",
     "@id": "https://cdfoley.com/#person",
@@ -109,6 +109,8 @@
     .lowe-fig .ir { fill: none; stroke: var(--c5); stroke-width: 2.2; stroke-linejoin: round; }
     .lowe-fig .irh { fill: var(--c5); }
     #rs-plot circle.marker[r="6"] { stroke-width: 2.5; }   /* your coating: larger point, wider halo */
+    /* Typical-values tables: on a phone the headers wrap and the cells pad less, so the numeric columns stay in view */
+    @media (max-width: 560px) { .lowe-tbl th { white-space: normal; } .lowe-tbl th, .lowe-tbl td { padding: 0.45rem 0.5rem; } }
 </style>
 </head>
 <body data-section="tools">
@@ -127,7 +129,7 @@
             <dt>Low-e coating</dt><dd>A thin, transparent coating that reflects the long-wave infrared a warm room radiates while letting most visible light through. Most are built around one, two or three silver layers; the durable “hard-coat” type is fluorine-doped tin oxide.</dd>
             <dt>Sheet resistance</dt><dd>The electrical resistance of a square of thin film, measured from one edge to the opposite edge. It is the same for a square of any size, hence the unit ohms per square (Ω/sq). Less resistance means more conducting material: silver low-e coatings are typically 1–6&nbsp;Ω/sq.</dd>
             <dt>Emissivity</dt><dd>How strongly a surface radiates heat compared with a perfect radiator (a black body), on a scale from 0 to 1. Uncoated glass is about 0.84; silver low-e coatings are about 0.01–0.08.</dd>
-            <dt>Normal and hemispherical emissivity</dt><dd>Normal emissivity is measured looking straight at the surface; hemispherical emissivity averages over all directions and is what heat-transfer calculations use. For low-e coatings the hemispherical value is about 15–30&nbsp;% higher. European standards call their version the corrected emissivity.</dd>
+            <dt>Normal and hemispherical emissivity</dt><dd>Normal emissivity is measured looking straight at the surface; hemispherical emissivity averages over all directions and is what heat-transfer calculations use. For low-e coatings the hemispherical value is about 10–30&nbsp;% higher: 20–30&nbsp;% for silver coatings and about 10–15&nbsp;% for tin-oxide hard coats. European standards call their version the corrected emissivity.</dd>
             <dt>U-factor</dt><dd>The heat flow through a window per square meter and per degree of indoor–outdoor temperature difference, in W/m²·K (or Btu/h·ft²·°F). Lower is better; a low-e coating and argon fill together roughly halve it for a double-glazed unit.</dd>
             <dt>Shielding effectiveness</dt><dd>How much a barrier weakens a radio wave, in decibels: 30&nbsp;dB cuts the power a thousandfold. The silver in low-e glass makes it a good radio shield, which is why phones can lose signal behind it.</dd>
             <dt>Four-point probe and eddy-current gauge</dt><dd>The two common ways to measure sheet resistance. A four-point probe touches the film with four pins in a row; an eddy-current gauge senses the film through a coil without touching it.</dd>
@@ -172,7 +174,7 @@
                         <span class="result-note">An estimate: the resistivity of a thin film itself depends on its thickness and growth.</span></div>
                     <div class="result"><span class="result-label">Radio attenuation of the coating <span class="sym">20 log(1 + Z₀/2R<sub>s</sub>)</span></span><output class="result-value" data-out="se">—</output>
                         <span class="result-note">Plane wave at normal incidence, coating alone; this is why low-e windows weaken cell signals. On a 6&nbsp;mm pane the total is about 0.3&nbsp;dB lower at 0.9&nbsp;GHz, 2&nbsp;dB lower at 2.4&nbsp;GHz and 6–7&nbsp;dB lower at 5.5&nbsp;GHz. Real buildings also leak through frames and gaps.</span></div>
-                    <div class="result"><span class="result-label">U-factor, 6 mm / 12.7 mm argon / 6 mm, coating on #2</span><output class="result-value" data-out="uar">—</output></div>
+                    <div class="result"><span class="result-label">U-factor, 6&nbsp;mm / 12.7&nbsp;mm argon / 6&nbsp;mm, coating on #2</span><output class="result-value" data-out="uar">—</output></div>
                     <div class="result"><span class="result-label">Same unit with air</span><output class="result-value" data-out="uair">—</output></div>
                     <div class="result"><span class="result-label">Same unit, uncoated, air <span class="sym">for comparison</span></span><output class="result-value" data-out="u0">—</output>
                         <span class="result-note">Center-of-glass U-factors from the ISO&nbsp;15099 model at NFRC&nbsp;100 winter conditions, with ε<sub>h</sub> (NFRC&nbsp;301) on the coated surface; the argon fill is 90&nbsp;% argon. Frames and spacers make whole-window values higher.</span></div>
@@ -237,8 +239,8 @@
         <p>The U-factors come from this site’s glazing engine: the ISO&nbsp;15099 center-of-glass model at NFRC&nbsp;100 winter conditions (−18&nbsp;°C outside with a 5.5&nbsp;m/s wind, 21&nbsp;°C inside), for a unit 1&nbsp;m tall of two 6&nbsp;mm clear panes (glass conductivity 1&nbsp;W/m·K) around a 12.7&nbsp;mm gap of air or of 90&nbsp;% argon and 10&nbsp;% air, with \(\varepsilon_h\) on surface #2 and 0.84 on the other three glass surfaces.</p>
 
         <h2>Typical values</h2>
-        <table>
-            <thead><tr><th>Coating family</th><th class="num">Sheet resistance<br>(Ω/sq)</th><th class="num">Normal<br>emissivity</th><th style="min-width:14rem">Notes</th></tr></thead>
+        <table class="lowe-tbl">
+            <thead><tr><th>Coating family</th><th class="num">Sheet resistance<br>(Ω/sq)</th><th class="num">Normal<br>emissivity</th><th>Notes</th></tr></thead>
             <tbody>
                 <tr><td>Uncoated soda-lime glass</td><td class="num">insulating</td><td class="num">0.89</td><td>Hemispherical emissivity 0.84 (0.837 as the corrected emissivity of EN&nbsp;673 and ISO&nbsp;10292). The baseline every low-e coating improves on.</td></tr>
                 <tr><td>Pyrolytic hard-coat (SnO₂:F)</td><td class="num">12–20</td><td class="num" style="white-space:nowrap">0.13–0.20</td><td>Deposited on the float line while the glass is hot; durable enough for exposed surfaces and single glazing; lets more solar heat through than silver coatings. Sits at or above the thin-film line.</td></tr>
@@ -249,8 +251,8 @@
             </tbody>
         </table>
         <p>The silver rows follow the thin-film relation over sheet-resistance ranges consistent with measured single-, double- and triple-silver stacks (Herguedas and Carretero 2023) and with the 0.02–0.08 emissivity of sputtered silver low-e (Ding and Clavero 2017). The oxide rows reflect the emissivity of about 0.2 reported for pyrolytic tin oxide (Ding and Clavero) and the hemispherical emittance of about 0.2 of optimized ITO (Hamberg and Granqvist 1986), and a free-electron model of a measured commercial tin-oxide coating (about 0.15 at 13&nbsp;Ω/sq). Individual products vary, and manufacturers usually specify emissivity rather than sheet resistance; use the measured values of your own coating for production control.</p>
-        <table>
-            <thead><tr><th>Conductor</th><th class="num">Resistivity<br>(µΩ·cm)</th><th style="min-width:14rem">Basis</th></tr></thead>
+        <table class="lowe-tbl">
+            <thead><tr><th>Conductor</th><th class="num">Resistivity<br>(µΩ·cm)</th><th>Basis</th></tr></thead>
             <tbody>
                 <tr><td>Silver, bulk, 20&nbsp;°C</td><td class="num">1.59</td><td>Recommended value of Matula (1979)</td></tr>
                 <tr><td>Silver film, 10&nbsp;nm</td><td class="num">5–6.5</td><td>From Fuchs–Sondheimer theory with diffuse surfaces and silver’s 53&nbsp;nm mean free path, which fits silver in low-e stacks (Ding et al. 2015; Gall 2016), up to measured laboratory stacks (Herguedas and Carretero 2023)</td></tr>
@@ -294,7 +296,6 @@
             <li>H. J. Gläser, <em>Large Area Glass Coating</em>, Von Ardenne Anlagentechnik, Dresden (2000), ISBN 3-00-004953-3 (low-e layer systems and the rule ε<sub>n</sub> ≈ 0.0106&nbsp;R<sub>s</sub>, as cited in the next two entries).</li>
             <li>G. Ding and C. Clavero, “Silver-based low-emissivity coating technology for energy-saving window applications,” in <em>Modern Technologies for Creating the Thin-film Systems and Coatings</em>, InTech (2017), <a href="https://doi.org/10.5772/67085" target="_blank" rel="noopener">doi:10.5772/67085</a> (the layers of a silver stack and what they do; the 0.0106&nbsp;R<sub>s</sub> rule; emissivity of silver and pyrolytic coatings; free to read).</li>
             <li>N. Herguedas and E. Carretero, “Evaluation of low-emissivity coatings with single, double, and triple silver layers,” <em>Sol. Energy Mater. Sol. Cells</em> <strong>263</strong>, 112592 (2023), <a href="https://doi.org/10.1016/j.solmat.2023.112592" target="_blank" rel="noopener">doi:10.1016/j.solmat.2023.112592</a> (measured sheet resistance and emissivity of single-, double- and triple-silver stacks; layer thicknesses; why infrared-absorbing layers obscure the relation; open access).</li>
-            <li>H. J. Gläser, “History of the development and industrial production of low thermal emissivity coatings for high heat insulating glass units,” <em>Appl. Opt.</em> <strong>47</strong>, C193–C199 (2008), <a href="https://doi.org/10.1364/AO.47.00C193" target="_blank" rel="noopener">doi:10.1364/AO.47.00C193</a> (how low-e coatings and insulating glass developed).</li>
             <li>G. Ding, C. Clavero, D. Schweigert, and M. Le, “Thickness and microstructure effects in the optical and electrical properties of silver thin films,” <em>AIP Adv.</em> <strong>5</strong>, 117234 (2015), <a href="https://doi.org/10.1063/1.4936637" target="_blank" rel="noopener">doi:10.1063/1.4936637</a> (resistivity of silver films 3–74&nbsp;nm thick in low-e stacks; the resistivity–scattering-time product used for the thin-film check; open access).</li>
             <li>K. Fuchs, “The conductivity of thin metallic films according to the electron theory of metals,” <em>Math. Proc. Camb. Philos. Soc.</em> <strong>34</strong>, 100–108 (1938), <a href="https://doi.org/10.1017/S0305004100019952" target="_blank" rel="noopener">doi:10.1017/S0305004100019952</a>; E. H. Sondheimer, “The mean free path of electrons in metals,” <em>Adv. Phys.</em> <strong>1</strong>, 1–42 (1952), <a href="https://doi.org/10.1080/00018735200101151" target="_blank" rel="noopener">doi:10.1080/00018735200101151</a>; and A. F. Mayadas and M. Shatzkes, “Electrical-resistivity model for polycrystalline films: the case of arbitrary reflection at external surfaces,” <em>Phys. Rev. B</em> <strong>1</strong>, 1382–1389 (1970), <a href="https://doi.org/10.1103/PhysRevB.1.1382" target="_blank" rel="noopener">doi:10.1103/PhysRevB.1.1382</a> (why thin films are more resistive than bulk metal: scattering at surfaces and grain boundaries).</li>
             <li>D. Gall, “Electron mean free path in elemental metals,” <em>J. Appl. Phys.</em> <strong>119</strong>, 085101 (2016), <a href="https://doi.org/10.1063/1.4942216" target="_blank" rel="noopener">doi:10.1063/1.4942216</a> (silver’s electron mean free path, about 53&nbsp;nm, which sets the thickness below which resistivity rises).</li>
