@@ -66,6 +66,7 @@
         fluence:     { 'J/m²': 1, 'mJ/cm²': 10, 'J/cm²': 1e4 },
         irradiance:  { 'W/m²': 1, 'W/cm²': 1e4, 'kW/cm²': 1e7, 'MW/cm²': 1e10, 'GW/cm²': 1e13, 'TW/cm²': 1e16 },
         throughput:  { 'L/s': 1e-3, 'm³/h': 1 / 3600, 'm³/s': 1, 'L/min': 1e-3 / 60, 'cfm': 4.719474432e-4 },
+        outgassing:  { 'mbar·L/(s·cm²)': 1000, 'Torr·L/(s·cm²)': 10 * K.torr, 'Pa·m/s': 1 },
         diffusivity: { 'mm²/s': 1e-6, 'cm²/s': 1e-4, 'm²/s': 1 },
         mass:        { 'u': K.u, 'g': 1e-3, 'kg': 1 },
         temperature: { 'K': 1, '°C': 1, '°F': 1 },        // handled specially below
@@ -544,6 +545,11 @@
                 var msg = null;
                 if (isNaN(x)) {
                     if (raw.trim() === '' && c.dataset.optional !== undefined) { v[c.name] = NaN; return; }
+                    // an exponent still being typed ("1e", "1.6e-") in the focused field is not an error yet: run() keeps
+                    // the last results, and leaving the field (change) shows the message, as in Calc.converter
+                    if (!hidden && c === document.activeElement && /\d[eE][-+]?$/.test(raw.trim())) {
+                        var pend = fail('', c.name); pend.pending = true; errors.push(pend); return;
+                    }
                     var both = commaReadings(raw);
                     msg = raw.trim() === '' ? 'Enter a value for ' + label + '.'
                         : both ? '“' + raw.trim() + '” is ambiguous (' + label + '): enter ' + both + '.'
@@ -561,7 +567,7 @@
                 if (msg) { errors.push(fail(msg, c.name)); return; }
                 v[c.name] = x;
             });
-            if (errors.length) throw errors[0];
+            if (errors.length) throw errors.filter(function (e) { return !e.pending; })[0] || errors[0];   // a real error first
             return v;
         }
         // compute() may unhide a group (a mode switch) whose fields read() let through while hidden: check them now
@@ -587,6 +593,8 @@
                 r = opts.compute(v) || {};
                 errBox.classList.remove('show'); errBox.textContent = '';
             } catch (err) {
+                // an exponent being typed: no message and the last results stay (outputs, plots, link) until it is complete
+                if (err && err.pending) { errBox.classList.remove('show'); errBox.textContent = ''; return; }
                 if (!again && revealed()) { run(fromUser, true); return; }
                 if (!(err instanceof CalcError)) { console.error(err); err = fail('Calculation error: ' + err.message); }
                 errBox.textContent = err.message; errBox.classList.add('show');
