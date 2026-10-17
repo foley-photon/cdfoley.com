@@ -4,31 +4,36 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Snake Game: Play Free Online</title>
-<meta name="description" content="Play the classic Snake game free online: steer a laser beam to collect photons as it grows and speeds up. Keyboard, swipe, and touch; no ads.">
+<meta name="description" content="Play the classic Snake game free online: steer a laser beam to collect photons. Three speeds, three board sizes, walls or wrap, and an obstacle mode. No ads.">
 <link rel="canonical" href="https://cdfoley.com/games/snake/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Snake">
-<meta property="og:description" content="Play the classic Snake game free online: steer a laser beam to collect photons as it grows and speeds up. Keyboard, swipe, and touch; no ads.">
+<meta property="og:description" content="Play the classic Snake game free online: steer a laser beam to collect photons. Three speeds, three board sizes, walls or wrap, and an obstacle mode. No ads.">
 <meta property="og:url" content="https://cdfoley.com/games/snake/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-snake.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Snake Game: Play the classic Snake game free online: steer a laser beam to collect photons as it grows and speeds up. Keyboard, swipe, and touch; no ads.">
+<meta property="og:image:alt" content="Snake Game: Play the classic Snake game free online: steer a laser beam to collect photons. Three speeds, three board sizes, walls or wrap, and an obstacle mode. No ads.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <link rel="stylesheet" href="/assets/css/games.css">
 <script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
 <style>
     .game-stage { max-width: 520px; margin: 0 auto; }
-    #board { display: block; width: 100%; aspect-ratio: 1; border-radius: var(--radius-lg); border: 1px solid var(--border); touch-action: none; }
-    .dpad { display: grid; grid-template-columns: repeat(3, 58px); grid-template-rows: repeat(2, 50px); gap: 6px; justify-content: center; margin-top: 0.9rem; }
-    .dpad button { font-size: 1.2rem; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); cursor: pointer; touch-action: manipulation; }
+    #board { display: block; width: 100%; aspect-ratio: 1; border-radius: var(--radius-lg); border: 1px solid var(--border); touch-action: none; user-select: none; -webkit-user-select: none; }
+    .sn-opts { margin-bottom: .8rem; }
+    .sn-opts > label:not(.toggle) { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; color: var(--text-2); }
+    .sn-opts select:disabled, .sn-opts input:disabled { opacity: .55; }
+    .dpad { display: grid; grid-template-columns: repeat(3, 64px); grid-template-rows: repeat(2, 54px); gap: 6px; justify-content: center; margin-top: 0.9rem; }
+    .dpad button { font-size: 1.2rem; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
     .dpad button:active { background: var(--accent-soft); }
     .dpad .up { grid-column: 2; grid-row: 1; } .dpad .left { grid-column: 1; grid-row: 2; } .dpad .down { grid-column: 2; grid-row: 2; } .dpad .right { grid-column: 3; grid-row: 2; }
     @media (hover: hover) and (pointer: fine) { .dpad { display: none; } }
+    @media (pointer: coarse) { .game-stage { max-width: min(520px, max(240px, calc(100svh - 150px))); } }   /* board and arrow pad fit on screen together */
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -38,7 +43,7 @@
    "@type": "VideoGame",
    "name": "Snake",
    "url": "https://cdfoley.com/games/snake/",
-   "description": "Play the classic Snake game free online: steer a laser beam to collect photons as it grows and speeds up. Keyboard, swipe, and touch; no ads.",
+   "description": "Play the classic Snake game free online: steer a laser beam to collect photons. Three speeds, three board sizes, walls or wrap, and an obstacle mode. No ads.",
    "genre": "Arcade",
    "gamePlatform": "Web browser",
    "playMode": "SinglePlayer",
@@ -93,31 +98,40 @@
     <div class="game-shell">
         <header class="page-head" style="margin-bottom:1rem">
             <h1>Snake Game</h1>
-            <p class="lede">Steer the beam to collect photons. Each one makes it longer and a little faster. Don't run into yourself.</p>
+            <p class="lede">Steer the beam to collect photons. Each one makes it longer and a little faster. Don’t run into yourself.</p>
         </header>
+        <div class="game-actions sn-opts" id="opts">
+            <label>Speed <select id="speed"><option value="relaxed">Relaxed</option><option value="normal">Normal</option><option value="fast">Fast</option></select></label>
+            <label>Board <select id="size"><option value="14">Small, 14 × 14</option><option value="20">Medium, 20 × 20</option><option value="26">Large, 26 × 26</option></select></label>
+            <label class="toggle"><input type="checkbox" id="wrap"> Wrap edges</label>
+            <label class="toggle"><input type="checkbox" id="obstacles"> Obstacles</label>
+            <button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button>
+        </div>
         <div class="game-bar">
             <div class="chips"><span class="chip">Score<b id="score">0</b></span><span class="chip">Best<b id="best">0</b></span><span class="chip">Speed<b id="level">1</b></span></div>
             <div class="game-actions">
-                <label class="toggle"><input type="checkbox" id="wrap"> Wrap edges</label>
-                <button class="btn btn-secondary btn-sm" type="button" id="pause">Pause</button>
+                <button class="btn btn-secondary btn-sm" type="button" id="pause" disabled>Pause</button>
                 <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
             </div>
         </div>
         <div class="game-stage">
-            <canvas id="board" aria-label="Snake game board" tabindex="0"></canvas>
+            <canvas id="board" aria-label="Snake game board" aria-describedby="ov-text" tabindex="0"></canvas>
             <div class="game-overlay" id="overlay">
                 <h2 id="ov-title">Snake</h2>
-                <p id="ov-text">Arrow keys or WASD to steer. Swipe or use the pad on touch screens.</p>
+                <p id="ov-text">Steer with the arrow keys or WASD, swipe the board, or use the arrow pad. The beam waits for your first move.</p>
                 <button class="btn btn-primary" type="button" id="start">Start</button>
             </div>
         </div>
-        <div class="dpad" aria-label="Direction pad">
+        <div class="dpad" role="group" aria-label="Direction pad">
             <button class="up" type="button" data-d="up" aria-label="Up">▲</button>
             <button class="left" type="button" data-d="left" aria-label="Left">◀</button>
             <button class="down" type="button" data-d="down" aria-label="Down">▼</button>
             <button class="right" type="button" data-d="right" aria-label="Right">▶</button>
         </div>
-        <p class="game-help"><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> steer · <kbd>Space</kbd> pause · <kbd>Enter</kbd> new game. With <em>Wrap edges</em> on, the beam passes through the walls.</p>
+        <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
+        <p class="game-help"><strong>How to play.</strong> Each photon you collect adds a segment and speeds the beam up a little. Hitting a wall, an obstacle, or your own tail ends the game; fill the whole board to win. After you press Start, the beam waits until you choose a direction, so you can get ready.</p>
+        <p class="game-help"><strong>Controls.</strong> <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> steer; on a touch screen, swipe the board or use the arrow pad. <kbd>Space</kbd> or <kbd>P</kbd> pauses and resumes (so does steering), and the game pauses itself when you switch tabs. <kbd>Enter</kbd> starts a new game once one has ended.</p>
+        <p class="game-help"><strong>Options.</strong> <em>Relaxed</em> starts slow and speeds up gently; <em>Fast</em> is for experts. With <em>Wrap edges</em> on, the beam passes through one wall and comes back through the opposite one. <em>Obstacles</em> scatters blocks across the board, always leaving every open square reachable. Options can be changed between games, and your best score is kept separately for each combination.</p>
     </div>
 </main>
 
@@ -125,87 +139,202 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const N = 20, $ = id => document.getElementById(id);
+    const G = window.Games, $ = id => document.getElementById(id);
     const cv = $('board'), ctx = cv.getContext('2d');
     const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
     const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
-    let snake, dir, queue, food, score, alive, running, paused, timer, tick;
-    let best = 0;
-    try { best = +localStorage.getItem('snake-best') || 0; } catch (e) { /* storage unavailable */ }
-    $('best').textContent = best;
-    try { $('wrap').checked = localStorage.getItem('snake-wrap') === '1'; } catch (e) { /* ignore */ }
+    // [first step in ms, fastest step in ms, ms faster per photon]
+    const SPEEDS = { relaxed: [200, 110, 3], normal: [140, 62, 4], fast: [95, 50, 3] };
+    const OPTS = ['speed', 'size', 'wrap', 'obstacles'];
+    // state: idle (start screen), ready (waiting for the first move), run, pause, over
+    let N = 20, speed = SPEEDS.normal, wrap = false, obstaclesOn = false;
+    let snake, dir, queue, food, score, tick, walls = new Set(), state = 'idle', timer = 0;
 
+    // Saved options (games.js storage, safe when storage is blocked)
+    const pick = (v, list, fb) => (list.includes(v) ? v : fb);
+    $('speed').value = pick(G.get('snake-speed', 'normal'), Object.keys(SPEEDS), 'normal');
+    $('size').value = pick(G.get('snake-size', '20'), ['14', '20', '26'], '20');
+    $('wrap').checked = G.get('snake-wrap', '0') === '1';
+    $('obstacles').checked = G.get('snake-obstacles', '0') === '1';
+    let bests = G.getJSON('snake-bests');
+    if (!bests || typeof bests !== 'object' || Array.isArray(bests)) {
+        bests = {};
+        const old = +G.get('snake-best', 0) || 0;   // the single best score saved before options existed
+        if (old > 0) { bests['normal-20-' + ($('wrap').checked ? 'wrap' : 'walls')] = old; G.setJSON('snake-bests', bests); }
+    }
+    const modeKey = () => $('speed').value + '-' + N + '-' + (wrap ? 'wrap' : 'walls') + (obstaclesOn ? '-obstacles' : '');
+    const best = () => Math.max(0, Math.floor(+bests[modeKey()] || 0));
+    G.soundButton($('sound'));
+
+    function readOptions() {
+        N = +$('size').value; speed = SPEEDS[$('speed').value]; wrap = $('wrap').checked; obstaclesOn = $('obstacles').checked;
+    }
     function size() {
         const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, s = Math.round(r.width * dpr);
-        if (cv.width !== s) { cv.width = s; cv.height = s; }
+        if (s > 0 && cv.width !== s) { cv.width = s; cv.height = s; }
         draw();
     }
+    const at = (x, y) => y * N + x;
     function reset() {
+        readOptions();
         const m = N >> 1;
         snake = [{ x: m, y: m }, { x: m - 1, y: m }, { x: m - 2, y: m }];
-        dir = 'right'; queue = []; score = 0; alive = true; paused = false; tick = 140;
-        placeFood(); update();
+        dir = 'right'; queue = []; score = 0; tick = speed[0];
+        walls = obstaclesOn ? makeWalls() : new Set();
+        placeFood(); update(); draw();
+    }
+    // Obstacles: short random bars, never on the starting row or next to the start, with every open square
+    // reachable and no dead-end pockets (each open square keeps at least two open neighbors).
+    function makeWalls() {
+        const m = N >> 1, target = Math.round(N * N * 0.035);
+        for (let attempt = 0; attempt < 300; attempt++) {
+            const w = new Set();
+            for (let guard = 0; w.size < target && guard < 400; guard++) {
+                const len = 1 + Math.floor(Math.random() * 3), horiz = Math.random() < 0.5;
+                const x0 = Math.floor(Math.random() * N), y0 = Math.floor(Math.random() * N), cells = [];
+                for (let i = 0; i < len; i++) { const x = x0 + (horiz ? i : 0), y = y0 + (horiz ? 0 : i); if (x < N && y < N) cells.push([x, y]); }
+                if (cells.some(([x, y]) => y === m || (Math.abs(y - m) <= 2 && x >= m - 5 && x <= m + 3))) continue;
+                cells.forEach(([x, y]) => w.add(at(x, y)));
+            }
+            if (fair(w)) return w;
+        }
+        return new Set();
+    }
+    function neighbors(x, y) {
+        const out = [];
+        for (const [dx, dy] of Object.values(DIRS)) {
+            let nx = x + dx, ny = y + dy;
+            if (wrap) { nx = (nx + N) % N; ny = (ny + N) % N; } else if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+            out.push([nx, ny]);
+        }
+        return out;
+    }
+    function fair(w) {
+        const m = N >> 1, seen = new Set([at(m, m)]), stack = [[m, m]];
+        let open = 0;
+        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+            if (w.has(at(x, y))) continue;
+            open++;
+            if (neighbors(x, y).filter(([a, b]) => !w.has(at(a, b))).length < 2) return false;
+        }
+        while (stack.length) {
+            const [x, y] = stack.pop();
+            for (const [a, b] of neighbors(x, y)) { const k = at(a, b); if (!w.has(k) && !seen.has(k)) { seen.add(k); stack.push([a, b]); } }
+        }
+        return seen.size === open;
     }
     function placeFood() {
-        const free = [];
-        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!snake.some(p => p.x === x && p.y === y)) free.push({ x, y });
+        const body = new Set(snake.map(p => at(p.x, p.y))), free = [];
+        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const k = at(x, y); if (!body.has(k) && !walls.has(k)) free.push({ x, y }); }
         food = free.length ? free[Math.floor(Math.random() * free.length)] : null;   // null: the beam fills the board
     }
     function update() {
         $('score').textContent = score;
-        $('level').textContent = 1 + Math.floor((140 - tick) / 8);
-        $('pause').textContent = paused ? 'Resume' : 'Pause';
+        $('best').textContent = Math.max(best(), score);
+        $('level').textContent = Math.min(10, 1 + Math.round((speed[0] - tick) / ((speed[0] - speed[1]) / 9)));
+        $('pause').textContent = state === 'pause' ? 'Resume' : 'Pause';
+        $('pause').disabled = state !== 'run' && state !== 'pause';
+        const locked = state === 'run' || state === 'pause';
+        OPTS.forEach(id => { $(id).disabled = locked; });
+        $('opts').title = locked ? 'Options can be changed between games' : '';
     }
+    const say = msg => { $('sr').textContent = msg; };
     function opposite(a, b) { return DIRS[a][0] === -DIRS[b][0] && DIRS[a][1] === -DIRS[b][1]; }
+
+    function newGame() {
+        if (state === 'run' || state === 'pause') saveBest();
+        clearTimeout(timer); reset();
+        state = 'ready'; $('overlay').hidden = true; update(); draw();
+        cv.focus({ preventScroll: true }); reveal();
+        say('Ready. Choose a direction to start.');
+    }
+    // Scroll so the whole board, and the arrow pad when it is shown, is on screen
+    function reveal() {
+        const pad = document.querySelector('.dpad'), r = cv.getBoundingClientRect();
+        const bottom = pad.offsetParent ? pad.getBoundingClientRect().bottom : r.bottom, need = bottom + 8 - window.innerHeight;
+        if (need > 0) window.scrollBy({ top: Math.min(need, r.top - 8), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }
+    // Leave the ready state: the first move may go any way, even back past the tail (the beam turns around)
+    function go(d) {
+        if (state !== 'ready') return;
+        if (opposite(d, dir)) { snake.reverse(); dir = d; } else if (d !== dir) queue.push(d);
+        state = 'run'; update(); draw();
+        later(true);
+    }
     function steer(d) {
-        if (!running && alive) { start(); }
+        if (state === 'idle') { newGame(); go(d); return; }
+        if (state === 'ready') { go(d); return; }
+        if (state === 'pause') togglePause();
+        if (state !== 'run') return;
         const last = queue.length ? queue[queue.length - 1] : dir;
         if (d !== last && !opposite(d, last) && queue.length < 3) queue.push(d);
     }
+    // Schedule the next step on a fixed beat, so timer lateness does not slowly stretch the game's pace
+    let due = 0;
+    function later(fresh) {
+        const now = performance.now();
+        due = fresh || now - due > tick ? now + tick : due + tick;
+        clearTimeout(timer); timer = setTimeout(step, Math.max(0, due - now));
+    }
     function step() {
-        if (!running || paused) return;
+        if (state !== 'run') return;
         if (queue.length) dir = queue.shift();
         const head = snake[0], v = DIRS[dir];
         let nx = head.x + v[0], ny = head.y + v[1];
-        if ($('wrap').checked) { nx = (nx + N) % N; ny = (ny + N) % N; }
+        if (wrap) { nx = (nx + N) % N; ny = (ny + N) % N; }
         const grow = food && nx === food.x && ny === food.y;
-        const body = grow ? snake : snake.slice(0, -1);
-        if (nx < 0 || ny < 0 || nx >= N || ny >= N || body.some(p => p.x === nx && p.y === ny)) return gameOver();
+        const body = grow ? snake : snake.slice(0, -1);   // the tail moves out of the way unless the beam grows
+        if (nx < 0 || ny < 0 || nx >= N || ny >= N || walls.has(at(nx, ny)) || body.some(p => p.x === nx && p.y === ny)) return gameOver(false);
         snake.unshift({ x: nx, y: ny });
-        if (grow) { score++; tick = Math.max(62, tick - 4); placeFood(); } else snake.pop();
+        if (grow) { score++; tick = Math.max(speed[1], tick - speed[2]); placeFood(); G.tone(880, 1320, 0.06, 'triangle', 0.03); } else snake.pop();
         if (!food) { update(); return gameOver(true); }
         update(); draw();
-        timer = setTimeout(step, tick);
+        later(false);
     }
-    function start() {
-        if (!alive) reset();
-        running = true; paused = false; $('overlay').hidden = true; update();
-        clearTimeout(timer); timer = setTimeout(step, tick); cv.focus({ preventScroll: true });
+    function saveBest() {
+        const record = score > best();
+        if (record) { bests[modeKey()] = score; G.setJSON('snake-bests', bests); }
+        return record;
     }
     function gameOver(won) {
-        alive = false; running = false; clearTimeout(timer);
-        const record = score > best;
-        if (record) { best = score; $('best').textContent = best; try { localStorage.setItem('snake-best', best); } catch (e) { /* ignore */ } }
+        state = 'over'; clearTimeout(timer);
+        const record = saveBest();
         $('ov-title').textContent = won ? 'Board filled!' : 'Game over';
-        $('ov-text').textContent = 'Score ' + score + (record ? ' — a new best!' : '. Best ' + best + '.');
+        $('ov-text').textContent = 'Score ' + score + (record ? ', a new best!' : '. Best ' + best() + '.');
         $('start').textContent = 'Play again';
-        $('overlay').hidden = false; draw();
+        $('overlay').hidden = false; update(); draw();
+        if (won || record) [523, 659, 784].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.12, 'square', 0.03), k * 100));
+        else G.tone(300, 90, 0.45, 'sawtooth', 0.035);
+        say($('ov-title').textContent + '. ' + $('ov-text').textContent);
+        if (cv === document.activeElement || document.activeElement === document.body) $('start').focus({ preventScroll: true });
     }
     function togglePause() {
-        if (!running) return;
-        paused = !paused; update();
-        if (!paused) { clearTimeout(timer); timer = setTimeout(step, tick); }
-        draw();
+        if (state === 'run') { state = 'pause'; clearTimeout(timer); say('Paused.'); }
+        else if (state === 'pause') { state = 'run'; later(true); say('Resumed.'); }
+        else return;
+        update(); draw();
     }
 
     function css(v, fb) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || fb; }
     function mix(a, b, t) { return a.map((x, i) => Math.round(x + (b[i] - x) * t)); }
+    const coarse = window.matchMedia('(pointer: coarse)');
+    function banner(text) {
+        const W = cv.width;
+        ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, W * 0.16, W, W * 0.12);
+        ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(W / 22) + 'px ' + css('--font', 'sans-serif');
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, W / 2, W * 0.22);
+    }
     function draw() {
-        if (!snake) return;
+        if (!snake || !cv.width) return;
         const W = cv.width, c = W / N;
         ctx.fillStyle = css('--surface', '#fff'); ctx.fillRect(0, 0, W, W);
         ctx.fillStyle = css('--surface-2', '#f2f5f9');
         for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if ((x + y) % 2) ctx.fillRect(x * c, y * c, c, c);
+        // obstacles
+        if (walls.size) {
+            ctx.fillStyle = css('--text-2', '#475569');
+            walls.forEach(k => { const x = k % N, y = (k - x) / N; ctx.beginPath(); ctx.roundRect(x * c + c * 0.06, y * c + c * 0.06, c * 0.88, c * 0.88, c * 0.16); ctx.fill(); });
+        }
         // photon (none once the beam fills the board)
         if (food) {
             const fx = (food.x + 0.5) * c, fy = (food.y + 0.5) * c;
@@ -220,43 +349,66 @@ document.addEventListener('DOMContentLoaded', () => {
             const col = t < 0.5 ? mix(head, mid, t * 2) : mix(mid, tail, (t - 0.5) * 2);
             const p = snake[i], pad = i === 0 ? c * 0.06 : c * 0.14;
             ctx.fillStyle = 'rgb(' + col + ')';
-            const r = c * 0.28;
-            ctx.beginPath(); ctx.roundRect(p.x * c + pad, p.y * c + pad, c - 2 * pad, c - 2 * pad, r); ctx.fill();
+            ctx.beginPath(); ctx.roundRect(p.x * c + pad, p.y * c + pad, c - 2 * pad, c - 2 * pad, c * 0.28); ctx.fill();
         }
         // eyes
         const h = snake[0], v = DIRS[dir], ex = (h.x + 0.5) * c, ey = (h.y + 0.5) * c;
         ctx.fillStyle = '#0b1220';
         const px = -v[1], py = v[0];   // perpendicular to the direction of travel
         [1, -1].forEach(s => { ctx.beginPath(); ctx.arc(ex + v[0] * c * 0.18 + px * s * c * 0.17, ey + v[1] * c * 0.18 + py * s * c * 0.17, c * 0.07, 0, 2 * Math.PI); ctx.fill(); });
-        if (paused) { ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(0, 0, W, W); ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(W / 14) + 'px ' + css('--font', 'sans-serif'); ctx.textAlign = 'center'; ctx.fillText('Paused', W / 2, W / 2); }
+        if (state === 'ready') banner(coarse.matches ? 'Swipe or tap the pad to go' : 'Press an arrow key to go');
+        if (state === 'pause') { ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(0, 0, W, W); ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(W / 14) + 'px ' + css('--font', 'sans-serif'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Paused', W / 2, W / 2); }
     }
 
     document.addEventListener('keydown', e => {
-        if (e.target.matches && e.target.matches('input, select, textarea') && e.target.id !== 'wrap') return;
-        if (KEYS[e.key]) { e.preventDefault(); steer(KEYS[e.key]); }
-        else if (e.key === ' ' || e.key === 'p' || e.key === 'P') {
-            if (e.key === ' ' && e.target.matches && e.target.matches('button, a')) return;   // Space on a focused button activates it
-            if (running) { e.preventDefault(); togglePause(); } else if (e.key === ' ' && !$('overlay').hidden) { e.preventDefault(); start(); }
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const t = e.target, is = sel => t.matches && t.matches(sel);
+        if (is('select, textarea, input:not([type="checkbox"])')) return;
+        if (KEYS[e.key]) {
+            if (state === 'over' || is('input')) return;   // after a game ends, arrows scroll the page instead of restarting
+            e.preventDefault(); steer(KEYS[e.key]);
+        } else if (e.key === ' ' || e.key === 'p' || e.key === 'P' || e.key === 'Enter') {
+            if ((e.key === ' ' || e.key === 'Enter') && is('button, a, summary, input')) return;   // let focused controls handle their own keys
+            if (state === 'run' || state === 'pause') { if (e.key !== 'Enter') { e.preventDefault(); togglePause(); } }
+            else if (state === 'ready') { if (e.key !== 'p' && e.key !== 'P') { e.preventDefault(); go(dir); } }
+            else if (e.key !== 'p' && e.key !== 'P') { e.preventDefault(); newGame(); }
         }
-        else if (e.key === 'Enter' && document.activeElement === cv) { e.preventDefault(); reset(); start(); }
     });
+    // Swipes turn as soon as the finger has moved far enough; keep dragging to turn again without lifting
     let t0 = null;
     cv.addEventListener('touchstart', e => { const t = e.touches[0]; t0 = [t.clientX, t.clientY]; }, { passive: true });
-    cv.addEventListener('touchend', e => {
-        if (!t0) return; const t = e.changedTouches[0], dx = t.clientX - t0[0], dy = t.clientY - t0[1]; t0 = null;
-        if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return;
+    cv.addEventListener('touchmove', e => {
+        if (!t0) return;
+        const t = e.touches[0], dx = t.clientX - t0[0], dy = t.clientY - t0[1];
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 22) return;
         steer(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+        t0 = [t.clientX, t.clientY];
+    }, { passive: true });
+    cv.addEventListener('touchend', () => { t0 = null; });
+    cv.addEventListener('click', () => { if (state === 'ready') go(dir); });   // a tap or click on the waiting board starts it
+    document.querySelectorAll('.dpad button').forEach(b => {
+        b.addEventListener('pointerdown', e => { e.preventDefault(); steer(b.dataset.d); });
+        b.addEventListener('click', e => { if (e.detail === 0) steer(b.dataset.d); });   // keyboard activation
     });
-    document.querySelectorAll('.dpad button').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); steer(b.dataset.d); }));
-    $('start').addEventListener('click', () => { if (!alive) reset(); start(); });
-    $('new').addEventListener('click', () => { clearTimeout(timer); reset(); start(); });
+    $('start').addEventListener('click', newGame);
+    $('new').addEventListener('click', newGame);
     $('pause').addEventListener('click', () => { togglePause(); cv.focus({ preventScroll: true }); });
-    $('wrap').addEventListener('change', () => { try { localStorage.setItem('snake-wrap', $('wrap').checked ? '1' : '0'); } catch (e) { /* ignore */ } });
-    document.addEventListener('visibilitychange', () => { if (document.hidden && running && !paused) togglePause(); });
+    const optKeys = { speed: 'snake-speed', size: 'snake-size', wrap: 'snake-wrap', obstacles: 'snake-obstacles' };
+    OPTS.forEach(id => $(id).addEventListener('change', () => {
+        const el = $(id); G.set(optKeys[id], el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value);
+        if (state === 'run' || state === 'pause') return;   // the controls are disabled during a game anyway
+        reset(); update(); draw();
+    }));
+    document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'run') togglePause(); });
     document.addEventListener('themechange', draw);
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
     new ResizeObserver(size).observe(cv);
-    reset(); running = false; size();
-    window.__snake = { state: () => ({ snake, food, score, alive, running, paused, tick }), setFood: (x, y) => { food = { x, y }; } };
+    reset(); size();
+    window.__snake = {
+        state: () => ({ snake, food, score, state, tick, N, dir, queue: [...queue], walls: [...walls], best: best(), mode: modeKey() }),
+        setFood: (x, y) => { food = { x, y }; }, setSnake: s => { snake = s.map(p => ({ x: p.x, y: p.y })); },
+        steer, step: () => { clearTimeout(timer); step(); }, newGame, makeWalls, fair, draw
+    };
 });
 </script>
 </body>

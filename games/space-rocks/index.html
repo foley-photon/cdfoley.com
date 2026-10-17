@@ -22,6 +22,16 @@
 <link rel="stylesheet" href="/assets/css/games.css">
 <script src="/assets/js/site.js"></script>
 <script src="/assets/js/games.js"></script>
+<style>
+    /* Touch controls: a turn pad for the left thumb (slide between its halves to switch direction), actions for the right */
+    .rocks-pad { grid-template-columns: 2fr 1fr 1fr 1fr; }
+    .turn-pad { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; touch-action: none; }
+    .rocks-pad button { font-size: 0.95rem; padding: 0; }
+    .turn-pad button { font-size: 1.5rem; }
+    #t-hyper { background: linear-gradient(to top, color-mix(in srgb, var(--accent) 22%, var(--surface)) var(--charge, 100%), var(--surface) var(--charge, 100%)); }
+    #t-hyper.cooling { color: var(--text-2); }
+    #t-hyper.on { background: var(--accent); }
+</style>
 <script type="application/ld+json" id="ld-page">
 {
  "@context": "https://schema.org",
@@ -105,14 +115,19 @@
                 </div>
             </div>
         </div>
-        <div class="touch-pad" style="grid-template-columns:repeat(5,1fr)">
-            <button type="button" id="t-left" aria-label="Turn left">⟲</button>
-            <button type="button" id="t-right" aria-label="Turn right">⟳</button>
+        <div class="touch-pad rocks-pad">
+            <div class="turn-pad" id="t-turn">
+                <button type="button" id="t-left" aria-label="Turn left">⟲</button>
+                <button type="button" id="t-right" aria-label="Turn right">⟳</button>
+            </div>
             <button type="button" id="t-thrust">Thrust</button>
             <button type="button" id="t-fire">Fire</button>
-            <button type="button" id="t-hyper">Hyper</button>
+            <button type="button" id="t-hyper" aria-label="Hyperspace">Hyper</button>
         </div>
-        <p class="game-help"><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> turn, <kbd>↑</kbd> or <kbd>W</kbd> thrust, <kbd>Space</kbd> fires (hold for rapid fire), <kbd>Shift</kbd> or <kbd>H</kbd> jumps to hyperspace, and <kbd>P</kbd> pauses. Large rocks are worth 20, medium 50, and small 100; the saucer is worth 200, or 1,000 for the small one. You earn an extra ship every 10,000 points.</p>
+        <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
+        <p class="game-help"><strong>How to play:</strong> shoot every rock to clear the wave; large rocks split into two medium ones, and medium into two small. The bar along the top of the playfield fills as you clear the field, and each wave brings one more rock (up to 11), moving a little faster. From wave 2 a saucer flies through and shoots back. You start with three ships.</p>
+        <p class="game-help"><strong>Controls:</strong> <kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> turn, <kbd>↑</kbd> or <kbd>W</kbd> thrust, <kbd>Space</kbd> fires (hold for rapid fire), <kbd>Shift</kbd> or <kbd>H</kbd> jumps to hyperspace, and <kbd>P</kbd> pauses. Hyperspace drops you at the clearest spot it can find and then needs 4 seconds to recharge; the meter at the bottom left of the playfield (and the Hyper button on a touch screen) fills as it charges. On a touch screen, hold the turn pad on the left (slide your thumb across it to change direction) and use Thrust, Fire, and Hyper on the right; tapping the playfield also fires.</p>
+        <p class="game-help"><strong>Scoring:</strong> large rocks are worth 20, medium 50, and small 100; the saucer is worth 200, or 1,000 for the small one. You earn an extra ship every 10,000 points.</p>
     </div>
 </main>
 
@@ -124,41 +139,65 @@ document.addEventListener('DOMContentLoaded', () => {
     const W = 800, H = 600, TAU = Math.PI * 2;
     const cv = $('board'), view = G.canvas(cv, W, H, 0.72, () => draw()), ctx = view.ctx;
     const SIZES = { 3: { r: 46, pts: 20, v: 1 }, 2: { r: 26, pts: 50, v: 1.3 }, 1: { r: 14, pts: 100, v: 1.7 } };
+    const PIECES = { 3: 7, 2: 3, 1: 1 };          // hits left in a rock and all its fragments, for the wave progress bar
+    const HYPER_CD = 4;                            // seconds for hyperspace to recharge
     const STARS = Array.from({ length: 90 }, () => [Math.random() * W, Math.random() * H, Math.random() * 1.3 + 0.3]);
     const ship = { x: W / 2, y: H / 2, a: -Math.PI / 2, vx: 0, vy: 0, r: 13, alive: false, inv: 0, thrust: false, hyperCd: 0 };
     const keys = { left: false, right: false, thrust: false, fire: false };
-    let rocks = [], bullets = [], sparks = [], saucer = null, saucerT = 0, score = 0, lives = 3, level = 0, nextLife = 10000;
-    let state = 'title', paused = false, fireCd = 0, respawnT = 0, waveT = 0, beatT = 0, beatHi = false, thrustSnd = 0, banner = null, overTimer = 0;
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)');   // reduced motion: no blinking, fewer sparks, still title screen
+    let rocks = [], bullets = [], sparks = [], saucer = null, saucerT = 0, score = 0, lives = 3, level = 0, nextLife = 10000, waveTotal = 1;
+    let state = 'title', paused = false, fireCd = 0, respawnT = 0, waveT = 0, beatT = 0, beatHi = false, thrustSnd = 0, banner = null, overTimer = 0, dirty = true;
     let best = +G.get('rocks-best', 0) || 0;
 
     const wrap = o => { o.x = (o.x + W) % W; o.y = (o.y + H) % H; };
     const rand = (a, b) => a + Math.random() * (b - a);
+    // distance on the wrapping playfield: a rock straddling one edge also reaches objects near the opposite edge
+    const dist = (a, b) => { let dx = Math.abs(a.x - b.x) % W, dy = Math.abs(a.y - b.y) % H; if (dx > W / 2) dx = W - dx; if (dy > H / 2) dy = H - dy; return Math.hypot(dx, dy); };
+    const announce = text => { $('sr').textContent = text; };
+    const remaining = () => rocks.reduce((n, r) => n + PIECES[r.size], 0);
     function makeRock(size, x, y) {
-        const s = SIZES[size], ang = rand(0, TAU), sp = rand(38, 80) * s.v * (1 + level * 0.08), n = 10 + size * 2;
+        const s = SIZES[size], ang = rand(0, TAU), sp = rand(38, 80) * s.v * (1 + Math.min(level, 12) * 0.08), n = 10 + size * 2;   // speeds stop rising after wave 13
         return { x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, r: s.r, size, a: rand(0, TAU), spin: rand(-1, 1), shape: Array.from({ length: n }, () => rand(0.72, 1.12)) };
     }
     function startWave() {
         rocks = []; const n = Math.min(11, 4 + level);
         for (let i = 0; i < n; i++) {
-            let x, y; do { x = rand(0, W); y = rand(0, H); } while (Math.hypot(x - ship.x, y - ship.y) < 190);
+            let x, y; do { x = rand(0, W); y = rand(0, H); } while (dist({ x, y }, ship) < 190);
             rocks.push(makeRock(3, x, y));
         }
+        waveTotal = remaining();
         saucerT = rand(16, 26); banner = { text: 'Wave ' + (level + 1), t: 1.6 }; hud();
+        announce('Wave ' + (level + 1) + ': ' + n + ' large rocks.');
     }
-    function spawnShip() { Object.assign(ship, { x: W / 2, y: H / 2, a: -Math.PI / 2, vx: 0, vy: 0, alive: true, inv: 2.5 }); }
+    function spawnShip() { Object.assign(ship, { x: W / 2, y: H / 2, a: -Math.PI / 2, vx: 0, vy: 0, alive: true, inv: 2.5, hyperCd: 0 }); }
     function newGame() {
         G.audio(); clearTimeout(overTimer);         // a new game started during the pause after the last ship is lost
-        score = 0; lives = 3; level = 0; nextLife = 10000; bullets = []; sparks = []; saucer = null;
-        spawnShip(); startWave(); state = 'play'; paused = false; $('pause').textContent = 'Pause';
-        $('overlay').hidden = true; hud(); cv.focus({ preventScroll: true });
+        if (state === 'play' && score > best) { best = score; G.set('rocks-best', best); }   // a game abandoned for a new one still counts
+        score = 0; lives = 3; level = 0; nextLife = 10000; bullets = []; sparks = []; saucer = null; waveT = 0; respawnT = 0; fireCd = 0;
+        state = 'play'; spawnShip(); startWave(); paused = false; $('pause').textContent = 'Pause';
+        $('overlay').hidden = true; hud(); dirty = true; cv.focus({ preventScroll: true }); showStage();
+    }
+    function showStage() {             // starting a game brings the playfield and touch controls into view, below the sticky header
+        const hd = document.querySelector('.site-header'), head = (hd ? hd.getBoundingClientRect().bottom : 0) + 8;
+        const pad = document.querySelector('.touch-pad'), top = cv.getBoundingClientRect().top;
+        const bottom = (pad && pad.offsetParent ? pad : cv).getBoundingClientRect().bottom;
+        let d = bottom > innerHeight - 8 ? bottom - innerHeight + 8 : 0;
+        if (top - d < head) d = top - head;
+        if (Math.abs(d) > 2) window.scrollBy(0, d);
     }
     function hud() { $('score').textContent = G.fmt(score); $('lives').textContent = lives; $('level').textContent = level + 1; $('best').textContent = G.fmt(Math.max(best, score)); }
     function addScore(n) {
         score += n;
-        if (score >= nextLife) { lives++; nextLife += 10000; banner = { text: 'Extra ship', t: 1.4 }; [523, 784, 1046].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.1, 'square', 0.03), k * 90)); }
+        if (score >= nextLife) {
+            lives++; nextLife += 10000; banner = { text: 'Extra ship', t: 1.4 }; announce('Extra ship. ' + lives + ' ships.');
+            [523, 784, 1046].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.1, 'square', 0.03), k * 90));
+        }
         hud();
     }
-    function burst(x, y, n, c, speed) { for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(20, speed || 160); sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: rand(0.4, 1), c }); } }
+    function burst(x, y, n, c, speed) {
+        if (calm.matches) n = Math.ceil(n / 3);
+        for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(20, speed || 160); sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: rand(0.4, 1), c }); }
+    }
     function breakRock(i, byPlayer) {
         const r = rocks[i]; rocks.splice(i, 1);
         if (byPlayer) addScore(SIZES[r.size].pts);
@@ -173,13 +212,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (lives <= 0) {                           // save the best now; the overlay follows after the explosion
             state = 'over'; const record = score > best;
             if (record) { best = score; G.set('rocks-best', best); }
+            saucer = null; bullets = []; keys.fire = keys.thrust = false;
             overTimer = setTimeout(() => gameOver(record), 1200);
-        } else respawnT = 1.6;
+        } else { respawnT = 1.6; announce('Ship lost. ' + lives + (lives === 1 ? ' ship' : ' ships') + ' left.'); }
     }
     function gameOver(record) {
         $('ov-title').textContent = 'Game over';
         $('ov-text').textContent = 'Score ' + G.fmt(score) + ', reached wave ' + (level + 1) + (record && score ? ' — a new best!' : '. Best ' + G.fmt(best) + '.');
-        $('start').textContent = 'Play again'; $('overlay').hidden = false; hud();
+        $('start').textContent = 'Play again'; $('overlay').hidden = false; hud(); dirty = true;
+        announce('Game over. ' + $('ov-text').textContent); $('start').focus({ preventScroll: true });
     }
     function fire() {
         if (!ship.alive || fireCd > 0 || bullets.filter(b => !b.enemy).length >= 5) return;
@@ -188,10 +229,21 @@ document.addEventListener('DOMContentLoaded', () => {
         bullets.push({ x: ship.x + c * ship.r, y: ship.y + s * ship.r, vx: ship.vx + c * 640, vy: ship.vy + s * 640, t: 0.95 });
         G.tone(900, 420, 0.07, 'square', 0.02);
     }
-    function hyperspace() {
-        if (!ship.alive || ship.hyperCd > 0 || state !== 'play') return;
+    // clearance of a spot: room to the nearest rock edge, the saucer, or an enemy shot (rocks a second ahead count too)
+    function clearance(p) {
+        let c = Infinity;
+        for (const r of rocks) c = Math.min(c, dist(p, r) - r.r, dist(p, { x: r.x + r.vx, y: r.y + r.vy }) - r.r);
+        if (saucer) c = Math.min(c, dist(p, saucer) - saucer.r - 40);
+        for (const b of bullets) if (b.enemy) c = Math.min(c, dist(p, b) - 30);
+        return c;
+    }
+    function hyperspace() {                         // jump to the clearest of 24 random spots, then recharge for HYPER_CD seconds
+        if (!ship.alive || ship.hyperCd > 0 || state !== 'play' || paused) return;
         burst(ship.x, ship.y, 12, '#22d3ee', 90);
-        ship.x = rand(40, W - 40); ship.y = rand(40, H - 40); ship.vx = ship.vy = 0; ship.inv = Math.max(ship.inv, 0.6); ship.hyperCd = 2.5;
+        let bestSpot = null, bestC = -Infinity;
+        for (let i = 0; i < 24; i++) { const p = { x: rand(50, W - 50), y: rand(50, H - 50) }, c = clearance(p); if (c > bestC) { bestC = c; bestSpot = p; } }
+        ship.x = bestSpot.x; ship.y = bestSpot.y; ship.vx = ship.vy = 0; ship.inv = Math.max(ship.inv, 0.6); ship.hyperCd = HYPER_CD;
+        burst(ship.x, ship.y, 12, '#22d3ee', 90);
         G.tone(200, 1200, 0.25, 'sine', 0.04);
     }
     function spawnSaucer() {
@@ -207,13 +259,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function update(dt) {
+        if (paused) return;                         // everything holds still, banners included
         if (banner && (banner.t -= dt) <= 0) banner = null;
         for (const s of sparks) { s.x += s.vx * dt; s.y += s.vy * dt; s.t -= dt; }
         sparks = sparks.filter(s => s.t > 0);
-        if (paused) return;
+        if (state !== 'play' && calm.matches) return;   // reduced motion: the rocks behind the start screen stay put
         for (const r of rocks) { r.x += r.vx * dt; r.y += r.vy * dt; r.a += r.spin * dt; wrap(r); }
         if (state !== 'play') return;
-        fireCd -= dt; ship.hyperCd -= dt;
+        fireCd -= dt;
+        if (ship.hyperCd > 0 && (ship.hyperCd -= dt) <= 0 && ship.alive) G.tone(880, 1320, 0.08, 'sine', 0.02);   // recharged
         if (ship.alive) {
             ship.inv = Math.max(0, ship.inv - dt);
             ship.a += ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) * 4.6 * dt;
@@ -229,7 +283,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (respawnT > 0 && (respawnT -= dt) <= 0) {
             if (rocks.some(r => Math.hypot(r.x - W / 2, r.y - H / 2) < r.r + 110) || saucer) respawnT = 0.25; else spawnShip();
         }
-        for (const b of bullets) { b.x += b.vx * dt; b.y += b.vy * dt; b.t -= dt; wrap(b); }
+        // bullets move in short sub-steps (at most 6 units) and test for hits at each one, so a fast shot at a low
+        // frame rate cannot skip over a small rock
+        for (const b of bullets) {
+            const n = Math.max(1, Math.ceil(Math.hypot(b.vx, b.vy) * dt / 6));
+            for (let k = 0; k < n && b.t > 0; k++) { b.x += b.vx * dt / n; b.y += b.vy * dt / n; wrap(b); bulletHits(b); }
+            b.t -= dt;
+        }
+        bullets = bullets.filter(b => b.t > 0);
         // saucer
         if (!saucer && level >= 1 && (saucerT -= dt) <= 0) spawnSaucer();
         if (saucer) {
@@ -239,29 +300,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if ((saucer.snd = (saucer.snd || 0) - dt) <= 0) { saucer.snd = 0.22; G.tone(saucer.small ? 1200 : 700, saucer.small ? 1350 : 780, 0.18, 'sine', 0.012); }
             if (saucer.x < -40 || saucer.x > W + 40) { saucer = null; saucerT = rand(14, 24); }
         }
-        // collisions: player bullets
-        for (const b of bullets) {
-            if (b.t <= 0) continue;
-            if (!b.enemy) {
-                for (let i = rocks.length - 1; i >= 0; i--) if (Math.hypot(b.x - rocks[i].x, b.y - rocks[i].y) < rocks[i].r) { b.t = 0; breakRock(i, true); break; }
-                if (b.t > 0 && saucer && Math.hypot(b.x - saucer.x, b.y - saucer.y) < saucer.r + 2) {
-                    b.t = 0; addScore(saucer.small ? 1000 : 200); burst(saucer.x, saucer.y, 24, '#f0abfc', 200); G.noise(0.6, 0.14, 900);
-                    saucer = null; saucerT = rand(14, 24);
-                }
-            } else if (ship.alive && Math.hypot(b.x - ship.x, b.y - ship.y) < ship.r * 0.9) { b.t = 0; killShip(); }
-        }
-        bullets = bullets.filter(b => b.t > 0);
-        if (saucer) for (let i = rocks.length - 1; i >= 0; i--) if (Math.hypot(saucer.x - rocks[i].x, saucer.y - rocks[i].y) < rocks[i].r + saucer.r) { burst(saucer.x, saucer.y, 18, '#f0abfc'); breakRock(i, false); saucer = null; saucerT = rand(14, 24); break; }
+        if (saucer) for (let i = rocks.length - 1; i >= 0; i--) if (dist(saucer, rocks[i]) < rocks[i].r + saucer.r) { burst(saucer.x, saucer.y, 18, '#f0abfc'); breakRock(i, false); saucer = null; saucerT = rand(14, 24); break; }
         if (ship.alive) {
-            for (let i = rocks.length - 1; i >= 0; i--) if (Math.hypot(ship.x - rocks[i].x, ship.y - rocks[i].y) < rocks[i].r + ship.r * 0.75 && ship.inv <= 0) { breakRock(i, true); killShip(); break; }
-            if (ship.alive && saucer && ship.inv <= 0 && Math.hypot(ship.x - saucer.x, ship.y - saucer.y) < saucer.r + ship.r * 0.75) { addScore(saucer.small ? 1000 : 200); saucer = null; saucerT = rand(14, 24); killShip(); }
+            for (let i = rocks.length - 1; i >= 0; i--) if (dist(ship, rocks[i]) < rocks[i].r + ship.r * 0.75 && ship.inv <= 0) { breakRock(i, true); killShip(); break; }
+            if (ship.alive && saucer && ship.inv <= 0 && dist(ship, saucer) < saucer.r + ship.r * 0.75) { addScore(saucer.small ? 1000 : 200); saucer = null; saucerT = rand(14, 24); killShip(); }
         }
         // heartbeat that quickens as the field thins out
         if (state === 'play' && rocks.length && (beatT -= dt) <= 0) { beatT = Math.max(0.3, 0.25 + rocks.length * 0.06); beatHi = !beatHi; G.tone(beatHi ? 58 : 50, beatHi ? 52 : 45, 0.12, 'triangle', 0.06); }
         if (!rocks.length && !saucer && state === 'play') {
-            if (!waveT) waveT = 1.8;
+            if (!waveT) { waveT = 1.8; banner = { text: 'Wave ' + (level + 1) + ' cleared', t: 1.6 }; announce('Wave ' + (level + 1) + ' cleared.'); }
             else if ((waveT -= dt) <= 0) { waveT = 0; level++; startWave(); }
         }
+    }
+    function bulletHits(b) {
+        if (!b.enemy) {
+            for (let i = rocks.length - 1; i >= 0; i--) if (dist(b, rocks[i]) < rocks[i].r) { b.t = 0; breakRock(i, true); return; }
+            if (saucer && dist(b, saucer) < saucer.r + 2) {
+                b.t = 0; addScore(saucer.small ? 1000 : 200); burst(saucer.x, saucer.y, 24, '#f0abfc', 200); G.noise(0.6, 0.14, 900);
+                saucer = null; saucerT = rand(14, 24);
+            }
+        } else if (ship.alive && dist(b, ship) < ship.r * 0.9) { b.t = 0; killShip(); }
     }
 
     function line(pts, color, close) {
@@ -277,33 +335,55 @@ document.addEventListener('DOMContentLoaded', () => {
         if (o.x < r) xs.push(W); if (o.x > W - r) xs.push(-W); if (o.y < r) ys.push(H); if (o.y > H - r) ys.push(-H);
         for (const dx of xs) for (const dy of ys) fn(o.x + dx, o.y + dy);
     }
+    let shownCharge = -1;
+    function drawHud() {                            // wave progress (top left) and the hyperspace charge (bottom left)
+        if (state !== 'play') return;
+        const done = Math.max(0, Math.min(1, 1 - remaining() / waveTotal)), charge = ship.alive ? Math.max(0, Math.min(1, 1 - ship.hyperCd / HYPER_CD)) : 0;
+        ctx.font = '700 17px Inter, system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(226,232,240,.8)'; ctx.fillText('WAVE ' + (level + 1), 14, 20);
+        ctx.fillStyle = 'rgba(196,181,253,.18)'; ctx.fillRect(108, 15, 150, 10);
+        ctx.fillStyle = '#c4b5fd'; ctx.fillRect(108, 15, 150 * done, 10);
+        ctx.fillStyle = 'rgba(226,232,240,.8)'; ctx.fillText('HYPERSPACE', 14, H - 20);
+        ctx.fillStyle = 'rgba(34,211,238,.18)'; ctx.fillRect(132, H - 25, 90, 10);
+        ctx.fillStyle = charge >= 1 ? '#22d3ee' : 'rgba(34,211,238,.55)'; ctx.fillRect(132, H - 25, 90 * charge, 10);
+        if (charge >= 1) { ctx.fillStyle = '#22d3ee'; ctx.fillText('READY', 232, H - 20); }
+        const q = Math.round(charge * 50) / 50;     // the touch button fills the same way
+        if (q !== shownCharge) { shownCharge = q; const hb = $('t-hyper'); hb.style.setProperty('--charge', (q * 100) + '%'); hb.classList.toggle('cooling', q < 1); }
+    }
     function draw() {
         view.begin();
         ctx.fillStyle = '#04050c'; ctx.fillRect(0, 0, W, H);
         for (const [x, y, s] of STARS) { ctx.fillStyle = 'rgba(255,255,255,' + (0.25 + s * 0.3) + ')'; ctx.fillRect(x, y, s, s); }
         ctx.lineJoin = 'round'; ctx.lineCap = 'round';
         for (const r of rocks) drawWrapped(r, r.r, (x, y) => line(r.shape.map((k, i) => rot(Math.cos(i / r.shape.length * TAU) * r.r * k, Math.sin(i / r.shape.length * TAU) * r.r * k, r.a, x, y)), '#c4b5fd', true));
-        if (saucer) {
-            const s = saucer.r, x = saucer.x, y = saucer.y;
+        if (saucer) drawWrapped(saucer, saucer.r, (x, y) => {
+            const s = saucer.r;
             line([[x - s, y], [x - s * 0.45, y - s * 0.4], [x + s * 0.45, y - s * 0.4], [x + s, y], [x + s * 0.45, y + s * 0.4], [x - s * 0.45, y + s * 0.4]], '#f0abfc', true);
             line([[x - s, y], [x + s, y]], '#f0abfc'); line([[x - s * 0.45, y - s * 0.4], [x - s * 0.2, y - s * 0.8], [x + s * 0.2, y - s * 0.8], [x + s * 0.45, y - s * 0.4]], '#f0abfc');
-        }
+        });
         for (const b of bullets) { ctx.fillStyle = b.enemy ? '#f0abfc' : '#fef9c3'; ctx.beginPath(); ctx.arc(b.x, b.y, 2.2, 0, TAU); ctx.fill(); }
         for (const s of sparks) { ctx.globalAlpha = Math.min(1, s.t * 1.5); ctx.fillStyle = s.c; ctx.fillRect(s.x - 1.5, s.y - 1.5, 3, 3); }
         ctx.globalAlpha = 1;
-        if (ship.alive && !(ship.inv > 0 && Math.floor(ship.inv * 8) % 2)) {
+        // invulnerable after a respawn or jump: the ship blinks, or with reduced motion wears a steady ring
+        if (ship.alive && !(ship.inv > 0 && !calm.matches && Math.floor(ship.inv * 8) % 2)) {
             const r = ship.r;
             drawWrapped(ship, r, (x, y) => {
                 line([rot(r, 0, ship.a, x, y), rot(-r * 0.8, r * 0.72, ship.a, x, y), rot(-r * 0.45, 0, ship.a, x, y), rot(-r * 0.8, -r * 0.72, ship.a, x, y)], '#22d3ee', true);
-                if (ship.thrust && Math.random() < 0.8) line([rot(-r * 0.6, r * 0.38, ship.a, x, y), rot(-r * (1.2 + Math.random() * 0.6), 0, ship.a, x, y), rot(-r * 0.6, -r * 0.38, ship.a, x, y)], '#fb923c');
+                if (ship.thrust && (calm.matches || Math.random() < 0.8)) line([rot(-r * 0.6, r * 0.38, ship.a, x, y), rot(-r * (calm.matches ? 1.5 : 1.2 + Math.random() * 0.6), 0, ship.a, x, y), rot(-r * 0.6, -r * 0.38, ship.a, x, y)], '#fb923c');
+                if (ship.inv > 0 && calm.matches) { ctx.strokeStyle = 'rgba(34,211,238,.6)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r * 1.7, 0, TAU); ctx.stroke(); }
             });
         }
+        drawHud();
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         if (banner) { ctx.globalAlpha = Math.min(1, banner.t * 2); ctx.fillStyle = '#f5f3ff'; ctx.font = '800 34px Inter, system-ui, sans-serif'; ctx.fillText(banner.text, W / 2, H * 0.3); ctx.globalAlpha = 1; }
         if (paused) { ctx.fillStyle = 'rgba(4,5,12,.6)'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#f5f3ff'; ctx.font = '800 40px Inter, system-ui, sans-serif'; ctx.fillText('Paused', W / 2, H / 2); }
     }
 
-    function togglePause() { if (state !== 'play') return; paused = !paused; $('pause').textContent = paused ? 'Resume' : 'Pause'; }
+    function togglePause() {
+        if (state !== 'play') return;
+        paused = !paused; dirty = true; $('pause').textContent = paused ? 'Resume' : 'Pause'; announce(paused ? 'Paused' : 'Resumed');
+        if (paused) keys.left = keys.right = keys.thrust = keys.fire = false;
+    }
     const KEYMAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'thrust', KeyW: 'thrust', Space: 'fire', KeyJ: 'fire' };
     document.addEventListener('keydown', e => {
         if (e.target.matches && e.target.matches('input, select, textarea')) return;
@@ -317,10 +397,21 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (e.code === 'ArrowDown') e.preventDefault();
     });
     document.addEventListener('keyup', e => { if (KEYMAP[e.code]) keys[KEYMAP[e.code]] = false; });
-    G.hold($('t-left'), () => { keys.left = true; }, () => { keys.left = false; });
-    G.hold($('t-right'), () => { keys.right = true; }, () => { keys.right = false; });
+    // Turn pad: one touch area for both turn buttons. The half under the thumb sets the direction, and sliding across
+    // switches it without lifting (each button alone would keep the press it started with).
+    const turnPad = $('t-turn'), turning = new Map();
+    function steer() {
+        const dirs = [...turning.values()];
+        keys.left = dirs.includes('l'); keys.right = dirs.includes('r');
+        $('t-left').classList.toggle('on', keys.left); $('t-right').classList.toggle('on', keys.right);
+    }
+    function turnAt(e) { const r = turnPad.getBoundingClientRect(); turning.set(e.pointerId, e.clientX < r.left + r.width / 2 ? 'l' : 'r'); steer(); }
+    turnPad.addEventListener('pointerdown', e => { e.preventDefault(); try { turnPad.setPointerCapture(e.pointerId); } catch (err) { /* gone */ } turnAt(e); });
+    turnPad.addEventListener('pointermove', e => { if (turning.has(e.pointerId)) turnAt(e); });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => turnPad.addEventListener(t, e => { if (turning.delete(e.pointerId)) steer(); }));
+    turnPad.addEventListener('contextmenu', e => e.preventDefault());
     G.hold($('t-thrust'), () => { keys.thrust = true; }, () => { keys.thrust = false; });
-    G.hold($('t-fire'), () => { if (state === 'play') keys.fire = true; else newGame(); }, () => { keys.fire = false; });
+    G.hold($('t-fire'), () => { if (state === 'play') keys.fire = true; else if (state === 'title' || !$('overlay').hidden) newGame(); }, () => { keys.fire = false; });
     G.hold($('t-hyper'), hyperspace, () => {});
     cv.addEventListener('pointerdown', e => { e.preventDefault(); if (state === 'play') fire(); });
     $('start').addEventListener('click', newGame);
@@ -328,15 +419,20 @@ document.addEventListener('DOMContentLoaded', () => {
     $('pause').addEventListener('click', () => { togglePause(); cv.focus({ preventScroll: true }); });
     G.soundButton($('sound'));
     document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !paused) togglePause(); });
-    window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+    window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; turning.clear(); steer(); });
 
     for (let i = 0; i < 6; i++) rocks.push(makeRock(1 + (i % 3), rand(0, W), rand(0, H)));   // drifting rocks behind the title screen
     hud();
-    G.loop(dt => { update(dt); draw(); });
+    G.loop(dt => {                     // a paused or (with reduced motion) idle field is drawn once, not every frame
+        update(dt);
+        if (!paused && (state === 'play' || !calm.matches || sparks.length || banner)) draw();
+        else if (dirty) draw();
+        dirty = false;
+    });
     window.__rocks = {
-        newGame, fire, hyperspace, keys, sim(sec) { for (let i = 0; i < Math.round(sec * 120); i++) update(1 / 120); },
-        get state() { return { state, score, lives, level, rocks: rocks.length, bullets: bullets.length, saucer: !!saucer, ship: { ...ship } }; },
-        get rocks() { return rocks; }, set rocksList(v) { rocks = v; }, makeRock, spawnSaucer, ship, setSaucerTimer(t) { saucerT = t; }
+        newGame, fire, hyperspace, keys, clearance, sim(sec, hz) { const h = 1 / (hz || 120); for (let i = 0; i < Math.round(sec / h); i++) update(h); },
+        get state() { return { state, paused, score, lives, level, waveTotal, remaining: remaining(), rocks: rocks.length, bullets: bullets.length, saucer: !!saucer, ship: { ...ship } }; },
+        get rocks() { return rocks; }, set rocksList(v) { rocks = v; }, get bullets() { return bullets; }, makeRock, spawnSaucer, ship, setSaucerTimer(t) { saucerT = t; }
     };
 });
 </script>

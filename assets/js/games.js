@@ -13,6 +13,9 @@
     var ac = null, noiseBuf = null;
     G.soundOn = G.get('games-sound', '1') !== '0';
     G.audio = function () {
+        // Only during a user activation: a touch press is not one yet (it becomes one on release), and a context made
+        // or resumed without it stays suspended and logs a warning. Browsers without userActivation just try.
+        if (navigator.userActivation && !navigator.userActivation.isActive) return;
         if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
         if (ac && ac.state === 'suspended') ac.resume();
     };
@@ -38,7 +41,8 @@
         btn.addEventListener('click', function () { G.soundOn = !G.soundOn; G.set('games-sound', G.soundOn ? '1' : '0'); G.audio(); label(); });
         label();
     };
-    ['keydown', 'pointerdown'].forEach(function (t) { document.addEventListener(t, function () { if (G.soundOn) G.audio(); }, true); });
+    // Unlock on the events that grant user activation: a key, a mouse press, or the release of a touch (not its press).
+    ['keydown', 'mousedown', 'pointerup', 'touchend'].forEach(function (t) { document.addEventListener(t, function () { if (G.soundOn) G.audio(); }, true); });
 
     // A canvas drawn in fixed logical units (w × h). Its box (the canvas's parent) is sized to the width of the
     // box's container and to at most maxVh of the viewport height. Call view.begin() before drawing each frame.
@@ -65,10 +69,16 @@
     };
 
     // requestAnimationFrame loop with a clamped time step (a background tab returns with one small step, not a jump).
+    // Returns { start, stop, running }: a game may stop the loop when nothing moves and start it again (optional).
     G.loop = function (step) {
-        var last = performance.now();
-        function frame(t) { step(Math.min(0.033, Math.max(0, (t - last) / 1000))); last = t; requestAnimationFrame(frame); }
-        requestAnimationFrame(frame);
+        var last = performance.now(), id = 0, on = false;
+        function frame(t) { id = 0; step(Math.min(0.033, Math.max(0, (t - last) / 1000))); last = t; if (on && !id) id = requestAnimationFrame(frame); }
+        var ctl = {
+            start: function () { if (!on) { on = true; last = performance.now(); if (!id) id = requestAnimationFrame(frame); } return ctl; },
+            stop: function () { on = false; if (id) cancelAnimationFrame(id); id = 0; return ctl; },
+            running: function () { return on; }
+        };
+        return ctl.start();
     };
 
     // Hold-to-press buttons for touch controls: down() on press, up() on release.

@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Brick Breaker: Free Brick-Breaking Arcade Game</title>
-<meta name="description" content="Play Brick Breaker free online: bounce the ball off your paddle to clear rainbow bricks, catch power-ups, and beat five layouts. Mouse, touch, or keys.">
+<meta name="description" content="Play Brick Breaker free online: bounce the ball off your paddle to clear rainbow bricks, catch power-ups, and beat ten layouts. Mouse, touch, or keys.">
 <link rel="canonical" href="https://cdfoley.com/games/brick-breaker/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Brick Breaker">
-<meta property="og:description" content="Play Brick Breaker free online: bounce the ball off your paddle to clear rainbow bricks, catch power-ups, and beat five layouts. Mouse, touch, or keys.">
+<meta property="og:description" content="Play Brick Breaker free online: bounce the ball off your paddle to clear rainbow bricks, catch power-ups, and beat ten layouts. Mouse, touch, or keys.">
 <meta property="og:url" content="https://cdfoley.com/games/brick-breaker/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-brick-breaker.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Brick Breaker Game: Play Brick Breaker free online: bounce the ball off your paddle to clear rainbow bricks, catch power-ups, and beat five layouts. Mouse, touch, or keys.">
+<meta property="og:image:alt" content="Brick Breaker Game: Play Brick Breaker free online: bounce the ball off your paddle to clear rainbow bricks, catch power-ups, and beat ten layouts. Mouse, touch, or keys.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -23,8 +23,10 @@
 <script src="/assets/js/site.js"></script>
 <script src="/assets/js/games.js"></script>
 <style>
-    /* Power-up legend drawn like the falling capsules in the game: the game colour with a dark letter (readable in both themes and in print) */
+    /* Power-up legend drawn like the falling capsules in the game: the game color with a dark letter (readable in both themes and in print) */
     .pu { display: inline-block; min-width: 2em; padding: 0 0.35em; border-radius: 999px; color: #0b1020; font-weight: 800; line-height: 1.35; text-align: center; }
+    .game-overlay.dark .toggle { color: #cbd5e1; }
+    .game-overlay select { padding: 0.35rem 0.5rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: 0.9rem; }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -34,7 +36,7 @@
    "@type": "VideoGame",
    "name": "Brick Breaker",
    "url": "https://cdfoley.com/games/brick-breaker/",
-   "description": "Play Brick Breaker free online: bounce the ball off your paddle to clear rainbow bricks, catch power-ups, and beat five layouts. Mouse, touch, or keys.",
+   "description": "Play Brick Breaker free online: bounce the ball off your paddle to clear rainbow bricks, catch power-ups, and beat ten layouts. Mouse, touch, or keys.",
    "genre": "Arcade",
    "gamePlatform": "Web browser",
    "playMode": "SinglePlayer",
@@ -105,12 +107,15 @@
                 <div class="game-overlay dark" id="overlay">
                     <h2 id="ov-title">Brick Breaker</h2>
                     <p id="ov-text">Move with the mouse, a finger, or <kbd>←</kbd> <kbd>→</kbd>. Click, tap, or press <kbd>Space</kbd> to launch.</p>
+                    <label class="toggle" id="start-at-wrap" hidden>Start at <select id="start-at" aria-label="Starting level"></select></label>
                     <button class="btn btn-primary" type="button" id="start">Start</button>
                 </div>
             </div>
         </div>
+        <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
+        <p class="game-help"><strong>How to play:</strong> keep the photon in play and break every brick to clear the level. You have three lives; a photon that falls past the mirror costs one. Clearing a level earns a bonus of 500 points times the level number.</p>
         <p class="game-help"><strong>Controls:</strong> move the paddle with the mouse, by dragging on the playfield, or with <kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd>. Click, tap, or press <kbd>Space</kbd> to launch; <kbd>P</kbd> pauses. Where the photon hits the paddle sets its angle. Bricks with a white outline take two hits.</p>
-        <p class="game-help"><strong>Power-ups:</strong> <b class="pu" style="background:#a78bfa">W</b> widens the mirror, <b class="pu" style="background:#22d3ee">M</b> splits every photon into three, <b class="pu" style="background:#facc15">S</b> slows the photons, and <b class="pu" style="background:#f472b6">+</b> adds a life. After five layouts the cycle repeats, faster.</p>
+        <p class="game-help"><strong>Power-ups:</strong> <b class="pu" style="background:#a78bfa">W</b> widens the mirror, <b class="pu" style="background:#22d3ee">M</b> splits every photon into three, <b class="pu" style="background:#facc15">S</b> slows the photons, and <b class="pu" style="background:#f472b6">+</b> adds a life. After ten layouts the cycle repeats, faster. Once you reach a level, you can start a later game there from the start screen.</p>
     </div>
 </main>
 
@@ -124,36 +129,62 @@ document.addEventListener('DOMContentLoaded', () => {
     const SPECTRUM = [   // top row first: violet (short wavelength, most energy, most points) down to red
         { c: '#8b5cf6', pts: 70 }, { c: '#3b82f6', pts: 60 }, { c: '#06b6d4', pts: 50 }, { c: '#22c55e', pts: 40 },
         { c: '#facc15', pts: 30 }, { c: '#f97316', pts: 20 }, { c: '#ef4444', pts: 10 }];
-    const LEVELS = [
-        ['1111111111', '1111111111', '1111111111', '1111111111', '1111111111', '1111111111', '1111111111'],
-        ['....11....', '...1111...', '..111111..', '.11111111.', '1111111111', '2222222222'],
-        ['2.2.2.2.2.', '.1.1.1.1.1', '2.2.2.2.2.', '.1.1.1.1.1', '2.2.2.2.2.', '.1.1.1.1.1'],
-        ['..222222..', '.21111112.', '2111111112', '2111111112', '.21111112.', '..222222..'],
-        ['1111111111', '..........', '2222222222', '..........', '1111111111', '2222222222', '1111111111']
+    const LEVELS = [   // 10 columns each; '1' takes one hit, '2' two, '.' is empty
+        { name: 'Full spectrum', rows: ['1111111111', '1111111111', '1111111111', '1111111111', '1111111111', '1111111111', '1111111111'] },
+        { name: 'Pyramid', rows: ['....11....', '...1111...', '..111111..', '.11111111.', '1111111111', '2222222222'] },
+        { name: 'Lattice', rows: ['2.2.2.2.2.', '.1.1.1.1.1', '2.2.2.2.2.', '.1.1.1.1.1', '2.2.2.2.2.', '.1.1.1.1.1'] },
+        { name: 'Ring', rows: ['..222222..', '.21111112.', '2111111112', '2111111112', '.21111112.', '..222222..'] },
+        { name: 'Bands', rows: ['1111111111', '..........', '2222222222', '..........', '1111111111', '2222222222', '1111111111'] },
+        { name: 'Grating', rows: ['2.2.22.2.2', '1.1.11.1.1', '1.1.11.1.1', '1.1.11.1.1', '1.1.11.1.1', '2222222222'] },
+        { name: 'Chevron', rows: ['2........2', '12......21', '112....211', '.112..211.', '..112211..', '...1111...', '....22....'] },
+        { name: 'Cavity', rows: ['2222222222', '1........1', '1.111111.1', '1.122221.1', '1.111111.1', '1........1', '2222222222'] },
+        { name: 'Double slit', rows: ['1111111111', '1111111111', '1111111111', '1111111111', '..........', '..........', '222.22.222'] },
+        { name: 'Full stack', rows: ['2222222222', '1111111111', '2111111112', '1111111111', '2111111112', '1111111111', '2222222222', '1111111111'] }
     ];
     const POWER = { wide: { label: 'W', c: '#a78bfa' }, multi: { label: 'M', c: '#22d3ee' }, slow: { label: 'S', c: '#facc15' }, life: { label: '+', c: '#f472b6' } };
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)');   // reduced motion: no particle bursts
     let clock = 0, lastBrick = 0, score = 0, lives = 3, level = 0, bricks = [], balls = [], drops = [], sparks = [], state = 'title', paused = false;
-    let wideT = 0, slowT = 0, banner = null, aim = null, best = +G.get('breaker-best', 0) || 0;
+    let wideT = 0, slowT = 0, banner = null, aim = null, best = +G.get('breaker-best', 0) || 0, dirty = true;
+    let reached = Math.max(1, Math.min(99, Math.floor(+G.get('breaker-reached', 1)) || 1));   // highest level (1-based) started
     const keys = { l: false, r: false }, paddle = { x: W / 2, y: H - 44, w: 84, h: 12 };
 
-    const baseSpeed = () => Math.min(560, 310 + level * 22), maxSpeed = () => baseSpeed() * 1.6;
+    const baseSpeed = () => Math.min(560, 310 + level * 20), maxSpeed = () => baseSpeed() * 1.6;
+    const announce = text => { $('sr').textContent = text; };
     function newBall() { return { x: paddle.x, y: paddle.y - paddle.h / 2 - 8, vx: 0, vy: 0, r: 7, sp: baseSpeed(), stuck: true }; }
     function buildLevel() {
-        const L = LEVELS[level % LEVELS.length];
+        const L = LEVELS[level % LEVELS.length].rows;
         bricks = [];
         L.forEach((row, r) => [...row].forEach((ch, c) => {
             if (ch === '.') return;
             const s = SPECTRUM[Math.round(r * (SPECTRUM.length - 1) / Math.max(1, L.length - 1))];
             bricks.push({ x: 16 + c * (BW + 4), y: TOP + r * (BH + 4), w: BW, h: BH, hp: +ch, c: s.c, pts: s.pts * +ch, flash: 0 });
         }));
-        drops = []; balls = [newBall()]; wideT = 0; slowT = 0;
-        banner = { text: 'Level ' + (level + 1), t: 1.8 };
+        drops = []; balls = [newBall()]; wideT = 0; slowT = 0; lastBrick = clock;
+        const name = 'Level ' + (level + 1) + ': ' + LEVELS[level % LEVELS.length].name;
+        banner = { text: 'Level ' + (level + 1), sub: LEVELS[level % LEVELS.length].name, t: 1.8 };
+        if (state === 'play') announce(name + '. ' + lives + (lives === 1 ? ' life' : ' lives') + '. Press Space or tap to launch.');
+        if (state === 'play' && level + 1 > reached) { reached = level + 1; G.set('breaker-reached', reached); fillStartAt(); }
+    }
+    function fillStartAt() {          // level select: any level already reached
+        const sel = $('start-at'), keep = +sel.value || 1;
+        sel.innerHTML = '';
+        for (let i = 1; i <= reached; i++) sel.add(new Option('Level ' + i + ' (' + LEVELS[(i - 1) % LEVELS.length].name + ')', i));
+        sel.value = Math.min(keep, reached);
+        $('start-at-wrap').hidden = reached < 2;
     }
     function newGame() {
         G.audio();
-        score = 0; lives = 3; level = 0; paddle.x = W / 2; paddle.w = 84; sparks = [];
-        buildLevel(); state = 'play'; paused = false; $('overlay').hidden = true; $('pause').textContent = 'Pause'; hud();
-        cv.focus({ preventScroll: true });
+        if (state === 'play' && score > best) { best = score; G.set('breaker-best', best); }   // a game abandoned for a new one still counts
+        const start = $('start-at-wrap').hidden ? 1 : Math.max(1, Math.min(reached, +$('start-at').value || 1));
+        score = 0; lives = 3; level = start - 1; paddle.x = W / 2; paddle.w = 84; sparks = []; aim = null;
+        state = 'play'; paused = false; buildLevel(); $('overlay').hidden = true; $('pause').textContent = 'Pause'; hud();
+        dirty = true; cv.focus({ preventScroll: true }); showStage();
+    }
+    function showStage() {             // starting a game brings the whole playfield into view, below the sticky header
+        const hd = document.querySelector('.site-header'), head = (hd ? hd.getBoundingClientRect().bottom : 0) + 8, r = cv.getBoundingClientRect();
+        let d = r.bottom > innerHeight - 8 ? r.bottom - innerHeight + 8 : 0;
+        if (r.top - d < head) d = r.top - head;
+        if (Math.abs(d) > 2) window.scrollBy(0, d);
     }
     function launch() {
         if (state !== 'play' || paused) return;
@@ -163,15 +194,15 @@ document.addEventListener('DOMContentLoaded', () => {
             G.tone(520, 780, 0.08, 'square', 0.03);
         }
     }
-    const say = text => { banner = { text, t: 1.4 }; };
+    const say = text => { banner = { text, t: 1.4 }; announce(text); };
     function hud() {
         $('score').textContent = G.fmt(score); $('lives').textContent = lives; $('level').textContent = level + 1;
         $('best').textContent = G.fmt(Math.max(best, score));
     }
 
     function update(dt) {
-        clock += dt;
         if (state !== 'play' || paused) return;
+        clock += dt;                           // play time only, so a long pause does not count as "no brick broken for a while"
         if (banner && (banner.t -= dt) <= 0) banner = null;
         wideT = Math.max(0, wideT - dt); slowT = Math.max(0, slowT - dt);
         paddle.w += ((wideT > 0 ? 132 : 84) - paddle.w) * Math.min(1, dt * 10);
@@ -203,8 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (b.x > W - b.r) { b.x = W - b.r; b.vx = -Math.abs(b.vx); G.tone(220, 220, 0.03, 'triangle', 0.02); }
         if (b.y < b.r) { b.y = b.r; b.vy = Math.abs(b.vy); G.tone(220, 220, 0.03, 'triangle', 0.02); }
         if (b.y > H + b.r) { b.dead = true; return; }
-        const p = paddle;
-        if (b.vy > 0 && b.y + b.r >= p.y - p.h / 2 && b.y - b.r <= p.y + p.h / 2 && Math.abs(b.x - p.x) <= p.w / 2 + b.r) {
+        const p = paddle;   // b.y <= p.y: a photon already past the mirror's center line is lost, even if the mirror swipes into it
+        if (b.vy > 0 && b.y + b.r >= p.y - p.h / 2 && b.y <= p.y && Math.abs(b.x - p.x) <= p.w / 2 + b.r) {
             const off = Math.max(-1, Math.min(1, (b.x - p.x) / (p.w / 2)));
             let a = off * 1.05 + (Math.random() - 0.5) * 0.08;                // up to 60° from vertical, set by where it hits
             if (clock - lastBrick > 8) a += (Math.random() - 0.5) * 0.9;        // no brick broken for a while: break up the pattern
@@ -220,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const cx = Math.max(kb.x, Math.min(b.x, kb.x + kb.w)), cy = Math.max(kb.y, Math.min(b.y, kb.y + kb.h));
             let dx = b.x - cx, dy = b.y - cy;
             if (dx * dx + dy * dy > b.r * b.r) continue;
-            if (dx === 0 && dy === 0) {           // centre inside the brick: leave by the nearest face
+            if (dx === 0 && dy === 0) {           // center inside the brick: leave by the nearest face
                 const l = b.x - kb.x, r = kb.x + kb.w - b.x, t = b.y - kb.y, bt = kb.y + kb.h - b.y, m = Math.min(l, r, t, bt);
                 if (m === l) dx = -1; else if (m === r) dx = 1; else if (m === t) dy = -1; else dy = 1;
             }
@@ -234,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
         kb.hp--; kb.flash = 0.12; lastBrick = clock;
         if (kb.hp > 0) { G.tone(900, 700, 0.05, 'triangle', 0.03); return; }
         score += kb.pts; hud();
-        for (let i = 0; i < 10; i++) sparks.push({ x: kb.x + kb.w / 2, y: kb.y + kb.h / 2, vx: (Math.random() - 0.5) * 260, vy: (Math.random() - 0.8) * 200, t: 0.5 + Math.random() * 0.3, c: kb.c });
+        if (!calm.matches) for (let i = 0; i < 10; i++) sparks.push({ x: kb.x + kb.w / 2, y: kb.y + kb.h / 2, vx: (Math.random() - 0.5) * 260, vy: (Math.random() - 0.8) * 200, t: 0.5 + Math.random() * 0.3, c: kb.c });
         G.tone(600 + Math.random() * 300, 1000, 0.06, 'square', 0.025);
         if (Math.random() < 0.12) { const r = Math.random(); drops.push({ x: kb.x + kb.w / 2, y: kb.y + kb.h / 2, type: r < 0.35 ? 'wide' : r < 0.65 ? 'multi' : r < 0.93 ? 'slow' : 'life' }); }
     }
@@ -255,19 +286,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function loseLife() {
         lives--; wideT = 0; slowT = 0; drops = []; G.tone(300, 80, 0.5, 'sawtooth', 0.04);
         if (lives <= 0) { hud(); return gameOver(); }
-        balls = [newBall()]; say('Photon lost'); hud();
+        balls = [newBall()]; say('Photon lost'); announce('Photon lost. ' + lives + (lives === 1 ? ' life' : ' lives') + ' left.'); hud();
     }
     function levelClear() {
         level++; score += 500 * level; G.tone(523, 1046, 0.3, 'square', 0.04);
         buildLevel(); hud();
     }
     function gameOver() {
-        state = 'over';
+        state = 'over'; sparks = []; drops = [];
         const record = score > best;
         if (record) { best = score; G.set('breaker-best', best); }
         $('ov-title').textContent = 'Game over';
         $('ov-text').textContent = 'Score ' + G.fmt(score) + ' on level ' + (level + 1) + (record && score ? ' — a new best!' : '. Best ' + G.fmt(best) + '.');
-        $('start').textContent = 'Play again'; $('overlay').hidden = false; hud();
+        announce($('ov-text').textContent);
+        fillStartAt(); $('start').textContent = 'Play again'; $('overlay').hidden = false; hud(); dirty = true;
+        $('start').focus({ preventScroll: true });
     }
 
     function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
@@ -275,9 +308,10 @@ document.addEventListener('DOMContentLoaded', () => {
         view.begin();
         const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0d1130'); g.addColorStop(1, '#05070f');
         ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-        ctx.strokeStyle = 'rgba(148,163,184,.06)'; ctx.lineWidth = 1;
-        for (let x = 40; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-        for (let y = 40; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+        ctx.strokeStyle = 'rgba(148,163,184,.06)'; ctx.lineWidth = 1; ctx.beginPath();   // background grid, one path
+        for (let x = 40; x < W; x += 40) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+        for (let y = 40; y < H; y += 40) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+        ctx.stroke();
         for (const kb of bricks) {
             if (kb.hp <= 0) continue;
             ctx.fillStyle = kb.flash > 0 ? '#ffffff' : kb.c; rr(kb.x, kb.y, kb.w, kb.h, 4); ctx.fill();
@@ -301,16 +335,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (banner) {
             ctx.globalAlpha = Math.min(1, banner.t * 2); ctx.fillStyle = '#f5f3ff'; ctx.font = '800 30px Inter, system-ui, sans-serif';
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(banner.text, W / 2, H * 0.58); ctx.globalAlpha = 1;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(banner.text, W / 2, H * 0.58);
+            if (banner.sub) { ctx.font = '600 18px Inter, system-ui, sans-serif'; ctx.fillStyle = '#c4b5fd'; ctx.fillText(banner.sub, W / 2, H * 0.58 + 32); }
+            ctx.globalAlpha = 1;
         }
         if (state === 'play' && balls.some(b => b.stuck) && !paused) {
             ctx.fillStyle = 'rgba(226,232,240,.7)'; ctx.font = '600 14px Inter, system-ui, sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText('Click, tap, or press Space to launch', W / 2, H * 0.66);
+            ctx.fillText('Click, tap, or press Space to launch', W / 2, H * 0.58 + 66);
         }
         if (paused) { ctx.fillStyle = 'rgba(5,7,15,.6)'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#f5f3ff'; ctx.font = '800 34px Inter, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('Paused', W / 2, H / 2); }
     }
 
-    function togglePause() { if (state !== 'play') return; paused = !paused; $('pause').textContent = paused ? 'Resume' : 'Pause'; }
+    function togglePause() {
+        if (state !== 'play') return;
+        paused = !paused; dirty = true; $('pause').textContent = paused ? 'Resume' : 'Pause'; announce(paused ? 'Paused' : 'Resumed');
+    }
     document.addEventListener('keydown', e => {
         if (e.target.matches && e.target.matches('input, select, textarea')) return;
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') { keys.l = true; e.preventDefault(); }
@@ -323,7 +362,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.r = false;
     });
     cv.addEventListener('pointermove', e => { aim = view.point(e).x; });
-    cv.addEventListener('pointerdown', e => { e.preventDefault(); aim = view.point(e).x; if (state === 'play') launch(); });
+    cv.addEventListener('pointerdown', e => {          // capture: a drag that leaves the playfield keeps steering
+        e.preventDefault(); aim = view.point(e).x; try { cv.setPointerCapture(e.pointerId); } catch (err) { /* pointer already gone */ }
+        if (state === 'play') launch();
+    });
     $('start').addEventListener('click', newGame);
     $('new').addEventListener('click', newGame);
     $('pause').addEventListener('click', () => { togglePause(); cv.focus({ preventScroll: true }); });
@@ -331,12 +373,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !paused) togglePause(); });
     window.addEventListener('blur', () => { keys.l = keys.r = false; });
 
-    buildLevel(); balls = []; banner = null; hud();
-    G.loop(dt => { update(dt); draw(); });
+    buildLevel(); balls = []; banner = null; fillStartAt(); hud();
+    G.loop(dt => {                     // draw only while something moves: no work behind the start, pause, or game-over screens
+        update(dt);
+        if ((state === 'play' && !paused) || dirty) { draw(); dirty = false; }
+    });
     window.__breaker = {
-        newGame, launch, power, sim(sec) { for (let i = 0; i < Math.round(sec * 120); i++) update(1 / 120); },
-        aim(x) { aim = x; }, clear() { bricks.forEach(kb => { kb.hp = 0; }); },
-        get state() { return { state, score, lives, level, bricks: bricks.filter(kb => kb.hp > 0).length, balls: balls.length, wideT, slowT, paddleW: paddle.w }; },
+        newGame, launch, power, sim(sec, hz) { const h = 1 / (hz || 120); for (let i = 0; i < Math.round(sec / h); i++) update(h); },
+        aim(x) { aim = x; }, clear() { bricks.forEach(kb => { kb.hp = 0; }); }, LEVELS,
+        get state() { return { state, score, lives, level, reached, paused, bricks: bricks.filter(kb => kb.hp > 0).length, balls: balls.length, wideT, slowT, paddleW: paddle.w, paddleX: paddle.x }; },
         get balls() { return balls; }, get bricks() { return bricks; }
     };
 });

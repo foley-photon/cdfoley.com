@@ -21,11 +21,13 @@
 <link rel="stylesheet" href="/assets/css/site.css">
 <link rel="stylesheet" href="/assets/css/games.css">
 <script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
 <style>
     .pb { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 1rem; align-items: start; max-width: 940px; margin: 0 auto; }
     .pb-stage { position: relative; }
     #table { display: block; margin: 0 auto; border-radius: var(--radius-lg); background: #04060d; touch-action: none; outline: none; user-select: none; -webkit-user-select: none; }
-    .pb-overlay { background: rgba(4, 6, 13, .72); color: #e2e8f0; backdrop-filter: none; }
+    #table:focus-visible { outline: 2px solid #a78bfa; outline-offset: 3px; }
+    .pb-overlay { background: rgba(4, 6, 13, .72); color: #e2e8f0; backdrop-filter: none; left: 50%; right: auto; width: var(--cw, 100%); transform: translateX(-50%); }
     .pb-overlay p { color: #cbd5e1; }
     .pb-overlay h2 { color: #f5f3ff; }
     .pb-hud { background: #0a0d1c; color: #e2e8f0; border: 1px solid #3b0764; border-radius: var(--radius-lg); padding: 1rem; display: grid; gap: 0.8rem; box-shadow: inset 0 0 30px rgba(124, 58, 237, .18); }
@@ -41,6 +43,17 @@
     .pb-btns { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .pb-btns button { flex: 1 1 auto; font: 600 0.8rem var(--font); padding: 0.45rem 0.6rem; border-radius: 8px; border: 1px solid #4c1d95; background: #160f2e; color: #e9d5ff; cursor: pointer; }
     .pb-btns button:hover { background: #2e1065; }
+    .pb-btns button[aria-pressed="true"] { background: #4c1d95; color: #fff; }
+    .pb-ov-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
+    .pb-ov-note { font-size: 0.85rem; }
+    .pb-rules { justify-content: flex-start; overflow-y: auto; gap: 0.5rem; background: rgba(4, 6, 13, .94); }
+    .pb-rules ol { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 22rem; text-align: left; font-size: 0.86rem; color: #cbd5e1; }
+    .pb-rules li { display: grid; grid-template-columns: 1.3rem 4.4rem 1fr; gap: 0.3rem; padding: 0.22rem 0; border-bottom: 1px solid #2e1065; }
+    .pb-rules li b { color: #f0abfc; font-weight: 700; }
+    .pb-rules li.now { color: #fff; }
+    .pb-rules li.now b { color: #22d3ee; }
+    .pb-rules li.done { color: #94a3b8; }
+    .pb-rules .pb-ov-note { max-width: 22rem; text-align: left; }
     .pb-touch { display: none; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-top: 0.6rem; }
     .pb-touch button { height: 64px; border-radius: 14px; border: 1px solid #4c1d95; background: #160f2e; color: #e9d5ff; font: 700 1rem var(--font); touch-action: none; user-select: none; -webkit-user-select: none; }
     .pb-touch button:active, .pb-touch button.on { background: #6d28d9; color: #fff; }
@@ -126,7 +139,17 @@
             <div class="game-overlay pb-overlay" id="overlay">
                 <h2 id="ov-title">Orbit Pinball</h2>
                 <p id="ov-text">Press <strong>Space</strong> or tap <strong>Launch</strong> to start.</p>
-                <button class="btn btn-primary" type="button" id="start">Start</button>
+                <div class="pb-ov-btns">
+                    <button class="btn btn-primary" type="button" id="start">Start</button>
+                    <button class="btn btn-secondary" type="button" id="practice">Practice</button>
+                </div>
+                <p class="pb-ov-note">Practice: unlimited balls, no high score.</p>
+            </div>
+            <div class="game-overlay pb-overlay pb-rules" id="rules" role="dialog" aria-modal="true" aria-labelledby="rules-title" hidden>
+                <h2 id="rules-title">Missions</h2>
+                <ol id="rules-list"></ol>
+                <p class="pb-ov-note">Bumpers, slings, targets, and lanes add to the end-of-ball bonus; the top lanes multiply it. The shield light returns a drained ball.</p>
+                <button class="btn btn-primary" type="button" id="rules-close">Back to the table</button>
             </div>
             <div class="pb-touch">
                 <button type="button" id="t-left" aria-label="Left flipper">◀ Flip</button>
@@ -136,18 +159,18 @@
         </div>
         <aside class="pb-hud" aria-label="Scoreboard">
             <div class="pb-score" id="score">0</div>
-            <div class="pb-row"><span>Ball <b id="ball">–</b> of 3</span><span>Bonus ×<b id="mult">1</b></span></div>
+            <div class="pb-row"><span>Ball <b id="ball">–</b> <span id="of">of 3</span></span><span>Bonus ×<b id="mult">1</b></span></div>
             <div class="pb-mission"><div class="pb-label">Mission</div><div id="mission">Moon</div><div id="goal">Hit the pop bumpers</div></div>
             <div class="pb-msg" id="msg" aria-live="polite"></div>
             <div class="pb-best">High score <b id="best">0</b></div>
-            <div class="pb-btns"><button type="button" id="new">New game</button><button type="button" id="pause">Pause</button><button type="button" id="sound">Sound on</button></div>
+            <div class="pb-btns"><button type="button" id="new">New game</button><button type="button" id="pause">Pause</button><button type="button" id="rules-open" aria-haspopup="dialog">Missions</button><button type="button" id="sound">Sound on</button></div>
         </aside>
     </div>
 
     <section class="game-help" style="max-width:940px;margin:1.6rem auto 0">
         <h2 style="font-size:1.2rem;color:var(--text)">How to play</h2>
-        <p><strong>Flippers:</strong> <kbd>Z</kbd>, <kbd>←</kbd>, or <kbd>Left Shift</kbd> for the left; <kbd>/</kbd>, <kbd>→</kbd>, or <kbd>Right Shift</kbd> for the right. On a touch screen, tap the left or right half of the table, or use the buttons. <strong>Launch:</strong> hold <kbd>Space</kbd> or <kbd>↓</kbd> (or the Launch button) to pull the plunger back and release to fire; the longer you hold, the harder the shot. <kbd>P</kbd> pauses.</p>
-        <p><strong>Shield:</strong> for the first 10 seconds after a launch, a drained ball is sent back. <strong>Top lanes:</strong> roll through all three to raise the end-of-ball bonus multiplier (up to 5×); the flippers shift which lanes are lit. <strong>Wormhole:</strong> the hole on the right captures the ball and fires it back toward the bumpers. Reaching Jupiter and Pluto starts a two-ball multiball.</p>
+        <p><strong>Flippers:</strong> <kbd>Z</kbd>, <kbd>←</kbd>, or <kbd>Left Shift</kbd> for the left; <kbd>/</kbd>, <kbd>→</kbd>, or <kbd>Right Shift</kbd> for the right. On a touch screen, tap the left or right half of the table, or use the buttons. <strong>Launch:</strong> hold <kbd>Space</kbd> or <kbd>↓</kbd> (or the Launch button) to pull the plunger back and release to fire; the longer you hold, the harder the shot. <strong>Nudge:</strong> <kbd>↑</kbd> or <kbd>N</kbd> shoves the table; nudge too often and it tilts, the flippers go dead, and the ball’s bonus is lost. <kbd>P</kbd> or <kbd>Esc</kbd> pauses; on a touch screen, tap the paused table to resume.</p>
+        <p><strong>Shield:</strong> for the first 10 seconds after a launch, a drained ball is sent back once; while the shield light glows after a multiball starts (12 seconds), every drained ball comes back. <strong>Top lanes:</strong> roll through all three to raise the end-of-ball bonus multiplier (up to 5×); the flippers shift which lanes are lit. <strong>Wormhole:</strong> the hole on the right captures the ball and fires it back toward the bumpers. Reaching Jupiter and Pluto starts a two-ball multiball. The <strong>Missions</strong> button shows the tour and your progress, and <strong>Practice</strong> gives unlimited balls (no high score).</p>
         <table class="mission-table">
             <thead><tr><th>Planet</th><th>Mission</th></tr></thead>
             <tbody id="mission-list"></tbody>
@@ -161,8 +184,9 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     'use strict';
-    const $ = id => document.getElementById(id);
+    const $ = id => document.getElementById(id), GM = window.Games;
     const cv = $('table'), ctx = cv.getContext('2d'), stage = $('stage');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)'), coarse = window.matchMedia('(pointer: coarse)');
 
     // ── Table geometry, in table units: x to the right, y toward the player, z up ──────────
     const TL = 1010, G = 1150, BR = 11, PLY = 968, VMAX = 3000;
@@ -216,28 +240,42 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Jupiter', goal: 'wormhole', n: 1, multiball: true }, { name: 'Saturn', goal: 'lanes', n: 1 }, { name: 'Uranus', goal: 'bumpers', n: 20 },
         { name: 'Neptune', goal: 'drops', n: 2 }, { name: 'Pluto', goal: 'wormhole', n: 2, multiball: true }
     ];
-    $('mission-list').innerHTML = PLANETS.map(p => '<tr><td>' + p.name + '</td><td>' + GOALS[p.goal] + (p.n > 1 ? ' (' + p.n + (p.goal === 'drops' ? ' banks' : p.goal === 'wormhole' ? ' times' : ' hits') + ')' : '') + (p.multiball ? ' · starts multiball' : '') + '</td></tr>').join('');
+    const goalText = (p, n) => GOALS[p.goal] + (n > 1 ? ' (' + n + (p.goal === 'drops' ? ' banks' : p.goal === 'wormhole' ? ' times' : ' hits') + ')' : '');
+    $('mission-list').innerHTML = PLANETS.map(p => '<tr><td>' + p.name + '</td><td>' + goalText(p, p.n) + (p.multiball ? ' · starts multiball' : '') + '</td></tr>').join('');
 
     // ── Game state ──────────────────────────────────────────────────────────────────────────
     let balls = [], state = 'attract', paused = false, time = 0, score = 0, ballNo = 0, mult = 1, bonus = 0;
     let missionIdx = 0, missionCount = 0, shieldUntil = 0, multiShield = false, armShield = false, dropResetAt = 0, autoLaunchAt = 0, nextBallAt = 0;
-    let msgUntil = 0, hudDirty = true, best = 0;
-    const plunger = { pull: 0, held: false };
-    try { best = +localStorage.getItem('pinball-best') || 0; } catch (e) { /* storage unavailable */ }
+    let msgUntil = 0, hudDirty = true, redraw = true, practice = false, tilt = 0, tilted = false, nudgeCd = 0;
+    let best = +GM.get('pinball-best', 0) || 0;
+    const plunger = { pull: 0, held: false }, timers = [];
 
     const mission = () => { const p = PLANETS[missionIdx % PLANETS.length], lap = Math.floor(missionIdx / PLANETS.length); return Object.assign({}, p, { n: p.n * (lap + 1), lap }); };
-    const fmt = n => Math.round(n).toLocaleString('en-US');
-    function say(text, secs) { $('msg').textContent = text; msgUntil = time + (secs || 2.5); }
+    const fmt = GM.fmt;
+    // say(text, secs): a status line, read out by screen readers; secs = 0 keeps it until the next message
+    function say(text, secs) { $('msg').textContent = text; msgUntil = secs === 0 ? 0 : time + (secs || 2.5); redraw = true; }
     function add(points, b) { score += points; bonus += b || 0; hudDirty = true; }
+    function later(secs, fn) { timers.push({ at: time + secs, fn }); }     // game-time timers: they wait while the game is paused
     function newBall() { return { x: 520, y: PLY - BR - 0.5, vx: 0, vy: 0, held: 0, launched: false, still: 0, flipT: -1, ejectCd: 0, py: PLY }; }
+    const launchHint = () => coarse.matches ? 'hold Launch and release to fire' : 'hold Space and release to fire';
 
-    function newGame() {
-        audio();
+    function newGame(mode) {
+        GM.audio();
+        if (mode !== undefined) practice = !!mode;
         balls = []; score = 0; ballNo = 1; mult = 1; bonus = 0; missionIdx = 0; missionCount = 0; shieldUntil = 0; multiShield = false;
-        lanes.forEach(l => { l.lit = false; }); drops.forEach(d => { d.up = true; }); dropResetAt = 0; autoLaunchAt = 0;
-        serve(false); state = 'play'; paused = false; $('pause').textContent = 'Pause'; $('overlay').hidden = true; hudDirty = true;
-        say('Ball 1: hold Launch and release to fire.', 4); cv.focus({ preventScroll: true });
+        lanes.forEach(l => { l.lit = false; }); drops.forEach(d => { d.up = true; }); dropResetAt = 0; autoLaunchAt = 0; timers.length = 0;
+        tilt = 0; tilted = false; plunger.pull = 0; plunger.held = false;
+        serve(false); state = 'play'; paused = false; $('pause').textContent = 'Pause'; $('pause').setAttribute('aria-pressed', 'false');
+        $('overlay').hidden = true; hudDirty = true;
+        say((practice ? 'Practice, unlimited balls: ' : 'Ball 1: ') + launchHint() + '.', 4);
+        cv.focus({ preventScroll: true }); showTable();
     }
+    // Bring the whole table into view when a game starts (the page scrolls only if part of it is hidden)
+    function showTable() {
+        const r = stage.getBoundingClientRect(), top = headerH() + 8;
+        if (r.top < top - 1 || r.bottom > window.innerHeight + 1) stage.scrollIntoView({ block: 'start' });
+    }
+    function headerH() { return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 60; }
     function serve(auto) { balls.push(newBall()); armShield = !auto; if (auto) autoLaunchAt = time + 0.6; }
     function fire(pull) {
         let fired = false;
@@ -252,40 +290,54 @@ document.addEventListener('DOMContentLoaded', () => {
             const award = 25000 * (missionIdx + 1);
             add(award, 5000);
             say(m.name + (m.lap ? ' (lap ' + (m.lap + 1) + ')' : '') + ' reached! +' + fmt(award), 3.5);
-            [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, f, 0.12, 'square', 0.035), i * 90));
+            [523, 659, 784, 1046].forEach((f, i) => later(i * 0.09, () => tone(f, f, 0.12, 'square', 0.035)));
             missionIdx++; missionCount = 0;
             if (m.multiball) startMultiball();
         }
     }
     function startMultiball() {
         serve(true); shieldUntil = time + 12; multiShield = true;
-        setTimeout(() => say('Gravity assist: multiball!', 3), 1200);
+        later(1.2, () => say('Gravity assist: multiball! Shield on for 12 seconds.', 3));
     }
     function drained(b) {
         balls.splice(balls.indexOf(b), 1);
-        if (time < shieldUntil) {
+        if (time < shieldUntil && !tilted) {
             serve(true); say('Shield saved the ball!', 2.5); tone(880, 440, 0.25, 'triangle', 0.04);
             if (!multiShield) shieldUntil = 0;
             return;
         }
         if (balls.length) { if (balls.length === 1) say('Multiball over.', 2); return; }
         tone(400, 70, 0.7, 'sawtooth', 0.04);
-        const total = bonus * mult;
-        add(total); say('Bonus ' + fmt(bonus) + ' × ' + mult + ' = ' + fmt(total), 3);
+        shieldUntil = 0; multiShield = false; autoLaunchAt = 0;
+        if (tilted) { say('Tilt: no bonus for this ball.', 3); bonus = 0; }
+        else { const total = bonus * mult; add(total); say('Bonus ' + fmt(bonus) + ' × ' + mult + ' = ' + fmt(total), 3); }
         state = 'bonus'; nextBallAt = time + 2.2;
     }
     function nextBall() {
-        ballNo++; bonus = 0; mult = 1; hudDirty = true;
-        if (ballNo > 3) return gameOver();
+        ballNo++; bonus = 0; mult = 1; tilt = 0; tilted = false; hudDirty = true;
+        if (ballNo > 3 && !practice) return gameOver();
         state = 'play'; serve(false); say('Ball ' + ballNo + '.', 2.5);
     }
     function gameOver() {
-        state = 'over'; ballNo = 3;
+        state = 'over'; ballNo = 3; plunger.held = false; plunger.pull = 0; timers.length = 0;
         const record = score > best;
-        if (record) { best = score; try { localStorage.setItem('pinball-best', best); } catch (e) { /* ignore */ } }
-        $('ov-title').textContent = 'Game over';
-        $('ov-text').textContent = 'Score ' + fmt(score) + (record && score ? ' — a new high score!' : '. High score ' + fmt(best) + '.') + ' Planets reached: ' + missionIdx + '.';
+        if (record) { best = score; GM.set('pinball-best', best); }
+        const text = 'Score ' + fmt(score) + (record && score ? ': a new high score!' : '. High score ' + fmt(best) + '.') + ' Planets reached: ' + missionIdx + '.';
+        $('ov-title').textContent = 'Game over'; $('ov-text').textContent = text;
         $('start').textContent = 'Play again'; $('overlay').hidden = false; hudDirty = true;
+        say('Game over. ' + text, 0);
+        if (document.activeElement === cv) $('start').focus({ preventScroll: true });
+    }
+    // Nudge: shove the table. Nudging too often in a short time tilts it: the flippers go dead until the ball drains.
+    function nudge() {
+        if (state !== 'play' || paused || tilted || nudgeCd > 0) return;
+        nudgeCd = 0.25; tilt += 1; redraw = true;
+        for (const b of balls) if (!b.held && !(b.x > 500 && b.y > 330)) { b.vy -= 150; b.vx += (Math.random() - 0.5) * 140; b.still = 0; }
+        GM.noise(0.12, 0.08, 400);
+        if (tilt > 3.2) {
+            tilted = true; shieldUntil = 0; multiShield = false; say('TILT! Flippers off until the ball drains.', 4);
+            tone(160, 80, 0.6, 'sawtooth', 0.045);
+        } else if (tilt > 2.2) say('Careful: tilt warning!', 2);
     }
 
     // ── Physics ─────────────────────────────────────────────────────────────────────────────
@@ -323,17 +375,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return vn < 0 ? -vn : 0;
     }
     function flipAxis(f) { const dx = f.side * Math.cos(f.ang), dy = Math.sin(f.ang); return [dx, dy, f.px + dx * f.len, f.py + dy * f.len]; }
-    function hitFlipper(b, f) {
+    function hitFlipper(b, f, h) {
         const [dx, dy] = flipAxis(f);
         let t = ((b.x - f.px) * dx + (b.y - f.py) * dy) / f.len; t = t < 0 ? 0 : t > 1 ? 1 : t;
         const cx = f.px + dx * f.len * t, cy = f.py + dy * f.len * t, rad = f.r0 + (f.r1 - f.r0) * t, R = rad + BR;
         let nx = b.x - cx, ny = b.y - cy; const d2 = nx * nx + ny * ny;
         if (d2 >= R * R) return;
         const d = Math.sqrt(d2) || 1e-6; nx /= d; ny /= d;
-        b.x = cx + nx * R; b.y = cy + ny * R; b.flipT = time; b.flipHeld = f.pressed; b.slingRun = 0; b.bumpRun = 0;
+        b.x = cx + nx * R; b.y = cy + ny * R; b.slingRun = 0; b.bumpRun = 0;
+        if (t > 0.12) { b.flipT = time; b.flipHeld = f.pressed && !tilted; }    // a cradle is the ball held on the blade, not resting on the pivot cap
         const w = f.side * f.w, qx = cx + nx * rad - f.px, qy = cy + ny * rad - f.py;
         const svx = -w * qy, svy = w * qx, vn = (b.vx - svx) * nx + (b.vy - svy) * ny;
         if (vn < 0) { const e = vn > -35 ? 0 : 0.35; b.vx -= (1 + e) * vn * nx; b.vy -= (1 + e) * vn * ny; }
+        // A slow ball on top of a resting flipper's pivot cap, tucked under the guide rail, rolls on toward the tip instead of parking there
+        if (t < 0.05 && !f.pressed && ny < -0.7 && Math.abs(b.vx) + Math.abs(b.vy) < 120) b.vx += f.side * 600 * h;
     }
     function onWall(w, b, imp) {
         if (w.kind === 'sling' && imp > 60 && w.sling.flash <= 0) {
@@ -351,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function substep(h) {
         for (const f of flippers) {
-            const target = f.pressed ? f.up : f.rest, sp = f.pressed ? 26 : 16, prev = f.ang;
+            const on = f.pressed && !tilted, target = on ? f.up : f.rest, sp = on ? 26 : 16, prev = f.ang;
             f.ang = f.ang > target ? Math.max(target, f.ang - sp * h) : Math.min(target, f.ang + sp * h);
             f.w = (f.ang - prev) / h;
         }
@@ -371,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const imp = hitCircle(b, c);
                 if (imp >= 0 && c.kind === 'bumper' && c.cd <= 0) { c.cd = 0.08; c.flash = 0.18; add(1000, 100); tone(660, 990, 0.07, 'square', 0.03); progress('bumpers'); }
             }
-            for (const f of flippers) hitFlipper(b, f);
+            for (const f of flippers) hitFlipper(b, f, h);
             if (b.x > 500 && b.y > 600) {                                                  // plunger face
                 const py = PLY + plunger.pull * 34;
                 if (b.y + BR > py) { b.y = py - BR; if (b.vy > 0) b.vy = b.vy > 60 ? -b.vy * 0.2 : 0; }
@@ -383,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     lanes.forEach(q => { q.lit = false; }); mult = Math.min(5, mult + 1); add(10000, 1000);
                     say('Lanes complete! Bonus ×' + mult); progress('lanes'); } }
             }
-            if (b.ejectCd <= 0 && Math.hypot(b.x - SAUCER.x, b.y - SAUCER.y) < 12) {
+            if (b.ejectCd <= 0 && Math.hypot(b.x - SAUCER.x, b.y - SAUCER.y) < 12 && !balls.some(o => o.held > 0)) {   // one ball at a time
                 b.held = 1.0; b.x = SAUCER.x; b.y = SAUCER.y; b.vx = b.vy = 0;
                 add(5000, 1000); tone(220, 60, 0.4, 'sine', 0.05); progress('wormhole');
             }
@@ -402,13 +457,15 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const b of balls.slice()) if (b.dead) drained(b);
     }
     function update(dt) {
-        if (paused) return;
+        if (paused) { if (hudDirty) hud(); return; }
         time += dt;
         if (plunger.held) plunger.pull = Math.min(1, plunger.pull + dt * 1.25);
         if (state === 'play' || state === 'bonus') {
             const n = Math.ceil(dt / (1 / 900)), h = dt / n;
             for (let i = 0; i < n; i++) substep(h);
         } else for (const f of flippers) { const t = f.pressed ? f.up : f.rest; f.ang += Math.max(-26 * dt, Math.min(16 * dt, t - f.ang)); }
+        for (let i = timers.length - 1; i >= 0; i--) if (time >= timers[i].at) { const t = timers.splice(i, 1)[0]; t.fn(); }
+        tilt = Math.max(0, tilt - dt * 0.6); nudgeCd -= dt;
         for (const c of bumpers) { c.cd -= dt; c.flash -= dt; }
         for (const s of slings) s.flash -= dt;
         for (const f of fuels) { f.cd -= dt; f.flash -= dt; }
@@ -422,8 +479,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const cradled = time - b.flipT < 0.2 && b.flipHeld;
             if (!inLane && Math.hypot(b.vx, b.vy) < 15 && !cradled) {
                 b.still += dt;
-                if (b.still > 2.5) {
-                    b.still = 0; say('Nudge!', 1.2);
+                // a ball parked against a flipper pivot (between it and the guide rail above) gets help sooner
+                if (b.still > (b.y > 860 && flippers.some(f => Math.hypot(b.x - f.px, b.y - f.py) < 40) ? 1 : 2.5)) {
+                    b.still = 0; say('Auto nudge!', 1.2);
                     if (b.y > 780) { b.vx = (b.x < 260 ? 1 : -1) * (180 + Math.random() * 80); b.vy = -120; }
                     else { b.vy = -380; b.vx = (Math.random() - 0.5) * 300; }
                 }
@@ -436,30 +494,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hudDirty) hud();
     }
     function hud() {
-        hudDirty = false;
+        hudDirty = false; redraw = true;
         const m = mission();
         $('score').textContent = fmt(score);
-        $('ball').textContent = ballNo ? Math.min(ballNo, 3) : '–';
+        $('ball').textContent = ballNo ? (practice ? ballNo : Math.min(ballNo, 3)) : '–';
+        $('of').textContent = practice ? '(practice)' : 'of 3';
         $('mult').textContent = mult;
-        $('best').textContent = fmt(Math.max(best, score));
+        $('best').textContent = fmt(practice ? best : Math.max(best, score));
         $('mission').textContent = m.name + (m.lap ? ' · lap ' + (m.lap + 1) : '');
         $('goal').textContent = GOALS[m.goal] + (state === 'attract' ? '' : ' (' + missionCount + '/' + m.n + ')');
     }
 
     // ── Sound ───────────────────────────────────────────────────────────────────────────────
-    let AC = null, soundOn = true;
-    try { soundOn = localStorage.getItem('pinball-sound') !== '0'; } catch (e) { /* ignore */ }
-    function audio() {
-        if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
-        if (AC && AC.state === 'suspended') AC.resume();
-    }
-    function tone(f0, f1, dur, type, vol) {
-        if (!soundOn || !AC || AC.state !== 'running') return;
-        const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
-        o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-        g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-        o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + dur + 0.02);
-    }
+    // Shared synthesized effects (games.js). A player who muted this game before the shared setting existed stays muted.
+    if (GM.get('pinball-sound', null) === '0' && GM.get('games-sound', null) === null) { GM.soundOn = false; GM.set('games-sound', '0'); }
+    const tone = GM.tone, audio = GM.audio;
 
     // ── Camera and projection ───────────────────────────────────────────────────────────────
     const CAM = { x: 280, y: TL + 560, z: 1500 };
@@ -479,15 +528,17 @@ document.addEventListener('DOMContentLoaded', () => {
         PS = 1; POX = 0; POY = 0;
         let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
         for (const p of OUTLINE) for (const z of [0, 34]) { const q = P(p[0], p[1], z); x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); }
-        const aspect = (x1 - x0) / (y1 - y0), avail = stage.clientWidth, maxH = Math.max(360, window.innerHeight - 24);
+        // Fit the table, and the touch buttons under it, between the sticky site header and the bottom of the window
+        const touch = document.querySelector('.pb-touch'), touchH = touch.offsetHeight ? touch.offsetHeight + 10 : 0;
+        const aspect = (x1 - x0) / (y1 - y0), avail = stage.clientWidth, maxH = Math.max(360, window.innerHeight - headerH() - 24 - touchH);
         cssW = Math.floor(Math.min(avail, maxH * aspect));
         const dpr = Math.min(2, window.devicePixelRatio || 1), pad = 6 * dpr;
         cv.width = Math.round(cssW * dpr);
         PS = (cv.width - 2 * pad) / (x1 - x0);
         cv.height = Math.round((y1 - y0) * PS + 2 * pad);
-        cv.style.width = cssW + 'px'; cv.style.height = (cv.height / dpr) + 'px';
+        cv.style.width = cssW + 'px'; cv.style.height = (cv.height / dpr) + 'px'; stage.style.setProperty('--cw', cssW + 'px');   // overlays cover the table, not the empty column beside it
         POX = pad - PS * x0; POY = pad - PS * y0;
-        buildFloor();
+        buildFloor(); redraw = true;
     }
 
     // ── Drawing helpers ─────────────────────────────────────────────────────────────────────
@@ -597,7 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function render() {
         if (!floor) return;
-        const c = ctx, now = time, blink = Math.sin(now * 9) > 0, m = mission(), active = state !== 'attract';
+        const c = ctx, now = time, blink = reduceMotion.matches || Math.sin(now * 9) > 0, m = mission(), active = state !== 'attract';   // reduced motion: steady lights
         c.drawImage(floor, 0, 0);
         c.globalCompositeOperation = 'lighter';
         lanes.forEach(l => { if (l.lit || (active && m.goal === 'lanes' && blink)) { flat(c, circ(l.x, 172, 8, 16), 0, l.lit ? '#fbbf24' : '#a16207'); glow(c, l.x, 172, 26, 'rgba(251,191,36,A)', 0.5); } });
@@ -612,6 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (active && m.goal === 'wormhole' && blink) glow(c, SAUCER.x, SAUCER.y, 60, 'rgba(192,132,252,A)', 0.6);
         if (active && m.goal === 'bumpers' && blink) bumpers.forEach(b => glow(c, b.x, b.y, 54, 'rgba(217,70,239,A)', 0.35));
         c.globalCompositeOperation = 'source-over';
+        if (!hudSeen && active && $('msg').textContent) floorMsg(c, $('msg').textContent);
         for (const b of balls) if (!b.held) flat(c, circ(b.x + 5, b.y + 3, BR * 0.95, 16), 0, 'rgba(0,0,0,.5)');
 
         const items = [];
@@ -655,27 +707,98 @@ document.addEventListener('DOMContentLoaded', () => {
                 c.globalAlpha = o.held ? 0.55 : 1; c.beginPath(); c.arc(p[0], p[1], r, 0, Math.PI * 2); c.fillStyle = g; c.fill(); c.globalAlpha = 1;
             }
         }
-        if (paused) { c.fillStyle = 'rgba(4,6,13,.55)'; c.fillRect(0, 0, cv.width, cv.height); c.fillStyle = '#e9d5ff'; c.font = '800 ' + Math.round(cv.width / 12) + 'px Inter, system-ui, sans-serif'; c.textAlign = 'center'; c.fillText('Paused', cv.width / 2, cv.height / 2); }
+        if (!hudSeen && active) miniHud(c, m);
+        if (tilted) { c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '900 ' + Math.round(cv.width / 9) + 'px Inter, system-ui, sans-serif'; c.fillStyle = 'rgba(248,113,113,.9)'; const p = P(260, 690, 0); c.fillText('TILT', p[0], p[1]); }
+        if (paused) { c.fillStyle = 'rgba(4,6,13,.55)'; c.fillRect(0, 0, cv.width, cv.height); c.fillStyle = '#e9d5ff'; c.font = '800 ' + Math.round(cv.width / 12) + 'px Inter, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Paused', cv.width / 2, cv.height / 2); c.font = '600 ' + Math.round(cv.width / 26) + 'px Inter, system-ui, sans-serif'; c.fillText(coarse.matches ? 'Tap the table to resume' : 'Press P to resume', cv.width / 2, cv.height / 2 + cv.width / 10); }
+    }
+
+    // When the scoreboard is scrolled out of view (phones: it sits above the table), the table shows the essentials:
+    // score and ball in the top-left corner, the mission in the top-right, and the latest message on the playfield.
+    let hudSeen = true;
+    const seen = new Map();
+    if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver(es => { es.forEach(e => seen.set(e.target, e.intersectionRatio > 0.9)); hudSeen = [...seen.values()].every(Boolean); redraw = true; }, { threshold: [0, 0.9, 1] });
+        io.observe($('score')); io.observe($('msg'));
+    }
+    function cornerText(c, lines, x, align) {
+        c.textAlign = align; c.textBaseline = 'top';
+        let y = cv.width * 0.022;
+        for (const [text, size, color, weight, font] of lines) {
+            c.font = weight + ' ' + Math.round(cv.width * size) + 'px ' + font;
+            c.lineWidth = cv.width * 0.008; c.strokeStyle = '#04060d'; c.lineJoin = 'round'; c.strokeText(text, x, y);
+            c.fillStyle = color; c.fillText(text, x, y); y += cv.width * size * 1.25;
+        }
+    }
+    function miniHud(c, m) {
+        const sans = 'Inter, system-ui, sans-serif', mono = 'ui-monospace, Consolas, monospace', pad = cv.width * 0.025;
+        cornerText(c, [[fmt(score), 0.05, '#fbbf24', 700, mono], [practice ? 'Ball ' + ballNo + ' · practice' : 'Ball ' + Math.min(ballNo, 3) + ' of 3', 0.032, '#e2e8f0', 600, sans]].concat(mult > 1 ? [['Bonus ×' + mult, 0.032, '#e2e8f0', 600, sans]] : []), pad, 'left');
+        cornerText(c, [[m.name, 0.04, '#f0abfc', 800, sans], [missionCount + ' / ' + m.n, 0.032, '#e2e8f0', 600, sans]], cv.width - pad, 'right');
+    }
+    function floorMsg(c, text) {
+        const size = Math.round(cv.width * 0.034), maxW = cv.width * 0.62, p = P(260, 700, 0);
+        c.font = '700 ' + size + 'px Inter, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        const words = text.split(' '), lines = [''];
+        for (const w of words) { const t = lines[lines.length - 1] ? lines[lines.length - 1] + ' ' + w : w; if (c.measureText(t).width > maxW && lines[lines.length - 1]) lines.push(w); else lines[lines.length - 1] = t; }
+        const lh = size * 1.3, h = lines.length * lh + size * 0.6, w = Math.min(maxW, Math.max(...lines.map(l => c.measureText(l).width))) + size * 1.2;
+        c.fillStyle = 'rgba(4,6,13,.72)'; c.beginPath(); if (c.roundRect) c.roundRect(p[0] - w / 2, p[1] - h / 2, w, h, size * 0.5); else c.rect(p[0] - w / 2, p[1] - h / 2, w, h); c.fill();
+        c.fillStyle = '#67e8f9'; lines.forEach((l, i) => c.fillText(l, p[0], p[1] - (lines.length - 1) * lh / 2 + i * lh, maxW));
     }
 
     // ── Input ───────────────────────────────────────────────────────────────────────────────
     function setFlip(f, on) {
         if (f.pressed === on) return;
-        f.pressed = on;
-        if (on) {
+        f.pressed = on; redraw = true;
+        if (on && !tilted) {
             audio(); tone(140, 90, 0.05, 'triangle', 0.05);
-            if (state === 'play') { const lit = lanes.map(l => l.lit); lanes.forEach((l, i) => { l.lit = f === FL ? lit[(i + 1) % 3] : lit[(i + 2) % 3]; }); }
+            if (state === 'play' && !paused) { const lit = lanes.map(l => l.lit); lanes.forEach((l, i) => { l.lit = f === FL ? lit[(i + 1) % 3] : lit[(i + 2) % 3]; }); }
         }
     }
     function launchDown() { audio(); if (state === 'attract' || state === 'over') { newGame(); return; } if (!paused) plunger.held = true; }
     function launchUp() { if (!plunger.held) return; plunger.held = false; fire(plunger.pull); plunger.pull = 0; }
-    function togglePause() { if (state === 'attract' || state === 'over') return; paused = !paused; $('pause').textContent = paused ? 'Resume' : 'Pause'; }
-    const LEFT = ['KeyZ', 'ArrowLeft', 'ShiftLeft'], RIGHT = ['Slash', 'ArrowRight', 'ShiftRight', 'KeyM'], LAUNCH = ['Space', 'ArrowDown', 'Enter'];
+    function setPaused(on) {
+        if (state === 'attract' || state === 'over' || paused === on) return;
+        paused = on; redraw = true;
+        if (on) { plunger.held = false; plunger.pull = 0; }
+        $('pause').textContent = paused ? 'Resume' : 'Pause'; $('pause').setAttribute('aria-pressed', paused ? 'true' : 'false');
+        say(paused ? 'Paused.' : 'Resumed.', paused ? 0 : 1.2);
+    }
+    const togglePause = () => setPaused(!paused);
+    function releaseAll() { sides.clear(); setFlip(FL, false); setFlip(FR, false); launchUp(); document.querySelectorAll('.pb-touch .on').forEach(el => el.classList.remove('on')); }
+
+    // Missions card: pauses a running game while it is open
+    let rulesPaused = false;
+    function openRules() {
+        const cur = missionIdx % PLANETS.length, lap = Math.floor(missionIdx / PLANETS.length), active = state !== 'attract';
+        $('rules-list').innerHTML = PLANETS.map((p, i) => {
+            const done = active && i < cur, now = active && i === cur;
+            return '<li class="' + (done ? 'done' : now ? 'now' : '') + '"><span aria-hidden="true">' + (done ? '✓' : now ? '▶' : '') + '</span><b>' + p.name + '</b><span>'
+                + goalText(p, p.n * (lap + 1)) + (p.multiball ? '; starts multiball' : '') + (done ? ' (done)' : now ? ' (now: ' + missionCount + ' of ' + p.n * (lap + 1) + ')' : '') + '</span></li>';
+        }).join('');
+        rulesPaused = (state === 'play' || state === 'bonus') && !paused;
+        if (rulesPaused) setPaused(true);
+        releaseAll(); $('rules').hidden = false; $('rules-close').focus({ preventScroll: true });
+    }
+    function closeRules() {
+        if ($('rules').hidden) return;
+        $('rules').hidden = true;
+        if (rulesPaused) setPaused(false);
+        rulesPaused = false;
+        ($('overlay').hidden ? cv : $('start')).focus({ preventScroll: true });
+    }
+
+    const LEFT = ['KeyZ', 'ArrowLeft', 'ShiftLeft'], RIGHT = ['Slash', 'ArrowRight', 'ShiftRight', 'KeyM'], LAUNCH = ['Space', 'ArrowDown', 'Enter'], NUDGE = ['ArrowUp', 'KeyN'];
     document.addEventListener('keydown', e => {
         if (e.target.matches && e.target.matches('input, select, textarea')) return;
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (!$('rules').hidden) {                                      // the open card keeps the keys: Escape closes it, Tab stays on its button
+            if (e.code === 'Escape') { e.preventDefault(); closeRules(); }
+            else if (e.code === 'Tab') { e.preventDefault(); $('rules-close').focus(); }
+            return;
+        }
         if (LEFT.includes(e.code)) { e.preventDefault(); setFlip(FL, true); }
         else if (RIGHT.includes(e.code)) { e.preventDefault(); setFlip(FR, true); }
         else if (LAUNCH.includes(e.code)) { if (e.target.matches && e.target.matches('a, button')) return; e.preventDefault(); if (!e.repeat) launchDown(); }   // Enter and Space on a focused button activate it
+        else if (NUDGE.includes(e.code)) { e.preventDefault(); if (!e.repeat) nudge(); }
         else if (e.code === 'KeyP' || e.code === 'Escape') { e.preventDefault(); togglePause(); }
     });
     document.addEventListener('keyup', e => {
@@ -687,44 +810,54 @@ document.addEventListener('DOMContentLoaded', () => {
     cv.addEventListener('pointerdown', e => {
         e.preventDefault(); cv.focus({ preventScroll: true });
         if (state === 'attract' || state === 'over') { launchDown(); return; }
+        if (paused) { setPaused(false); return; }                     // a tap on the paused table resumes it
         const f = e.offsetX < cv.clientWidth / 2 ? FL : FR; sides.set(e.pointerId, f); setFlip(f, true);
     });
     const release = e => { const f = sides.get(e.pointerId); if (f) { sides.delete(e.pointerId); if (![...sides.values()].includes(f)) setFlip(f, false); } };
     cv.addEventListener('pointerup', release); cv.addEventListener('pointercancel', release); cv.addEventListener('pointerleave', release);
     cv.addEventListener('contextmenu', e => e.preventDefault());
-    const hold = (id, down, up) => {
-        const el = $(id);
-        el.addEventListener('pointerdown', e => { e.preventDefault(); el.classList.add('on'); down(); });
-        ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => el.addEventListener(t, () => { el.classList.remove('on'); up(); }));
-        el.addEventListener('contextmenu', e => e.preventDefault());
-    };
-    hold('t-left', () => setFlip(FL, true), () => setFlip(FL, false));
-    hold('t-right', () => setFlip(FR, true), () => setFlip(FR, false));
-    hold('t-launch', launchDown, launchUp);
-    $('start').addEventListener('click', () => newGame());
-    $('new').addEventListener('click', () => newGame());
+    GM.hold($('t-left'), () => setFlip(FL, true), () => setFlip(FL, false));
+    GM.hold($('t-right'), () => setFlip(FR, true), () => setFlip(FR, false));
+    GM.hold($('t-launch'), launchDown, launchUp);
+    // A click with no pointer press behind it (a screen reader's double tap, or Enter on the button) still plays
+    $('t-launch').addEventListener('click', e => { if (e.detail) return; if (state === 'attract' || state === 'over') newGame(); else if (!paused) { plunger.held = true; plunger.pull = 0.85; launchUp(); } });
+    [['t-left', FL], ['t-right', FR]].forEach(([id, f]) => $(id).addEventListener('click', e => { if (e.detail) return; setFlip(f, true); setTimeout(() => setFlip(f, false), 150); }));
+    $('start').addEventListener('click', () => newGame(false));
+    $('practice').addEventListener('click', () => newGame(true));
+    $('new').addEventListener('click', () => newGame(false));
     $('pause').addEventListener('click', () => { togglePause(); cv.focus({ preventScroll: true }); });
-    const soundLabel = () => { $('sound').textContent = soundOn ? 'Sound on' : 'Sound off'; $('sound').setAttribute('aria-pressed', soundOn ? 'true' : 'false'); };
-    $('sound').addEventListener('click', () => { soundOn = !soundOn; audio(); soundLabel(); try { localStorage.setItem('pinball-sound', soundOn ? '1' : '0'); } catch (e) { /* ignore */ } });
-    soundLabel();
-    document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !paused) togglePause(); });
-    window.addEventListener('blur', () => { setFlip(FL, false); setFlip(FR, false); launchUp(); });
+    $('rules-open').addEventListener('click', openRules);
+    $('rules-close').addEventListener('click', closeRules);
+    GM.soundButton($('sound'));
+    $('sound').addEventListener('click', e => { if (e.detail && state !== 'attract' && state !== 'over') cv.focus({ preventScroll: true }); });   // after a mouse click, keys go back to the table
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { releaseAll(); if (state === 'play' || state === 'bonus') setPaused(true); } });
+    window.addEventListener('blur', releaseAll);
 
-    let lastW = stage.clientWidth;
+    let lastW = stage.clientWidth, lastH = window.innerHeight;
     fit();                                     // size the table before the first paint (no layout shift)
-    new ResizeObserver(() => { if (stage.clientWidth !== lastW) { lastW = stage.clientWidth; requestAnimationFrame(() => { fit(); render(); }); } }).observe(stage);
-    let last = performance.now();
+    new ResizeObserver(() => { if (stage.clientWidth !== lastW) { lastW = stage.clientWidth; requestAnimationFrame(fit); } }).observe(stage);
+    // A rotated phone or resized window refits; small height changes (a phone's address bar sliding away) don't
+    window.addEventListener('resize', () => { if (Math.abs(window.innerHeight - lastH) > 120) { lastH = window.innerHeight; requestAnimationFrame(fit); } });
+    reduceMotion.addEventListener('change', () => { redraw = true; });
+    let last = performance.now(), frames = 0, drawn = 0;
     function frame(t) {
-        update(Math.min(0.033, Math.max(0, (t - last) / 1000))); last = t;
-        render(); requestAnimationFrame(frame);
+        update(Math.min(0.033, Math.max(0, (t - last) / 1000))); last = t; frames++;
+        // Draw while the ball is in play or something moved; an idle, paused, or finished table isn't redrawn every frame
+        const live = (state === 'play' || state === 'bonus') && !paused;
+        if (live || redraw || plunger.held || (!paused && flippers.some(f => f.ang !== (f.pressed ? f.up : f.rest)))) { render(); redraw = false; drawn++; }
+        requestAnimationFrame(frame);
     }
     hud(); requestAnimationFrame(frame);
 
     // Test hook: run the simulation synchronously and inspect state
     window.__pinball = {
-        newGame, fire, progress, sim(sec) { for (let i = 0; i < Math.round(sec * 120); i++) update(1 / 120); },
+        newGame, fire, progress, nudge, openRules, closeRules, setPaused,
+        sim(sec, hz) { const k = hz || 120; for (let i = 0; i < Math.round(sec * k); i++) update(1 / k); },
+        step(dt) { update(dt); },
         flip(side, on) { setFlip(side === 'L' ? FL : FR, on); }, setPull(p) { plunger.pull = p; },
-        get balls() { return balls; }, get state() { return { state, score, ballNo, mult, missionIdx, missionCount, shieldUntil, time, bonus, lanes: lanes.map(l => l.lit), drops: drops.map(d => d.up) }; },
+        get balls() { return balls; }, get flippers() { return flippers.map(f => ({ ang: f.ang, w: f.w, pressed: f.pressed })); },
+        get frames() { return { frames, drawn }; },
+        get state() { return { state, score, ballNo, mult, missionIdx, missionCount, shieldUntil, time, bonus, practice, paused, tilt, tilted, hudSeen, best, lanes: lanes.map(l => l.lit), drops: drops.map(d => d.up) }; },
         place(x, y, vx, vy) { balls.length = 0; const b = newBall(); Object.assign(b, { x, y, vx, vy, launched: true }); balls.push(b); return b; },
         render
     };

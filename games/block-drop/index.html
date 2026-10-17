@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Block Drop: Free Falling-Blocks Puzzle Game</title>
+<meta name="description" content="Play Block Drop free online: turn and drop falling blocks to clear lines as the speed climbs. Hold, next-piece preview, ghost piece, keys or touch; no ads.">
+<link rel="canonical" href="https://cdfoley.com/games/block-drop/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Block Drop">
+<meta property="og:description" content="Play Block Drop free online: turn and drop falling blocks to clear lines as the speed climbs. Hold, next-piece preview, ghost piece, keys or touch; no ads.">
+<meta property="og:url" content="https://cdfoley.com/games/block-drop/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/game-block-drop.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Block Drop Game: Play Block Drop free online: turn and drop falling blocks to clear lines as the speed climbs. Hold, next-piece preview, ghost piece, keys or touch; no ads.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
+<style>
+    #board { display: block; border-radius: var(--radius-lg); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+    .bd-pad { grid-template-columns: repeat(4, 1fr); touch-action: none; user-select: none; -webkit-user-select: none; max-width: 520px; }
+    .bd-pad .wide { grid-column: span 2; }
+    .bd-pad button { height: 56px; font-size: 1.15rem; }
+    .bd-set { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 0.7rem 1rem; align-items: center; font-size: 0.9rem; margin-bottom: 0.9rem; }
+    .bd-set label { color: var(--text); }
+    .bd-set output { font-family: var(--mono); color: var(--text-2); margin-left: 0.3rem; font-variant-numeric: tabular-nums; }
+    .bd-set input[type="range"] { width: 100%; accent-color: var(--accent); }
+    .bd-set .bd-row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: center; justify-content: space-between; }
+    .bd-fold p { font-size: 0.9rem; color: var(--text-2); }
+    @media (max-width: 480px) { .bd-set { grid-template-columns: 1fr; gap: 0.3rem; } .bd-set input[type="range"] { margin-bottom: 0.5rem; } }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "VideoGame",
+   "name": "Block Drop",
+   "url": "https://cdfoley.com/games/block-drop/",
+   "description": "Play Block Drop free online: turn and drop falling blocks to clear lines as the speed climbs. Hold, next-piece preview, ghost piece, keys or touch; no ads.",
+   "genre": "Puzzle",
+   "gamePlatform": "Web browser",
+   "playMode": "SinglePlayer",
+   "applicationCategory": "GameApplication",
+   "operatingSystem": "Any (web browser)",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Games",
+     "item": "https://cdfoley.com/games/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Block Drop",
+     "item": "https://cdfoley.com/games/block-drop/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Block Drop</li></ol></nav>
+    <div class="game-shell" style="max-width:640px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Block Drop Game</h1>
+            <p class="lede">Turn and steer the falling pieces to fill rows from wall to wall. A full row clears, and every 10 rows the level goes up and the pieces fall faster. Keep the stack from reaching the top.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip">Score<b id="score">0</b></span><span class="chip">Lines<b id="lines">0</b></span><span class="chip">Level<b id="level">1</b></span><span class="chip">Best<b id="best">0</b></span></div>
+            <div class="game-actions">
+                <select id="start-level" aria-label="Starting level"></select>
+                <button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button>
+                <button class="btn btn-secondary btn-sm" type="button" id="pause" disabled>Pause</button>
+                <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
+            </div>
+        </div>
+        <div class="game-stage">
+            <div class="arcade-box">
+                <canvas id="board" tabindex="0" role="application" aria-label="Block Drop well" aria-describedby="help"></canvas>
+                <div class="game-overlay" id="overlay">
+                    <h2 id="ov-title">Block Drop</h2>
+                    <p id="ov-text"><kbd>←</kbd> <kbd>→</kbd> move, <kbd>↑</kbd> turn, <kbd>Space</kbd> drops, <kbd>C</kbd> holds. On a touch screen, use the buttons or drag and tap the well.</p>
+                    <button class="btn btn-primary" type="button" id="start">Start</button>
+                </div>
+            </div>
+        </div>
+        <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
+        <div class="touch-pad bd-pad" role="group" aria-label="Touch controls">
+            <button type="button" id="t-left" aria-label="Move left">◀</button>
+            <button type="button" id="t-right" aria-label="Move right">▶</button>
+            <button type="button" id="t-ccw" aria-label="Turn counterclockwise">⟲</button>
+            <button type="button" id="t-cw" aria-label="Turn clockwise">⟳</button>
+            <button type="button" id="t-soft" class="wide" aria-label="Soft drop">▼</button>
+            <button type="button" id="t-hold">Hold</button>
+            <button type="button" id="t-drop" aria-label="Hard drop">Drop</button>
+        </div>
+        <p class="game-help" id="help"><strong>Keys:</strong> <kbd>←</kbd> <kbd>→</kbd> move (hold to slide), <kbd>↓</kbd> soft drop, <kbd>Space</kbd> hard drop, <kbd>↑</kbd> or <kbd>X</kbd> turn clockwise, <kbd>Z</kbd> turn counterclockwise, <kbd>C</kbd> or <kbd>Shift</kbd> hold, and <kbd>P</kbd> or <kbd>Esc</kbd> pause. <strong>Touch:</strong> use the buttons, or on the well drag sideways to move, tap to turn, drag down to soft drop, flick down to hard drop, and flick up to hold.</p>
+        <p class="game-help"><strong>How to play:</strong> the pieces come in shuffled sets of all seven shapes, so you never wait more than 12 pieces for any shape. The outline at the bottom (the ghost) shows where the piece will land. Hold sets the current piece aside for later, once per piece. Clearing 1, 2, 3, or 4 rows at once scores 100, 300, 500, or 800 points times the level; a soft drop adds 1 point per row and a hard drop 2. The game ends when the stack reaches the top of the well.</p>
+        <details class="fold bd-fold">
+            <summary>Control settings</summary>
+            <div class="bd-set">
+                <label for="das">Slide delay<output id="das-out" for="das"></output></label>
+                <input type="range" id="das" min="50" max="300" step="10">
+                <label for="arr">Slide interval<output id="arr-out" for="arr"></output></label>
+                <input type="range" id="arr" min="0" max="100" step="5">
+                <div class="bd-row">
+                    <label class="toggle"><input type="checkbox" id="ghost"> Show the ghost piece</label>
+                    <button class="btn btn-secondary btn-sm" type="button" id="defaults">Restore defaults</button>
+                </div>
+            </div>
+            <p>Holding <kbd>←</kbd> or <kbd>→</kbd> moves the piece one cell, waits for the slide delay, then keeps moving it one cell per slide interval. An interval of 0 slides it straight to the wall. The defaults are 160 ms and 40 ms. Settings are saved in this browser.</p>
+        </details>
+        <details class="fold bd-fold">
+            <summary>Turning, locking, and speed</summary>
+            <p>Each piece turns about the center of its 3 × 3 box (4 × 4 for the long bar; the square doesn’t turn). If the turned piece would overlap a wall or the stack, it tries these spots in order and takes the first that fits: one cell toward the turn (right for clockwise, left for counterclockwise), one cell the other way, one cell up, then one up and one toward the turn, and one up and one the other way. The long bar also tries two cells toward the turn and two cells the other way. If none fits, the piece doesn’t turn.</p>
+            <p>A piece that lands has half a second before it locks in place. Moving or turning it restarts that half second, up to 15 times, and the count starts over when the piece drops to a row lower than it has been. At level 1 the pieces fall one row per second. Each level cuts the time per row by 18%, up to level 20, where they fall about 43 rows per second.</p>
+        </details>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const G = window.Games, $ = id => document.getElementById(id);
+    // Well: 10 columns × 22 rows, the top 2 hidden. Logical canvas units, with a side panel on each side.
+    const COLS = 10, ROWS = 22, HIDDEN = 2, C = 30, PAD = 8, PW = 120, GAP = 12;
+    const WX = PAD + PW + GAP, WY = PAD, WW = COLS * C, WH = (ROWS - HIDDEN) * C, RX = WX + WW + GAP, W = RX + PW + PAD, H = WY + WH + PAD;
+    const LOCK_MS = 500, MAX_RESETS = 15, SOFT_MS = 40, CLEAR_MS = 280, QUEUE = 5;
+    const LINE_PTS = [0, 100, 300, 500, 800], CLEAR_NAME = ['', 'Single', 'Double', 'Triple', 'Quad'];
+    const DEFAULTS = { das: 160, arr: 40 };
+    const cv = $('board'), view = G.canvas(cv, W, H, 0.74, () => draw()), ctx = view.ctx;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+    // Seven pieces, each in an n × n box. Colors are this site's own palette.
+    const SHAPES = {
+        I: { n: 4, cells: [[0, 1], [1, 1], [2, 1], [3, 1]], color: '#8b5cf6' },
+        O: { n: 2, cells: [[0, 0], [1, 0], [0, 1], [1, 1]], color: '#ec4899' },
+        T: { n: 3, cells: [[1, 0], [0, 1], [1, 1], [2, 1]], color: '#14b8a6' },
+        S: { n: 3, cells: [[1, 0], [2, 0], [0, 1], [1, 1]], color: '#f59e0b' },
+        Z: { n: 3, cells: [[0, 0], [1, 0], [1, 1], [2, 1]], color: '#0ea5e9' },
+        J: { n: 3, cells: [[0, 0], [0, 1], [1, 1], [2, 1]], color: '#84cc16' },
+        L: { n: 3, cells: [[2, 0], [0, 1], [1, 1], [2, 1]], color: '#f43f5e' }
+    };
+    const TYPES = Object.keys(SHAPES);
+    const mixHex = (hex, to, k) => '#' + [1, 3, 5].map(i => Math.round(parseInt(hex.substr(i, 2), 16) * (1 - k) + to * k).toString(16).padStart(2, '0')).join('');
+    for (const t of TYPES) {
+        const s = SHAPES[t];
+        s.rot = [s.cells];                            // turning clockwise maps (x, y) in the box to (n − 1 − y, x)
+        for (let r = 1; r < 4; r++) s.rot.push(s.rot[r - 1].map(([x, y]) => [s.n - 1 - y, x]));
+        const xs = s.cells.map(c => c[0]), ys = s.cells.map(c => c[1]);
+        s.box = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+        s.edge = mixHex(s.color, 0, 0.32); s.hi = mixHex(s.color, 255, 0.35);
+    }
+    // Wall kicks, [dx, dy] with dx in the direction of the turn (+1 = right for clockwise) and dy < 0 = up.
+    const KICKS = [[0, 0], [1, 0], [-1, 0], [0, -1], [1, -1], [-1, -1]], KICKS_I = KICKS.concat([[2, 0], [-2, 0]]);
+
+    let board = emptyBoard(), bag = [], queue = [], cur = null, hold = null, holdUsed = false;
+    let score = 0, lines = 0, level = 1, startLevel = 1, state = 'title', paused = false, overAt = 0;
+    let fallAcc = 0, lockT = 0, lockResets = 0, lowest = 0, clearing = null, banner = null, trail = null;
+    let best = +G.get('blocks-best', 0) || 0, srFlip = false;
+    const settings = {
+        das: clampNum(+G.get('blocks-das', DEFAULTS.das), 50, 300, DEFAULTS.das),
+        arr: clampNum(+G.get('blocks-arr', DEFAULTS.arr), 0, 100, DEFAULTS.arr),
+        ghost: G.get('blocks-ghost', '1') !== '0'
+    };
+    const input = { held: [], dir: 0, dasT: 0, arrAcc: 0, soft: false };
+
+    function clampNum(v, lo, hi, fb) { return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : fb; }
+    function emptyBoard() { return Array.from({ length: ROWS }, () => new Array(COLS).fill('')); }
+    function fromBag() {                              // 7-bag: each set of seven holds every shape once, in random order
+        if (!bag.length) {
+            bag = TYPES.slice();
+            for (let i = bag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+        }
+        return bag.pop();
+    }
+    function takeNext() { const t = queue.shift(); while (queue.length < QUEUE) queue.push(fromBag()); return t; }
+    const gravityMs = lv => Math.max(1000 / 60, 1000 * Math.pow(0.82, Math.min(lv, 20) - 1));
+
+    function fits(t, r, x, y) {
+        for (const [cx, cy] of SHAPES[t].rot[r]) {
+            const bx = x + cx, by = y + cy;
+            if (bx < 0 || bx >= COLS || by < 0 || by >= ROWS || board[by][bx]) return false;
+        }
+        return true;
+    }
+    const canAct = () => state === 'play' && !paused && cur && !clearing;
+    const grounded = () => !fits(cur.t, cur.r, cur.x, cur.y + 1);
+
+    function spawn(t) {
+        const s = SHAPES[t], p = { t, r: 0, x: Math.floor((COLS - s.n) / 2), y: HIDDEN - s.box.y0 };
+        if (!fits(p.t, p.r, p.x, p.y)) { p.y--; if (!fits(p.t, p.r, p.x, p.y)) { cur = null; gameOver(); return false; } }   // last chance: one row into the hidden rows
+        cur = p; fallAcc = 0; lockT = 0; lockResets = 0; lowest = p.y;
+        return true;
+    }
+    function afterAction() {                          // a successful move or turn restarts the lock timer while resets remain
+        if (lockT > 0 && lockResets < MAX_RESETS) { lockT = 0; lockResets++; }
+    }
+    function droppedRow() { if (cur.y > lowest) { lowest = cur.y; lockT = 0; lockResets = 0; } }
+    function shift(dx) {
+        if (!canAct() || !fits(cur.t, cur.r, cur.x + dx, cur.y)) return false;
+        cur.x += dx; afterAction(); return true;
+    }
+    function rotate(dir) {
+        if (!canAct() || cur.t === 'O') return false;
+        const r = (cur.r + dir + 4) % 4;
+        for (const [kx, ky] of (cur.t === 'I' ? KICKS_I : KICKS)) {
+            const x = cur.x + kx * dir, y = cur.y + ky;
+            if (fits(cur.t, r, x, y)) { cur.x = x; cur.y = y; cur.r = r; afterAction(); G.tone(520, 640, 0.04, 'triangle', 0.02); return true; }
+        }
+        return false;
+    }
+    function softStep() {
+        if (!canAct() || grounded()) return false;
+        cur.y++; droppedRow(); addScore(1); return true;
+    }
+    function hardDrop() {
+        if (!canAct()) return;
+        const y0 = cur.y;
+        while (!grounded()) cur.y++;
+        const d = cur.y - y0;
+        if (d && !reduced.matches) trail = { t: cur.t, r: cur.r, x: cur.x, y0, y1: cur.y, life: 160 };
+        if (d) addScore(2 * d);
+        G.noise(0.1, 0.08, 900); G.tone(170, 90, 0.08, 'triangle', 0.04);
+        lock();
+    }
+    function doHold() {
+        if (!canAct() || holdUsed) return;
+        const t = cur.t; holdUsed = true;
+        G.tone(420, 300, 0.07, 'sine', 0.03);
+        const next = hold || takeNext(); hold = t; spawn(next);
+    }
+    function addScore(n) { score += n; hud(); }
+
+    function lock() {
+        for (const [cx, cy] of SHAPES[cur.t].rot[cur.r]) board[cur.y + cy][cur.x + cx] = cur.t;
+        cur = null; holdUsed = false;
+        const full = [];
+        for (let y = 0; y < ROWS; y++) if (board[y].every(Boolean)) full.push(y);
+        if (!full.length) { G.noise(0.05, 0.04, 600); return afterLock(); }
+        const n = full.length, before = level, pts = LINE_PTS[n] * level;
+        score += pts; lines += n; level = startLevel + Math.floor(lines / 10);
+        clearing = { rows: full, t: 0 };
+        banner = { text: CLEAR_NAME[n], sub: '+' + G.fmt(pts), life: 1100 };
+        [523, 659, 784, 1046].slice(0, n).forEach((f, k) => setTimeout(() => G.tone(f, f * 1.01, 0.12, 'square', 0.03), k * 70));
+        let msg = CLEAR_NAME[n] + ': ' + n + (n > 1 ? ' lines' : ' line') + ' cleared.';
+        if (level > before) {
+            msg += ' Level ' + level + '.';
+            banner.sub += ' · Level ' + level;
+            setTimeout(() => G.tone(660, 1320, 0.25, 'square', 0.03), 320);
+        }
+        say(msg + ' ' + G.fmt(lines) + ' lines, score ' + G.fmt(score) + '.');
+        hud();
+    }
+    function finishClear() {
+        for (const y of clearing.rows) { board.splice(y, 1); board.unshift(new Array(COLS).fill('')); }   // rows in ascending order
+        clearing = null;
+        afterLock();
+    }
+    function afterLock() {                            // blocks left above the top of the well end the game
+        for (let y = 0; y < HIDDEN; y++) if (board[y].some(Boolean)) return gameOver();
+        spawn(takeNext());
+    }
+    function gameOver() {
+        state = 'over'; paused = false; overAt = performance.now(); clearInput();
+        const record = score > best && score > 0;
+        saveBest();
+        $('ov-title').textContent = 'Game over';
+        $('ov-text').textContent = 'Score ' + G.fmt(score) + ', ' + G.fmt(lines) + (lines === 1 ? ' line' : ' lines') + ', level ' + level + (record ? ' — a new best!' : '. Best ' + G.fmt(best) + '.');
+        $('start').textContent = 'Play again'; $('overlay').hidden = false;
+        $('pause').disabled = true; $('pause').textContent = 'Pause';
+        say('Game over. ' + $('ov-text').textContent);
+        G.tone(392, 98, 0.7, 'sawtooth', 0.035);
+        hud(); draw();
+    }
+    function saveBest() { if (score > best) { best = score; G.set('blocks-best', best); } }
+
+    function newGame() {
+        G.audio(); saveBest();
+        board = emptyBoard(); bag = []; queue = []; while (queue.length < QUEUE) queue.push(fromBag());
+        hold = null; holdUsed = false; score = 0; lines = 0; startLevel = +$('start-level').value || 1; level = startLevel;
+        clearing = null; banner = null; trail = null; clearInput();
+        state = 'play'; paused = false;
+        $('overlay').hidden = true; $('pause').disabled = false; $('pause').textContent = 'Pause';
+        spawn(takeNext()); hud(); wake(); cv.focus({ preventScroll: true }); showStage();
+        say('New game, level ' + level + '.');
+    }
+    function showStage() {                            // scroll just enough to show the whole well (and the touch buttons) below the sticky header
+        const pad = document.querySelector('.bd-pad'), last = getComputedStyle(pad).display !== 'none' ? pad : cv;
+        const head = document.querySelector('.site-header'), top = cv.getBoundingClientRect().top - (head ? head.offsetHeight : 0) - 8;
+        const dy = top < 0 ? top : Math.min(top, last.getBoundingClientRect().bottom + 8 - innerHeight);
+        if (dy > 0 || top < 0) window.scrollBy({ top: dy, behavior: 'instant' });
+    }
+    function setPause(p) {
+        if (state !== 'play' || paused === p) return;
+        paused = p; clearInput();
+        $('pause').textContent = p ? 'Resume' : 'Pause';
+        if (p) {
+            $('ov-title').textContent = 'Paused'; $('ov-text').textContent = 'Press P or Esc, or the button, to carry on.';
+            $('start').textContent = 'Resume'; $('overlay').hidden = false;
+            say('Paused. Level ' + level + ', ' + G.fmt(lines) + ' lines, score ' + G.fmt(score) + '.');
+        } else { $('overlay').hidden = true; say('Resumed.'); cv.focus({ preventScroll: true }); wake(); }
+        draw();
+    }
+    function hud() {
+        $('score').textContent = G.fmt(score); $('lines').textContent = G.fmt(lines); $('level').textContent = level;
+        $('best').textContent = G.fmt(Math.max(best, score));
+    }
+    function say(msg) { srFlip = !srFlip; $('sr').textContent = msg + (srFlip ? ' ' : ''); }   // the flip re-announces a repeated message
+
+    // Input: held directions with auto-repeat (a delay, then one cell per interval), soft drop while held.
+    function pressDir(d) {
+        if (input.held.includes(d)) return;
+        input.held.push(d); input.dir = d; input.dasT = 0; input.arrAcc = 0;
+        shift(d);
+    }
+    function releaseDir(d) {
+        input.held = input.held.filter(x => x !== d);
+        const nd = input.held.length ? input.held[input.held.length - 1] : 0;
+        if (nd !== input.dir) { input.dir = nd; input.dasT = 0; input.arrAcc = 0; }   // back to the other key: its delay starts over
+    }
+    function clearInput() { input.held = []; input.dir = 0; input.soft = false; gesture = null; }
+    function autoShift(ms) {
+        if (!input.dir) return;
+        const before = input.dasT; input.dasT += ms;
+        if (input.dasT < settings.das) return;
+        if (settings.arr <= 0) { while (shift(input.dir)); return; }
+        input.arrAcc = before < settings.das ? settings.arr + (input.dasT - settings.das) : input.arrAcc + ms;
+        let n = 0;
+        while (input.arrAcc >= settings.arr && n++ < COLS) { input.arrAcc -= settings.arr; shift(input.dir); }
+        if (input.arrAcc > settings.arr) input.arrAcc = settings.arr;
+    }
+
+    function update(ms) {
+        if (state !== 'play' || paused) return;
+        if (banner && (banner.life -= ms) <= 0) banner = null;
+        if (trail && (trail.life -= ms) <= 0) trail = null;
+        autoShift(ms);
+        if (clearing) { if ((clearing.t += ms) >= CLEAR_MS) finishClear(); return; }
+        if (!cur) return;
+        const g = gravityMs(level), soft = input.soft && g > SOFT_MS, step = soft ? SOFT_MS : g;
+        fallAcc += ms;
+        while (fallAcc >= step) {
+            fallAcc -= step;
+            if (grounded()) { fallAcc = 0; break; }
+            cur.y++; droppedRow(); if (soft) addScore(1);
+        }
+        if (grounded()) { lockT += ms; if (lockT >= LOCK_MS) { G.noise(0.05, 0.04, 600); lock(); } }
+    }
+
+    // Drawing. Colors follow the page theme; the static parts are cached until the size or theme changes.
+    let pal = null;
+    const bg = document.createElement('canvas'), bgx = bg.getContext('2d');
+    let bgKey = '';
+    function readPalette() {
+        const cs = getComputedStyle(document.documentElement), v = (n, f) => cs.getPropertyValue(n).trim() || f;
+        pal = { bg: v('--surface-2', '#f2f5f9'), well: v('--surface', '#ffffff'), grid: v('--border', '#e2e8f0'), edge: v('--border-strong', '#cbd5e1'),
+            text: v('--text', '#0f172a'), text2: v('--text-2', '#334155'), accent: v('--accent', '#1d4ed8'), font: v('--font', 'system-ui, sans-serif') };
+        pal.key = Object.values(pal).join('|');
+    }
+    function roundBox(c, x, y, w, h, label) {
+        c.fillStyle = pal.well; c.strokeStyle = pal.edge; c.lineWidth = 1.5;
+        c.beginPath(); c.roundRect(x, y, w, h, 10); c.fill(); c.stroke();
+        if (label) { c.fillStyle = pal.text2; c.font = '600 18px ' + pal.font; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.fillText(label, x + w / 2, y + 26); }
+    }
+    function buildBg() {
+        bg.width = cv.width; bg.height = cv.height;
+        const c = bgx; c.setTransform(view.scale, 0, 0, view.scale, 0, 0);
+        c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
+        roundBox(c, PAD, WY, PW, 112, 'Hold');
+        roundBox(c, PAD, WY + 124, PW, 140, 'Level');
+        roundBox(c, RX, WY, PW, 320, 'Next');
+        c.fillStyle = pal.well; c.fillRect(WX, WY, WW, WH);
+        c.beginPath();
+        for (let i = 1; i < COLS; i++) { c.moveTo(WX + i * C, WY); c.lineTo(WX + i * C, WY + WH); }
+        for (let j = 1; j < ROWS - HIDDEN; j++) { c.moveTo(WX, WY + j * C); c.lineTo(WX + WW, WY + j * C); }
+        c.strokeStyle = pal.grid; c.lineWidth = 1; c.stroke();
+        c.strokeStyle = pal.edge; c.lineWidth = 2; c.strokeRect(WX - 1, WY - 1, WW + 2, WH + 2);
+        bgKey = cv.width + 'x' + cv.height + pal.key;
+    }
+    function block(t, x, y, s) {
+        const k = SHAPES[t], e = Math.max(1.5, s * 0.07);
+        ctx.fillStyle = k.edge; ctx.fillRect(x + 0.5, y + 0.5, s - 1, s - 1);
+        ctx.fillStyle = k.color; ctx.fillRect(x + e, y + e, s - 2 * e, s - 2 * e);
+        ctx.fillStyle = k.hi; ctx.fillRect(x + e, y + e, s - 2 * e, (s - 2 * e) * 0.24);
+    }
+    function mini(t, cx, cy, s) {                     // a piece in its starting orientation, centered on (cx, cy)
+        const b = SHAPES[t].box, ox = cx - (b.x1 - b.x0 + 1) * s / 2 - b.x0 * s, oy = cy - (b.y1 - b.y0 + 1) * s / 2 - b.y0 * s;
+        for (const [x, y] of SHAPES[t].cells) block(t, ox + x * s, oy + y * s, s);
+    }
+    const px = x => WX + x * C, py = y => WY + (y - HIDDEN) * C;
+    function draw() {
+        if (!pal) readPalette();
+        if (bgKey !== cv.width + 'x' + cv.height + pal.key) buildBg();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(bg, 0, 0);
+        view.begin();
+        // side panels
+        if (hold) { ctx.globalAlpha = holdUsed ? 0.35 : 1; mini(hold, PAD + PW / 2, WY + 70, 22); ctx.globalAlpha = 1; }
+        ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = pal.text; ctx.font = '800 38px ' + pal.font; ctx.fillText(String(level), PAD + PW / 2, WY + 124 + 72);
+        const into = lines % 10, bx = PAD + 14, bw = PW - 28, by = WY + 124 + 88;
+        ctx.fillStyle = pal.grid; ctx.beginPath(); ctx.roundRect(bx, by, bw, 10, 5); ctx.fill();
+        if (into) { ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.roundRect(bx, by, bw * into / 10, 10, 5); ctx.fill(); }
+        ctx.fillStyle = pal.text2; ctx.font = '500 15px ' + pal.font;
+        ctx.fillText((10 - into) + (10 - into === 1 ? ' line to go' : ' lines to go'), PAD + PW / 2, by + 34);
+        queue.forEach((t, i) => mini(t, RX + PW / 2, i ? WY + 76 + i * 52 : WY + 68, i ? 16 : 22));
+        // well
+        ctx.save(); ctx.beginPath(); ctx.rect(WX, WY, WW, WH); ctx.clip();
+        const fading = state === 'over';
+        if (fading) ctx.globalAlpha = 0.55;
+        const clr = clearing ? clearing.rows : [];
+        for (let y = HIDDEN; y < ROWS; y++) {
+            if (clr.includes(y) && !reduced.matches && clearing.t > CLEAR_MS / 2) continue;
+            for (let x = 0; x < COLS; x++) if (board[y][x]) block(board[y][x], px(x), py(y), C);
+        }
+        ctx.globalAlpha = 1;
+        if (clearing) {
+            const p = Math.min(1, clearing.t / CLEAR_MS);
+            ctx.fillStyle = pal.well;
+            for (const y of clr) {
+                if (reduced.matches) { ctx.globalAlpha = 0.55; ctx.fillStyle = pal.accent; ctx.fillRect(WX, py(y), WW, C); }
+                else if (p < 0.5) { ctx.globalAlpha = p * 1.8; ctx.fillStyle = pal.well; ctx.fillRect(WX, py(y), WW, C); }
+                else { const w = WW * (1 - (p - 0.5) * 2); ctx.globalAlpha = 0.9; ctx.fillStyle = pal.accent; ctx.fillRect(WX + (WW - w) / 2, py(y) + C * 0.35, w, C * 0.3); }
+            }
+            ctx.globalAlpha = 1;
+        }
+        if (trail) {
+            ctx.globalAlpha = 0.22 * trail.life / 160; ctx.fillStyle = SHAPES[trail.t].color;
+            const cells = SHAPES[trail.t].rot[trail.r], top = {};
+            for (const [x, y] of cells) top[x] = Math.min(top[x] ?? 99, y);
+            for (const x in top) ctx.fillRect(px(trail.x + +x) + 4, py(trail.y0 + top[x]), C - 8, (trail.y1 - trail.y0) * C);
+            ctx.globalAlpha = 1;
+        }
+        if (cur && state === 'play') {
+            const cells = SHAPES[cur.t].rot[cur.r];
+            if (settings.ghost) {
+                let gy = cur.y; while (fits(cur.t, cur.r, cur.x, gy + 1)) gy++;
+                if (gy !== cur.y) {
+                    const k = SHAPES[cur.t];
+                    for (const [x, y] of cells) {
+                        const X = px(cur.x + x), Y = py(gy + y);
+                        ctx.globalAlpha = 0.2; ctx.fillStyle = k.color; ctx.fillRect(X + 2, Y + 2, C - 4, C - 4);
+                        ctx.globalAlpha = 0.85; ctx.strokeStyle = k.color; ctx.lineWidth = 2; ctx.strokeRect(X + 3, Y + 3, C - 6, C - 6);
+                    }
+                    ctx.globalAlpha = 1;
+                }
+            }
+            for (const [x, y] of cells) block(cur.t, px(cur.x + x), py(cur.y + y), C);
+        }
+        if (banner) {
+            ctx.globalAlpha = Math.min(1, banner.life / 300);
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+            ctx.strokeStyle = pal.well; ctx.fillStyle = pal.text;
+            ctx.font = '800 34px ' + pal.font; ctx.lineWidth = 7; ctx.strokeText(banner.text, WX + WW / 2, WY + WH * 0.3); ctx.fillText(banner.text, WX + WW / 2, WY + WH * 0.3);
+            ctx.font = '700 20px ' + pal.font; ctx.lineWidth = 5; ctx.strokeText(banner.sub, WX + WW / 2, WY + WH * 0.3 + 34); ctx.fillText(banner.sub, WX + WW / 2, WY + WH * 0.3 + 34);
+            ctx.globalAlpha = 1;
+        }
+        ctx.restore();
+    }
+
+    // Frame loop: runs only while a game is in play (not paused, over, or in a hidden tab).
+    let raf = 0, last = 0, firstFrame = true;
+    const stats = { frames: 0, sum: 0, worst: 0, slow: 0, work: 0, workMax: 0 };
+    function frame(t) {
+        raf = 0;
+        const dt = t - last; last = t;
+        if (!firstFrame) { stats.frames++; stats.sum += dt; stats.worst = Math.max(stats.worst, dt); if (dt > 20) stats.slow++; }
+        firstFrame = false;
+        const w0 = performance.now();
+        update(Math.min(50, Math.max(0, dt))); draw();
+        const w = performance.now() - w0; stats.work += w; stats.workMax = Math.max(stats.workMax, w);
+        if (state === 'play' && !paused) raf = requestAnimationFrame(frame);
+    }
+    function wake() { if (!raf) { last = performance.now(); firstFrame = true; raf = requestAnimationFrame(frame); } }
+
+    // Keyboard. Letters go by the key's label; arrows, Space, and Shift by position.
+    const isField = el => el && el.matches && el.matches('input, select, textarea');
+    const isControl = el => el && el.matches && el.matches('button, a, summary');
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey || e.altKey || isField(e.target)) return;
+        const k = e.key.length === 1 ? e.key.toLowerCase() : '', playing = state === 'play';
+        if ((e.code === 'Space' || e.code === 'Enter') && isControl(e.target)) return;   // Space or Enter on a focused button activates it
+        let handled = true;
+        if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') { if (!e.repeat) pressDir(e.code === 'ArrowLeft' ? -1 : 1); }
+        else if (e.code === 'ArrowDown') input.soft = true;
+        else if (e.code === 'ArrowUp' || k === 'x') { if (!e.repeat) rotate(1); }
+        else if (k === 'z') { if (!e.repeat) rotate(-1); }
+        else if (e.code === 'Space') {
+            if (e.repeat) { /* no repeated hard drops */ }
+            else if (playing) hardDrop();
+            else if (state === 'title' || (state === 'over' && performance.now() - overAt > 700)) newGame();
+        }
+        else if (k === 'c' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') { if (!e.repeat) doHold(); }
+        else if (k === 'p' || e.code === 'Escape') { if (!e.repeat) setPause(!paused); }
+        else if (e.code === 'Enter') { if (state === 'title' || (state === 'over' && performance.now() - overAt > 700)) newGame(); else handled = false; }
+        else handled = false;
+        if (handled && (playing || state === 'play' || e.target === cv)) e.preventDefault();   // also when the key just started a game
+    });
+    document.addEventListener('keyup', e => {
+        if (e.code === 'ArrowLeft') releaseDir(-1);
+        else if (e.code === 'ArrowRight') releaseDir(1);
+        else if (e.code === 'ArrowDown') input.soft = false;
+    });
+
+    // Touch buttons (shown on touch screens). A keyboard click (detail 0) acts once.
+    const tap = (id, down, up) => {
+        const el = $(id);
+        G.hold(el, down, up || (() => {}));
+        el.addEventListener('click', e => { if (e.detail === 0) { down(); if (up) up(); } });
+    };
+    tap('t-left', () => pressDir(-1), () => releaseDir(-1));
+    tap('t-right', () => pressDir(1), () => releaseDir(1));
+    tap('t-ccw', () => rotate(-1));
+    tap('t-cw', () => rotate(1));
+    tap('t-soft', () => { input.soft = true; }, () => { input.soft = false; });
+    tap('t-hold', doHold);
+    tap('t-drop', hardDrop);
+
+    // Gestures on the well (touch and pen): drag to move, tap to turn, drag down to soft drop, flick down or up.
+    let gesture = null;
+    cv.addEventListener('pointerdown', e => {
+        cv.focus({ preventScroll: true });
+        if (e.pointerType === 'mouse' || !canAct() || gesture) return;
+        e.preventDefault();
+        try { cv.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
+        const t = performance.now();
+        gesture = { id: e.pointerId, x0: e.clientX, y0: e.clientY, ax: e.clientX, ay: e.clientY, t0: t, moved: false, pts: [[t, e.clientX, e.clientY]] };
+    });
+    cv.addEventListener('pointermove', e => {
+        const g = gesture;
+        if (!g || e.pointerId !== g.id) return;
+        e.preventDefault();
+        const step = Math.max(12, cv.getBoundingClientRect().width / W * C * 0.85), t = performance.now();
+        g.pts.push([t, e.clientX, e.clientY]); if (g.pts.length > 8) g.pts.shift();
+        while (e.clientX - g.ax >= step) { g.ax += step; shift(1); g.moved = true; }
+        while (g.ax - e.clientX >= step) { g.ax -= step; shift(-1); g.moved = true; }
+        if (e.clientY - g.y0 > Math.abs(e.clientX - g.x0)) {
+            while (e.clientY - g.ay >= step) { g.ay += step; softStep(); g.moved = true; }
+        } else if (e.clientY < g.ay) g.ay = Math.max(g.y0, e.clientY);
+    });
+    function endGesture(e) {
+        const g = gesture;
+        if (!g || e.pointerId !== g.id) return;
+        gesture = null;
+        if (e.type === 'pointercancel') return;
+        const t = performance.now(), dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+        const ref = g.pts.find(p => t - p[0] <= 120) || g.pts[0], vy = (e.clientY - ref[2]) / Math.max(16, t - ref[0]);
+        const vertical = Math.abs(dy) > 2 * Math.abs(dx), far = Math.abs(dy) > 30;
+        if (!g.moved && t - g.t0 < 300 && Math.hypot(dx, dy) < 12) rotate(1);
+        else if (vertical && far && vy > 0.8) hardDrop();
+        else if (vertical && far && vy < -0.8) doHold();
+    }
+    cv.addEventListener('pointerup', endGesture);
+    cv.addEventListener('pointercancel', endGesture);
+    cv.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Buttons and settings
+    for (let i = 1; i <= 10; i++) $('start-level').add(new Option('Start level ' + i, String(i)));
+    $('start-level').value = String(clampNum(+G.get('blocks-start', 1), 1, 10, 1));
+    $('start-level').addEventListener('change', () => G.set('blocks-start', $('start-level').value));
+    $('start').addEventListener('click', () => { if (state === 'play' && paused) setPause(false); else newGame(); });
+    $('new').addEventListener('click', newGame);
+    $('pause').addEventListener('click', () => { setPause(!paused); if (!paused) cv.focus({ preventScroll: true }); });
+    G.soundButton($('sound'));
+    $('sound').addEventListener('click', () => { if (state === 'play' && !paused) cv.focus({ preventScroll: true }); });   // so Space keeps hard-dropping
+    function showSettings() {
+        $('das').value = settings.das; $('arr').value = settings.arr; $('ghost').checked = settings.ghost;
+        $('das-out').textContent = settings.das + ' ms'; $('arr-out').textContent = settings.arr ? settings.arr + ' ms' : '0 ms (instant)';
+    }
+    $('das').addEventListener('input', () => { settings.das = +$('das').value; G.set('blocks-das', settings.das); showSettings(); });
+    $('arr').addEventListener('input', () => { settings.arr = +$('arr').value; G.set('blocks-arr', settings.arr); showSettings(); });
+    $('ghost').addEventListener('change', () => { settings.ghost = $('ghost').checked; G.set('blocks-ghost', settings.ghost ? '1' : '0'); draw(); });
+    $('defaults').addEventListener('click', () => {
+        Object.assign(settings, DEFAULTS, { ghost: true });
+        G.set('blocks-das', settings.das); G.set('blocks-arr', settings.arr); G.set('blocks-ghost', '1'); showSettings(); draw();
+    });
+    showSettings();
+
+    // Pause when the tab is hidden or the window loses focus; keep the best score if the page closes mid-game.
+    document.addEventListener('visibilitychange', () => { if (document.hidden) setPause(true); });
+    window.addEventListener('blur', () => { clearInput(); setPause(true); });
+    window.addEventListener('pagehide', saveBest);
+    const repaint = () => { readPalette(); draw(); };
+    document.addEventListener('themechange', repaint);
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', repaint);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { bgKey = ''; draw(); });
+
+    hud(); draw();
+    window.__blocks = {
+        newGame, shift, rotate, hardDrop, softStep, doHold, pressDir, releaseDir, setPause, update, draw, input, settings, stats,
+        fromBag, gravityMs, KICKS, SHAPES,
+        get state() { return { state, paused, score, lines, level, hold, holdUsed, queue: queue.slice(), cur: cur && { ...cur }, clearing: !!clearing, lockT, lockResets, best }; },
+        get board() { return board.map(r => r.map(c => c || '.').join('')); },
+        setBoard(rows) { board = emptyBoard(); rows.forEach((s, i) => { const y = ROWS - rows.length + i; for (let x = 0; x < COLS; x++) board[y][x] = s[x] === '.' ? '' : s[x]; }); draw(); },
+        setCur(t, r, x, y) { cur = { t, r: r || 0, x, y }; lowest = y; lockT = 0; lockResets = 0; fallAcc = 0; draw(); },
+        setQueue(q) { queue = q.slice(); },
+        sim(ms, stepMs) { const s = stepMs || 1000 / 60; for (let t = 0; t < ms; t += s) update(s); draw(); }
+    };
+});
+</script>
+</body>
+</html>

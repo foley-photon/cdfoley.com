@@ -103,7 +103,8 @@ put_ld('learn/index.html', {'@context': 'https://schema.org', '@type': 'Collecti
 # Games: one VideoGame per page, from the cards on the games hub
 hub = open('games/index.html', encoding='utf-8').read()
 GENRE = {'pinball': 'Pinball', 'brick-breaker': 'Arcade', 'space-rocks': 'Shooter', 'paddle-ball': 'Sports', 'snake': 'Arcade',
-         '2048': 'Puzzle', 'sudoku': 'Puzzle', 'minesweeper': 'Puzzle', 'solitaire': 'Card game', 'hangman': 'Word game'}
+         '2048': 'Puzzle', 'sudoku': 'Puzzle', 'minesweeper': 'Puzzle', 'solitaire': 'Card game', 'hangman': 'Word game',
+         'block-drop': 'Puzzle', 'beam-path': 'Puzzle', 'elements': 'Educational'}
 PLAYMODE = {'paddle-ball': ['SinglePlayer', 'MultiPlayer']}     # vs. the computer, or two players on one device
 GAMES = [dict(slug=m.group(1), title=html.unescape(m.group(2))) for m in re.finditer(
     r'<a class="card tool-card game-card" href="/games/([^/]+)/">.*?<h3>(.*?)</h3>', hub, re.S)]

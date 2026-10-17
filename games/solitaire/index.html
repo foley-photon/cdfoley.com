@@ -4,27 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Solitaire: Free Klondike Card Game Online</title>
-<meta name="description" content="Play Klondike solitaire free online: draw one or three, drag or tap to move, unlimited undo, hints, and auto-finish. No ads, no sign-up.">
+<meta name="description" content="Play Klondike solitaire free online: draw one or three, standard or Vegas scoring, winnable deals, hints that explain, and stats. No ads, no sign-up.">
 <link rel="canonical" href="https://cdfoley.com/games/solitaire/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Solitaire (Klondike)">
-<meta property="og:description" content="Play Klondike solitaire free online: draw one or three, drag or tap to move, unlimited undo, hints, and auto-finish. No ads, no sign-up.">
+<meta property="og:description" content="Play Klondike solitaire free online: draw one or three, standard or Vegas scoring, winnable deals, hints that explain, and stats. No ads, no sign-up.">
 <meta property="og:url" content="https://cdfoley.com/games/solitaire/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-solitaire.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Klondike Solitaire: Play Klondike solitaire free online: draw one or three, drag or tap to move, unlimited undo, hints, and auto-finish. No ads, no sign-up.">
+<meta property="og:image:alt" content="Klondike Solitaire: Play Klondike solitaire free online: draw one or three, standard or Vegas scoring, winnable deals, hints that explain, and stats. No ads, no sign-up.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <link rel="stylesheet" href="/assets/css/games.css">
 <script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
 <style>
-    .felt { position: relative; border-radius: var(--radius-lg); background: radial-gradient(ellipse at 50% 30%, #17785a 0%, #0f5a43 60%, #0b4634 100%); box-shadow: inset 0 0 40px rgba(0,0,0,.25); overflow: hidden; user-select: none; -webkit-user-select: none; }
+    .felt { position: relative; border-radius: var(--radius-lg); background: radial-gradient(ellipse at 50% 30%, #17785a 0%, #0f5a43 60%, #0b4634 100%); box-shadow: inset 0 0 40px rgba(0,0,0,.25); overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+    .felt.busy { opacity: .6; }
     .slot { position: absolute; width: var(--cw); height: var(--ch); border-radius: calc(var(--cw) * 0.08); border: 2px dashed rgba(255,255,255,.28); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.35); font: 700 calc(var(--cw) * 0.32) var(--font); cursor: pointer; }
     .slot.stock::after { content: "↻"; font-size: calc(var(--cw) * 0.4); }
+    .slot.stock.spent::after { content: "×"; }
     .card { position: absolute; left: 0; top: 0; width: var(--cw); height: var(--ch); border-radius: calc(var(--cw) * 0.08); transition: transform .18s ease; cursor: pointer; touch-action: none; }
     .card.dragging { transition: none; filter: drop-shadow(0 8px 14px rgba(0,0,0,.35)); }
     .card .face, .card .back { position: absolute; inset: 0; border-radius: inherit; }
@@ -34,14 +37,26 @@
     .card .back { border: 1px solid #0b1220; box-shadow: 0 1px 2px rgba(0,0,0,.3);
         background: linear-gradient(135deg, transparent 46%, rgba(110,168,254,.55) 48%, rgba(52,211,153,.55) 52%, transparent 54%) center / 100% 100% no-repeat,
                     repeating-linear-gradient(45deg, #17284a 0 5px, #13213d 5px 10px); outline: 3px solid #fdfdfb; outline-offset: -5px; }
-    .corner { position: absolute; font: 700 max(10px, calc(var(--cw) * 0.2))/0.95 var(--font); text-align: center; letter-spacing: -0.02em; }
+    .corner { position: absolute; font: 700 max(11px, calc(var(--cw) * 0.21))/0.95 var(--font); text-align: center; letter-spacing: -0.02em; }
     .corner.tl { top: 5%; left: 7%; } .corner.br { bottom: 5%; right: 7%; transform: rotate(180deg); }
     .pip { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: calc(var(--cw) * 0.48); line-height: 1; }
     .pip.court { font: 700 calc(var(--cw) * 0.34) var(--font); }
-    .card.hint .face { box-shadow: 0 0 0 3px #fbbf24; }
+    .card.hint .face, .card.hint .back { box-shadow: 0 0 0 3px #fbbf24; }
+    .slot.hint { border-color: #fbbf24; border-style: solid; }
     .felt:focus-visible { outline-offset: 0; }
     .felt:focus-visible .kb { outline: 3px solid #fff; outline-offset: 2px; }   /* the keyboard cursor, shown only while the table has keyboard focus */
     .sol-bar .chip { background: var(--surface); }
+    .sol-msg { min-height: 1.5em; margin: -0.3rem 0 0.5rem; font-size: 0.92rem; color: var(--text); }
+    .sol-opts { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; align-items: center; justify-content: center; margin-top: 0.8rem; }
+    .sol-opts select { padding: 0.3rem 0.5rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: 0.85rem; }
+    .sol-stats { max-width: 760px; margin: 1.2rem auto 0; }
+    .sol-stats .tbl { overflow-x: auto; }
+    .sol-stats table { width: 100%; border-collapse: collapse; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+    .sol-stats th, .sol-stats td { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+    .sol-stats th:first-child, .sol-stats td:first-child { text-align: left; }
+    .sol-stats thead th { color: var(--text-2); font-weight: 600; }
+    .sol-stats p { font-size: 0.85rem; color: var(--text-2); margin: 0.6rem 0; }
+    @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -51,7 +66,7 @@
    "@type": "VideoGame",
    "name": "Solitaire",
    "url": "https://cdfoley.com/games/solitaire/",
-   "description": "Play Klondike solitaire free online: draw one or three, drag or tap to move, unlimited undo, hints, and auto-finish. No ads, no sign-up.",
+   "description": "Play Klondike solitaire free online: draw one or three, standard or Vegas scoring, winnable deals, hints that explain, and stats. No ads, no sign-up.",
    "genre": "Card game",
    "gamePlatform": "Web browser",
    "playMode": "SinglePlayer",
@@ -109,7 +124,7 @@
             <p class="lede">Klondike: build each suit up from ace to king on the four foundations. In the tableau, stack cards down in alternating colors; only kings go in empty columns.</p>
         </header>
         <div class="game-bar sol-bar">
-            <div class="chips"><span class="chip">Moves<b id="moves">0</b></span><span class="chip">Time<b id="time">0:00</b></span><span class="chip">Best<b id="best">—</b></span></div>
+            <div class="chips"><span class="chip">Moves<b id="moves">0</b></span><span class="chip">Time<b id="time">0:00</b></span><span class="chip" id="score-chip" hidden>Score<b id="score">0</b></span><span class="chip">Best<b id="best">—</b></span></div>
             <div class="game-actions">
                 <select id="draw" aria-label="Draw mode"><option value="1">Draw 1</option><option value="3">Draw 3</option></select>
                 <button class="btn btn-secondary btn-sm" type="button" id="undo">Undo</button>
@@ -118,11 +133,26 @@
                 <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
             </div>
         </div>
+        <p class="sol-msg" id="msg" role="status" aria-live="polite"></p>
         <div class="game-stage">
-            <div class="felt" id="table" tabindex="0" role="application" aria-label="Solitaire table" aria-describedby="sol-help"></div>
+            <div class="felt" id="table" tabindex="0" role="application" aria-label="Solitaire table" aria-describedby="sol-keys"></div>
             <div class="game-overlay" id="overlay" hidden><h2 id="ov-head">You won!</h2><p id="ov-text"></p><div class="game-actions"><button class="btn btn-primary" type="button" id="again">Deal again</button><button class="btn btn-secondary" type="button" id="keep" hidden>Keep playing</button></div></div>
         </div>
-        <p class="game-help" id="sol-help"><strong>Drag</strong> cards to move them, or <strong>tap</strong> a card to send it to the best legal spot (foundations first). Tap the deck to draw; tap the empty deck to turn the waste pile over. Face-down cards flip automatically when uncovered. Keyboard: <kbd>Tab</kbd> to the table, then the arrow keys choose a pile or card (<kbd>↑</kbd> in a column reaches a run) and <kbd>Enter</kbd> or <kbd>Space</kbd> draws or moves it. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.</p>
+        <div class="sol-opts">
+            <label class="toggle">Scoring <select id="scoring"><option value="none">None</option><option value="standard">Standard</option><option value="vegas">Vegas</option></select></label>
+            <label class="toggle"><input type="checkbox" id="winnable"> Winnable deals only</label>
+        </div>
+        <p class="visually-hidden" id="sr" aria-live="polite"></p>
+        <p class="game-help"><strong>Drag</strong> cards to move them, or <strong>tap</strong> a card to send it to the best legal spot (foundations first). Tap the deck to draw; tap the empty deck to turn the waste pile over. Face-down cards flip automatically when uncovered. To take a card back off a foundation, drag it.</p>
+        <p class="game-help" id="sol-keys">Keyboard: <kbd>Tab</kbd> to the table, then the arrow keys choose a pile or card (<kbd>↑</kbd> in a column reaches a run). <kbd>Enter</kbd> or <kbd>Space</kbd> draws or sends the card to its best spot, <kbd>1</kbd>–<kbd>7</kbd> move it to that column, <kbd>F</kbd> to a foundation. <kbd>D</kbd> draws, <kbd>H</kbd> gives a hint, and <kbd>U</kbd> or <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.</p>
+        <p class="game-help"><strong>Standard scoring:</strong> 5 points for a card from the waste to the tableau, 10 for a card to a foundation, 5 for each card turned over, −15 for a card taken back off a foundation, and −100 (Draw 1) or −20 (Draw 3) each time you turn the waste over; the score never drops below 0. <strong>Vegas scoring:</strong> each game costs $52 and every card on a foundation pays $5; you get one pass through the deck in Draw 1 and three in Draw 3.</p>
+        <p class="game-help"><strong>Winnable deals:</strong> before a deal reaches you, the computer plays it through with the face-down cards in view, under your draw and scoring rules, and deals it only if it wins. A win is always possible, but you can still get stuck, because you can’t see the face-down cards; Undo is unlimited. Your game in progress is saved in this browser.</p>
+        <details class="fold sol-stats" id="stats-box">
+            <summary>Statistics</summary>
+            <div class="tbl"><table><thead><tr><th scope="col">Game</th><th scope="col">Played</th><th scope="col">Won</th><th scope="col">Win %</th><th scope="col">Streak</th><th scope="col">Best streak</th><th scope="col">Best time</th><th scope="col">Fewest moves</th></tr></thead><tbody id="stats"></tbody></table></div>
+            <p>A game counts once you make a move, and starting another before you win counts as a loss. Winnable deals are kept separately. Statistics stay in this browser.</p>
+            <p><button class="btn btn-secondary btn-sm" type="button" id="reset-stats">Reset statistics</button></p>
+        </details>
     </div>
 </main>
 
@@ -130,23 +160,32 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const $ = id => document.getElementById(id), table = $('table');
+    const G = window.Games, $ = id => document.getElementById(id), table = $('table');
     const SUITS = ['♠', '♥', '♦', '♣'], RANKS = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
     const NAMES = ['', 'Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King'], SUIT_NAMES = ['spades', 'hearts', 'diamonds', 'clubs'];
     const red = c => c.s === 1 || c.s === 2;
-    let S, moves, undoStack, t0, tick, els = {}, L = {}, drag = null, won = false, kb = { i: 0, depth: 0 }, kbEl = null;
+    const cardOf = id => ({ id, s: ((id - 1) / 13) | 0, r: (id - 1) % 13 + 1, up: false });
+    const short = c => RANKS[c.r] + SUITS[c.s], long = c => NAMES[c.r] + ' of ' + SUIT_NAMES[c.s];
+    const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let S, moves, score, undoStack, els = {}, L = {}, drag = null, won = false, counted = false, kb = { i: 0, depth: 0 }, kbEl = null;
+    let elapsed = 0, runFrom = null, tick = null, finishing = 0, dealing = 0, busy = false, solution = null;
+    const stats = G.getJSON('sol-stats') || {};
 
     // ── Model ──
-    function deal() {
-        const deck = [];
-        for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) deck.push({ id: s * 13 + r, s, r, up: false });
-        for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
-        S = { stock: [], waste: [], found: [[], [], [], []], tab: [[], [], [], [], [], [], []] };
-        for (let c = 0; c < 7; c++) for (let k = 0; k <= c; k++) { const card = deck.pop(); card.up = k === c; S.tab[c].push(card); }
-        S.stock = deck;
-        moves = 0; undoStack = []; won = false; clearInterval(tick); t0 = null;
-        $('time').textContent = '0:00'; $('overlay').hidden = true; showBest(); update();
+    // S.stock and S.waste have their top card last. S.passes counts how many times the waste has been turned over.
+    function shuffled() { const d = []; for (let id = 1; id <= 52; id++) d.push(id); for (let i = d.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; } return d; }
+    function layoutDeck(deck, draw, scoring, winnable) {
+        const d = deck.map(cardOf), s = { stock: [], waste: [], found: [[], [], [], []], tab: [[], [], [], [], [], [], []], passes: 0, draw, scoring, winnable };
+        for (let c = 0; c < 7; c++) for (let k = 0; k <= c; k++) { const card = d.pop(); card.up = k === c; s.tab[c].push(card); }
+        s.stock = d;
+        return s;
     }
+    const maxPasses = s => s.scoring === 'vegas' ? (s.draw === 1 ? 0 : 2) : Infinity;   // turn-overs of the waste allowed
+    const canRecycle = () => S.passes < maxPasses(S);
+    const enc = p => p.map(c => c.id * 2 + (c.up ? 1 : 0));
+    const dec = a => a.map(v => { const c = cardOf(v >> 1); c.up = !!(v & 1); return c; });
+    const pack = () => ({ st: enc(S.stock), wa: enc(S.waste), fo: S.found.map(enc), ta: S.tab.map(enc), passes: S.passes, moves, score });
+    function unpack(o) { S.stock = dec(o.st); S.waste = dec(o.wa); S.found = o.fo.map(dec); S.tab = o.ta.map(dec); S.passes = o.passes; moves = o.moves; score = o.score; }
     const pileOf = p => p.pile === 'tab' ? S.tab[p.idx] : p.pile === 'found' ? S.found[p.idx] : S[p.pile];
     function locate(id) {
         for (const pile of ['stock', 'waste']) { const k = S[pile].findIndex(c => c.id === id); if (k >= 0) return { pile, idx: 0, pos: k }; }
@@ -156,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function movable(loc) {
         const p = pileOf(loc);
-        if (loc.pile === 'stock') return null;
+        if (loc.pile === 'stock' || !p[loc.pos]) return null;
         if (loc.pile === 'tab') return p[loc.pos].up ? p.slice(loc.pos) : null;
         return loc.pos === p.length - 1 ? [p[loc.pos]] : null;
     }
@@ -166,25 +205,46 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dest.pile === 'tab') return top ? top.up && red(top) !== red(c) && c.r === top.r - 1 : c.r === 13;
         return false;
     }
-    function snapshot() { undoStack.push(JSON.stringify({ S, moves })); }
-    function startClock() { if (!t0) { t0 = Date.now(); tick = setInterval(clock, 500); } }
-    function clock() { if (!t0) return; const s = Math.floor((Date.now() - t0) / 1000); $('time').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
-    function move(src, dest) {
+    const foundCount = () => S.found.reduce((n, f) => n + f.length, 0);
+    const where = dest => dest.pile === 'found' ? 'a foundation' : 'column ' + (dest.idx + 1);
+    function begin() {                       // the first move of a game starts the clock and counts the game as played
+        undoStack.push(pack()); runClock();
+        if (!counted) { counted = true; rec(statKey()).played++; saveStats(); }
+    }
+    function move(src, dest, quiet) {
         const cards = movable(src);
-        if (!cards || !accepts(cards, dest)) return false;
-        snapshot(); startClock();
+        if (!cards || busy || won || (src.pile === dest.pile && src.idx === dest.idx) || !accepts(cards, dest)) return false;
+        begin();
         pileOf(src).splice(src.pos, cards.length);
         pileOf(dest).push(...cards);
-        if (src.pile === 'tab') { const p = S.tab[src.idx]; if (p.length && !p[p.length - 1].up) p[p.length - 1].up = true; }
-        moves++; render(); update(); checkWin();
+        let flipped = null;
+        if (src.pile === 'tab') { const p = S.tab[src.idx]; if (p.length && !p[p.length - 1].up) { flipped = p[p.length - 1]; flipped.up = true; } }
+        if (S.scoring === 'standard') {
+            let d = flipped ? 5 : 0;
+            if (src.pile === 'waste' && dest.pile === 'tab') d += 5;
+            if (dest.pile === 'found' && src.pile !== 'found') d += 10;
+            if (src.pile === 'found' && dest.pile === 'tab') d -= 15;
+            score = Math.max(0, score + d);
+        } else if (S.scoring === 'vegas') score = 5 * foundCount() - 52;
+        moves++;
+        if (!quiet) say(long(cards[0]) + (cards.length > 1 ? ' and ' + (cards.length - 1) + (cards.length > 2 ? ' cards' : ' card') + ' on it' : '') + ' to ' + where(dest) + (flipped ? ', turning over the ' + long(flipped) : '') + '.');
+        changed(); checkWin();
         return true;
     }
     function drawStock() {
-        if (!S.stock.length && !S.waste.length) return;
-        snapshot(); startClock();
-        if (!S.stock.length) { S.stock = S.waste.reverse().map(c => (c.up = false, c)); S.waste = []; }
-        else { const n = +$('draw').value; for (let i = 0; i < n && S.stock.length; i++) { const c = S.stock.pop(); c.up = true; S.waste.push(c); } }
-        moves++; render(); update();
+        if (busy || won) return false;
+        if (!S.stock.length && (!S.waste.length || !canRecycle())) { if (S.waste.length) say('No more passes through the deck under Vegas rules.'); return false; }
+        begin();
+        if (!S.stock.length) {
+            S.stock = S.waste.reverse().map(c => (c.up = false, c)); S.waste = []; S.passes++;
+            if (S.scoring === 'standard') score = Math.max(0, score - (S.draw === 1 ? 100 : 20));
+            say('Turned the waste over.');
+        } else {
+            for (let i = 0; i < S.draw && S.stock.length; i++) { const c = S.stock.pop(); c.up = true; S.waste.push(c); }
+            say('Drew the ' + long(S.waste[S.waste.length - 1]) + '.');
+        }
+        moves++; changed();
+        return true;
     }
     function autoMove(loc) {
         const cards = movable(loc); if (!cards) return false;
@@ -194,45 +254,224 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!(loc.pile === 'tab' && loc.pos === 0)) for (const i of order) if (!S.tab[i].length && move(loc, { pile: 'tab', idx: i })) return true;
         return false;
     }
-    function canFinish() { return !S.stock.length && !S.waste.length && S.tab.every(p => p.every(c => c.up)); }
-    function checkWin() {
-        if (S.found.reduce((n, f) => n + f.length, 0) !== 52) return;
-        won = true; clearInterval(tick);
-        const secs = Math.max(1, Math.round((Date.now() - (t0 || Date.now())) / 1000)), key = 'sol-best-' + $('draw').value;
-        let prev = null; try { prev = +localStorage.getItem(key) || null; } catch (e) { /* ignore */ }
-        const record = !prev || secs < prev;
-        if (record) { try { localStorage.setItem(key, secs); } catch (e) { /* ignore */ } }
-        showBest();
-        $('ov-head').textContent = 'You won!'; $('keep').hidden = true;
-        $('ov-text').textContent = moves + ' moves in ' + fmtTime(secs) + (record ? ' — a new best for draw ' + $('draw').value + '.' : '.');
-        setTimeout(() => { $('overlay').hidden = false; }, 350);
+    const canFinish = () => !S.stock.length && !S.waste.length && S.tab.every(p => p.every(c => c.up));
+    function undo() {
+        if (!undoStack.length || won || busy) return;
+        finishing++; unpack(undoStack.pop()); say('Undone.'); changed();
     }
+
+    // ── Clock: runs from the first move while the tab is visible ──
+    const clockMs = () => elapsed + (runFrom !== null ? performance.now() - runFrom : 0);
     const fmtTime = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
-    function showBest() { let b = null; try { b = localStorage.getItem('sol-best-' + $('draw').value); } catch (e) { /* ignore */ } $('best').textContent = b ? fmtTime(+b) : '—'; }
-    function update() { $('moves').textContent = moves; $('undo').disabled = !undoStack.length; $('finish').hidden = won || !canFinish(); }
-    function findHint() {
-        const srcs = [];
-        if (S.waste.length) srcs.push({ pile: 'waste', idx: 0, pos: S.waste.length - 1 });
-        S.tab.forEach((p, i) => p.forEach((c, k) => { if (c.up) srcs.push({ pile: 'tab', idx: i, pos: k }); }));
-        for (const src of srcs) {
-            const cards = movable(src); if (!cards) continue;
-            if (cards.length === 1) for (let i = 0; i < 4; i++) if (accepts(cards, { pile: 'found', idx: i })) return src;
+    const showTime = () => { $('time').textContent = fmtTime(Math.floor(clockMs() / 1000)); };
+    function runClock() { if (runFrom !== null || won) return; runFrom = performance.now(); clearInterval(tick); tick = setInterval(showTime, 500); }
+    function pauseClock() { if (runFrom !== null) { elapsed += performance.now() - runFrom; runFrom = null; } clearInterval(tick); tick = null; }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { pauseClock(); save(); } else if (counted && !won) runClock(); });
+
+    // ── Statistics and saving ──
+    const statKey = () => S.draw + (S.winnable ? 'w' : '');
+    function rec(k) {
+        if (!stats[k]) { const old = k.length === 1 ? +G.get('sol-best-' + k, 0) : 0; stats[k] = { played: 0, won: 0, streak: 0, bestStreak: 0, bestTime: old || null, fewest: null }; }
+        return stats[k];
+    }
+    function saveStats() { G.setJSON('sol-stats', stats); renderStats(); }
+    function renderStats() {
+        const keys = ['1', '3'].concat(['1w', '3w'].filter(k => stats[k]));
+        $('stats').innerHTML = keys.map(k => {
+            const s = stats[k] || { played: 0, won: 0, streak: 0, bestStreak: 0, bestTime: null, fewest: null };
+            return '<tr><th scope="row">Draw ' + k[0] + (k[1] ? ', winnable deals' : '') + '</th><td>' + s.played + '</td><td>' + s.won + '</td><td>' + (s.played ? Math.round(100 * s.won / s.played) + '%' : '—') + '</td><td>' + s.streak + '</td><td>' + s.bestStreak + '</td><td>' + (s.bestTime ? fmtTime(s.bestTime) : '—') + '</td><td>' + (s.fewest || '—') + '</td></tr>';
+        }).join('');
+    }
+    function showBest() { const s = stats[statKey()]; $('best').textContent = s && s.bestTime ? fmtTime(s.bestTime) : '—'; }
+    function save() {
+        if (!S) return;
+        if (won || !counted) { G.set('sol-game', ''); return; }
+        G.setJSON('sol-game', Object.assign(pack(), { draw: S.draw, scoring: S.scoring, winnable: S.winnable, elapsed: clockMs(), undo: undoStack.slice(-300) }));
+    }
+    function restore() {
+        const o = G.getJSON('sol-game');
+        try {
+            if (!o || ![1, 3].includes(o.draw) || !['none', 'standard', 'vegas'].includes(o.scoring)) return false;
+            const ids = [].concat(o.st, o.wa, ...o.fo, ...o.ta).map(v => v >> 1);
+            if (ids.length !== 52 || new Set(ids).size !== 52 || ids.some(i => !(i >= 1 && i <= 52))) return false;
+            S = { draw: o.draw, scoring: o.scoring, winnable: !!o.winnable }; unpack(o);
+            undoStack = Array.isArray(o.undo) ? o.undo.filter(u => u && Array.isArray(u.st) && Array.isArray(u.ta) && u.ta.length === 7) : []; won = false; counted = true;
+            elapsed = +o.elapsed || 0; runFrom = null;
+            $('draw').value = S.draw; $('scoring').value = S.scoring;
+            return true;
+        } catch (e) { return false; }
+    }
+
+    // ── Dealing ──
+    function startGame(deck, draw, scoring, winnable) {
+        finishing++; pauseClock(); elapsed = 0; runFrom = null;
+        S = layoutDeck(deck, draw, scoring, winnable);
+        moves = 0; score = scoring === 'vegas' ? -52 : 0; undoStack = []; won = false; counted = false;
+        $('overlay').hidden = true; showTime(); changed();
+    }
+    function newGame() {
+        if (counted && !won) { counted = false; rec(statKey()).streak = 0; saveStats(); G.set('sol-game', ''); }   // an abandoned game counts as a loss
+        const draw = +$('draw').value, scoring = $('scoring').value, token = ++dealing;
+        hintClear(); $('msg').textContent = '';
+        if (!$('winnable').checked) { busy = false; table.classList.remove('busy'); solution = null; startGame(shuffled(), draw, scoring, false); return; }
+        busy = true; table.classList.add('busy'); $('msg').textContent = 'Dealing a winnable game…';
+        const t0 = performance.now();
+        (function attempt() {
+            if (token !== dealing) return;
+            const until = performance.now() + 100;
+            do {
+                const deck = shuffled(), s = layoutDeck(deck, draw, scoring, true);
+                const r = solveDeal({ tab: s.tab.map(p => p.map(c => c.id)), down: s.tab.map(p => p.length - 1), found: [0, 0, 0, 0], talon: s.stock.map(c => c.id).reverse(), p: 0, rec: 0 }, draw, maxPasses(s), 30000);
+                const late = performance.now() - t0 > 15000;
+                if (r.path || late) {
+                    busy = false; table.classList.remove('busy'); solution = r.path;
+                    startGame(deck, draw, scoring, !!r.path);
+                    $('msg').textContent = r.path ? '' : 'No winnable deal turned up in time, so this deal is random and may not be winnable.';
+                    return;
+                }
+            } while (performance.now() < until);
+            setTimeout(attempt, 0);
+        })();
+    }
+
+    // Klondike solver with the face-down cards in view, used only to pick winnable deals. Its stock model matches the
+    // game: the talon lists the waste (bottom to top) and then the stock (top first); p cards of it are in the waste.
+    // A move may draw several times (turning the waste over when allowed) and then play the waste's top card. Cards
+    // that can never be needed in the tableau go straight to the foundations. Any solution it returns is a real win.
+    function solveDeal(start, drawN, maxRecycles, nodeLimit) {
+        const suit = id => ((id - 1) / 13) | 0, rank = id => (id - 1) % 13 + 1, isRed = id => { const s = suit(id); return s === 1 || s === 2; };
+        const limited = maxRecycles !== Infinity, seen = new Set(), ch = x => String.fromCharCode(48 + x);
+        let nodes = 0;
+        const canFound = (s, id) => s.found[suit(id)] === rank(id) - 1;
+        const canTab = (s, id, j) => { const c = s.tab[j]; if (!c.length) return rank(id) === 13; const t = c[c.length - 1]; return rank(t) === rank(id) + 1 && isRed(t) !== isRed(id); };
+        const clone = s => ({ tab: s.tab.map(c => c.slice()), down: s.down.slice(), found: s.found.slice(), talon: s.talon.slice(), p: s.p, rec: s.rec });
+        const flip = (s, i) => { if (s.down[i] && s.down[i] === s.tab[i].length) s.down[i]--; };
+        function apply(s0, m) {
+            const s = clone(s0);
+            if (m.k === 'tf') { const id = s.tab[m.i].pop(); s.found[suit(id)]++; flip(s, m.i); }
+            else if (m.k === 'tt') { const run = s.tab[m.i].splice(s.tab[m.i].length - m.n, m.n); s.tab[m.j].push(...run); flip(s, m.i); }
+            else { const id = s.talon.splice(m.q - 1, 1)[0]; s.p = m.q - 1; s.rec = m.rec; if (m.j < 0) s.found[suit(id)]++; else s.tab[m.j].push(id); }
+            return s;
+        }
+        function talonPositions(s) {
+            const n = s.talon.length, out = []; if (!n) return out;
+            let q = s.p, rec = s.rec, draws = 0; const seenQ = new Set();
+            if (q > 0) { out.push({ q, rec, draws }); seenQ.add(q); }
+            for (let guard = 0; guard < 200; guard++) {
+                if (q < n) { q = Math.min(q + drawN, n); draws++; }
+                else { if (rec >= maxRecycles) break; q = 0; rec++; draws++; continue; }
+                if (seenQ.has(q)) break;
+                seenQ.add(q); out.push({ q, rec, draws });
+            }
+            return out;
+        }
+        function autoSafe(s, out) {
+            for (let again = true; again;) {
+                again = false;
+                const safe = id => { const r = rank(id); if (!canFound(s, id)) return false; if (r <= 2) return true; const opp = isRed(id) ? [0, 3] : [1, 2]; return s.found[opp[0]] >= r - 1 && s.found[opp[1]] >= r - 1; };
+                for (let i = 0; i < 7; i++) { const c = s.tab[i]; if (c.length && safe(c[c.length - 1])) { const m = { k: 'tf', i }; s = apply(s, m); out.push(m); again = true; } }
+                if (s.p > 0 && safe(s.talon[s.p - 1])) { const m = { k: 'w', q: s.p, rec: s.rec, draws: 0, j: -1 }; s = apply(s, m); out.push(m); again = true; }
+            }
+            return s;
+        }
+        function moveList(s) {
+            const ms = [], firstEmpty = s.tab.findIndex(c => !c.length);
+            for (let i = 0; i < 7; i++) { const c = s.tab[i]; if (c.length && canFound(s, c[c.length - 1])) ms.push({ k: 'tf', i }); }
             for (let i = 0; i < 7; i++) {
-                if (src.pile === 'tab' && src.idx === i) continue;
-                if (!S.tab[i].length && src.pile === 'tab' && src.pos === 0) continue;
-                if (accepts(cards, { pile: 'tab', idx: i })) {
-                    // skip moves that just shuffle a run between equal columns
-                    if (src.pile === 'tab' && src.pos > 0 && S.tab[src.idx][src.pos - 1].up && S.tab[i].length) continue;
-                    return src;
+                const c = s.tab[i], f = s.down[i]; if (!c.length || !f) continue;
+                for (let j = 0; j < 7; j++) if (j !== i && (s.tab[j].length || j === firstEmpty) && canTab(s, c[f], j)) { ms.push({ k: 'tt', i, j, n: c.length - f }); break; }
+            }
+            for (const t of talonPositions(s)) {
+                const id = s.talon[t.q - 1];
+                if (canFound(s, id)) ms.push({ k: 'w', q: t.q, rec: t.rec, draws: t.draws, j: -1 });
+                for (let j = 0; j < 7; j++) if ((s.tab[j].length || j === firstEmpty) && canTab(s, id, j)) ms.push({ k: 'w', q: t.q, rec: t.rec, draws: t.draws, j });
+            }
+            for (let i = 0; i < 7; i++) {
+                const c = s.tab[i]; if (!c.length || s.down[i] || rank(c[0]) === 13) continue;
+                for (let j = 0; j < 7; j++) if (j !== i && s.tab[j].length && canTab(s, c[0], j)) { ms.push({ k: 'tt', i, j, n: c.length }); break; }
+            }
+            for (let i = 0; i < 7; i++) {
+                const c = s.tab[i];
+                for (let k = s.down[i] + 1; k < c.length; k++) if (canFound(s, c[k - 1]))
+                    for (let j = 0; j < 7; j++) if (j !== i && s.tab[j].length && canTab(s, c[k], j)) { ms.push({ k: 'tt', i, j, n: c.length - k }); break; }
+            }
+            return ms;
+        }
+        const key = s => s.found.join('') + ch(s.p) + (limited ? ch(s.rec) : '') + s.talon.map(ch).join('') + '/' + s.tab.map((c, i) => ch(s.down[i]) + c.map(ch).join('')).sort().join('/');
+        const done = s => !s.talon.length && s.down.every(d => !d);   // everything face up and no stock: always winnable
+        function dfs(s0) {
+            if (++nodes > nodeLimit) throw 0;
+            const auto = [], s = autoSafe(s0, auto);
+            if (done(s)) return auto;
+            const k = key(s); if (seen.has(k)) return null; seen.add(k);
+            for (const m of moveList(s)) { const r = dfs(apply(s, m)); if (r) return auto.concat([m], r); }
+            return null;
+        }
+        try { return { path: dfs(start), nodes }; } catch (e) { if (e === 0) return { path: null, nodes }; throw e; }
+    }
+
+    // ── Hints: the most useful move, with the reason ──
+    let hintEls = [], hintTimer = null;
+    function hintClear() { clearTimeout(hintTimer); hintEls.forEach(el => el.classList.remove('hint')); hintEls = []; }
+    function destEl(dest) { const p = pileOf(dest); return p.length ? els[p[p.length - 1].id] : dest.pile === 'found' ? L.slots.found[dest.idx] : L.slots.tab[dest.idx]; }
+    function findHint() {
+        const cands = [], name = c => short(c), col = i => 'column ' + (i + 1);
+        const onto = dest => { const p = pileOf(dest); return dest.pile === 'found' ? 'to its foundation' : p.length ? 'onto the ' + name(p[p.length - 1]) + ' in ' + col(dest.idx) : 'to the empty ' + col(dest.idx); };
+        const foundDest = c => { for (let i = 0; i < 4; i++) if (accepts([c], { pile: 'found', idx: i })) return { pile: 'found', idx: i }; return null; };
+        const tabDests = (cards, from) => { const out = []; let empty = false; for (let i = 0; i < 7; i++) { if (from === i) continue; if (!S.tab[i].length) { if (empty) continue; empty = true; } if (accepts(cards, { pile: 'tab', idx: i })) out.push({ pile: 'tab', idx: i }); } return out; };
+        const kingWaiting = () => (S.waste.length && S.waste[S.waste.length - 1].r === 13) || S.tab.some(p => { const f = p.findIndex(c => c.up); return f > 0 && p[f].r === 13; });
+        S.tab.forEach((p, i) => {
+            if (!p.length) return;
+            const f = p.findIndex(c => c.up), top = p[p.length - 1], downs = f;
+            const fd = foundDest(top);
+            if (fd) cands.push({ src: { pile: 'tab', idx: i, pos: p.length - 1 }, dest: fd, pri: p.length > 1 && !p[p.length - 2].up ? 100 : 60, why: p.length > 1 && !p[p.length - 2].up ? 'it turns over a face-down card in ' + col(i) + '.' : p.length === 1 ? 'it empties ' + col(i) + '.' : 'it builds the foundation.' });
+            for (let k = f; k < p.length; k++) {
+                const run = p.slice(k), under = p[k - 1];
+                for (const d of tabDests(run, i)) {
+                    if (k === 0 && run[0].r === 13) continue;                       // a king already at the bottom
+                    const many = run.length > 1 ? ' (with the cards on it)' : '';
+                    if (k === f && downs > 0) cands.push({ src: { pile: 'tab', idx: i, pos: k }, dest: d, pri: 90 + downs, why: 'it turns over a face-down card in ' + col(i) + '.', many });
+                    else if (k === 0 && S.tab[d.idx].length) cands.push({ src: { pile: 'tab', idx: i, pos: k }, dest: d, pri: kingWaiting() ? 50 : 15, why: 'it empties ' + col(i) + (kingWaiting() ? ', making room for a king.' : '.'), many });
+                    else if (k > f && under && foundDest(under)) cands.push({ src: { pile: 'tab', idx: i, pos: k }, dest: d, pri: 40, why: 'it frees the ' + name(under) + ' underneath to go to its foundation.', many });
                 }
             }
+        });
+        if (S.waste.length) {
+            const w = S.waste[S.waste.length - 1], src = { pile: 'waste', idx: 0, pos: S.waste.length - 1 }, fd = foundDest(w);
+            if (fd) cands.push({ src, dest: fd, pri: 70, why: 'it builds the foundation and brings another card into play.', from: ' from the waste' });
+            for (const d of tabDests([w], -1)) cands.push({ src, dest: d, pri: 45, why: 'it brings another card from the deck into play.', from: ' from the waste' });
         }
-        return S.stock.length || S.waste.length ? 'stock' : null;
+        if (cands.length) {
+            cands.sort((a, b) => b.pri - a.pri);
+            const h = cands[0], c = pileOf(h.src)[h.src.pos];
+            return { src: h.src, dest: h.dest, text: 'Move the ' + name(c) + (h.from || '') + (h.many || '') + ' ' + onto(h.dest) + ': ' + h.why };
+        }
+        // Nothing useful on the table: would going through the deck turn up a card that can be played?
+        const talon = S.waste.concat(S.stock.slice().reverse()), n = talon.length;
+        let q = S.waste.length, passes = S.passes, playable = false;
+        const fits = c => foundDest(c) || tabDests([c], -1).length;
+        for (let guard = 0; guard < 120 && n; guard++) {
+            if (q < n) q = Math.min(q + S.draw, n); else { if (passes >= maxPasses(S)) break; q = 0; passes++; continue; }
+            if (fits(talon[q - 1])) { playable = true; break; }
+            if (q === S.waste.length && passes > S.passes) break;
+        }
+        if (playable) return { stock: true, text: S.stock.length ? 'Draw from the deck: nothing on the table helps yet, and a playable card is coming.' : 'Turn the waste over to go through the deck again: a playable card is in it.' };
+        return { none: true, text: 'No useful moves left. Undo some moves, or deal a new game.' };
+    }
+    function showHint() {
+        if (won || busy) return;
+        hintClear();
+        const h = findHint();
+        $('msg').textContent = h.text;
+        if (h.stock) hintEls = [S.stock.length ? els[S.stock[S.stock.length - 1].id] : L.slots.stock];
+        else if (h.src) hintEls = [els[pileOf(h.src)[h.src.pos].id], destEl(h.dest)];
+        hintEls.forEach(el => el.classList.add('hint'));
+        hintTimer = setTimeout(hintClear, 2500);
     }
 
     // ── View ──
     function cardHTML(c) {
-        const r = RANKS[c.r], s = SUITS[c.s], court = c.r > 10 || c.r === 1;
+        const r = RANKS[c.r], s = SUITS[c.s];
         return '<div class="face"><span class="corner tl">' + r + '<br>' + s + '</span><span class="pip' + (c.r > 10 ? ' court' : '') + '">' + (c.r > 10 ? r + s : s) + '</span><span class="corner br">' + r + '<br>' + s + '</span></div><div class="back"></div>';
     }
     function build() {
@@ -240,14 +479,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const slot = (cls, label, id, name) => { const d = document.createElement('div'); d.className = 'slot ' + cls; d.id = 'sol-' + id; d.setAttribute('aria-label', name); if (label) d.textContent = label; table.appendChild(d); return d; };
         L.slots = { stock: slot('stock', '', 'stock', 'Stock'), waste: slot('waste', '', 'waste', 'Waste'), found: [0, 1, 2, 3].map(i => slot('found', 'A', 'found' + i, 'Foundation ' + (i + 1))), tab: [0, 1, 2, 3, 4, 5, 6].map(i => slot('tab', 'K', 'tab' + i, 'Column ' + (i + 1))) };
         els = {};
-        for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) {
-            const c = { s, r }, d = document.createElement('div');
-            d.className = 'card' + (red(c) ? ' red' : ''); d.dataset.id = s * 13 + r; d.id = 'sol-c' + (s * 13 + r); d.innerHTML = cardHTML(c);
-            table.appendChild(d); els[s * 13 + r] = d;
+        for (let id = 1; id <= 52; id++) {
+            const c = cardOf(id), d = document.createElement('div');
+            d.className = 'card' + (red(c) ? ' red' : ''); d.dataset.id = id; d.id = 'sol-c' + id; d.innerHTML = cardHTML(c);
+            table.appendChild(d); els[id] = d;
         }
     }
     function layout() {
-        const W = table.clientWidth, gap = Math.max(6, Math.round(W * 0.014));
+        const W = table.clientWidth, gap = W < 520 ? 4 : Math.max(6, Math.round(W * 0.014));
         const cw = Math.min(110, Math.floor((W - 8 * gap) / 7)), ch = Math.round(cw * 1.4);
         table.style.setProperty('--cw', cw + 'px'); table.style.setProperty('--ch', ch + 'px');
         const ox = Math.round((W - 7 * cw - 6 * gap) / 2), x = i => ox + i * (cw + gap);
@@ -261,11 +500,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!L.cw) return;
         const { x, cw, ch, top, tabY, gap } = L;
         let z = 1;
-        const put = (c, px, py, zi) => { const el = els[c.id]; el.classList.toggle('up', c.up); el.style.transform = 'translate(' + px + 'px,' + py + 'px)'; el.style.zIndex = zi; el.classList.remove('hint'); el.setAttribute('aria-label', c.up ? NAMES[c.r] + ' of ' + SUIT_NAMES[c.s] : 'Face-down card'); };
+        const put = (c, px, py, zi) => { const el = els[c.id]; el.classList.toggle('up', c.up); el.style.transform = 'translate(' + px + 'px,' + py + 'px)'; el.style.zIndex = zi; el.setAttribute('aria-label', c.up ? long(c) : 'Face-down card'); };
         S.stock.forEach((c, k) => put(c, x(0) + Math.min(k, 6) * 0.4, top - Math.min(k, 6) * 0.4, z++));
-        const nShow = +$('draw').value === 3 ? 3 : 1, w0 = Math.max(0, S.waste.length - nShow);
+        const nShow = S.draw === 3 ? 3 : 1, w0 = Math.max(0, S.waste.length - nShow);
         S.waste.forEach((c, k) => put(c, x(1) + Math.max(0, k - w0) * cw * 0.24, top, z++));
         S.found.forEach((f, i) => f.forEach(c => put(c, x(3 + i), top, z++)));
+        const spent = !S.stock.length && !canRecycle();
+        L.slots.stock.classList.toggle('spent', spent);
+        L.slots.stock.setAttribute('aria-label', S.stock.length ? 'Stock, ' + S.stock.length + ' cards' : spent ? 'Stock, empty, no passes left' : 'Stock, empty: turn the waste over');
         const avail = Math.max(window.innerHeight * 0.62, ch * 4.2);
         let maxH = ch;
         S.tab.forEach((p, i) => {
@@ -280,8 +522,32 @@ document.addEventListener('DOMContentLoaded', () => {
         table.style.height = Math.ceil(tabY + maxH + gap * 2) + 'px';
         kbShow();
     }
+    function update() {
+        $('moves').textContent = moves;
+        $('undo').disabled = !undoStack.length || won;
+        $('finish').hidden = won || !canFinish();
+        $('score-chip').hidden = S.scoring === 'none';
+        $('score').textContent = S.scoring === 'vegas' ? (score < 0 ? '−$' : '$') + Math.abs(score) : score;
+        showBest();
+    }
+    function changed() { hintClear(); $('msg').textContent = ''; render(); update(); save(); }
+    function checkWin() {
+        if (foundCount() !== 52) return;
+        won = true; finishing++; pauseClock();
+        const secs = Math.max(1, Math.round(clockMs() / 1000)), s = rec(statKey());
+        const record = !s.bestTime || secs < s.bestTime;
+        s.won++; s.streak++; s.bestStreak = Math.max(s.bestStreak, s.streak);
+        if (record) s.bestTime = secs;
+        if (!s.fewest || moves < s.fewest) s.fewest = moves;
+        saveStats(); save(); update(); showTime();
+        $('ov-head').textContent = 'You won!'; $('keep').hidden = true; $('again').textContent = 'Deal again';
+        $('ov-text').textContent = moves + ' moves in ' + fmtTime(secs) + (S.scoring === 'none' ? '' : ', scoring ' + $('score').textContent) + (record ? '. A new best time for Draw ' + S.draw + '.' : '.');
+        say('You won! ' + $('ov-text').textContent);
+        setTimeout(() => { if (won) { $('overlay').hidden = false; $('again').focus(); } }, reduced() ? 0 : 350);
+    }
+    const say = t => { $('sr').textContent = t; };
 
-    // ── Input ──
+    // ── Pointer input ──
     function dropTarget(px, py) {
         const { x, cw, ch, top, tabY, gap } = L;
         for (let i = 0; i < 4; i++) if (px > x(3 + i) - gap && px < x(3 + i) + cw + gap && py > top - gap && py < top + ch + gap) return { pile: 'found', idx: i };
@@ -290,7 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const tablePoint = e => { const r = table.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
     table.addEventListener('pointerdown', e => {
-        if (won || e.button !== 0 || !e.isPrimary) return;
+        if (won || busy || e.button !== 0 || !e.isPrimary) return;
         const cardEl = e.target.closest('.card'), slotEl = e.target.closest('.slot');
         if (!cardEl) { if (slotEl === L.slots.stock) drawStock(); return; }
         const loc = locate(+cardEl.dataset.id);
@@ -299,7 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!cards) return;
         e.preventDefault();
         const [px, py] = tablePoint(e);
-        drag = { loc, ids: cards.map(c => c.id), sx: px, sy: py, moved: false, base: cards.map(c => { const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(els[c.id].style.transform); return [+m[1], +m[2]]; }) };
+        drag = { loc, ids: cards.map(c => c.id), sx: px, sy: py, moved: false, base: cards.map(c => { const m = /translate\(([-\d.e]+)px,\s*([-\d.e]+)px\)/.exec(els[c.id].style.transform); return m ? [+m[1], +m[2]] : [0, 0]; }) };
         try { table.setPointerCapture(e.pointerId); } catch (err) { /* pointer already released */ }
     });
     table.addEventListener('pointermove', e => {
@@ -316,15 +582,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (d.moved) {
             const [px, py] = tablePoint(e), dx = px - d.sx, dy = py - d.sy;
             const dest = dropTarget(d.base[0][0] + dx + L.cw / 2, d.base[0][1] + dy + L.ch * 0.3);
-            if (!(dest && !(dest.pile === d.loc.pile && dest.idx === d.loc.idx) && move(d.loc, dest))) render();
-        } else if (!autoMove(d.loc)) shake(els[d.ids[0]]);
+            if (!(dest && move(d.loc, dest))) render();
+        } else if (d.loc.pile !== 'found' && !autoMove(d.loc)) shake(els[d.ids[0]]);   // a tap never takes a card off a foundation
     });
-    function shake(el) { el.animate([{ marginLeft: '0' }, { marginLeft: '-5px' }, { marginLeft: '5px' }, { marginLeft: '0' }], { duration: 220 }); }
+    table.addEventListener('pointercancel', () => { if (drag) { drag.ids.forEach(id => els[id].classList.remove('dragging')); drag = null; render(); } });
+    function shake(el) { if (!reduced()) el.animate([{ marginLeft: '0' }, { marginLeft: '-5px' }, { marginLeft: '5px' }, { marginLeft: '0' }], { duration: 220 }); }
 
     // ── Keyboard ──
     // The table is one tab stop. Left/Right move a cursor along the top row (stock, waste, foundations) or the tableau
     // columns, Up/Down switch rows, and Up inside a column reaches deeper face-up cards (a run). Enter or Space draws
-    // from the stock or sends the chosen card to its best spot, exactly as a tap does.
+    // from the stock or sends the chosen card to its best spot, exactly as a tap does; 1–7 and F choose the destination.
     const TOP_OF = [0, 1, 1, 2, 3, 4, 5], TAB_OF = [0, 1, 3, 4, 5, 6];   // tableau column → top-row index, and back
     function kbTarget() {
         const i = kb.i;
@@ -333,66 +600,108 @@ document.addEventListener('DOMContentLoaded', () => {
         kb.depth = Math.max(0, Math.min(kb.depth, p.filter(c => c.up).length - 1));
         return els[p[p.length - 1 - kb.depth].id];
     }
+    function kbLabel() {          // where the cursor is, in words
+        const i = kb.i;
+        if (i === 0) return L.slots.stock.getAttribute('aria-label');
+        if (i === 1) return S.waste.length ? 'Waste: ' + long(S.waste[S.waste.length - 1]) : 'Waste, empty';
+        if (i < 6) { const f = S.found[i - 2]; return 'Foundation ' + (i - 1) + ': ' + (f.length ? long(f[f.length - 1]) : 'empty'); }
+        const p = S.tab[i - 6], down = p.filter(c => !c.up).length;
+        if (!p.length) return 'Column ' + (i - 5) + ', empty';
+        const c = p[p.length - 1 - kb.depth];
+        return 'Column ' + (i - 5) + ': ' + long(c) + (kb.depth ? ', with ' + kb.depth + (kb.depth > 1 ? ' cards' : ' card') + ' on it' : '') + (down ? ', ' + down + ' face-down below' : '');
+    }
     function kbShow() {
         if (kbEl) kbEl.classList.remove('kb');
         kbEl = kbTarget(); kbEl.classList.add('kb'); table.setAttribute('aria-activedescendant', kbEl.id);
     }
+    function kbCard() { const el = kbTarget(); return el.classList.contains('card') ? locate(+el.dataset.id) : null; }
     function kbAct() {
         if (kb.i === 0) { drawStock(); return; }
-        const el = kbTarget(); if (!el.classList.contains('card')) return;
-        if (!autoMove(locate(+el.dataset.id))) shake(el);
+        const loc = kbCard(); if (!loc || loc.pile === 'found') return;
+        if (!autoMove(loc)) { shake(els[pileOf(loc)[loc.pos].id]); say('No move for the ' + long(pileOf(loc)[loc.pos]) + '.'); }
+    }
+    function kbTo(dest) {
+        const loc = kbCard(); if (!loc || loc.pile === 'stock') return;
+        const ok = dest.pile === 'found' ? [0, 1, 2, 3].some(i => move(loc, { pile: 'found', idx: i })) : move(loc, dest);
+        if (!ok) { shake(els[pileOf(loc)[loc.pos].id]); say('The ' + long(pileOf(loc)[loc.pos]) + ' can’t go to ' + where(dest) + '.'); }
     }
     table.addEventListener('focus', kbShow);
-    table.addEventListener('pointercancel', () => { if (drag) { drag.ids.forEach(id => els[id].classList.remove('dragging')); drag = null; render(); } });
-
-    function undo() { if (!undoStack.length || won) return; const u = JSON.parse(undoStack.pop()); S = u.S; moves = u.moves; render(); update(); }
-    $('undo').addEventListener('click', undo);
+    const typing = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
     document.addEventListener('keydown', e => {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+        if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'z' && !typing(document.activeElement)) { e.preventDefault(); undo(); return; }
         if (document.activeElement !== table || won || e.altKey || e.ctrlKey || e.metaKey) return;
         const k = e.key, top = kb.i < 6;
         if (k === 'ArrowLeft' || k === 'ArrowRight') { const d = k === 'ArrowLeft' ? -1 : 1; kb.i = top ? (kb.i + d + 6) % 6 : 6 + (kb.i - 6 + d + 7) % 7; kb.depth = 0; }
         else if (k === 'ArrowUp') { if (top) return; const p = S.tab[kb.i - 6]; if (kb.depth < p.filter(c => c.up).length - 1) kb.depth++; else { kb.i = TOP_OF[kb.i - 6]; kb.depth = 0; } }
         else if (k === 'ArrowDown') { if (top) { kb.i = 6 + TAB_OF[kb.i]; kb.depth = 0; } else if (kb.depth > 0) kb.depth--; else return; }
-        else if (k === 'Enter' || k === ' ') kbAct();
+        else if (k === 'Enter' || k === ' ') { e.preventDefault(); kbAct(); kbShow(); return; }
+        else if (k >= '1' && k <= '7') { e.preventDefault(); kbTo({ pile: 'tab', idx: +k - 1 }); kbShow(); return; }
+        else if (k === 'f' || k === 'F') { e.preventDefault(); kbTo({ pile: 'found', idx: 0 }); kbShow(); return; }
+        else if (k === 'd' || k === 'D') { e.preventDefault(); drawStock(); return; }
+        else if (k === 'h' || k === 'H') { e.preventDefault(); showHint(); return; }
+        else if (k === 'u' || k === 'U') { e.preventDefault(); undo(); return; }
         else return;
-        e.preventDefault(); kbShow();
-    });
-    $('new').addEventListener('click', () => { deal(); render(); update(); });
-    $('again').addEventListener('click', () => { if (pendingDraw) { $('draw').value = pendingDraw; pendingDraw = null; saveDraw(); } deal(); render(); update(); });
-    // Changing the draw mode deals a new game, so a game in progress asks first (the select shows the current mode until confirmed).
-    let pendingDraw = null;
-    const saveDraw = () => { try { localStorage.setItem('sol-draw', $('draw').value); } catch (e) { /* ignore */ } };
-    $('draw').addEventListener('change', () => {
-        const v = $('draw').value;
-        if (moves > 0 && !won) {
-            pendingDraw = v; $('draw').value = v === '1' ? '3' : '1';
-            $('ov-head').textContent = 'Start a new game?';
-            $('ov-text').textContent = 'Switching to Draw ' + v + ' deals a new game. This one (' + moves + (moves === 1 ? ' move' : ' moves') + ') will be lost.';
-            $('keep').hidden = false; $('overlay').hidden = false; $('keep').focus();
-            return;
-        }
-        saveDraw(); deal(); render(); update();
-    });
-    $('keep').addEventListener('click', () => { pendingDraw = null; $('overlay').hidden = true; $('draw').focus(); });
-    $('hint').addEventListener('click', () => {
-        const h = findHint();
-        if (h === 'stock') { L.slots.stock.animate([{ opacity: 1 }, { opacity: 0.3 }, { opacity: 1 }], { duration: 500 }); const t = S.stock[S.stock.length - 1]; if (t) els[t.id].animate([{ filter: 'brightness(1)' }, { filter: 'brightness(1.6)' }, { filter: 'brightness(1)' }], { duration: 500 }); }
-        else if (h) { const c = pileOf(h)[h.pos]; els[c.id].classList.add('hint'); setTimeout(() => els[c.id].classList.remove('hint'), 1200); }
-    });
-    $('finish').addEventListener('click', function step() {
-        for (let i = 0; i < 7; i++) {
-            const p = S.tab[i]; if (!p.length) continue;
-            const src = { pile: 'tab', idx: i, pos: p.length - 1 };
-            for (let f = 0; f < 4; f++) if (move(src, { pile: 'found', idx: f })) { if (!won) setTimeout(step, 90); return; }
-        }
+        e.preventDefault(); kbShow(); say(kbLabel());
     });
 
-    try { const d = localStorage.getItem('sol-draw'); if (d === '1' || d === '3') $('draw').value = d; } catch (e) { /* ignore */ }
-    build(); deal(); layout(); render(); update();
+    // ── Controls ──
+    $('undo').addEventListener('click', undo);
+    $('new').addEventListener('click', newGame);
+    $('hint').addEventListener('click', showHint);
+    // Changing the draw mode or scoring deals a new game, so a game in progress asks first (the select keeps showing the current setting until confirmed).
+    let pending = null;
+    const saveSettings = () => { G.set('sol-draw', $('draw').value); G.set('sol-scoring', $('scoring').value); };
+    [['draw', v => 'Draw ' + v], ['scoring', v => ({ none: 'no', standard: 'standard', vegas: 'Vegas' })[v] + ' scoring']].forEach(([id, name]) => {
+        $(id).addEventListener('change', () => {
+            const v = $(id).value;
+            if (counted && !won) {
+                pending = { id, v }; $(id).value = id === 'draw' ? S.draw : S.scoring;
+                $('ov-head').textContent = 'Start a new game?';
+                $('ov-text').textContent = 'Switching to ' + name(v) + ' deals a new game. This one (' + moves + (moves === 1 ? ' move' : ' moves') + ') will count as a loss.';
+                $('again').textContent = 'Deal a new game'; $('keep').hidden = false; $('overlay').hidden = false; $('keep').focus();
+                return;
+            }
+            saveSettings(); newGame();
+        });
+    });
+    $('again').addEventListener('click', () => { if (pending) { $(pending.id).value = pending.v; pending = null; saveSettings(); } $('overlay').hidden = true; newGame(); table.focus(); });
+    $('keep').addEventListener('click', () => { const id = pending ? pending.id : 'draw'; pending = null; $('overlay').hidden = true; $(id).focus(); });
+    $('winnable').addEventListener('change', () => { G.set('sol-winnable', $('winnable').checked ? '1' : '0'); $('msg').textContent = $('winnable').checked ? 'Winnable deals start with your next game.' : 'Deals are fully random from your next game.'; });
+    $('finish').addEventListener('click', () => {
+        const token = ++finishing;
+        (function step() {
+            if (token !== finishing || won) return;
+            for (let i = 0; i < 7; i++) {
+                const p = S.tab[i]; if (!p.length) continue;
+                const src = { pile: 'tab', idx: i, pos: p.length - 1 };
+                for (let f = 0; f < 4; f++) if (move(src, { pile: 'found', idx: f }, true)) { if (!won) setTimeout(step, reduced() ? 0 : 90); return; }
+            }
+        })();
+    });
+    let resetArmed = null;
+    $('reset-stats').addEventListener('click', () => {
+        const btn = $('reset-stats');
+        if (!resetArmed) { btn.textContent = 'Click again to reset'; resetArmed = setTimeout(() => { resetArmed = null; btn.textContent = 'Reset statistics'; }, 4000); return; }
+        clearTimeout(resetArmed); resetArmed = null; btn.textContent = 'Reset statistics';
+        for (const k in stats) delete stats[k];
+        G.set('sol-best-1', ''); G.set('sol-best-3', '');
+        if (counted && !won) { const s = rec(statKey()); s.played = 1; }   // the game on the table still counts
+        saveStats(); showBest(); say('Statistics reset.');
+    });
+
+    const d = G.get('sol-draw', '1'), sc = G.get('sol-scoring', 'none');
+    if (d === '1' || d === '3') $('draw').value = d;
+    if (['none', 'standard', 'vegas'].includes(sc)) $('scoring').value = sc;
+    $('winnable').checked = G.get('sol-winnable', '0') === '1';
+    for (const k of ['1', '3']) if (!stats[k] && +G.get('sol-best-' + k, 0)) rec(k);   // best times saved before statistics existed
+    renderStats();
+    build(); layout();
+    if (restore()) { changed(); showTime(); if (!document.hidden) runClock(); say('Your saved game is back on the table.'); }
+    else newGame();
     new ResizeObserver(() => { const w = table.clientWidth; if (w !== L.W) { layout(); render(); } }).observe(table);
     window.addEventListener('resize', () => render());
-    window.__sol = { get state() { return S; }, move, autoMove, locate, drawStock, accepts, canFinish, render };
+    window.__sol = { get state() { return S; }, get moves() { return moves; }, get score() { return score; }, get won() { return won; }, get busy() { return busy; }, get solution() { return solution; },
+        move, autoMove, locate, drawStock, accepts, canFinish, render, undo, newGame, findHint, solveDeal, stats: () => JSON.parse(JSON.stringify(stats)), clockMs };
 });
 </script>
 </body>

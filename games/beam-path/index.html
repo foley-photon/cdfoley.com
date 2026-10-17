@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beam Path: Free Laser Optics Puzzle Game</title>
+<meta name="description" content="Play Beam Path free online: place and turn mirrors, beam splitters, and wave plates to steer a laser to every detector. 36 levels; no ads, no sign-up.">
+<link rel="canonical" href="https://cdfoley.com/games/beam-path/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Beam Path">
+<meta property="og:description" content="Play Beam Path free online: place and turn mirrors, beam splitters, and wave plates to steer a laser to every detector. 36 levels; no ads, no sign-up.">
+<meta property="og:url" content="https://cdfoley.com/games/beam-path/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/game-beam-path.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Beam Path Laser Puzzle: Play Beam Path free online: place and turn mirrors, beam splitters, and wave plates to steer a laser to every detector. 36 levels; no ads, no sign-up.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
+<style>
+    :root { --bp-bg: #f4f6fa; --bp-grid: #dfe5ee; --bp-beam: #dc2626; --bp-mark: #7f1d1d; --bp-dev: #1e293b; --bp-metal: #475569; --bp-block: #334155;
+        --bp-plate: #b45309; --bp-pol: #0f766e; --bp-base: #e2e8f0; --bp-mine: var(--accent); --bp-face: #ffffff; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bp-bg: #0c1322; --bp-grid: #1a2540; --bp-beam: #ff5c5c; --bp-mark: #ffe4e6; --bp-dev: #cbd5e1;
+        --bp-metal: #cbd5e1; --bp-block: #64748b; --bp-plate: #fbbf24; --bp-pol: #2dd4bf; --bp-base: #1f2a44; --bp-face: #0c1322; } }
+    :root[data-theme="dark"] { --bp-bg: #0c1322; --bp-grid: #1a2540; --bp-beam: #ff5c5c; --bp-mark: #ffe4e6; --bp-dev: #cbd5e1;
+        --bp-metal: #cbd5e1; --bp-block: #64748b; --bp-plate: #fbbf24; --bp-pol: #2dd4bf; --bp-base: #1f2a44; --bp-face: #0c1322; }
+    .bp-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .3rem .8rem; margin: 0 0 .5rem; }
+    .bp-head h2 { font-size: 1.1rem; margin: 0; }
+    .bp-head span { font-size: .85rem; color: var(--muted); }
+    .bp-note { margin: 0 0 .7rem; padding: .5rem .75rem; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: .9rem; color: var(--text-2); }
+    .bp-note[hidden] { display: none; }
+    .bp-board { position: relative; width: min(100%, calc(var(--w) / var(--h) * 62vh), 560px); aspect-ratio: var(--w) / var(--h); margin: 0 auto; border-radius: var(--radius); overflow: hidden;
+        user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; box-shadow: 0 0 0 1px var(--border-strong); }
+    .bp-board svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .bp-cells { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--w), 1fr); grid-template-rows: repeat(var(--h), 1fr); }
+    .bp-cells button { border: 0; padding: 0; margin: 0; background: transparent; cursor: pointer; border-radius: 6px; min-width: 0; -webkit-tap-highlight-color: transparent; }
+    .bp-cells button.fixed { cursor: default; }
+    .bp-cells button:hover { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+    .bp-cells button:focus { outline: none; }
+    .bp-cells button:focus-visible { box-shadow: inset 0 0 0 3px var(--accent); }
+    .bp-flow { stroke-dasharray: 10 40; animation: bp-flow .9s linear infinite; }
+    @keyframes bp-flow { to { stroke-dashoffset: -50; } }
+    .bp-win-glow { animation: bp-pulse 1.1s ease-out 3; transform-box: fill-box; transform-origin: center; }
+    @keyframes bp-pulse { 0% { opacity: .9; transform: scale(.6); } 100% { opacity: 0; transform: scale(1.9); } }
+    .bp-board.solved { box-shadow: 0 0 0 2px var(--bp-beam), 0 0 26px color-mix(in srgb, var(--bp-beam) 45%, transparent); transition: box-shadow .4s; }
+    @media (prefers-reduced-motion: reduce) { .bp-flow, .bp-win-glow { animation: none; } .bp-win-glow { opacity: 0; } .bp-board.solved { transition: none; } }
+    .bp-tray { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 230px)); justify-content: center; gap: .45rem; margin: .8rem auto 0; max-width: 560px; }
+    .bp-tray button { display: flex; align-items: center; gap: .45rem; padding: .3rem .6rem .3rem .4rem; min-height: 48px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 600 .86rem/1.15 var(--font); text-align: left; cursor: pointer; }
+    .bp-tray button span { flex: 1; }
+    .bp-tray button svg { width: 30px; height: 30px; flex: none; }
+    .bp-tray button b { font-family: var(--mono); font-weight: 650; color: var(--text-2); }
+    .bp-tray button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+    .bp-tray button:disabled { opacity: .45; cursor: default; }
+    .bp-tray .bp-empty { grid-column: 1 / -1; text-align: center; font-size: .88rem; color: var(--muted); padding: .55rem 0; }
+    .bp-win { max-width: 560px; margin: .8rem auto 0; padding: .9rem 1rem; text-align: center; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); }
+    .bp-win[hidden] { display: none; }
+    .bp-win h2 { margin: 0 0 .25rem; font-size: 1.3rem; }
+    .bp-win p { margin: 0 0 .7rem; color: var(--text-2); }
+    .bp-win .btn + .btn { margin-left: .4rem; }
+    .bp-opts { display: flex; justify-content: center; margin-top: .7rem; }
+    .bp-dialog { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 1.1rem 1.1rem 1rem; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+    .bp-dialog::backdrop { background: rgba(10, 15, 28, .55); }
+    .bp-dialog h2 { margin: 0 0 .2rem; font-size: 1.3rem; }
+    .bp-dialog > p { margin: 0 0 .6rem; color: var(--text-2); font-size: .9rem; }
+    .bp-dialog h3 { font-size: .95rem; margin: .9rem 0 .45rem; color: var(--text-2); }
+    .bp-levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: .4rem; }
+    .bp-levels button { position: relative; height: 48px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 700 1rem var(--mono); cursor: pointer; padding: 0; }
+    .bp-levels button.done { background: color-mix(in srgb, var(--ok) 14%, var(--surface)); border-color: color-mix(in srgb, var(--ok) 55%, var(--border-strong)); }
+    .bp-levels button.cur { box-shadow: 0 0 0 2px var(--accent); }
+    .bp-levels button small { position: absolute; top: 2px; right: 4px; font: 700 .7rem var(--font); color: var(--ok); }
+    .bp-dialog .bp-close { margin-top: 1rem; }
+    .bp-optics { margin: 1.2rem 0 0; padding-left: 1.2rem; font-size: .92rem; color: var(--text-2); }
+    .bp-optics li + li { margin-top: .3rem; }
+    .game-shell h2.bp-h { font-size: 1.05rem; margin: 1.4rem 0 .2rem; }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "VideoGame",
+   "name": "Beam Path",
+   "url": "https://cdfoley.com/games/beam-path/",
+   "description": "Play Beam Path free online: place and turn mirrors, beam splitters, and wave plates to steer a laser to every detector. 36 levels; no ads, no sign-up.",
+   "genre": "Puzzle",
+   "gamePlatform": "Web browser",
+   "playMode": "SinglePlayer",
+   "applicationCategory": "GameApplication",
+   "operatingSystem": "Any (web browser)",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Games",
+     "item": "https://cdfoley.com/games/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Beam Path",
+     "item": "https://cdfoley.com/games/beam-path/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Beam Path</li></ol></nav>
+    <div class="game-shell" style="max-width:600px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Beam Path Laser Puzzle</h1>
+            <p class="lede">Steer the laser beam to every detector. Place and turn mirrors, beam splitters, and wave plates, and work around the beam blocks. 36 levels, from a single mirror to polarization optics.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip">Level<b id="lvl">1</b></span><span class="chip">Detectors<b id="lit">0 / 1</b></span><span class="chip">Pieces<b id="used">0</b></span></div>
+            <div class="game-actions">
+                <button class="btn btn-secondary btn-sm" type="button" id="undo">Undo</button>
+                <button class="btn btn-secondary btn-sm" type="button" id="reset">Reset</button>
+                <button class="btn btn-primary btn-sm" type="button" id="choose">Levels</button>
+            </div>
+        </div>
+        <div class="bp-head"><h2 id="title">First light</h2><span id="par"></span></div>
+        <p class="bp-note" id="note" hidden></p>
+        <div class="game-stage">
+            <div class="bp-board" id="board"><svg id="svg" aria-hidden="true"></svg><div class="bp-cells" id="cells" role="group" aria-label="Optical table"></div></div>
+        </div>
+        <div class="bp-tray" id="tray" role="group" aria-label="Pieces to place"></div>
+        <div class="bp-win" id="win" hidden><h2 id="win-title">Level solved</h2><p id="win-text"></p><div><button class="btn btn-primary" type="button" id="next">Next level</button><button class="btn btn-secondary" type="button" id="replay">Play again</button></div></div>
+        <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
+        <div class="bp-opts"><label class="toggle"><input type="checkbox" id="notes" checked> Physics notes</label>&nbsp;&nbsp;<button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button></div>
+        <p class="game-help"><strong>Tap</strong> an empty square to place the selected piece, tap it again to turn it, and once more to pick it up. <strong>Long-press</strong> or <strong>right-click</strong> a piece to pick it up at once. Pieces on a gray base are fixed; a curved arrow means it turns but can’t move. With a keyboard, the arrow keys move between squares, <kbd>Enter</kbd> or <kbd>Space</kbd> acts like a tap, <kbd>R</kbd> turns, <kbd>Delete</kbd> picks up, <kbd>1</kbd>–<kbd>4</kbd> choose a piece, and <kbd>U</kbd> or <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes. In the polarization levels, ticks across the beam mean it is polarized in the plane of the table (p) and dots mean perpendicular to it (s). Where beams overlap, their powers simply add (the game ignores interference). Your progress is saved in this browser.</p>
+        <h2 class="bp-h">The optics</h2>
+        <ul class="bp-optics" id="optics"></ul>
+    </div>
+</main>
+
+<dialog class="bp-dialog" id="levels" aria-labelledby="levels-title">
+    <h2 id="levels-title">Choose a level</h2>
+    <p id="levels-progress"></p>
+    <div id="level-list"></div>
+    <button class="btn btn-secondary bp-close" type="button" id="levels-close">Close</button>
+</dialog>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const G = window.Games, $ = id => document.getElementById(id);
+    // ENGINE START (the level solver in the build notes reads the code between these markers)
+    // Directions: 0 up, 1 right, 2 down, 3 left. Polarization: 0 = in the plane of the table (p), 1 = perpendicular to it (s).
+    // Piece orientation: mirrors and splitters 0 = "/", 1 = "\"; plates (half-wave plate, polarizer) 0 = upright "|" (faces
+    // beams moving left or right), 1 = flat "-" (faces beams moving up or down).
+    const DR = [-1, 0, 1, 0], DC = [0, 1, 0, -1];
+    const reflect = (d, o) => (o === 0 ? d ^ 1 : 3 - d);           // a 45° mirror turns the beam through 90°
+    const faces = (d, o) => ((d & 1) ^ o) === 1;                    // does a plate stand across this beam (not edge-on)?
+    const LASER = { '^': 0, '>': 1, 'v': 2, '<': 3 };
+    // Parse a level: rows of space-separated tokens.
+    //   .  empty    #  beam block    *  detector    > < ^ v  laser (>s: s-polarized; default p, or the level's lp)
+    //   /  \  fixed mirror     r/ r\  mirror that turns but cannot move
+    //   b/ b\ fixed 50/50 splitter    rb/ rb\ splitter that turns    q/ q\ fixed polarizing splitter
+    //   h| h- fixed half-wave plate   P| P- polarizer passing p     S| S- polarizer passing s
+    function parseLevel(L) {
+        const rows = L.map.map(s => s.trim().split(/\s+/)), H = rows.length, W = rows[0].length, N = W * H;
+        const lv = { W, H, N, ter: new Uint8Array(N), arg: new Int8Array(N), pass: new Int8Array(N), lp: L.lp === 's' ? 1 : 0,
+            inv: Object.assign({ m: 0, b: 0, h: 0, q: 0 }, L.inv || {}), base: new Array(N).fill(null), lasers: [], dets: [], pol: false };
+        rows.forEach((row, r) => {
+            if (row.length !== W) throw new Error('ragged row ' + r + ' in ' + L.name);
+            row.forEach((t, c) => {
+                const i = r * W + c, o = t.slice(-1) === '\\' || t.slice(-1) === '-' ? 1 : 0;
+                if (t === '.') return;
+                if (t === '#') lv.ter[i] = 1;
+                else if (t === '*') { lv.ter[i] = 2; lv.dets.push(i); }
+                else if (t[0] in LASER && (t.length === 1 || /^[ps]$/.test(t[1]))) {
+                    lv.ter[i] = 3; lv.arg[i] = LASER[t[0]]; lv.pass[i] = t[1] ? +(t[1] === 's') : lv.lp; lv.lasers.push(i);
+                    if (t[1]) lv.pol = true;
+                }
+                else if (t[0] === 'P' || t[0] === 'S') { lv.ter[i] = 4; lv.arg[i] = o; lv.pass[i] = t[0] === 'S' ? 1 : 0; lv.pol = true; }
+                else {
+                    const lock = t[0] === 'r' ? 2 : 1, k = lock === 2 ? t.slice(1, -1) : t.slice(0, -1);
+                    const type = k === '' ? 'm' : k;
+                    if (!'mbhq'.includes(type) || type.length !== 1) throw new Error('bad token ' + t + ' in ' + L.name);
+                    if (type === 'h' || type === 'q') lv.pol = true;
+                    lv.base[i] = { t: type, o, lock };
+                }
+            });
+        });
+        if (lv.inv.h || lv.inv.q) lv.pol = true;
+        return lv;
+    }
+    // Follow every beam. pc[i] is null or a piece {t, o}. Returns the power on each outgoing beam state
+    // (cell * 8 + direction * 2 + polarization), the power reaching each detector, and the cells the light reached.
+    // Beams add without interference. Each state is followed at least once, so "lit" is exact; tiny repeat
+    // increments around a loop (each pass through a 50/50 splitter halves them) are dropped. fast: reachability only.
+    function propagate(lv, pc, fast) {
+        const { W, H, N, ter, arg, pass } = lv, pow = new Float64Array(N * 8), det = new Float64Array(N), reach = new Uint8Array(N), stack = [];
+        for (const i of lv.lasers) stack.push(i * 8 + arg[i] * 2 + pass[i], 1);
+        let guard = 0;
+        while (stack.length && guard++ < 200000) {
+            const p = stack.pop(), s = stack.pop();
+            if (pow[s] > 0 && (fast || p < 1e-5)) continue;
+            pow[s] += p;
+            const i = s >> 3, d = (s >> 1) & 3, pol = s & 1, r = ((i / W) | 0) + DR[d], c = (i % W) + DC[d];
+            if (r < 0 || r >= H || c < 0 || c >= W) continue;            // leaves the table
+            const j = r * W + c, t = ter[j];
+            reach[j] = 1;
+            const out = (d2, pol2, p2) => stack.push(j * 8 + d2 * 2 + pol2, p2);
+            if (t === 1 || t === 3) continue;                              // beam block, or the back of a laser
+            if (t === 2) { det[j] += p; continue; }                        // detector
+            if (t === 4) { if (faces(d, arg[j]) && pass[j] === pol) out(d, pol, p); continue; }
+            const k = pc[j];
+            if (!k) out(d, pol, p);
+            else if (k.t === 'm') out(reflect(d, k.o), pol, p);
+            else if (k.t === 'b') { out(d, pol, p / 2); out(reflect(d, k.o), pol, p / 2); }
+            else if (k.t === 'q') out(pol ? reflect(d, k.o) : d, pol, p);  // polarizing splitter: p passes, s reflects
+            else if (k.t === 'h') { if (faces(d, k.o)) out(d, 1 - pol, p); } // half-wave plate swaps p and s
+        }
+        let lit = 0;
+        for (const i of lv.dets) if (det[i] > 0) lit++;
+        return { pow, det, reach, lit, solved: lit === lv.dets.length };
+    }
+    // ENGINE END
+    // LEVELS START
+    const LEVELS = [
+        { name: 'First light', par: 0, intro: 'mirror', map: [
+            '. . . . .',
+            '> . . r/ .',
+            '. . . . .',
+            '. . . . .',
+            '. . . * .'] },
+        { name: 'Place a mirror', par: 1, inv: { m: 1 }, map: [
+            '. . . . . .',
+            '> . . . . .',
+            '. . . . . .',
+            '. . . . . .',
+            '. . . . * .'] },
+        { name: 'Around the block', par: 2, inv: { m: 2 }, map: [
+            '. . . . . .',
+            '> . . # . .',
+            '. . . . . .',
+            '. . . . . *'] },
+        { name: 'Turnaround', par: 2, inv: { m: 2 }, map: [
+            '. . . . . .',
+            '* . . # . .',
+            '# . . . . .',
+            '> . . . . .',
+            '. . . . . .'] },
+        { name: 'Zigzag', par: 3, inv: { m: 3 }, map: [
+            '> . . # . . .',
+            '. . . # . . .',
+            '. . . . . # .',
+            '# # . . . # *',
+            '. . . . . . .'] },
+        { name: 'Fixed in place', par: 2, inv: { m: 2 }, map: [
+            '/ . . . . . \\',
+            '. # . . . # .',
+            '^ . . # . . .',
+            '. . . . . . .',
+            '. * . . # . .'] },
+        { name: 'Crossroads', par: 2, intro: 'cross', inv: { m: 2 }, map: [
+            '> . . . . . .',
+            '# . . . . # #',
+            '> . . . . . *',
+            '. . # . . . .',
+            '. . . . . . .',
+            '* . . . # . .'] },
+        { name: 'Two lasers', par: 2, inv: { m: 3 }, map: [
+            '. . . . . . .',
+            '> . . . # . .',
+            '. . . . . . *',
+            '. # . . . . .',
+            '* . . . . . <',
+            '. . . . # . .'] },
+        { name: 'Mirror maze', par: 3, inv: { m: 4 }, map: [
+            '. . . . # . . .',
+            '> . . . # . . .',
+            '. . # . . . # .',
+            '. . . . # . . .',
+            '# . . . . . # *',
+            '. . # . . . . .',
+            '. . . . # . . .'] },
+        { name: 'Split the beam', par: 1, intro: 'splitter', inv: { b: 1 }, map: [
+            '. . . . . . .',
+            '> . . . . . *',
+            '. . . . . . .',
+            '. . . . . . .',
+            '. . . * . . .'] },
+        { name: 'Fork', par: 2, inv: { b: 1, m: 1 }, map: [
+            '. . . . . .',
+            '. . * . * .',
+            '. . . # . .',
+            '. . . # . .',
+            '. . . . . .',
+            '. . ^ . . .'] },
+        { name: 'Three ways', par: 2, inv: { b: 2 }, map: [
+            '. . . * . . .',
+            '. . . . . . .',
+            '> . . . . . *',
+            '. . . . . . .',
+            '. . . . . * .'] },
+        { name: 'Half and half', par: 2, inv: { b: 1, m: 1 }, map: [
+            '. . . * . . .',
+            '. . . . . . .',
+            '> . . . . . .',
+            '. . . . . . .',
+            '. . . . . . .',
+            '. . . . . . *'] },
+        { name: 'Cascade', par: 3, inv: { b: 2, m: 1 }, map: [
+            '. . . . . . .',
+            '. . . . . * .',
+            '. . * . . . <',
+            '. . * . # . .',
+            '. . . . . . .'] },
+        { name: 'Up and over', par: 3, inv: { b: 1, m: 2 }, map: [
+            '* . . . . . .',
+            '. . # # . . .',
+            '> . . . . # #',
+            '. . . . . . .',
+            '. . . . * . .',
+            '. . . . . . .'] },
+        { name: 'Two sources', par: 3, inv: { b: 1, m: 2 }, map: [
+            '. * . . . . .',
+            '. . . . . . .',
+            '. # . . . . .',
+            '> . . . . . .',
+            '. . . # * # .',
+            '. . ^ . . . *'] },
+        { name: 'Four detectors', par: 4, inv: { b: 3, m: 1 }, map: [
+            '. . . . . . . .',
+            '. . . . * . . .',
+            '. . . . . . . .',
+            '. * . . . . . <',
+            '. . . . . # . *',
+            '. . # # . . . *',
+            '. . . . . . . .'] },
+        { name: 'Three detectors', par: 4, inv: { b: 2, m: 2 }, map: [
+            '. * . * . . . .',
+            '. . . . . . . <',
+            '. . . # . . . .',
+            '. . . . # # . .',
+            '. . . . . . . .',
+            '. . # . . . . .',
+            '. . # . . . . *'] },
+        { name: 'Polarized light', par: 2, intro: 'polarizer', inv: { m: 2 }, map: [
+            '. . . . S| . .',
+            '> . # # # # .',
+            '. . . . P| . *'] },
+        { name: 'Half-wave plate', par: 1, intro: 'hwp', inv: { h: 1 }, map: [
+            '. . . . . . .',
+            '> . . . S| . *',
+            '. . . . . . .'] },
+        { name: 'Turn the plate', par: 1, inv: { h: 1 }, map: [
+            '. * . . .',
+            '. S- . . .',
+            '. . . . .',
+            '. . . . .',
+            '> / . . .'] },
+        { name: 'Polarizing splitter', par: 1, intro: 'pbs', inv: { h: 1 }, map: [
+            '. . . * . . .',
+            '. . . . . . .',
+            '>p . . rq/ . . *',
+            '. . . . . . .',
+            '. . . ^s . . .'] },
+        { name: 'Swap between', par: 2, inv: { m: 1, h: 1 }, lp: 's', map: [
+            '. . . . . *',
+            '. . . . . .',
+            '. . . P- . .',
+            '. . . . . .',
+            '. . . S- . .',
+            '. . . ^ . .'] },
+        { name: 'Split and swap', par: 2, inv: { b: 1, h: 1 }, lp: 's', map: [
+            '. . . * . . .',
+            '. . . S- . . .',
+            '. . . . . . .',
+            '. . . . . P| *',
+            '. . . . . . .',
+            '. . . ^ . . .'] },
+        { name: 'Down the line', par: 3, inv: { b: 1, q: 1, h: 1 }, map: [
+            '. . . v . . .',
+            '. . . . . . .',
+            '. . . S- . . .',
+            '. . * . . . .',
+            '. . . . . . .',
+            '. . . . . . .',
+            '* . S| . . . .'] },
+        { name: 'Both ways', par: 3, inv: { b: 1, m: 1, h: 1 }, lp: 's', map: [
+            '. . . . . . *',
+            '. S| . . # P- .',
+            '. . # . . . .',
+            '. . . . . S- .',
+            '> . . S| . . *'] },
+        { name: 'Sorted', par: 3, inv: { q: 1, m: 1, h: 1 }, lp: 's', map: [
+            '. . v . . * .',
+            '. . . . . P- .',
+            '. . . S| . . .',
+            '. . . . # . .',
+            '. . S| . . . .'] },
+        { name: 'Long corridor', par: 3, inv: { m: 2, h: 1 }, lp: 's', map: [
+            '. v . . . . *',
+            '. . . . # . .',
+            '. . . . # . .',
+            '. . . . . . P-',
+            '. S- . . . . .',
+            '. . . . . P- .',
+            '. . P| . . . .'] },
+        { name: 'Tight corner', par: 4, inv: { m: 3, h: 1 }, lp: 's', map: [
+            '* # . . .',
+            '. . . . .',
+            '. S| P- . .',
+            '> . . # .',
+            '. . . . .'] },
+        { name: 'Relay', par: 4, inv: { b: 1, m: 2, h: 1 }, map: [
+            '. . . . . . . .',
+            '> . S| . . . . .',
+            '* . . . S- . . .',
+            '. . . # . . . .',
+            '. # . . . . . .',
+            '# . . . . . . .',
+            '. . . . * . . .'] },
+        { name: 'Under the bench', par: 4, inv: { b: 1, q: 1, m: 1, h: 1 }, map: [
+            '. . . . . . . .',
+            '. . . . . . . .',
+            '. . . . . S| . <',
+            '. * . # . . . *'] },
+        { name: 'Opposite ends', par: 3, inv: { b: 1, m: 1, h: 1 }, map: [
+            '. . . . . * . .',
+            '. * . S| . . P| <',
+            '. . . . . . . .',
+            '> . . . . S- . .',
+            '. . . . . . . .',
+            '. . . . . . . .',
+            '. . * . . . . .'] },
+        { name: 'Crossfire', par: 3, inv: { b: 1, m: 1, h: 1 }, lp: 's', map: [
+            '. . . . v . . .',
+            '. . . . . . . .',
+            '. . . * S- . . .',
+            '. . . . . . . .',
+            '* P| . . . . . .',
+            '. . . . . P| . *',
+            '. . . ^ . . . .'] },
+        { name: 'Long way home', par: 4, inv: { b: 2, m: 1, h: 1 }, map: [
+            '* . S| . S| . . .',
+            '. . . . . . P- .',
+            '. # . # . # . .',
+            '> . . . . . . *',
+            '. . . . . . . .',
+            '. . * . . . . .'] },
+        { name: 'Grand tour', par: 4, inv: { b: 2, m: 1, h: 1 }, lp: 's', map: [
+            '. . . . . . v .',
+            '. . . . . . . .',
+            '. . . . . . . .',
+            '. . # . . . . .',
+            '. . . . S| . . .',
+            '. * P- . . . * .',
+            '. . * . . . . .'] },
+        { name: 'Three outputs', par: 4, inv: { b: 2, q: 1, h: 1 }, lp: 's', map: [
+            '. * . . * . . .',
+            '> . . . . . . .',
+            '. . . . . . . .',
+            '. . . . . . . .',
+            '. . . . . . P- .',
+            '. . . . . . * .'] },
+    ];
+    // LEVELS END
+    const CHAPTERS = [['Mirrors', 0], ['Beam splitters', 9], ['Polarization', 18], ['Optical bench', 28]];
+    const NOTES = {
+        mirror: ['Plane mirror', 'A plane mirror reflects light so that the angle of reflection equals the angle of incidence, so a mirror set at 45° to the beam turns it through 90°.'],
+        cross: ['Crossing beams', 'Light beams pass straight through each other, so two beams can cross without either one changing direction.'],
+        splitter: ['50/50 beam splitter', 'A 50/50 beam splitter transmits half of the light straight through and reflects the other half, so each beam that leaves it carries half the power (a fainter beam here).'],
+        polarizer: ['Polarizer', 'A polarizer passes light polarized along its axis and blocks light polarized at right angles to it, and a mirror leaves p and s polarization unchanged.'],
+        hwp: ['Half-wave plate', 'A half-wave plate with its axis at 45° to the polarization rotates it by 90°, turning p into s and s into p; like any plate, it works only when it stands across the beam.'],
+        pbs: ['Polarizing beam splitter', 'A polarizing beam splitter transmits p-polarized light and reflects s-polarized light, so it sorts a beam by its polarization.'],
+    };
+    const NAMES = { m: 'Mirror', b: 'Beam splitter', h: 'Half-wave plate', q: 'Polarizing splitter' }, ORDER = 'mbhq';
+    const U = 100, NS = 'http://www.w3.org/2000/svg';
+    const KEY = 'beampath-progress';
+    let prog = G.getJSON(KEY);
+    if (!prog || typeof prog !== 'object' || !prog.done || !prog.boards) prog = { cur: 0, done: {}, boards: {} };
+    let idx = 0, L, lv, pc, sel = 'm', hist = [], res = null, solved = false, focusI = 0, prevLit = 0;
+
+    // ---------- level state ----------
+    const left = t => lv.inv[t] - pc.filter(p => p && !p.lock && p.t === t).length;
+    const usedCount = () => pc.filter(p => p && !p.lock).length;
+    const snap = () => pc.map(p => (p && p.lock !== 1 ? p.t + p.o + p.lock : ''));
+    function restore(s) { pc = lv.base.map((b, i) => (b && b.lock === 1 ? b : s[i] ? { t: s[i][0], o: +s[i][1], lock: +s[i][2] } : null)); }
+    function saveBoard() {
+        const list = []; pc.forEach((p, i) => { if (p && p.lock !== 1) list.push([i, p.t, p.o, p.lock]); });
+        prog.boards[L.name] = list; prog.cur = idx; G.setJSON(KEY, prog);
+    }
+    function load(n, fresh) {
+        idx = Math.max(0, Math.min(LEVELS.length - 1, n | 0)); L = LEVELS[idx]; lv = parseLevel(L);
+        pc = lv.base.map(b => (b ? { ...b } : null)); hist = []; solved = false;
+        const saved = !fresh && prog.boards[L.name];
+        if (Array.isArray(saved)) for (const e of saved) {
+            const [i, t, o, lock] = e;
+            if (!(i >= 0 && i < lv.N) || !'mbhq'.includes(t)) continue;
+            if (lock === 2 && pc[i] && pc[i].lock === 2) pc[i].o = o ? 1 : 0;
+            else if (!lock && !pc[i] && !lv.ter[i] && left(t) > 0) pc[i] = { t, o: o ? 1 : 0, lock: 0 };
+        }
+        if (fresh) delete prog.boards[L.name];
+        sel = [...ORDER].find(t => lv.inv[t]) || 'm';
+        focusI = Math.max(0, pc.findIndex((p, i) => !lv.ter[i] && !(p && p.lock === 1)));
+        const b = $('board'); b.style.setProperty('--w', lv.W); b.style.setProperty('--h', lv.H);
+        buildCells(); buildTray();
+        $('title').textContent = (idx + 1) + '. ' + L.name;
+        $('lvl').textContent = (idx + 1) + ' / ' + LEVELS.length;
+        showNote();
+        prog.cur = idx; G.setJSON(KEY, prog);
+        prevLit = -1; update(false);
+        if (res.solved) { solved = true; showWin(false); }
+    }
+    function showNote() {
+        const n = L.intro && NOTES[L.intro], on = $('notes').checked;
+        $('note').hidden = !(n && on);
+        if (n) $('note').innerHTML = '<strong>' + n[0] + ':</strong> ' + n[1];
+    }
+
+    // ---------- actions ----------
+    function push() { hist.push(snap()); if (hist.length > 300) hist.shift(); }
+    const where = i => 'row ' + ((i / lv.W | 0) + 1) + ', column ' + (i % lv.W + 1);
+    function tap(i) {
+        if (solved || i < 0 || i >= lv.N) return;
+        const p = pc[i];
+        if (lv.ter[i] || (p && p.lock === 1)) { say(describe(i) + '. It is fixed.'); G.tone(180, 160, 0.05, 'triangle', 0.02); return; }
+        if (p && p.lock === 2) return turn(i);
+        if (p) {
+            push();
+            if (p.o === 0) { p.o = 1; G.tone(560, 600, 0.04, 'triangle', 0.025); after(NAMES[p.t] + ' turned, ' + orient(p) + ', at ' + where(i)); }
+            else { pc[i] = null; G.tone(420, 300, 0.05, 'triangle', 0.025); after(NAMES[p.t] + ' picked up from ' + where(i)); }
+            return;
+        }
+        let t = sel;
+        if (!(left(t) > 0)) t = [...ORDER].find(k => left(k) > 0);
+        if (!t) { say('No pieces left to place. Tap a piece to turn it or pick it up.'); return; }
+        push(); pc[i] = { t, o: 0, lock: 0 }; sel = t;
+        G.tone(660, 720, 0.05, 'triangle', 0.03);
+        after(NAMES[t] + ' placed at ' + where(i) + ', ' + orient(pc[i]));
+    }
+    function turn(i) {
+        const p = pc[i]; if (solved || !p || p.lock === 1) return;
+        push(); p.o ^= 1; G.tone(560, 600, 0.04, 'triangle', 0.025);
+        after(NAMES[p.t] + ' turned, ' + orient(p) + ', at ' + where(i));
+    }
+    function remove(i) {
+        const p = pc[i]; if (solved || !p || p.lock) return;
+        push(); pc[i] = null; G.tone(420, 300, 0.05, 'triangle', 0.025);
+        after(NAMES[p.t] + ' picked up from ' + where(i));
+    }
+    function undo() {
+        const s = hist.pop(); if (!s) return;
+        restore(s); solved = false; hideWin(); after('Undone');
+    }
+    function reset() {
+        const base = lv.base.map(b => (b && b.lock !== 1 ? b.t + b.o + b.lock : ''));
+        if (snap().every((v, i) => v === base[i])) return;
+        push(); pc = lv.base.map(b => (b ? { ...b } : null)); solved = false; hideWin(); after('Board reset');
+    }
+    function after(msg) { buildTray(); update(true, msg); saveBoard(); }
+    function say(msg) { const sr = $('sr'); sr.textContent = ''; setTimeout(() => { sr.textContent = msg; }, 30); }
+
+    // ---------- drawing ----------
+    const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+    const orient = p => (p.t === 'h' ? (p.o ? 'lying flat' : 'standing upright') : p.o ? 'slanted like a backslash' : 'slanted like a slash');
+    const DIRW = ['up', 'right', 'down', 'left'];
+    function describe(i) {
+        const t = lv.ter[i], p = pc[i];
+        if (t === 1) return 'Beam block';
+        if (t === 2) return 'Detector, ' + (res && res.det[i] > 0 ? 'lit (' + Math.round(res.det[i] * 100) + '% of a laser)' : 'dark');
+        if (t === 3) return 'Laser pointing ' + DIRW[lv.arg[i]] + (lv.pol ? ', ' + (lv.pass[i] ? 's' : 'p') + '-polarized' : '');
+        if (t === 4) return 'Polarizer passing ' + (lv.pass[i] ? 's' : 'p') + ' light, ' + (lv.arg[i] ? 'lying flat, across up-and-down beams' : 'standing upright, across left-and-right beams');
+        if (!p) return 'Empty';
+        return (p.lock === 1 ? 'Fixed ' : p.lock === 2 ? 'Turnable ' : 'Your ') + NAMES[p.t].toLowerCase() + ', ' + orient(p);
+    }
+    function buildCells() {
+        const box = $('cells'); box.innerHTML = '';
+        for (let i = 0; i < lv.N; i++) {
+            const b = document.createElement('button'); b.type = 'button'; b.dataset.i = i; box.appendChild(b);
+        }
+    }
+    function icon(t, o) {
+        const s = el('svg', { viewBox: '-50 -50 100 100', 'aria-hidden': 'true' });
+        drawPiece(s, 0, 0, { t, o, lock: 0 }, true);
+        return s;
+    }
+    function buildTray() {
+        const tray = $('tray'); tray.innerHTML = '';
+        const kinds = [...ORDER].filter(t => lv.inv[t]);
+        if (!kinds.length) { tray.innerHTML = '<span class="bp-empty">No pieces to place here: tap the turnable pieces to turn them.</span>'; return; }
+        if (!(left(sel) > 0)) { const k = kinds.find(t => left(t) > 0); if (k) sel = k; }
+        kinds.forEach(t => {
+            const b = document.createElement('button'); b.type = 'button'; b.dataset.t = t;
+            b.appendChild(icon(t, 0));
+            const n = left(t);
+            b.insertAdjacentHTML('beforeend', '<span>' + NAMES[t] + '</span><b>×' + n + '</b>');
+            b.setAttribute('aria-pressed', t === sel ? 'true' : 'false');
+            b.setAttribute('aria-label', NAMES[t] + ', ' + n + ' left' + (t === sel ? ', selected' : '') + '. Key ' + (ORDER.indexOf(t) + 1));
+            b.disabled = n <= 0 || solved;
+            tray.appendChild(b);
+        });
+    }
+    function drawPiece(g, x, y, p, bare) {
+        const mine = !p.lock, col = mine ? 'var(--bp-mine)' : 'var(--bp-metal)';
+        const gg = el('g', { transform: 'translate(' + x + ' ' + y + ')' }, g);
+        if (p.lock) el('rect', { x: -44, y: -44, width: 88, height: 88, rx: 12, fill: 'var(--bp-base)' }, gg);
+        const sl = p.o ? 1 : -1;                                   // the slant: y = sl * x ("/" rises to the right)
+        const diag = (off, ext, attrs) => { const ox = -sl * off / Math.SQRT2, oy = off / Math.SQRT2;
+            el('line', Object.assign({ x1: -ext + ox, y1: -ext * sl + oy, x2: ext + ox, y2: ext * sl + oy, stroke: col }, attrs), gg); };
+        if (p.t === 'm') {
+            diag(0, 31, { 'stroke-width': 11, 'stroke-linecap': 'round' });
+            diag(-2, 24, { stroke: 'var(--bp-face)', 'stroke-width': 2.5, 'stroke-linecap': 'round', opacity: 0.6 });
+        } else if (p.t === 'b' || p.t === 'q') {
+            el('rect', { x: -30, y: -30, width: 60, height: 60, rx: 4, fill: 'color-mix(in srgb, ' + col + ' 14%, transparent)', stroke: col, 'stroke-width': 4 }, gg);
+            if (p.t === 'b') diag(0, 30, { 'stroke-width': 5 });
+            else { diag(-5, 26, { 'stroke-width': 3.5 }); diag(5, 26, { 'stroke-width': 3.5 }); }   // polarizing splitter: a double line
+        } else if (p.t === 'h') {
+            const w = 14, len = 72;
+            el('rect', { x: p.o ? -len / 2 : -w / 2, y: p.o ? -w / 2 : -len / 2, width: p.o ? len : w, height: p.o ? w : len, rx: 3, fill: 'var(--bp-plate)', stroke: mine ? col : 'none', 'stroke-width': mine ? 4 : 0 }, gg);
+            if (!bare) el('text', { x: p.o ? -24 : 25, y: -27, 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': 20, 'font-weight': 700, fill: col, 'font-family': 'Inter, system-ui, sans-serif' }, gg).textContent = 'λ/2';
+        }
+        if (p.lock === 2) {                                         // turnable: a curved arrow in a corner the piece leaves clear
+            const ax = p.t === 'h' || p.o ? 33 : -33, ay = -33, R = 8;
+            el('path', { d: 'M' + (ax + R) + ' ' + ay + 'A' + R + ' ' + R + ' 0 1 1 ' + ax + ' ' + (ay - R) + 'M' + (ax - 5) + ' ' + (ay - R - 5) + 'L' + ax + ' ' + (ay - R) + 'L' + (ax - 5) + ' ' + (ay - R + 5), fill: 'none', stroke: 'var(--bp-metal)', 'stroke-width': 3.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, gg);
+        }
+        return gg;
+    }
+    function drawPolarizer(g, x, y, axis, pass) {
+        const gg = el('g', { transform: 'translate(' + x + ' ' + y + ')' }, g), vert = axis === 0;
+        el('rect', { x: vert ? -7 : -40, y: vert ? -40 : -7, width: vert ? 14 : 80, height: vert ? 80 : 14, rx: 3, fill: 'var(--bp-pol)' }, gg);
+        if (pass) { el('circle', { cx: 0, cy: 0, r: 13, fill: 'var(--bp-bg)', stroke: 'var(--bp-pol)', 'stroke-width': 3 }, gg); el('circle', { cx: 0, cy: 0, r: 4.5, fill: 'var(--bp-pol)' }, gg); }
+        else el('path', { d: vert ? 'M0 -30V30M-6 -22L0 -30L6 -22M-6 22L0 30L6 22' : 'M-30 0H30M-22 -6L-30 0L-22 6M22 -6L30 0L22 6', stroke: 'var(--bp-bg)', 'stroke-width': 4, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, gg);
+        el('text', { x: vert ? 0 : 0, y: vert ? 0 : 0, transform: vert ? 'translate(22 -30)' : 'translate(-30 -20)', 'font-size': 20, 'font-weight': 800, fill: 'var(--bp-pol)', 'font-family': 'Inter, system-ui, sans-serif', 'text-anchor': 'middle' }, gg).textContent = pass ? 's' : 'p';
+    }
+    function update(sound, msg) {
+        res = propagate(lv, pc, false);
+        const svg = $('svg'), { W, H } = lv;
+        svg.setAttribute('viewBox', '0 0 ' + W * U + ' ' + H * U);
+        svg.innerHTML = '';
+        el('rect', { width: W * U, height: H * U, fill: 'var(--bp-bg)' }, svg);
+        let d = '';
+        for (let c = 1; c < W; c++) d += 'M' + c * U + ' 0V' + H * U;
+        for (let r = 1; r < H; r++) d += 'M0 ' + r * U + 'H' + W * U;
+        el('path', { d, stroke: 'var(--bp-grid)', 'stroke-width': 2 }, svg);
+        const cx = i => (i % W) * U + U / 2, cy = i => ((i / W) | 0) * U + U / 2;
+        // blocks
+        const defs = el('defs', {}, svg), pat = el('pattern', { id: 'bp-hatch', width: 14, height: 14, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
+        el('rect', { width: 14, height: 14, fill: 'var(--bp-block)' }, pat); el('rect', { width: 5, height: 14, fill: 'var(--bp-bg)', opacity: 0.22 }, pat);
+        for (let i = 0; i < lv.N; i++) if (lv.ter[i] === 1) el('rect', { x: cx(i) - 42, y: cy(i) - 42, width: 84, height: 84, rx: 8, fill: 'url(#bp-hatch)' }, svg);
+        // beams
+        const glow = el('g', { stroke: 'var(--bp-beam)', 'stroke-linecap': 'round', fill: 'none' }, svg);
+        const core = el('g', { stroke: 'var(--bp-beam)', 'stroke-linecap': 'round', fill: 'none' }, svg);
+        const flow = el('g', { stroke: 'var(--bp-face)', 'stroke-linecap': 'round', fill: 'none', opacity: 0.55 }, svg);
+        const marks = el('g', { stroke: 'var(--bp-mark)', fill: 'var(--bp-mark)', 'stroke-linecap': 'round' }, svg);
+        for (let s = 0; s < lv.N * 8; s++) {
+            const P = res.pow[s]; if (!(P > 0)) continue;
+            const i = s >> 3, dir = (s >> 1) & 3, pol = s & 1, r = (i / W | 0) + DR[dir], c = (i % W) + DC[dir];
+            let len = U;
+            if (r < 0 || r >= H || c < 0 || c >= W) len = U / 2;
+            else { const t = lv.ter[r * W + c]; if (t === 1) len = U / 2 + 8; else if (t === 3) len = U / 2 + 14; }
+            const x0 = cx(i), y0 = cy(i), x1 = x0 + DC[dir] * len, y1 = y0 + DR[dir] * len, a = Math.sqrt(Math.min(1, P));
+            el('line', { x1: x0, y1: y0, x2: x1, y2: y1, 'stroke-width': 22, opacity: (0.08 + 0.17 * a).toFixed(3) }, glow);
+            el('line', { x1: x0, y1: y0, x2: x1, y2: y1, 'stroke-width': 8, opacity: (0.35 + 0.65 * a).toFixed(3) }, core);
+            el('line', { class: 'bp-flow', x1: x0, y1: y0, x2: x1, y2: y1, 'stroke-width': 3.5 }, flow);
+            if (lv.pol) for (const f of [25, 75]) {
+                if (f > len - 6) continue;
+                const mx = x0 + DC[dir] * f, my = y0 + DR[dir] * f;
+                if (pol) el('circle', { cx: mx, cy: my, r: 5.5 }, marks);
+                else el('line', { x1: mx + (DR[dir] ? 13 : 0), y1: my + (DC[dir] ? 13 : 0), x2: mx - (DR[dir] ? 13 : 0), y2: my - (DC[dir] ? 13 : 0), 'stroke-width': 4 }, marks);
+            }
+        }
+        // devices and pieces
+        const top = el('g', {}, svg);
+        for (let i = 0; i < lv.N; i++) {
+            const t = lv.ter[i], x = cx(i), y = cy(i);
+            if (t === 2) {
+                const lit = res.det[i] > 0;
+                if (lit) el('circle', { cx: x, cy: y, r: 44, fill: 'var(--bp-beam)', opacity: 0.18 }, top);
+                el('circle', { cx: x, cy: y, r: 30, fill: 'var(--bp-bg)', stroke: 'var(--bp-dev)', 'stroke-width': 6 }, top);
+                el('circle', { cx: x, cy: y, r: 18, fill: lit ? 'var(--bp-beam)' : 'none', stroke: 'var(--bp-dev)', 'stroke-width': lit ? 0 : 3, 'stroke-dasharray': lit ? '' : '5 5' }, top);
+                if (lit) el('path', { d: 'M' + (x - 9) + ' ' + y + 'l6 7l12 -14', stroke: 'var(--bp-face)', 'stroke-width': 5, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, top);
+                if (lit && solved) el('circle', { class: 'bp-win-glow', cx: x, cy: y, r: 30, fill: 'none', stroke: 'var(--bp-beam)', 'stroke-width': 6 }, top);
+            } else if (t === 3) {
+                const dir = lv.arg[i], gg = el('g', { transform: 'translate(' + x + ' ' + y + ') rotate(' + (dir * 90 - 90) + ')' }, top);
+                el('rect', { x: -40, y: -22, width: 70, height: 44, rx: 9, fill: 'var(--bp-dev)' }, gg);
+                el('rect', { x: 28, y: -12, width: 14, height: 24, rx: 3, fill: 'var(--bp-dev)' }, gg);
+                el('circle', { cx: 36, cy: 0, r: 6, fill: 'var(--bp-beam)' }, gg);
+                el('path', { d: 'M-26 -8h22M-26 0h22M-26 8h22', stroke: 'var(--bp-bg)', 'stroke-width': 3, opacity: 0.5 }, gg);
+            } else if (t === 4) drawPolarizer(top, x, y, lv.arg[i], lv.pass[i]);
+            else if (pc[i]) drawPiece(top, x, y, pc[i]);
+        }
+        // cells: labels and roving focus
+        const btns = $('cells').children;
+        for (let i = 0; i < lv.N; i++) {
+            const b = btns[i], beam = res.reach[i] && !lv.ter[i];
+            b.setAttribute('aria-label', 'Row ' + ((i / W | 0) + 1) + ', column ' + (i % W + 1) + ': ' + describe(i) + (beam ? ', in the beam' : ''));
+            b.tabIndex = i === focusI ? 0 : -1;
+            b.classList.toggle('fixed', !!lv.ter[i] || !!(pc[i] && pc[i].lock === 1));
+        }
+        // HUD
+        $('lit').textContent = res.lit + ' / ' + lv.dets.length;
+        const used = usedCount();
+        $('used').textContent = used;
+        const best = prog.done[L.name];
+        $('par').textContent = (L.par ? 'Par ' + L.par + (L.par === 1 ? ' piece' : ' pieces') : 'Turn the pieces') + (best !== undefined ? ' · solved' + (best <= L.par ? ' ★' : '') : '');
+        $('undo').disabled = !hist.length;
+        if (sound && res.lit > prevLit && prevLit >= 0 && !res.solved) G.tone(880, 990, 0.08, 'sine', 0.03);
+        let text = msg ? msg + '. ' : '';
+        text += res.lit + ' of ' + lv.dets.length + ' detector' + (lv.dets.length > 1 ? 's' : '') + ' lit.';
+        prevLit = res.lit;
+        if (res.solved && !solved && sound) { solved = true; win(); return; }
+        if (msg) say(text);
+    }
+    function win() {
+        const used = usedCount(), prev = prog.done[L.name];
+        if (prev === undefined || used < prev) prog.done[L.name] = used;
+        G.setJSON(KEY, prog);
+        [523, 659, 784, 1046].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.16, 'sine', 0.035), k * 100));
+        update(false);
+        showWin(true);
+    }
+    function showWin(fresh) {
+        $('board').classList.add('solved');
+        const used = usedCount(), par = L.par || 0, all = LEVELS.every(l => prog.done[l.name] !== undefined);
+        const stars = LEVELS.filter(l => prog.done[l.name] !== undefined && prog.done[l.name] <= (l.par || 0)).length;
+        $('win-title').textContent = all && fresh && !prog.finale ? 'Every beam found its detector!' : 'Level ' + (idx + 1) + ' solved';
+        let t = par ? (used === 1 ? '1 piece' : used + ' pieces') + (used <= par ? ', on par ★' : '. It can be done with ' + par + '.') : 'All detectors lit.';
+        if (all) t += ' You have solved all ' + LEVELS.length + ' levels, ' + stars + ' of them on par.';
+        if (all && !prog.finale) { prog.finale = true; G.setJSON(KEY, prog); }
+        $('win-text').textContent = t;
+        const nextI = nextLevel();
+        $('next').textContent = nextI === null ? 'Choose a level' : 'Next level';
+        $('win').hidden = false; $('tray').hidden = true;
+        buildTray();
+        if (fresh) { say('Level solved. ' + t); $('next').focus({ preventScroll: true }); }
+    }
+    function nextLevel() {
+        for (let k = 1; k <= LEVELS.length; k++) { const j = (idx + k) % LEVELS.length; if (prog.done[LEVELS[j].name] === undefined) return j; }
+        return idx + 1 < LEVELS.length ? idx + 1 : null;
+    }
+    const hideWin = () => { $('win').hidden = true; $('tray').hidden = false; $('board').classList.remove('solved'); };
+
+    // ---------- level select ----------
+    function openLevels() {
+        const list = $('level-list'); list.innerHTML = '';
+        CHAPTERS.forEach(([name, from], k) => {
+            const to = k + 1 < CHAPTERS.length ? CHAPTERS[k + 1][1] : LEVELS.length;
+            if (from >= LEVELS.length) return;
+            list.insertAdjacentHTML('beforeend', '<h3>' + name + '</h3>');
+            const grid = document.createElement('div'); grid.className = 'bp-levels';
+            for (let j = from; j < to; j++) {
+                const l = LEVELS[j], d = prog.done[l.name], b = document.createElement('button');
+                b.type = 'button'; b.dataset.j = j; b.textContent = j + 1;
+                if (d !== undefined) { b.classList.add('done'); b.insertAdjacentHTML('beforeend', '<small>' + (d <= (l.par || 0) ? '★' : '✓') + '</small>'); }
+                if (j === idx) b.classList.add('cur');
+                b.setAttribute('aria-label', 'Level ' + (j + 1) + ', ' + l.name + (d !== undefined ? ', solved' + (d <= (l.par || 0) ? ' on par' : '') : '') + (j === idx ? ', current' : ''));
+                grid.appendChild(b);
+            }
+            list.appendChild(grid);
+        });
+        const n = LEVELS.filter(l => prog.done[l.name] !== undefined).length;
+        $('levels-progress').textContent = n + ' of ' + LEVELS.length + ' solved. A star means solved with the fewest pieces.';
+        const dlg = $('levels');
+        if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+        const cur = list.querySelector('button.cur'); if (cur) cur.focus();
+    }
+    function closeLevels() { const dlg = $('levels'); if (dlg.open) { if (dlg.close) dlg.close(); else dlg.removeAttribute('open'); } }
+    let picked = false;
+    $('level-list').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; picked = true; closeLevels(); go(+b.dataset.j); });
+    $('levels-close').addEventListener('click', closeLevels);
+    $('levels').addEventListener('click', e => { if (e.target === $('levels')) closeLevels(); });     // a click on the backdrop
+    $('levels').addEventListener('close', () => { if (picked) focusCell(focusI); else $('choose').focus({ preventScroll: true }); picked = false; });
+    function go(j, fresh) { hideWin(); load(j, fresh); focusCell(focusI); }
+
+    // ---------- input ----------
+    const cells = $('cells');
+    function focusCell(i, move) { focusI = i; const b = cells.children[i]; [...cells.children].forEach((x, k) => { x.tabIndex = k === i ? 0 : -1; }); if (move !== false && b) b.focus({ preventScroll: true }); }
+    let press = null, suppressClick = false;
+    cells.addEventListener('pointerdown', e => {
+        const b = e.target.closest('button'); if (!b || e.button !== 0) return;
+        const i = +b.dataset.i; clearTimeout(press && press.t);
+        press = { i, t: setTimeout(() => { if (pc[i] && !pc[i].lock && !solved) { remove(i); suppressClick = true; if (navigator.vibrate) try { navigator.vibrate(15); } catch (err) { /* ignore */ } } press = null; }, 520) };
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => cells.addEventListener(t, () => { if (press) { clearTimeout(press.t); press = null; } }));
+    cells.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        if (suppressClick) return;                          // the long-press already picked it up
+        const b = e.target.closest('button'); if (!b) return;
+        const i = +b.dataset.i; if (press) { clearTimeout(press.t); press = null; }
+        if (pc[i] && !pc[i].lock) { remove(i); suppressClick = true; setTimeout(() => { suppressClick = false; }, 400); }
+    });
+    cells.addEventListener('click', e => {
+        const b = e.target.closest('button'); if (!b) return;
+        if (suppressClick) { suppressClick = false; return; }
+        const i = +b.dataset.i; focusCell(i, false); tap(i);
+    });
+    cells.addEventListener('keydown', e => {
+        const b = e.target.closest('button'); if (!b || e.ctrlKey || e.metaKey || e.altKey) return;
+        const i = +b.dataset.i, r = i / lv.W | 0, c = i % lv.W;
+        const mv = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+        if (mv) { e.preventDefault(); const nr = Math.max(0, Math.min(lv.H - 1, r + mv[0])), nc = Math.max(0, Math.min(lv.W - 1, c + mv[1])); focusCell(nr * lv.W + nc); }
+        else if (e.key === 'Home') { e.preventDefault(); focusCell(r * lv.W); }
+        else if (e.key === 'End') { e.preventDefault(); focusCell(r * lv.W + lv.W - 1); }
+        else if (e.code === 'KeyR') { e.preventDefault(); if (pc[i] && pc[i].lock !== 1) turn(i); }
+        else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); remove(i); }
+    });
+    $('tray').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; select(b.dataset.t, true); });
+    function select(t, focusTray) {
+        if (!lv.inv[t] || !(left(t) > 0) || solved) return;
+        sel = t; buildTray(); say(NAMES[t] + ' selected');
+        if (focusTray) { const b = $('tray').querySelector('[data-t="' + t + '"]'); if (b) b.focus(); }
+    }
+    document.addEventListener('keydown', e => {
+        if ($('levels').open || (e.target.matches && e.target.matches('input, select, textarea')) || e.altKey) return;
+        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); undo(); return; }
+        if (e.ctrlKey || e.metaKey) return;
+        const m = /^(?:Digit|Numpad)([1-4])$/.exec(e.code);
+        if (m) { e.preventDefault(); select(ORDER[+m[1] - 1], false); }
+        else if (e.code === 'KeyU') { e.preventDefault(); undo(); }
+    });
+    $('undo').addEventListener('click', undo);
+    $('reset').addEventListener('click', reset);
+    $('choose').addEventListener('click', openLevels);
+    $('next').addEventListener('click', () => { const j = nextLevel(); if (j === null) openLevels(); else go(j); });
+    $('replay').addEventListener('click', () => go(idx, true));
+    $('notes').addEventListener('change', () => { G.set('beampath-notes', $('notes').checked ? '1' : '0'); showNote(); });
+    G.soundButton($('sound'));
+    $('notes').checked = G.get('beampath-notes', '1') !== '0';
+    $('optics').innerHTML = Object.values(NOTES).map(n => '<li><strong>' + n[0] + '.</strong> ' + n[1] + '</li>').join('');
+
+    load(+prog.cur || 0);
+    window.__beampath = {
+        LEVELS, parseLevel, propagate, load: j => go(j), fresh: j => go(j, true), tap, turn, remove, undo, reset, select,
+        get state() { return { idx, name: L.name, solved, lit: res.lit, dets: lv.dets.length, used: usedCount(), par: L.par, pieces: pc.map(p => (p ? p.t + p.o + p.lock : '')), done: { ...prog.done } }; },
+        cell: (r, c) => r * lv.W + c
+    };
+});
+</script>
+</body>
+</html>
