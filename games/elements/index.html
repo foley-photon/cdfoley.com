@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Periodic Table Quiz: Free Element Names &amp; Symbols Game</title>
+<meta name="description" content="Free periodic table quiz: find elements on the table, match names and symbols, or race a 60-second sprint. Three levels, up to all 118. No ads.">
+<link rel="canonical" href="https://cdfoley.com/games/elements/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Periodic Table Quiz">
+<meta property="og:description" content="Free periodic table quiz: find elements on the table, match names and symbols, or race a 60-second sprint. Three levels, up to all 118. No ads.">
+<meta property="og:url" content="https://cdfoley.com/games/elements/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/game-elements.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Periodic Table Quiz. Free periodic table quiz: find elements on the table, match names and symbols, or race a 60-second sprint. Three levels, up to all 118. No ads.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
+<style>
+    .pq { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.1rem; margin-bottom: .9rem; }
+    .pq-kicker { color: var(--muted); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .pq-prompt { font-size: 1.7rem; font-weight: 750; line-height: 1.2; margin: .3rem 0 .15rem; min-height: 1.2em; overflow-wrap: anywhere; }
+    .pq-prompt .sym { font-family: var(--mono); font-size: 2.2rem; }
+    .pq-prompt .sym-in { font-family: var(--mono); font-weight: 700; }
+    .pq-sub { color: var(--text-2); margin: 0; font-size: .95rem; }
+    .pq-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; margin-top: .9rem; }
+    .pq-choices[hidden] { display: none; }
+    .pq-choice { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .15rem .55rem; min-height: 3.1rem; padding: .45rem .7rem; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface-2); color: var(--text); font: 650 1.05rem var(--font); text-align: left; cursor: pointer; touch-action: manipulation; overflow-wrap: break-word; }
+    .pq-choice:hover { border-color: var(--accent); }
+    .pq-choice:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .pq-choice .k { font: 600 .75rem var(--mono); color: var(--muted); border: 1px solid var(--border-strong); border-radius: 4px; padding: 0 .3rem; }
+    .pq-choice .t.mono { font-family: var(--mono); font-size: 1.2rem; }
+    .pq-choice .mk { grid-column: 1 / -1; justify-self: end; font-weight: 800; font-size: .85rem; }
+    .pq-choice .mk:empty { display: none; }
+    .pq-choice.right { background: var(--ok-soft); border: 2px solid var(--ok); }
+    .pq-choice.right .mk { color: var(--ok); }
+    .pq-choice.wrong { background: var(--danger-soft); border: 2px solid var(--danger); }
+    .pq-choice.wrong .mk { color: var(--danger); }
+    .pq-choice[aria-disabled="true"] { cursor: default; }
+    .pq-result { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1rem; margin-top: .8rem; min-height: 2.4rem; }
+    .pq-fb { margin: 0; flex: 1 1 260px; }
+    .pq-fb strong { margin-right: .3rem; }
+    .pq-fb strong.ok { color: var(--ok); } .pq-fb strong.bad { color: var(--danger); }
+    .pq-fb span { color: var(--text-2); }
+    .pq-result .btn[hidden] { display: none; }
+    .pt-note { font-size: .82rem; color: var(--muted); margin: 0 0 .35rem; }
+    @media (min-width: 700px) { .pt-note { display: none; } }
+    .pt-scroll { position: relative; overflow-x: auto; overscroll-behavior-x: contain; padding: 8px 8px 6px; margin: 0 -8px; }
+    .pt { display: grid; grid-template-columns: 1.1rem repeat(18, minmax(32px, 1fr)); grid-template-rows: auto repeat(7, auto) .55rem auto auto; gap: 3px; min-width: 650px; }
+    .pt-g, .pt-p { font: 600 .62rem var(--mono); color: var(--muted); display: flex; align-items: flex-end; justify-content: center; }
+    .pt-p { align-items: center; }
+    .pt-ph { display: flex; align-items: center; justify-content: center; text-align: center; border: 1px dashed var(--border-strong); border-radius: 5px; font: 600 .58rem/1.1 var(--mono); color: var(--muted); }
+    .pt-fl { grid-column: 1 / span 3; display: flex; align-items: center; justify-content: flex-end; padding-right: .3rem; font-size: .62rem; font-weight: 600; color: var(--muted); }
+    .pt-cell { --rc: var(--c1); position: relative; aspect-ratio: 1 / 1.1; min-width: 0; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+        border: 1px solid color-mix(in srgb, var(--rc) 35%, var(--border)); border-radius: 5px; background: color-mix(in srgb, var(--rc) 13%, var(--surface)); color: var(--text); font: inherit; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+    .pt-cell.r-d { --rc: var(--c4); } .pt-cell.r-p { --rc: var(--c6); } .pt-cell.r-f { --rc: var(--c2); }
+    .pt-cell .z { font: 500 .58rem/1 var(--mono); color: var(--text-2); }
+    .pt-cell .s { font: 700 .95rem/1.05 var(--font); }
+    .pt-cell:hover:not(:disabled) { border-color: var(--accent); }
+    .pt-cell:disabled { opacity: .3; cursor: default; }
+    .pt-cell:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; z-index: 3; }
+    .pt.blank .pt-cell:not(.show) .z, .pt.blank .pt-cell:not(.show) .s { visibility: hidden; }
+    .pt.quiet .pt-cell { cursor: default; }
+    .pt-cell.right { background: var(--ok-soft); border: 2px solid var(--ok); z-index: 2; }
+    .pt-cell.wrong { background: var(--danger-soft); border: 2px solid var(--danger); z-index: 2; }
+    .pt-cell .mk { position: absolute; top: -7px; right: -7px; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; font: 800 .68rem/1 var(--font); color: var(--bg); }
+    .pt-cell.right .mk { background: var(--ok); } .pt-cell.wrong .mk { background: var(--danger); }
+    .pt-cell.right, .pt-cell.wrong { animation: pt-pop .25s ease; }
+    @keyframes pt-pop { 0% { scale: 1; } 45% { scale: 1.18; } 100% { scale: 1; } }
+    @media (prefers-reduced-motion: reduce) { .pt-cell.right, .pt-cell.wrong { animation: none; } }
+    @media (min-width: 900px) { .pt-cell { aspect-ratio: 1 / 0.92; } }   /* the question and the whole table fit on a 1366 × 768 or 1280 × 720 screen */
+    .pq-overlay { justify-content: flex-start; padding-top: 2.2rem; }
+    .pq-overlay .pq-missed { max-width: 34rem; font-size: .92rem; }
+    .pq-sources { margin-top: .8rem; font-size: .85rem; color: var(--muted); }
+    .pq-choice .t { hyphens: auto; }
+    @media (max-width: 480px) { .pq-prompt { font-size: 1.45rem; } .pq-prompt .sym { font-size: 1.9rem; } .pq-choice { font-size: .9rem; padding: .45rem .55rem; column-gap: .4rem; } }
+    @media (max-width: 379px) { .pq-choices { grid-template-columns: minmax(0, 1fr); } }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "VideoGame",
+   "name": "Periodic Table Quiz",
+   "url": "https://cdfoley.com/games/elements/",
+   "description": "Free periodic table quiz: find elements on the table, match names and symbols, or race a 60-second sprint. Three levels, up to all 118. No ads.",
+   "genre": "Educational",
+   "gamePlatform": "Web browser",
+   "playMode": "SinglePlayer",
+   "applicationCategory": "GameApplication",
+   "operatingSystem": "Any (web browser)",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Games",
+     "item": "https://cdfoley.com/games/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Periodic Table Quiz",
+     "item": "https://cdfoley.com/games/elements/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Periodic Table Quiz</li></ol></nav>
+    <div class="game-shell" style="max-width:940px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Periodic Table Quiz</h1>
+            <p class="lede">How well do you know the elements? Find them on the periodic table, match names to symbols, or see how many you can get in 60 seconds. Start with the first 20 and work up to all 118.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip">Score<b id="score">0/0</b></span><span class="chip">Streak<b id="streak">0</b></span><span class="chip"><span id="best-label">Best streak</span><b id="best">0</b></span><span class="chip" id="time-chip" hidden>Time<b id="time">1:00</b></span></div>
+            <div class="game-actions">
+                <select id="mode" aria-label="Quiz mode">
+                    <option value="find">Find by name</option>
+                    <option value="blank">Blank table</option>
+                    <option value="sym">Symbol → name</option>
+                    <option value="name">Name → symbol</option>
+                    <option value="sprint">60-second sprint</option>
+                </select>
+                <select id="level" aria-label="Elements included">
+                    <option value="20">First 20 (H–Ca)</option>
+                    <option value="54">First 54 (H–Xe)</option>
+                    <option value="118">All 118</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button>
+                <button class="btn btn-primary btn-sm" type="button" id="new">New round</button>
+            </div>
+        </div>
+        <div class="game-stage" id="stage">
+            <section class="pq" id="quiz" aria-labelledby="prompt">
+                <div class="pq-kicker" id="kicker"></div>
+                <div class="pq-prompt" id="prompt"></div>
+                <p class="pq-sub" id="sub"></p>
+                <div class="pq-choices" id="choices" role="group" aria-label="Answers" hidden></div>
+                <div class="pq-result"><p class="pq-fb" id="fb"></p><button class="btn btn-primary btn-sm" type="button" id="next" hidden>Next</button></div>
+                <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
+            </section>
+            <p class="pt-note">Scroll the table sideways to see every group.</p>
+            <div class="pt-scroll" id="scroller">
+                <div class="pt" id="table" role="group" aria-label="Periodic table. Arrow keys move between elements; Enter or Space chooses one."></div>
+            </div>
+            <div class="game-overlay pq-overlay" id="overlay" hidden><h2 id="ov-title"></h2><p id="ov-text"></p><p class="pq-missed" id="ov-missed"></p><div><button class="btn btn-primary" type="button" id="ov-go"></button></div></div>
+        </div>
+        <p class="game-help"><strong>How to play.</strong> Pick a mode and a level. In <strong>Find by name</strong>, click or tap the element on the table; in <strong>Blank table</strong>, the boxes are empty, so you need to know where it sits. With a keyboard, the arrow keys move around the table, typing a symbol’s letters jumps to it (in Find by name), and <kbd>Enter</kbd> or <kbd>Space</kbd> chooses. In the name and symbol modes, pick one of four answers or press <kbd>1</kbd>–<kbd>4</kbd>. A round is 10 questions; the sprint is as many as you can answer in 60 seconds. Press <kbd>Enter</kbd> for the next question. Your best streak in each mode and level, and your best sprint at each level, are saved in this browser.</p>
+        <p class="pq-sources">Names and symbols follow IUPAC, including the four names approved on 28 November 2016: nihonium (Nh, 113), moscovium (Mc, 115), tennessine (Ts, 117), and oganesson (Og, 118) (<a href="https://iupac.org/iupac-announces-the-names-of-the-elements-113-115-117-and-118/" rel="noopener">IUPAC announcement</a>). The quiz uses the US spellings aluminum and cesium; IUPAC writes aluminium and caesium. The layout, groups, and periods follow <a href="https://iupac.org/what-we-do/periodic-table-of-elements/" rel="noopener">IUPAC’s periodic table</a> (version of 4 May 2022), with the lanthanoids (La–Lu) and actinoids (Ac–Lr) in their own rows. IUPAC has not settled whether La and Ac or Lu and Lr belong in group 3, so the quiz gives those 30 elements no group number.</p>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const G = window.Games, $ = id => document.getElementById(id);
+    // Element names and symbols in order of atomic number, per IUPAC (Nomenclature of Inorganic Chemistry, IUPAC
+    // Recommendations 2005, Table I; names of 113, 115, 117 and 118 approved by the IUPAC Bureau on 28 November 2016,
+    // https://iupac.org/iupac-announces-the-names-of-the-elements-113-115-117-and-118/). US spelling for 13 and 55
+    // (IUPAC: aluminium, caesium). Groups and periods are computed from the atomic number below, following the long-form
+    // layout of the IUPAC Periodic Table of the Elements, 4 May 2022 (https://iupac.org/what-we-do/periodic-table-of-elements/).
+    const RAW = 'H Hydrogen|He Helium|' +
+        'Li Lithium|Be Beryllium|B Boron|C Carbon|N Nitrogen|O Oxygen|F Fluorine|Ne Neon|' +
+        'Na Sodium|Mg Magnesium|Al Aluminum|Si Silicon|P Phosphorus|S Sulfur|Cl Chlorine|Ar Argon|' +
+        'K Potassium|Ca Calcium|Sc Scandium|Ti Titanium|V Vanadium|Cr Chromium|Mn Manganese|Fe Iron|Co Cobalt|Ni Nickel|Cu Copper|Zn Zinc|Ga Gallium|Ge Germanium|As Arsenic|Se Selenium|Br Bromine|Kr Krypton|' +
+        'Rb Rubidium|Sr Strontium|Y Yttrium|Zr Zirconium|Nb Niobium|Mo Molybdenum|Tc Technetium|Ru Ruthenium|Rh Rhodium|Pd Palladium|Ag Silver|Cd Cadmium|In Indium|Sn Tin|Sb Antimony|Te Tellurium|I Iodine|Xe Xenon|' +
+        'Cs Cesium|Ba Barium|La Lanthanum|Ce Cerium|Pr Praseodymium|Nd Neodymium|Pm Promethium|Sm Samarium|Eu Europium|Gd Gadolinium|Tb Terbium|Dy Dysprosium|Ho Holmium|Er Erbium|Tm Thulium|Yb Ytterbium|Lu Lutetium|' +
+        'Hf Hafnium|Ta Tantalum|W Tungsten|Re Rhenium|Os Osmium|Ir Iridium|Pt Platinum|Au Gold|Hg Mercury|Tl Thallium|Pb Lead|Bi Bismuth|Po Polonium|At Astatine|Rn Radon|' +
+        'Fr Francium|Ra Radium|Ac Actinium|Th Thorium|Pa Protactinium|U Uranium|Np Neptunium|Pu Plutonium|Am Americium|Cm Curium|Bk Berkelium|Cf Californium|Es Einsteinium|Fm Fermium|Md Mendelevium|No Nobelium|Lr Lawrencium|' +
+        'Rf Rutherfordium|Db Dubnium|Sg Seaborgium|Bh Bohrium|Hs Hassium|Mt Meitnerium|Ds Darmstadtium|Rg Roentgenium|Cn Copernicium|Nh Nihonium|Fl Flerovium|Mc Moscovium|Lv Livermorium|Ts Tennessine|Og Oganesson';
+    const IUPAC_SPELLING = { 13: 'aluminium', 55: 'caesium' };
+    const ENDS = [2, 10, 18, 36, 54, 86, 118];      // last atomic number in each period
+    // Period, group, and grid position from the atomic number. Lanthanoids and actinoids (15 each) get their own rows
+    // and no group number; grid rows: 1 = group numbers, 2-8 = periods 1-7, 9 = gap, 10-11 = lanthanoids, actinoids.
+    function place(z) {
+        const p = ENDS.findIndex(e => z <= e) + 1, i = z - (p > 1 ? ENDS[p - 2] : 0) - 1;
+        let g = null, series = null;
+        if (p === 1) g = z === 1 ? 1 : 18;
+        else if (p <= 3) g = i < 2 ? i + 1 : i + 11;
+        else if (p <= 5) g = i + 1;
+        else if (i < 2) g = i + 1;
+        else if (i < 17) series = p === 6 ? 'lanthanoid' : 'actinoid';
+        else g = i - 13;
+        return { period: p, group: g, series, row: series ? p + 4 : p + 1, col: series ? i + 2 : g + 1 };
+    }
+    const EL = RAW.split('|').map((s, i) => { const [sym, name] = s.split(' '); return Object.assign({ z: i + 1, sym, name, lower: name.toLowerCase() }, place(i + 1)); });
+    const MODES = { find: 'Find by name', blank: 'Blank table', sym: 'Symbol → name', name: 'Name → symbol', sprint: '60-second sprint' };
+    const LEVELS = { 20: 'first 20', 54: 'first 54', 118: 'all 118' };
+    const ROUND = 10, SPRINT_MS = 60000;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+    let mode = MODES[G.get('elements-mode', 'find')] ? G.get('elements-mode', 'find') : 'find';
+    let level = LEVELS[G.get('elements-level', '20')] ? +G.get('elements-level', '20') : 20;
+    let q = null, qn = 0, correct = 0, answered = 0, streak = 0, revealed = false, missed = [], best = 0;
+    let running = false, paused = false, deadline = 0, remaining = SPRINT_MS, tick = null, advance = null, focusZ = 1;
+    const decks = {}, lastDrawn = {};
+    $('mode').value = mode; $('level').value = String(level);
+
+    // ── Table ─────────────────────────────────────────────────────────────────────────────────
+    const table = $('table'), cells = [];
+    const posLabel = e => 'period ' + e.period + ', ' + (e.series ? e.series + ' series' : 'group ' + e.group);
+    (function build() {
+        let out = '';
+        for (let g = 1; g <= 18; g++) out += '<div class="pt-g" aria-hidden="true" style="grid-row:1;grid-column:' + (g + 1) + '">' + g + '</div>';
+        for (let p = 1; p <= 7; p++) out += '<div class="pt-p" aria-hidden="true" style="grid-row:' + (p + 1) + ';grid-column:1">' + p + '</div>';
+        out += '<div class="pt-ph" aria-hidden="true" style="grid-row:7;grid-column:4">57–<br>71</div><div class="pt-ph" aria-hidden="true" style="grid-row:8;grid-column:4">89–<br>103</div>';
+        out += '<div class="pt-fl" aria-hidden="true" style="grid-row:10">Lanthanoids</div><div class="pt-fl" aria-hidden="true" style="grid-row:11">Actinoids</div>';
+        for (const e of EL) {
+            const region = e.series ? 'r-f' : e.group <= 2 ? 'r-s' : e.group <= 12 ? 'r-d' : 'r-p';
+            out += '<button type="button" class="pt-cell ' + region + '" data-z="' + e.z + '" tabindex="-1" style="grid-row:' + e.row + ';grid-column:' + e.col + '"><span class="z">' + e.z + '</span><span class="s">' + e.sym + '</span></button>';
+        }
+        table.innerHTML = out;
+        table.querySelectorAll('.pt-cell').forEach(b => { cells[+b.dataset.z] = b; });
+    })();
+    const isTable = () => mode === 'find' || mode === 'blank';
+    function setupTable() {
+        const blank = mode === 'blank';
+        table.classList.toggle('blank', blank);
+        table.classList.toggle('quiet', !isTable());
+        table.inert = !isTable();
+        for (const e of EL) {
+            const b = cells[e.z];
+            b.disabled = e.z > level;
+            b.setAttribute('aria-label', blank ? posLabel(e) : e.sym + ', ' + e.z + ', ' + posLabel(e));
+        }
+        if (focusZ > level) focusZ = 1;
+        rove(focusZ, false);
+    }
+    function rove(z, focus) {
+        cells[focusZ].tabIndex = -1; focusZ = z; cells[z].tabIndex = 0;
+        if (focus) cells[z].focus();
+    }
+    function clearMarks() {
+        table.querySelectorAll('.right, .wrong, .show').forEach(b => { b.classList.remove('right', 'wrong', 'show'); const m = b.querySelector('.mk'); if (m) m.remove(); });
+    }
+    function mark(z, ok) {
+        const b = cells[z], m = document.createElement('span');
+        b.classList.add(ok ? 'right' : 'wrong', 'show');
+        m.className = 'mk'; m.setAttribute('aria-hidden', 'true'); m.textContent = ok ? '✓' : '✗';
+        b.appendChild(m);
+    }
+    // Bring a cell into view inside the sideways-scrolling table without moving the page
+    function showCell(z) {
+        const sc = $('scroller'), b = cells[z], left = b.offsetLeft - sc.clientWidth / 2 + b.offsetWidth / 2;
+        if (b.offsetLeft < sc.scrollLeft || b.offsetLeft + b.offsetWidth > sc.scrollLeft + sc.clientWidth)
+            sc.scrollTo({ left: Math.max(0, left), behavior: reduced.matches ? 'auto' : 'smooth' });
+    }
+
+    // ── Questions ─────────────────────────────────────────────────────────────────────────────
+    function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+    // Each mode and level deals from its own shuffled deck, so every element comes up before any repeats
+    function draw() {
+        const key = mode + level;
+        let d = decks[key];
+        if (!d || !d.length) {
+            d = decks[key] = shuffle(EL.slice(0, level).map(e => e.z));
+            if (d.length > 1 && d[d.length - 1] === lastDrawn[key]) [d[0], d[d.length - 1]] = [d[d.length - 1], d[0]];
+        }
+        lastDrawn[key] = d.pop();
+        return EL[lastDrawn[key] - 1];
+    }
+    // Three wrong answers that look like the right one: same first letter of symbol or name, or a near neighbor
+    function options(e) {
+        const scored = EL.slice(0, level).filter(o => o !== e).map(o => {
+            let s = Math.random() * 2.5;
+            if (o.sym[0] === e.sym[0]) s += 3;
+            if (o.name[0] === e.name[0]) s += 2;
+            if (o.sym[0] === e.name[0] || e.sym[0] === o.name[0]) s += 1.5;
+            if (Math.abs(o.z - e.z) <= 2) s += 1;
+            return [s, o];
+        }).sort((a, b) => b[0] - a[0]);
+        return shuffle([e, ...scored.slice(0, 3).map(x => x[1])]);
+    }
+    const spell = sym => sym.split('').join(' ');
+    const nameOf = e => e.name + (IUPAC_SPELLING[e.z] ? ' (IUPAC: ' + IUPAC_SPELLING[e.z] + ')' : '');
+    const facts = e => nameOf(e) + ', ' + e.sym + ': atomic number ' + e.z + ', ' + posLabel(e) + '.';
+    const say = msg => { $('sr').textContent = ''; requestAnimationFrame(() => { $('sr').textContent = msg; }); };
+
+    function ask() {
+        clearTimeout(advance); advance = null;
+        const e = draw(), type = mode === 'sprint' ? (Math.random() < 0.5 ? 'sym' : 'name') : mode;
+        q = { e, type, opts: type === 'sym' || type === 'name' ? options(e) : null, chosen: null };
+        revealed = false; qn++;
+        clearMarks();
+        $('fb').innerHTML = ''; $('next').hidden = true;
+        $('kicker').textContent = mode === 'sprint' ? 'Sprint · ' + LEVELS[level] : 'Question ' + qn + ' of ' + ROUND + ' · ' + LEVELS[level];
+        let prompt, sub, spoken;
+        if (type === 'find') { prompt = 'Find ' + esc(e.name.toLowerCase()); sub = 'Click or tap it on the table.'; spoken = 'Find ' + e.lower + '.'; }
+        else if (type === 'blank') { prompt = 'Find <span class="sym-in">' + e.sym + '</span> · ' + esc(e.name.toLowerCase()); sub = 'The boxes are blank: choose the place where it sits.'; spoken = 'Find ' + e.lower + ', symbol ' + spell(e.sym) + ', on the blank table.'; }
+        else if (type === 'sym') { prompt = '<span class="sym">' + e.sym + '</span>'; sub = 'Which element has this symbol?'; spoken = 'Which element has the symbol ' + spell(e.sym) + '?'; }
+        else { prompt = esc(e.name); sub = 'What is its symbol?'; spoken = 'What is the symbol for ' + e.lower + '?'; }
+        $('prompt').innerHTML = prompt; $('sub').textContent = sub;
+        const ch = $('choices');
+        if (q.opts) {
+            ch.hidden = false;
+            ch.innerHTML = q.opts.map((o, i) => {
+                const text = type === 'sym' ? o.name : o.sym, label = (i + 1) + ' ' + text + (type === 'name' && o.sym.length > 1 ? ', spelled ' + spell(o.sym) : '');
+                return '<button type="button" class="pq-choice" data-i="' + i + '" aria-label="' + label + '"><span class="k" aria-hidden="true">' + (i + 1) + '</span><span class="t' + (type === 'name' ? ' mono' : '') + '">' + text + '</span><span class="mk"></span></button>';
+            }).join('');
+            spoken += ' ' + q.opts.map((o, i) => (i + 1) + ': ' + (type === 'sym' ? o.name : spell(o.sym))).join('; ') + '.';
+        } else { ch.hidden = true; ch.innerHTML = ''; }
+        say((mode === 'sprint' ? '' : 'Question ' + qn + ' of ' + ROUND + '. ') + spoken);
+        hud();
+    }
+    const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+    function answer(pick) {          // pick: an element (table modes) or an option index (choice modes)
+        if (!q || revealed || !$('overlay').hidden || (mode === 'sprint' && !running)) return;
+        const e = q.e, chosen = q.opts ? q.opts[pick] : pick;
+        if (!chosen) return;
+        const ok = chosen === e;
+        revealed = true; answered++; q.chosen = chosen;
+        if (ok) { correct++; streak++; } else { streak = 0; missed.push(e); }
+        if (mode !== 'sprint' && streak > best) { best = streak; G.set('elements-best-' + mode + '-' + level, best); }
+        // Table: check mark on the answer, cross on a wrong pick, both labeled with their symbols
+        mark(e.z, true); if (!ok) mark(chosen.z, false);
+        showCell(e.z);
+        if (q.opts) $('choices').querySelectorAll('.pq-choice').forEach(b => {
+            const o = q.opts[+b.dataset.i]; b.setAttribute('aria-disabled', 'true');
+            if (o === e) { b.classList.add('right'); b.querySelector('.mk').textContent = '✓ Answer'; }
+            else if (o === chosen) { b.classList.add('wrong'); b.querySelector('.mk').textContent = '✗ Yours'; }
+        });
+        let head, detail;
+        if (ok) { head = '✓ Correct.'; detail = facts(e); }
+        else if (q.opts) { head = '✗ Not quite.'; detail = (q.type === 'sym' ? e.sym + ' is ' + e.lower : 'The symbol for ' + e.lower + ' is ' + e.sym) + '. ' + facts(e); }
+        else { head = '✗ Not quite.'; detail = 'You chose ' + chosen.sym + ' (' + chosen.lower + '). ' + facts(e) + ' It has the check mark.'; }
+        $('fb').innerHTML = '<strong class="' + (ok ? 'ok' : 'bad') + '">' + head + '</strong> <span>' + esc(detail) + '</span>';
+        say(head.slice(2) + ' ' + detail.replace(/\b([A-Z][a-z]?)(?=[,.:) ])/g, (m, s) => (EL.some(x => x.sym === s) && s.length > 1 ? spell(s) : s)));
+        if (ok) G.tone(660, 990, 0.09, 'triangle', 0.03); else G.tone(240, 150, 0.16, 'square', 0.025);
+        hud();
+        if (mode === 'sprint') advance = setTimeout(next, ok ? 450 : 1400);
+        else {
+            $('next').textContent = qn >= ROUND ? 'See results' : 'Next';
+            $('next').hidden = false;
+            if (ok) advance = setTimeout(next, 1200);
+            else $('next').focus({ preventScroll: true });
+        }
+    }
+    function next() {
+        clearTimeout(advance); advance = null;
+        if (!revealed) return;
+        const wasNext = document.activeElement === $('next');
+        if (mode === 'sprint') { if (running) ask(); return; }
+        if (qn >= ROUND) { endRound(); return; }
+        ask();
+        if (wasNext) (isTable() ? cells[focusZ] : $('choices').querySelector('.pq-choice')).focus({ preventScroll: true });
+    }
+    function hud() {
+        $('score').textContent = mode === 'sprint' ? correct : correct + '/' + answered;
+        $('streak').textContent = streak; $('best').textContent = best;
+        $('best-label').textContent = mode === 'sprint' ? 'Best sprint' : 'Best streak';
+        $('time-chip').hidden = mode !== 'sprint';
+        const s = Math.ceil(remaining / 1000); $('time').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    }
+    const missedText = () => missed.length ? 'To review: ' + [...new Set(missed)].map(e => e.sym + ' (' + e.lower + ')').join(', ') + '.' : '';
+    function overlay(title, text, extra, button, action, quiet) {   // quiet: on page load, take no focus, scroll, or announcement
+        $('ov-title').textContent = title; $('ov-text').textContent = text; $('ov-missed').textContent = extra; $('ov-missed').hidden = !extra;
+        $('ov-go').textContent = button; ovAction = action; showOverlay(true);
+        if (!quiet) {
+            $('ov-go').focus({ preventScroll: true });
+            $('overlay').scrollIntoView({ block: 'nearest', behavior: reduced.matches ? 'auto' : 'smooth' });
+            say(title + '. ' + text + ' ' + extra);
+        }
+    }
+    function showStage() {                            // scroll just enough to show the question and the whole table below the sticky header
+        const head = document.querySelector('.site-header'), top = $('quiz').getBoundingClientRect().top - (head ? head.offsetHeight : 0) - 8;
+        const dy = top < 0 ? top : Math.min(top, $('scroller').getBoundingClientRect().bottom + 8 - innerHeight);
+        if (dy > 0 || top < 0) window.scrollBy({ top: dy, behavior: 'instant' });
+    }
+    let ovAction = null;
+    // While a message covers the stage, the quiz and table behind it leave the tab order
+    function showOverlay(on) { $('overlay').hidden = !on; $('quiz').inert = on; $('scroller').inert = on; }
+    function endRound() {
+        q = null;
+        const perfect = correct === ROUND;
+        overlay(perfect ? 'Perfect round!' : 'Round complete', correct + ' of ' + ROUND + ' correct. Best streak ' + best + '.', missedText(), 'Next round', startRound);
+        if (perfect) [523, 659, 784, 1046].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.12, 'square', 0.03), k * 100));
+    }
+
+    // ── Sprint clock (pauses when the tab is hidden) ──────────────────────────────────────────
+    function startSprint() {
+        showOverlay(false); running = true; paused = false; remaining = SPRINT_MS;
+        deadline = performance.now() + remaining; clearInterval(tick); tick = setInterval(clock, 200);
+        ask();
+        $('choices').querySelector('.pq-choice').focus({ preventScroll: true });
+    }
+    function clock() {
+        remaining = Math.max(0, deadline - performance.now()); hud();
+        if (remaining <= 0) endSprint();
+    }
+    function endSprint() {
+        running = false; clearInterval(tick); tick = null; clearTimeout(advance); advance = null; q = null;
+        const key = 'elements-sprint-' + level, prev = +G.get(key, 0) || 0, newBest = correct > prev;
+        if (newBest) { best = correct; G.set(key, correct); }
+        hud();
+        overlay('Time’s up', correct + ' correct out of ' + answered + (newBest && correct ? '. A new best!' : '. Best ' + best + '.'), missedText(), 'Sprint again', newRound);
+        G.tone(523, 1046, 0.3, 'square', 0.035);
+    }
+    function pause() {
+        if (!running || paused) return;
+        paused = true; remaining = Math.max(0, deadline - performance.now()); clearInterval(tick); tick = null;
+        clearTimeout(advance); advance = null;
+        overlay('Paused', 'The clock stopped with ' + Math.ceil(remaining / 1000) + ' seconds left.', '', 'Resume', resume);
+    }
+    function resume() {
+        showOverlay(false); paused = false; deadline = performance.now() + remaining; tick = setInterval(clock, 200);
+        if (revealed) next();
+        const f = $('choices').querySelector('.pq-choice'); if (f) f.focus({ preventScroll: true });
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+
+    function newRound(quiet) {                        // quiet (page load only): no focus, scroll, or announcement
+        quiet = quiet === true;
+        clearTimeout(advance); advance = null; clearInterval(tick); tick = null;
+        running = false; paused = false; remaining = SPRINT_MS;
+        q = null; qn = 0; correct = 0; answered = 0; streak = 0; missed = []; revealed = false;
+        best = +G.get(mode === 'sprint' ? 'elements-sprint-' + level : 'elements-best-' + mode + '-' + level, 0) || 0;
+        showOverlay(false); setupTable(); clearMarks();
+        if (mode === 'sprint') {
+            $('kicker').textContent = 'Sprint · ' + LEVELS[level]; $('prompt').textContent = 'Ready?'; $('sub').textContent = ''; $('fb').innerHTML = '';
+            $('choices').hidden = true; $('choices').innerHTML = ''; $('next').hidden = true; hud();
+            overlay('60-second sprint', 'Match names and symbols, both ways, as fast as you can (' + LEVELS[level] + ' elements).', '', 'Start', startSprint, quiet);
+        } else ask();
+    }
+    const startRound = () => { newRound(); if (mode !== 'sprint') showStage(); };   // from a click: New round or Next round
+
+    // ── Input ─────────────────────────────────────────────────────────────────────────────────
+    table.addEventListener('click', e => {
+        const b = e.target.closest('.pt-cell'); if (!b || b.disabled || !isTable()) return;
+        rove(+b.dataset.z, false); answer(EL[+b.dataset.z - 1]);
+    });
+    $('choices').addEventListener('click', e => { const b = e.target.closest('.pq-choice'); if (b) answer(+b.dataset.i); });
+    // Once answered, Enter or Space on the focused cell or answer button moves on (a click there does nothing)
+    [table, $('choices')].forEach(el => el.addEventListener('keydown', e => {
+        if (revealed && (e.key === 'Enter' || e.key === ' ') && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); e.stopPropagation(); next(); }
+    }, true));
+    $('next').addEventListener('click', next);
+    $('ov-go').addEventListener('click', () => { if (ovAction) ovAction(); });
+    $('new').addEventListener('click', startRound);
+    $('mode').addEventListener('change', () => { mode = $('mode').value; G.set('elements-mode', mode); newRound(); });
+    $('level').addEventListener('change', () => { level = +$('level').value; G.set('elements-level', level); newRound(); });
+    G.soundButton($('sound'));
+
+    // Arrow keys move through the table by row and column, skipping gaps and elements outside the level
+    function step(dr, dc) {
+        const c = EL[focusZ - 1];
+        let r = c.row + dr, col = c.col + dc;
+        while (r >= 2 && r <= 11 && col >= 2 && col <= 19) {
+            const hit = EL.find(e => e.row === r && e.col === col && e.z <= level);
+            if (hit) return hit.z;
+            if (dr) r += dr; else col += dc;
+        }
+        return null;
+    }
+    let typed = '', typedAt = 0;
+    table.addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const D = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+        let z = null;
+        if (D) z = step(D[0], D[1]);
+        else if (e.key === 'Home') z = 1;
+        else if (e.key === 'End') z = level;
+        else if (mode === 'find' && /^[a-z]$/i.test(e.key)) {
+            // Type-ahead: letters jump to a matching symbol ("f", "e" lands on Fe); a repeated first letter cycles
+            const now = performance.now(), k = e.key.toLowerCase();
+            typed = now - typedAt < 900 ? typed + k : k; typedAt = now;
+            const pool = EL.slice(0, level), exact = pool.find(x => x.sym.toLowerCase() === typed);
+            let hit = exact || pool.find(x => x.sym.toLowerCase().startsWith(typed) && x.z > focusZ) || pool.find(x => x.sym.toLowerCase().startsWith(typed));
+            if (!hit && typed.length > 1) { typed = k; hit = pool.find(x => x.sym.toLowerCase()[0] === k && x.z > focusZ) || pool.find(x => x.sym.toLowerCase()[0] === k); }
+            if (hit) z = hit.z;
+        } else return;
+        e.preventDefault(); e.stopPropagation();
+        if (z) rove(z, true);
+    });
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey || e.altKey || (e.target.matches && e.target.matches('input, select, textarea'))) return;
+        if (!$('overlay').hidden) return;
+        if (q && q.opts && !revealed && /^[1-4]$/.test(e.key)) { e.preventDefault(); answer(+e.key - 1); }
+        else if (e.key === 'Enter' && revealed && !(e.target.matches && e.target.matches('button, a'))) { e.preventDefault(); next(); }
+    });
+
+    newRound(true);
+    window.__elements = { EL, place, answer, next, newRound, endSprint, pause, resume, options,
+        get state() { return { mode, level, qn, correct, answered, streak, best, revealed, running, paused, remaining, q: q && { z: q.e.z, type: q.type, opts: q.opts && q.opts.map(o => o.z) }, overlay: !$('overlay').hidden }; } };
+});
+</script>
+</body>
+</html>

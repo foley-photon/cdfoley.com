@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laser Pulse Energy &amp; Peak Power Calculator (Gaussian, sech², Square)</title>
+<meta name="description" content="Convert average power and rep rate to pulse energy, and get peak power, duty cycle, and peak-to-average ratio for Gaussian, sech², and square pulses.">
+<link rel="canonical" href="https://cdfoley.com/tools/pulse-energy/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Pulse Energy & Peak Power Calculator">
+<meta property="og:description" content="Convert average power and rep rate to pulse energy, and get peak power, duty cycle, and peak-to-average ratio for Gaussian, sech², and square pulses.">
+<meta property="og:url" content="https://cdfoley.com/tools/pulse-energy/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-pulse-energy.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Laser Pulse Energy &amp; Peak Power Calculator. Convert average power and rep rate to pulse energy, and get peak power, duty cycle, and peak-to-average ratio for Gaussian, sech², and square pulses.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Pulse Energy & Peak Power",
+   "url": "https://cdfoley.com/tools/pulse-energy/",
+   "description": "Convert average power and rep rate to pulse energy, and get peak power, duty cycle, and peak-to-average ratio for Gaussian, sech², and square pulses.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "pulse energy peak power duty cycle repetition rate average power calculator sech2 gaussian laser",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Laser Processing",
+     "item": "https://cdfoley.com/tools/#process"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Pulse Energy & Peak Power",
+     "item": "https://cdfoley.com/tools/pulse-energy/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#process">Laser Processing</a></li><li aria-current="page">Pulse Energy &amp; Peak Power</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Laser Pulse Energy &amp; Peak Power Calculator</h1>
+        <p class="lede">A pulsed laser’s datasheet gives its average power and repetition rate, but a material responds to the energy in each pulse and to how high the power climbs during it. Enter any two of average power, repetition rate, and pulse energy, plus the pulse duration, to get the third, the peak power, the duty cycle, and the peak-to-average ratio. The peak power uses the correct factor for rectangular, Gaussian, or sech² pulses.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Average power</dt><dd>The power a laser power meter reads, averaged over many pulses, in watts (W). The default example is a 20&nbsp;W laser.</dd>
+            <dt>Repetition rate</dt><dd>How many pulses the laser fires each second, in hertz; also called the pulse frequency. At 100&nbsp;kHz a pulse leaves every 10&nbsp;µs.</dd>
+            <dt>Pulse energy</dt><dd>The energy in a single pulse, in joules: the average power divided by the repetition rate. 20&nbsp;W at 100&nbsp;kHz is 200&nbsp;µJ per pulse.</dd>
+            <dt>Pulse duration</dt><dd>How long one pulse lasts, measured between the two moments when the power is half its maximum (the full width at half maximum, FWHM). Q-switched lasers give nanosecond pulses; mode-locked lasers give picosecond and femtosecond pulses.</dd>
+            <dt>Peak power</dt><dd>The highest power reached during a pulse. Because the energy arrives in so short a time, it is far above the average power: about 940 times in the default example.</dd>
+            <dt>Duty cycle</dt><dd>The fraction of the time the laser is emitting: the pulse duration times the repetition rate, 0.1&nbsp;% in the default example.</dd>
+            <dt>Pulse shape</dt><dd>How the power rises and falls within a pulse. A Gaussian pulse follows a bell curve; a sech² pulse looks similar but has longer tails. For the same energy and duration, a smoother shape has a slightly lower peak.</dd>
+            <dt>Autocorrelator</dt><dd>The instrument used to measure femtosecond and short picosecond pulses, which are too fast for a photodiode. Its trace is wider than the pulse, so its reading has to be converted (table below).</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="mode">Known quantities</label>
+                    <select id="mode" name="mode" class="input">
+                        <option value="pf" selected>Average power + repetition rate</option>
+                        <option value="ef">Pulse energy + repetition rate</option>
+                        <option value="pe">Average power + pulse energy</option>
+                    </select>
+                    <p class="hint">Pick the two quantities you know; the calculator finds the third.</p>
+                </div>
+                <div class="field" data-show="pf pe">
+                    <label for="pavg">Average power <span class="sym">P<sub>avg</sub></span></label>
+                    <div class="input-unit"><input id="pavg" name="pavg" value="20" inputmode="decimal" data-optional><select data-dim="power" data-units="mW,W,kW" data-default="W"></select></div>
+                    <p class="hint">The reading of a laser power meter, or the output power in the datasheet.</p>
+                </div>
+                <div class="field" data-show="pf ef">
+                    <label for="frep">Repetition rate <span class="sym">f<sub>rep</sub></span></label>
+                    <div class="input-unit"><input id="frep" name="frep" value="100" inputmode="decimal" data-optional><select data-dim="frequency" data-units="Hz,kHz,MHz,GHz" data-default="kHz"></select></div>
+                    <p class="hint">Pulses per second, set on the laser or in the marking software (also called pulse frequency or PRF).</p>
+                </div>
+                <div class="field" data-show="ef pe">
+                    <label for="ep">Pulse energy <span class="sym">E<sub>p</sub></span></label>
+                    <div class="input-unit"><input id="ep" name="ep" value="200" inputmode="decimal" data-optional><select data-dim="energy" data-units="pJ,nJ,µJ,mJ,J" data-default="µJ"></select></div>
+                    <p class="hint">The reading of a pulse-energy meter.</p>
+                </div>
+                <div class="field">
+                    <label for="tau">Pulse duration (FWHM) <span class="sym">τ</span></label>
+                    <div class="input-unit"><input id="tau" name="tau" value="10" inputmode="decimal" data-positive data-label="pulse duration"><select data-dim="time" data-units="fs,ps,ns,µs,ms" data-default="ns"></select></div>
+                    <p class="hint">The full width at half maximum, from the datasheet. In a basic Q-switched laser it changes with the repetition rate, so use the value for your setting. Convert an autocorrelator reading first (table below).</p>
+                </div>
+                <div class="field">
+                    <label for="shape">Temporal pulse shape</label>
+                    <select id="shape" name="shape" class="input">
+                        <option value="rect">Rectangular (flat-top in time)</option>
+                        <option value="gauss" selected>Gaussian</option>
+                        <option value="sech2">sech² (mode-locked)</option>
+                    </select>
+                    <p class="hint">For Q-switched nanosecond pulses a Gaussian is the usual approximation; real ones rise faster than they fall. Pulses from soliton mode-locked lasers are close to sech². For the same energy and duration, the two shapes give peak powers about 7&nbsp;% apart.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="shape-badge" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Peak power<span class="sym">P<sub>peak</sub></span></span><output class="result-value" data-out="ppeak">—</output></div>
+                    <div class="result"><span class="result-label">Pulse energy<span class="sym">E<sub>p</sub></span></span><output class="result-value" data-out="ep">—</output></div>
+                    <div class="result"><span class="result-label">Average power<span class="sym">P<sub>avg</sub></span></span><output class="result-value" data-out="pavg">—</output></div>
+                    <div class="result"><span class="result-label">Repetition rate<span class="sym">f<sub>rep</sub></span></span><output class="result-value" data-out="frep">—</output></div>
+                    <div class="result"><span class="result-label">Pulse period<span class="sym">1/f<sub>rep</sub></span></span><output class="result-value" data-out="period">—</output></div>
+                    <div class="result"><span class="result-label">Duty cycle<span class="sym">τ·f<sub>rep</sub></span></span><output class="result-value" data-out="duty">—</output></div>
+                    <div class="result"><span class="result-label">Peak-to-average power ratio</span><output class="result-value" data-out="ratio">—</output>
+                        <span class="result-note">How many times the power during a pulse exceeds the power-meter reading.</span></div>
+                    <div class="result"><span class="result-label">Rectangular estimate E<sub>p</sub>/τ</span><output class="result-value" data-out="prect">—</output>
+                        <span class="result-note">The common shortcut. It overstates the peak of a smooth pulse, by 6.4&nbsp;% for a Gaussian and 13.5&nbsp;% for sech².</span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>The pulse energy, average power, and repetition rate are linked by</p>
+        <div class="formula">\[ E_p = \frac{P_\text{avg}}{f_\text{rep}}, \qquad D = \tau\, f_\text{rep}, \qquad \frac{P_\text{peak}}{P_\text{avg}} = \frac{k}{\tau f_\text{rep}} . \]</div>
+        <p>The peak power depends on how the energy is distributed in time. For a pulse of full width at half maximum \(\tau\),</p>
+        <div class="formula">\[ P_\text{peak} = k\,\frac{E_p}{\tau}, \qquad k = \begin{cases} 1 & \text{rectangular} \\ 2\sqrt{\ln 2/\pi} \approx 0.9394 & \text{Gaussian} \\ \ln\!\left(1+\sqrt{2}\right) \approx 0.8814 & \operatorname{sech}^2 \end{cases} \]</div>
+        <p>The factor \(k\) is the FWHM divided by the pulse’s energy-equivalent width \(E_p/P_\text{peak}\), which laser-damage testing calls the effective pulse duration. A Gaussian’s integral is \(1.0645\,P_\text{peak}\tau\). A sech² pulse has longer wings, and its integral is \(1.1346\,P_\text{peak}\tau\).</p>
+
+        <h2>Smooth pulses have lower peaks, not higher</h2>
+        <p>With the energy and FWHM fixed, the rectangular estimate \(E_p/\tau\) <em>overestimates</em> the true peak power, by 6.4&nbsp;% for a Gaussian pulse and 13.5&nbsp;% for sech². Smooth pulses spread some energy into wings outside the FWHM, so less is left for the peak. Factor-of-two differences in peak <em>irradiance</em> come from the beam’s spatial profile: a Gaussian beam’s on-axis fluence is twice the energy divided by the 1/e² area. The <a href="/tools/fluence/">fluence and irradiance</a> tool handles that.</p>
+        <table>
+            <thead><tr><th>Shape</th><th class="num">k = P<sub>peak</sub>τ/E<sub>p</sub></th><th class="num">∫P dt / (P<sub>peak</sub>τ)</th><th class="num">Autocorrelation FWHM / τ</th></tr></thead>
+            <tbody>
+                <tr><td>Rectangular</td><td class="num">1</td><td class="num">1</td><td class="num">1</td></tr>
+                <tr><td>Gaussian</td><td class="num">0.9394</td><td class="num">1.0645</td><td class="num">1.414</td></tr>
+                <tr><td>sech²</td><td class="num">0.8814</td><td class="num">1.1346</td><td class="num">1.543</td></tr>
+            </tbody>
+        </table>
+        <p>The last column matters for ultrafast lasers. An intensity autocorrelator’s trace is wider than the pulse: divide its FWHM by the number in the last column (that is, multiply by 0.707 for a Gaussian or 0.648 for a sech² pulse) before entering τ. The trace cannot reliably tell the two shapes apart, so the shape is an assumption, and the two choices give durations about 9&nbsp;% apart.</p>
+
+        <h2>Worked examples</h2>
+        <p><strong>Q-switched fiber laser.</strong> 20&nbsp;W average at 100&nbsp;kHz with 10&nbsp;ns Gaussian pulses:</p>
+        <div class="formula">\[ E_p = \frac{20\ \text{W}}{100\ \text{kHz}} = 200\ \mu\text{J}, \qquad P_\text{peak} = 0.9394\times\frac{200\ \mu\text{J}}{10\ \text{ns}} \approx 18.8\ \text{kW}. \]</div>
+        <p>The duty cycle is 0.1&nbsp;%, so the peak power is about 940 times the average.</p>
+        <p><strong>Ultrafast laser.</strong> 10&nbsp;W at 1&nbsp;MHz with 300&nbsp;fs sech² pulses gives \(E_p = 10\ \mu\)J and \(P_\text{peak} = 0.8814 \times 10\ \mu\text{J}/300\ \text{fs} \approx 29\ \text{MW}\). The average power is modest, but the peak power is about three million times higher.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>τ is the FWHM of the power envelope.</strong> Some datasheets quote other widths; convert them first. For a Gaussian pulse the FWHM is 0.833 times the full width at 1/e of the peak power, 1.665 times the half-width at 1/e, and 1.396 times the 10–90&nbsp;% rise time. For a sech²(t/T₀) pulse it is 1.763&nbsp;T₀.</li>
+            <li><strong>Real pulses are often asymmetric.</strong> Q-switched pulses, for example, rise faster than they fall. If you have a measured waveform, integrate it and use \(k = P_\text{peak}\tau/E_p\).</li>
+            <li><strong>Mode beating.</strong> Q-switched lasers that run on several longitudinal modes put fast power spikes on top of the pulse. The peak power here is that of the smooth envelope, which is what a slow detector shows.</li>
+            <li><strong>Pedestals and satellite pulses</strong> count toward the measured average power but add little to the peak, and a FWHM measurement does not see them. Amplified ultrafast lasers can carry a pedestal of amplified spontaneous emission.</li>
+            <li><strong>Pulses are separate.</strong> The wings of smooth pulses overlap well before τ·f<sub>rep</sub> reaches 1. The calculator stops when the neighboring pulses would add more than 1&nbsp;% to the peak: above τ·f<sub>rep</sub> ≈ 0.72 for Gaussian pulses and 0.53 for sech² (1 for rectangular).</li>
+            <li><strong>Burst mode</strong> (groups of closely spaced pulses) is not modeled. Use the energy per sub-pulse and the burst envelope separately.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), ch. 9 “Linear pulse propagation” and ch. 26 “Laser Q-switching” (Gaussian pulses and their widths; the shape of Q-switched pulses).</li>
+            <li>J.-C. Diels and W. Rudolph, <em>Ultrashort Laser Pulse Phenomena</em>, 2nd ed., Academic Press (2006), ch. 9 “Diagnostic techniques,” pp. 457–489, <a href="https://doi.org/10.1016/B978-012215493-5/50010-0" target="_blank" rel="noopener">doi:10.1016/B978-012215493-5/50010-0</a> (autocorrelation widths of Gaussian and sech² pulses).</li>
+            <li>ISO&nbsp;11254-1:2000, Laser and laser-related equipment — Determination of laser-induced damage threshold of optical surfaces — Part 1: 1-on-1 test, clause 3.7 (effective pulse duration = pulse energy ÷ peak power; the standard has since been replaced by the ISO&nbsp;21254 series).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>R. Paschotta, “Peak power,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/eco" target="_blank" rel="noopener">doi:10.61835/eco</a> (the 0.94 and 0.88 factors, and why some sources quote E/τ instead).</li>
+            <li>R. Paschotta, “Q-switched lasers,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/our" target="_blank" rel="noopener">doi:10.61835/our</a> (how nanosecond pulses are made, why their duration changes with repetition rate, and mode beating).</li>
+            <li>R. Paschotta, “Autocorrelators,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/y7n" target="_blank" rel="noopener">doi:10.61835/y7n</a> (how an autocorrelation trace becomes a pulse duration, and why the pulse shape has to be assumed).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="fluence,pulse-overlap,lidt,photon-flux,article:laser-ablation-process-windows"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const K_SHAPE = { rect: 1, gauss: 2 * Math.sqrt(Math.LN2 / Math.PI), sech2: Math.log(1 + Math.SQRT2) };
+    const SHAPE_NAME = { rect: 'Rectangular', gauss: 'Gaussian', sech2: 'sech²' };
+    // normalized power envelope with FWHM 1, for the overlap of neighboring pulses
+    const SHAPE_FN = { gauss: x => Math.exp(-4 * Math.LN2 * x * x), sech2: x => Math.pow(Math.cosh(2 * K_SHAPE.sech2 * x), -2) };
+    const RANGE = 'A result is out of range. Check the input values and units.';
+    const badge = document.getElementById('shape-badge');
+    const modeSel = document.getElementById('mode'), shapeSel = document.getElementById('shape');
+    const showFields = mode => document.querySelectorAll('[data-show]').forEach(f => { f.hidden = !f.dataset.show.split(' ').includes(mode); });
+    const syncBadge = () => { badge.textContent = SHAPE_NAME[shapeSel.value] + ' · k = ' + fmt.num(K_SHAPE[shapeSel.value], 4); };
+
+    // Show the chosen mode's inputs before calc.js validates them, so a field of another mode never blocks:
+    // at once when the mode changes, and on load for the mode a link asks for (calc.js applies the link afterwards).
+    modeSel.addEventListener('change', () => showFields(modeSel.value));
+    shapeSel.addEventListener('change', syncBadge);
+    const linked = new URLSearchParams(location.hash.slice(1)).get('mode');
+    showFields(Array.from(modeSel.options).some(o => o.value === linked) ? linked : modeSel.value);
+
+    // fraction of the peak that the wings of the neighboring pulses add, at duty cycle tau * f (0 for a rectangular pulse)
+    function wings(shape, duty) {
+        let sum = 0;
+        if (SHAPE_FN[shape]) for (let n = 1; n <= 20; n++) sum += 2 * SHAPE_FN[shape](n / duty);
+        return sum;
+    }
+
+    function need(x, name, label) {
+        if (!isFinite(x)) throw Calc.fail('Enter a value for ' + label + '.', name);
+        if (!(x > 0)) throw Calc.fail(label.charAt(0).toUpperCase() + label.slice(1) + ' must be greater than zero.', name);
+        return x;
+    }
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            showFields(v.mode);
+            syncBadge();
+            let P, f, E;
+            if (v.mode === 'pf') { P = need(v.pavg, 'pavg', 'average power'); f = need(v.frep, 'frep', 'repetition rate'); E = P / f; }
+            else if (v.mode === 'ef') { E = need(v.ep, 'ep', 'pulse energy'); f = need(v.frep, 'frep', 'repetition rate'); P = E * f; }
+            else { P = need(v.pavg, 'pavg', 'average power'); E = need(v.ep, 'ep', 'pulse energy'); f = P / E; }
+
+            const duty = v.tau * f;
+            const k = K_SHAPE[v.shape];
+            const Ppk = k * E / v.tau;
+            if (![P, f, 1 / f, E, duty, Ppk].every(x => isFinite(x) && x > 0)) throw Calc.fail(RANGE);
+            if (duty >= 1) throw Calc.fail('Pulse duration × repetition rate is ' + fmt.num(duty, 3) + ' (≥ 1), so the pulses would overlap. Check the units.', 'tau');
+            const w = wings(v.shape, duty);
+            if (w > 0.01) throw Calc.fail('Pulse duration × repetition rate is ' + fmt.num(duty, 3) + ', so the wings of neighboring ' + SHAPE_NAME[v.shape] + ' pulses overlap and would add ' + fmt.num(w * 100, 3) + ' % to the peak. This calculator assumes separate pulses. Check the units.', 'tau');
+
+            return {
+                ppeak: fmt.si(Ppk, 'W', 4),
+                ep: fmt.si(E, 'J', 4),
+                pavg: fmt.si(P, 'W', 4),
+                frep: fmt.si(f, 'Hz', 4),
+                period: fmt.si(1 / f, 's', 4),
+                duty: fmt.pct(duty, 4),
+                ratio: fmt.num(Ppk / P, 4) + ' ×',
+                prect: v.shape === 'rect' ? null : fmt.si(E / v.tau, 'W', 4)
+            };
+        }
+    });
+    syncBadge();   // the shape a link asks for, even when an invalid input stopped the first calculation
+});
+</script>
+</body>
+</html>

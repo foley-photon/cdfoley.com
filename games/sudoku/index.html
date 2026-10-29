@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sudoku: Free Online Puzzles, Easy to Expert</title>
+<meta name="description" content="Play free Sudoku online: new puzzles with one solution each, easy to expert, plus a daily puzzle, pencil notes, hints that explain, and saved progress.">
+<link rel="canonical" href="https://cdfoley.com/games/sudoku/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Sudoku">
+<meta property="og:description" content="Play free Sudoku online: new puzzles with one solution each, easy to expert, plus a daily puzzle, pencil notes, hints that explain, and saved progress.">
+<meta property="og:url" content="https://cdfoley.com/games/sudoku/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/game-sudoku.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Sudoku Puzzles. Play free Sudoku online: new puzzles with one solution each, easy to expert, plus a daily puzzle, pencil notes, hints that explain, and saved progress.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
+<style>
+    .sd { display: grid; grid-template-columns: repeat(9, 1fr); width: 100%; max-width: 480px; aspect-ratio: 1; margin: 0 auto; border: 2px solid var(--text); border-radius: 6px; overflow: hidden; background: var(--surface); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+    .sd button { border: 0; border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); background: var(--surface); color: var(--accent); font: 600 clamp(1rem, 4.8vw, 1.6rem)/1 var(--font); padding: 0; position: relative; cursor: pointer; min-width: 0; touch-action: manipulation; }
+    .sd button:focus { outline: none; }
+    .sd button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+    .sd button.given { color: var(--text); font-weight: 750; }
+    .sd button.c2, .sd button.c5 { border-right: 2px solid var(--text); }
+    .sd button.c8 { border-right: 0; }
+    .sd button.r2, .sd button.r5 { border-bottom: 2px solid var(--text); }
+    .sd button.r8 { border-bottom: 0; }
+    .sd button.peer { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+    .sd button.same { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); }
+    .sd button.sel { background: color-mix(in srgb, var(--accent) 34%, var(--surface)); }
+    .sd button.bad { color: var(--danger); }
+    .sd button.bad::after { content: ""; position: absolute; left: 30%; right: 30%; bottom: 13%; height: 2px; border-radius: 1px; background: var(--danger); }
+    .sd button.conflict { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--danger) 55%, transparent); }
+    .sd button.flash { animation: sd-flash .9s ease; }
+    @keyframes sd-flash { 0%, 100% { box-shadow: none; } 30% { box-shadow: inset 0 0 0 3px var(--accent); } }
+    .sd .notes { position: absolute; inset: 2px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); font: 500 clamp(.5rem, 2.1vw, .74rem)/1 var(--font); color: var(--muted); align-items: center; justify-items: center; }
+    .sd .notes .hl { color: var(--accent); font-weight: 800; }
+    .sd.paused button { color: transparent !important; }
+    .sd.paused .notes, .sd.paused button::after { visibility: hidden; }
+    .sd-info { text-align: center; font-size: .88rem; color: var(--text-2); margin: 0 0 .5rem; min-height: 1.3em; }
+    .sd-pad { display: grid; grid-template-columns: repeat(9, 1fr); gap: .35rem; max-width: 480px; margin: .8rem auto 0; }
+    .sd-pad button { height: 52px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 700 1.25rem/1 var(--font); cursor: pointer; padding: 0; touch-action: manipulation; }
+    .sd-pad button small { display: block; font-size: .7rem; color: var(--muted); font-weight: 600; margin-top: .2rem; }
+    .sd-pad button:disabled { opacity: .35; cursor: default; }
+    .sd-tools { display: flex; gap: .4rem; justify-content: center; flex-wrap: wrap; align-items: center; margin-top: .7rem; }
+    .sd-toggles { display: flex; gap: .4rem 1.1rem; justify-content: center; flex-wrap: wrap; margin-top: .6rem; }
+    .sd-status { text-align: center; font-size: .9rem; color: var(--text); margin: .7rem auto 0; max-width: 480px; min-height: 1.4em; }
+    .sd-stats { text-align: center; font-size: .85rem; color: var(--text-2); margin: .4rem 0 0; font-variant-numeric: tabular-nums; }
+    .sd-print { display: none; }
+    @media (prefers-reduced-motion: reduce) { .sd button.flash { animation: none; outline: 3px solid var(--accent); outline-offset: -4px; } }
+    @media print {
+        .breadcrumbs, .page-head .lede, .game-bar, .sd-info, .sd-pad, .sd-tools, .sd-toggles, .sd-status, .sd-stats, .game-help, .game-overlay { display: none !important; }
+        .page-head h1 { font-size: 20pt; margin: 0 0 4pt; }
+        .sd-print { display: block; text-align: center; font-size: 11pt; color: #000; margin: 0 0 10pt; }
+        .sd { max-width: 15cm; border: 3px solid #000; border-radius: 0; background: #fff; break-inside: avoid; }
+        .sd button { background: #fff !important; color: transparent !important; box-shadow: none !important; outline: none !important; border-color: #777 !important; font-size: 22pt; }
+        .sd button.given { color: #000 !important; }
+        .sd button.c2, .sd button.c5 { border-right-color: #000 !important; }
+        .sd button.r2, .sd button.r5 { border-bottom-color: #000 !important; }
+        .sd button::after, .sd .notes { display: none !important; }
+    }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "VideoGame",
+   "name": "Sudoku",
+   "url": "https://cdfoley.com/games/sudoku/",
+   "description": "Play free Sudoku online: new puzzles with one solution each, easy to expert, plus a daily puzzle, pencil notes, hints that explain, and saved progress.",
+   "genre": "Puzzle",
+   "gamePlatform": "Web browser",
+   "playMode": "SinglePlayer",
+   "applicationCategory": "GameApplication",
+   "operatingSystem": "Any (web browser)",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Games",
+     "item": "https://cdfoley.com/games/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Sudoku",
+     "item": "https://cdfoley.com/games/sudoku/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Sudoku</li></ol></nav>
+    <div class="game-shell" style="max-width:560px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Sudoku Puzzles</h1>
+            <p class="lede">Fill the grid so that every row, every column, and every 3 × 3 box contains the digits 1 to 9 exactly once. Every puzzle is freshly generated, has exactly one solution, and can be solved by logic alone, without guessing.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip">Time<b id="time">0:00</b></span><span class="chip" id="mistakes-chip">Mistakes<b id="mistakes">0</b></span><span class="chip">Best<b id="best">—</b></span></div>
+            <div class="game-actions">
+                <select id="level" aria-label="Difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option><option value="expert">Expert</option></select>
+                <button class="btn btn-primary btn-sm" type="button" id="new">New puzzle</button>
+                <button class="btn btn-secondary btn-sm" type="button" id="daily">Daily puzzle</button>
+            </div>
+        </div>
+        <p class="sd-info" id="info"></p>
+        <p class="sd-print" id="print-info"></p>
+        <div class="game-stage">
+            <div class="sd" id="grid" role="group" aria-label="Sudoku grid"></div>
+            <div class="game-overlay" id="overlay" role="dialog" aria-labelledby="ov-title" aria-describedby="ov-text" hidden><h2 id="ov-title">Solved!</h2><p id="ov-text"></p><div><button class="btn btn-primary" type="button" id="again">New puzzle</button> <button class="btn btn-secondary" type="button" id="keep" hidden>Keep playing</button></div></div>
+        </div>
+        <div class="sd-pad" id="pad" role="group" aria-label="Number pad"></div>
+        <div class="sd-tools">
+            <button class="btn btn-secondary btn-sm" type="button" id="undo">Undo</button>
+            <button class="btn btn-secondary btn-sm" type="button" id="erase">Erase</button>
+            <button class="btn btn-secondary btn-sm" type="button" id="notes" aria-pressed="false">Notes: off</button>
+            <button class="btn btn-secondary btn-sm" type="button" id="fill">Fill notes</button>
+            <button class="btn btn-secondary btn-sm" type="button" id="hint">Hint</button>
+            <button class="btn btn-secondary btn-sm" type="button" id="pause" aria-pressed="false">Pause</button>
+            <button class="btn btn-secondary btn-sm" type="button" id="print">Print</button>
+        </div>
+        <div class="sd-toggles">
+            <label class="toggle"><input type="checkbox" id="showbad" checked> Show mistakes</label>
+            <label class="toggle"><input type="checkbox" id="showcon" checked> Highlight conflicts</label>
+        </div>
+        <p class="sd-status" id="status" role="status" aria-live="polite"></p>
+        <p class="sd-stats" id="stats"></p>
+        <p class="visually-hidden" id="sr" aria-live="polite"></p>
+        <p class="game-help"><strong>How to play:</strong> click or tap a square, then a number. <strong>Show mistakes</strong> marks a digit that doesn’t match the solution (red, underlined) and counts it; <strong>Highlight conflicts</strong> rings two equal digits in the same row, column, or box. <strong>Notes</strong> pencil in candidates, and placing a digit clears it from the notes in its row, column, and box; <strong>Fill notes</strong> pencils in every digit that still fits. <strong>Hint</strong> fills one square and says why it must hold that digit. A best time counts only if you solve without hints.</p>
+        <p class="game-help"><strong>Levels:</strong> Easy needs only singles (a digit with one possible square, or a square with one possible digit). Medium needs locked candidates as well (a digit confined to one line inside a box, or to one box along a line). Hard needs a naked or hidden pair or triple, and Expert an X-wing, swordfish, XY-wing, or XYZ-wing. The <strong>Daily puzzle</strong> is the same for everyone on the same date, one per level. <strong>Print</strong> gives a clean copy of the puzzle to solve on paper.</p>
+        <p class="game-help"><strong>Keys:</strong> <kbd>1</kbd>–<kbd>9</kbd> enter a digit, <kbd>0</kbd>, <kbd>Backspace</kbd>, or <kbd>Delete</kbd> erases, the arrow keys move, <kbd>N</kbd> switches to notes, <kbd>P</kbd> pauses, and <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes. Your puzzle is saved in this browser.</p>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const G = window.Games, $ = id => document.getElementById(id), gridEl = $('grid'), ov = $('overlay');
+    const ROW = i => (i / 9) | 0, COL = i => i % 9, BOX = i => ((ROW(i) / 3) | 0) * 3 + ((COL(i) / 3) | 0);
+    const PEERS = Array.from({ length: 81 }, (_, i) => { const s = []; for (let j = 0; j < 81; j++) if (j !== i && (ROW(j) === ROW(i) || COL(j) === COL(i) || BOX(j) === BOX(i))) s.push(j); return s; });
+    const UNITS = Array.from({ length: 27 }, () => []);              // rows 0–8, columns 9–17, boxes 18–26
+    for (let i = 0; i < 81; i++) { UNITS[ROW(i)].push(i); UNITS[9 + COL(i)].push(i); UNITS[18 + BOX(i)].push(i); }
+    const UNIT_NAME = u => u < 9 ? 'row ' + (u + 1) : u < 18 ? 'column ' + (u - 8) : 'box ' + (u - 17);
+    const POP = new Uint8Array(1024); for (let m = 1; m < 1024; m++) POP[m] = POP[m >> 1] + (m & 1);
+    const LOW = m => 31 - Math.clz32(m & -m);
+    const SEES = (a, b) => a !== b && (ROW(a) === ROW(b) || COL(a) === COL(b) || BOX(a) === BOX(b));
+    // Seeded generator (mulberry32), so that a date names the same daily puzzle on every device
+    const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+    const hash = s => { let h = 2166136261; for (let k = 0; k < s.length; k++) { h ^= s.charCodeAt(k); h = Math.imul(h, 16777619); } return h >>> 0; };
+    const shuffle = (a, rnd) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+    // Count solutions (stopping at `limit`), filling the most constrained square first. `out` receives the first solution.
+    function solutions(g, limit, rnd, out) {
+        const rows = new Array(9).fill(0), cols = new Array(9).fill(0), boxes = new Array(9).fill(0);
+        for (let i = 0; i < 81; i++) if (g[i]) { const b = 1 << g[i]; if ((rows[ROW(i)] | cols[COL(i)] | boxes[BOX(i)]) & b) return 0; rows[ROW(i)] |= b; cols[COL(i)] |= b; boxes[BOX(i)] |= b; }
+        let count = 0;
+        (function rec() {
+            let best = -1, bestMask = 0, bestN = 10;
+            for (let i = 0; i < 81; i++) if (!g[i]) {
+                const m = ~(rows[ROW(i)] | cols[COL(i)] | boxes[BOX(i)]) & 0x3fe, n = POP[m];
+                if (n < bestN) { bestN = n; best = i; bestMask = m; if (n <= 1) break; }
+            }
+            if (best < 0) { count++; if (out && count === 1) out.splice(0, 81, ...g); return count >= limit; }
+            if (!bestN) return false;
+            const r = ROW(best), c = COL(best), bx = BOX(best), ds = [];
+            for (let d = 1; d <= 9; d++) if (bestMask & (1 << d)) ds.push(d);
+            if (rnd) shuffle(ds, rnd);
+            for (const d of ds) {
+                const b = 1 << d; g[best] = d; rows[r] |= b; cols[c] |= b; boxes[bx] |= b;
+                const stop = rec();
+                g[best] = 0; rows[r] &= ~b; cols[c] &= ~b; boxes[bx] &= ~b;
+                if (stop) return true;
+            }
+            return false;
+        })();
+        return count;
+    }
+    const candidates = (g, i) => { let m = 0x3fe; for (const j of PEERS[i]) if (g[j]) m &= ~(1 << g[j]); return m; };
+
+    // Solve the way a person would, always with the easiest technique that makes progress. Tiers: 1 singles,
+    // 2 locked candidates, 3 naked and hidden pairs and triples, 4 X-wing, swordfish, XY-wing, and XYZ-wing;
+    // 5 means these are not enough. Returns the hardest tier used and the first square filled (for hints).
+    function grade(start, maxTier, firstOnly) {
+        const g = start.slice(), c = new Array(81).fill(0);
+        for (let i = 0; i < 81; i++) if (!g[i]) c[i] = candidates(g, i);
+        let tier = 0, used = 0, first = null;
+        const place = (i, d, why) => { g[i] = d; c[i] = 0; for (const j of PEERS[i]) c[j] &= ~(1 << d); if (!first) first = { i, d, why, after: used }; };
+        const elim = (i, m) => { if (c[i] & m) { c[i] &= ~m; return true; } return false; };
+        const hidden = u => {
+            for (let d = 1; d <= 9; d++) {
+                let n = 0, at = -1;
+                for (const i of UNITS[u]) { if (g[i] === d) { n = 9; break; } if (c[i] & (1 << d)) { n++; at = i; } }
+                if (n === 1) { place(at, d, 'the only place for ' + d + ' in ' + UNIT_NAME(u)); return true; }
+            }
+            return false;
+        };
+        function singles() {
+            for (let u = 18; u < 27; u++) if (hidden(u)) return true;          // boxes first: the easiest to spot
+            for (let i = 0; i < 81; i++) if (!g[i] && POP[c[i]] === 1) { place(i, LOW(c[i]), 'the only digit that fits this square'); return true; }
+            for (let u = 0; u < 18; u++) if (hidden(u)) return true;
+            return false;
+        }
+        function locked() {         // a digit's candidates in one unit all lie in a second unit: clear it from the rest of that one
+            for (let u = 0; u < 27; u++) for (let d = 1; d <= 9; d++) {
+                const b = 1 << d, cells = UNITS[u].filter(i => c[i] & b);
+                if (cells.length < 2) continue;
+                for (const v of u >= 18 ? [ROW(cells[0]), 9 + COL(cells[0])] : [18 + BOX(cells[0])]) {
+                    if (!cells.every(i => UNITS[v].includes(i))) continue;
+                    let hit = false; for (const j of UNITS[v]) if (!cells.includes(j) && elim(j, b)) hit = true;
+                    if (hit) return true;
+                }
+            }
+            return false;
+        }
+        function subsets(k) {
+            for (let u = 0; u < 27; u++) {
+                const open = UNITS[u].filter(i => !g[i]);
+                if (open.length <= k) continue;
+                const naked = (from, n, mask, chosen) => {           // k squares whose candidates together are k digits
+                    if (POP[mask] > k) return false;
+                    if (n === k) { let hit = false; for (const j of open) if (!chosen.includes(j) && elim(j, mask)) hit = true; return hit; }
+                    for (let x = from; x < open.length; x++) if (naked(x + 1, n + 1, mask | c[open[x]], chosen.concat(open[x]))) return true;
+                    return false;
+                };
+                if (naked(0, 0, 0, [])) return true;
+                const digs = [];                                      // k digits that fit in only k squares together
+                for (let d = 1; d <= 9; d++) { let m = 0; open.forEach((i, x) => { if (c[i] & (1 << d)) m |= 1 << x; }); if (m) digs.push([d, m]); }
+                const hid = (from, n, pos, dm) => {
+                    if (POP[pos] > k) return false;
+                    if (n === k) { let hit = false; open.forEach((i, x) => { if (pos & (1 << x) && elim(i, 0x3fe & ~dm)) hit = true; }); return hit; }
+                    for (let x = from; x < digs.length; x++) if (hid(x + 1, n + 1, pos | digs[x][1], dm | (1 << digs[x][0]))) return true;
+                    return false;
+                };
+                if (hid(0, 0, 0, 0)) return true;
+            }
+            return false;
+        }
+        function fish(k) {          // X-wing (k = 2) and swordfish (k = 3)
+            for (let d = 1; d <= 9; d++) for (const byRow of [true, false]) {
+                const b = 1 << d, at = (L, x) => byRow ? L * 9 + x : x * 9 + L, lines = [];
+                for (let L = 0; L < 9; L++) { let m = 0; for (let x = 0; x < 9; x++) if (c[at(L, x)] & b) m |= 1 << x; if (POP[m] >= 2 && POP[m] <= k) lines.push([L, m]); }
+                const pick = (from, n, m, chosen) => {
+                    if (POP[m] > k) return false;
+                    if (n === k) {
+                        let hit = false;
+                        for (let x = 0; x < 9; x++) if (m & (1 << x)) for (let L = 0; L < 9; L++) if (!chosen.includes(L) && elim(at(L, x), b)) hit = true;
+                        return hit;
+                    }
+                    for (let y = from; y < lines.length; y++) if (pick(y + 1, n + 1, m | lines[y][1], chosen.concat(lines[y][0]))) return true;
+                    return false;
+                };
+                if (pick(0, 0, 0, [])) return true;
+            }
+            return false;
+        }
+        function wings() {
+            for (let p = 0; p < 81; p++) {
+                const n = POP[c[p]];
+                if (n !== 2 && n !== 3) continue;
+                const pin = PEERS[p].filter(j => POP[c[j]] === 2 && POP[c[j] & c[p]] === (n === 2 ? 1 : 2));
+                for (let x = 0; x < pin.length; x++) for (let y = x + 1; y < pin.length; y++) {
+                    const a = pin[x], b = pin[y];
+                    let hit = false;
+                    if (n === 2) {                   // XY-wing: pivot {A,B}, pincers {A,Z} and {B,Z}
+                        const z = c[a] & c[b] & ~c[p];
+                        if (POP[z] !== 1 || (c[a] & c[p]) === (c[b] & c[p]) || (c[a] | c[b] | c[p]) !== (c[p] | z)) continue;
+                        for (const j of PEERS[a]) if (j !== p && j !== b && SEES(j, b) && elim(j, z)) hit = true;
+                    } else {                         // XYZ-wing: pivot {A,B,Z}, pincers {A,Z} and {B,Z}
+                        const z = c[a] & c[b];
+                        if ((c[a] | c[b]) !== c[p] || c[a] === c[b] || POP[z] !== 1) continue;
+                        for (const j of PEERS[p]) if (j !== a && j !== b && SEES(j, a) && SEES(j, b) && elim(j, z)) hit = true;
+                    }
+                    if (hit) return true;
+                }
+            }
+            return false;
+        }
+        const STEPS = [[1, singles], [2, locked], [3, () => subsets(2)], [3, () => subsets(3)], [4, () => fish(2)], [4, wings], [4, () => fish(3)]];
+        for (;;) {
+            let left = 0;
+            for (let i = 0; i < 81; i++) if (!g[i]) { if (!c[i]) return { tier: 6, solved: false, first }; left++; }
+            if (!left) return { tier, solved: true, first };
+            if (firstOnly && first) return { tier, solved: false, first };
+            let progressed = false;
+            for (const [t, f] of STEPS) {
+                if (t > maxTier) break;
+                if (f()) { if (t > tier) tier = t; if (t > 1 && t > used) used = t; progressed = true; break; }
+            }
+            if (!progressed) return { tier: 5, solved: false, first };
+        }
+    }
+
+    // A level is the hardest technique a puzzle needs (and, for the easier two, how many givens remain).
+    const LEVELS = { easy: { max: 1, need: 1, givens: 38 }, medium: { max: 2, need: 2, givens: 28 }, hard: { max: 3, need: 3, givens: 0 }, expert: { max: 4, need: 4, givens: 0 } };
+    const NAMES = { easy: 'Easy', medium: 'Medium', hard: 'Hard', expert: 'Expert' };
+    function attempt(L, rnd) {
+        const full = []; solutions(new Array(81).fill(0), 1, rnd, full);
+        const p = full.slice(); let givens = 81;
+        const ok = () => grade(p, L.max).solved;          // solved by logic alone, so the solution is unique
+        for (const i of shuffle([...Array(41).keys()], rnd)) {     // symmetric pairs first, for a balanced look
+            if (givens <= L.givens) break;
+            const j = 80 - i, a = p[i], b = p[j];
+            p[i] = 0; p[j] = 0;
+            if (ok()) givens -= i === j ? 1 : 2; else { p[i] = a; p[j] = b; }
+        }
+        if (!L.givens) for (const i of shuffle([...Array(81).keys()], rnd)) {
+            if (!p[i]) continue;
+            const a = p[i]; p[i] = 0;
+            if (ok()) givens--; else p[i] = a;
+        }
+        const t = grade(p, 4).tier;
+        return t >= L.need && t <= L.max && (!L.givens || givens <= L.givens + 2) ? { puzzle: p, solution: full, tier: t } : null;
+    }
+    // Generate in slices of about 40 ms, so the page stays responsive during the rarer expert searches.
+    function makePuzzle(level, seed, done) {
+        const L = LEVELS[level], rnd = rng(seed);
+        (function slice() {
+            const t0 = performance.now();
+            do { const r = attempt(L, rnd); if (r) return done(r); } while (performance.now() - t0 < 40);
+            setTimeout(slice, 0);
+        })();
+    }
+
+    const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    const longDate = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }); };
+    const dailySeed = (iso, level) => hash('cdfoley.com sudoku ' + iso + ' ' + level);
+    const fmtT = t => { const s = Math.floor(t); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+    const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+
+    let S = null, sel = -1, notesMode = false, history = [], paused = false, mode = '', busy = false, pendingAction = null, flip = false;
+    let tick = null, lastT = 0, lastSave = 0;
+    const level = () => $('level').value;
+    const say = msg => { flip = !flip; $('sr').textContent = msg + (flip ? '' : '\u00a0'); };
+    const status = msg => { $('status').textContent = msg; };
+    const opts = { bad: true, con: true };
+    const save = () => { if (S) G.setJSON('sudoku-state', S); };
+
+    // Clock: counts only while the puzzle is open, unpaused, unsolved, and the tab is visible
+    const running = () => !!S && !S.done && !paused && !document.hidden && !busy;
+    function step() { const now = performance.now(); if (S) S.elapsed += (now - lastT) / 1000; lastT = now; $('time').textContent = fmtT(S ? S.elapsed : 0); if (now - lastSave > 5000) { lastSave = now; save(); } }
+    function clock() {
+        const run = running();
+        if (run && !tick) { lastT = performance.now(); tick = setInterval(step, 250); }
+        else if (!run && tick) { step(); clearInterval(tick); tick = null; save(); }
+        $('time').textContent = fmtT(S ? S.elapsed : 0);
+    }
+    document.addEventListener('visibilitychange', clock);
+    window.addEventListener('pagehide', () => { if (tick) step(); save(); });
+
+    function build() {
+        gridEl.textContent = '';
+        for (let i = 0; i < 81; i++) {
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'c' + COL(i) + ' r' + ROW(i); b.dataset.i = i;
+            gridEl.appendChild(b);
+        }
+        $('pad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => '<button type="button" data-d="' + d + '">' + d + '<small></small></button>').join('');
+    }
+    function paint() {
+        const cells = gridEl.children, selV = sel >= 0 ? S.vals[sel] : 0, counts = new Array(10).fill(0);
+        for (let i = 0; i < 81; i++) {
+            const b = cells[i], v = S.vals[i], given = S.puzzle[i] > 0, nm = S.notes[i];
+            if (v) counts[v]++;
+            const keyStr = v ? 'v' + v : nm ? 'n' + nm + ':' + selV : '';
+            if (b._k !== keyStr) {
+                b._k = keyStr;
+                if (v) b.textContent = v;
+                else if (nm) { let h = '<span class="notes" aria-hidden="true">'; for (let d = 1; d <= 9; d++) h += nm & (1 << d) ? '<span' + (d === selV ? ' class="hl"' : '') + '>' + d + '</span>' : '<span></span>'; b.innerHTML = h + '</span>'; }
+                else b.textContent = '';
+            }
+            const wrong = opts.bad && !given && !!v && v !== S.solution[i], conflict = opts.con && !!v && PEERS[i].some(j => S.vals[j] === v);
+            b.classList.toggle('given', given);
+            b.classList.toggle('sel', i === sel);
+            b.classList.toggle('peer', sel >= 0 && i !== sel && SEES(i, sel));
+            b.classList.toggle('same', !!selV && v === selV && i !== sel);
+            b.classList.toggle('bad', wrong);
+            b.classList.toggle('conflict', conflict);
+            const ns = []; for (let d = 1; d <= 9; d++) if (nm & (1 << d)) ns.push(d);
+            b.setAttribute('aria-label', 'Row ' + (ROW(i) + 1) + ', column ' + (COL(i) + 1) + ': ' + (v ? v + (given ? ', given' : '') : 'empty' + (ns.length ? ', notes ' + ns.join(' ') : ''))
+                + (wrong ? ', incorrect' : '') + (conflict ? ', conflicts with another ' + v : ''));
+            b.tabIndex = i === (sel >= 0 ? sel : 0) ? 0 : -1;          // one tab stop for the grid; the arrow keys move within it
+        }
+        [...$('pad').children].forEach(btn => {
+            const d = +btn.dataset.d, left = 9 - counts[d];
+            btn.querySelector('small').textContent = left > 0 ? left + ' left' : '';
+            btn.disabled = left <= 0 && !notesMode;
+            btn.setAttribute('aria-label', notesMode ? 'Note ' + d : d + (left > 0 ? ', ' + left + ' left' : ', all placed'));
+        });
+        $('undo').disabled = !history.length;
+        $('notes').textContent = 'Notes: ' + (notesMode ? 'on' : 'off'); $('notes').setAttribute('aria-pressed', notesMode); $('notes').classList.toggle('on', notesMode);
+        $('pause').textContent = paused ? 'Resume' : 'Pause'; $('pause').setAttribute('aria-pressed', paused); $('pause').disabled = S.done;
+        gridEl.classList.toggle('paused', paused);
+        $('mistakes').textContent = opts.bad ? S.mistakes : '—'; $('mistakes-chip').title = opts.bad ? '' : 'Counted when Show mistakes is on';
+    }
+    function info() {
+        const name = NAMES[S.level], daily = S.daily;
+        let t = daily ? 'Daily ' + name.toLowerCase() + ' puzzle for ' + longDate(daily) : name + ' puzzle';
+        const rec = G.getJSON('sudoku-daily');
+        if (daily && rec && rec.date === daily && rec.times && rec.times[S.level] != null) t += ' · solved in ' + fmtT(rec.times[S.level]);
+        $('info').textContent = t;
+        $('print-info').textContent = (daily ? 'Daily ' + name.toLowerCase() + ' puzzle, ' + longDate(daily) : name + ' puzzle') + ' · cdfoley.com/games/sudoku/';
+        const b = +G.get('sudoku-best-' + S.level, 0); $('best').textContent = b ? fmtT(b) : '—';
+        const solved = G.getJSON('sudoku-solved') || {};
+        $('stats').textContent = 'Best times: ' + Object.keys(NAMES).map(l => { const x = +G.get('sudoku-best-' + l, 0); return NAMES[l] + ' ' + (x ? fmtT(x) : '—'); }).join(' · ')
+            + ' · ' + plural(Object.values(solved).reduce((a, n) => a + (+n || 0), 0), 'puzzle') + ' solved';
+    }
+    function select(i, noFocus) { sel = i; paint(); if (i >= 0 && !noFocus) gridEl.children[i].focus({ preventScroll: true }); }
+    const blocked = () => !S || S.done || paused || busy || !!mode;
+    const snap = () => { history.push({ v: S.vals.slice(), n: S.notes.slice(), sel }); if (history.length > 300) history.shift(); };
+    function setDigit(i, d) {             // place d (0 clears) and tidy the notes it rules out
+        S.vals[i] = d; S.notes[i] = 0;
+        if (d) PEERS[i].forEach(j => { S.notes[j] &= ~(1 << d); });
+    }
+    function input(d) {
+        if (blocked() || sel < 0 || S.puzzle[sel]) return;
+        const i = sel;
+        if (notesMode) {
+            if (S.vals[i]) { say('Erase the digit first to add notes.'); return; }
+            snap(); S.notes[i] ^= 1 << d; say('Note ' + d + (S.notes[i] & (1 << d) ? ' added' : ' removed'));
+        } else if (S.vals[i] === d) { snap(); setDigit(i, 0); say(d + ' erased'); }
+        else {
+            snap(); setDigit(i, d);
+            const wrong = d !== S.solution[i];
+            if (wrong) S.mistakes++;
+            if (opts.bad && wrong) { G.tone(200, 150, 0.12, 'triangle', 0.03); say(d + ', incorrect'); }
+            else { G.tone(660, 660, 0.05, 'sine', 0.025); say(String(d) + (opts.con && PEERS[i].some(j => S.vals[j] === d) ? ', conflicts with another ' + d : '')); }
+        }
+        paint(); save(); checkWin();
+    }
+    function erase() {
+        if (blocked() || sel < 0 || S.puzzle[sel] || (!S.vals[sel] && !S.notes[sel])) return;
+        snap(); setDigit(sel, 0); paint(); save(); say('Erased');
+    }
+    function undo() {
+        if (blocked()) return;
+        const h = history.pop(); if (!h) return;
+        S.vals = h.v; S.notes = h.n; sel = h.sel; paint(); save(); say('Undone');
+        if (sel >= 0) gridEl.children[sel].focus({ preventScroll: true });
+    }
+    function fillNotes() {
+        if (blocked()) return;
+        snap();
+        for (let i = 0; i < 81; i++) S.notes[i] = S.vals[i] ? 0 : candidates(S.vals, i);
+        paint(); save(); status('Notes filled with every digit that still fits each empty square.');
+    }
+    // Hint: fix a wrong digit first; otherwise fill the selected square, or the square that logic reaches next, and say why.
+    function hint() {
+        if (blocked()) return;
+        let i = -1, why = '';
+        const wrongAt = []; for (let k = 0; k < 81; k++) if (S.vals[k] && S.vals[k] !== S.solution[k]) wrongAt.push(k);
+        if (sel >= 0 && !S.puzzle[sel] && S.vals[sel] !== S.solution[sel]) i = sel;
+        else if (wrongAt.length) i = wrongAt[0];
+        if (i >= 0 && S.vals[i]) why = 'the ' + S.vals[i] + ' there was wrong';
+        else if (i >= 0) {
+            const g = S.vals.map((v, k) => (v === S.solution[k] ? v : 0)), d = S.solution[i], m = candidates(g, i);
+            if (POP[m] === 1) why = 'the only digit that fits this square';
+            else for (const u of [18 + BOX(i), ROW(i), 9 + COL(i)]) if (UNITS[u].every(j => j === i || g[j] || !(candidates(g, j) & (1 << d)))) { why = 'the only place for ' + d + ' in ' + UNIT_NAME(u); break; }
+        } else {
+            const r = grade(S.vals, 4, true);
+            if (r.first) {
+                i = r.first.i; why = r.first.why;
+                if (r.first.after > 1) why += ', once ' + ['', '', 'locked candidates', 'a pair or triple', 'an X-wing, swordfish, or wing'][r.first.after] + ' rule' + (r.first.after === 2 ? '' : 's') + ' out other digits';
+            } else { const open = []; for (let k = 0; k < 81; k++) if (!S.vals[k]) open.push(k); if (!open.length) return; i = open[0]; }
+        }
+        snap(); setDigit(i, S.solution[i]); S.hints++;
+        select(i);
+        gridEl.children[i].classList.remove('flash'); void gridEl.children[i].offsetWidth; gridEl.children[i].classList.add('flash');
+        status('Hint: row ' + (ROW(i) + 1) + ', column ' + (COL(i) + 1) + ' is ' + S.solution[i] + (why ? ': ' + why + '.' : '.'));
+        G.tone(880, 990, 0.08, 'sine', 0.025);
+        save(); checkWin();
+    }
+    function checkWin() {
+        if (!S.vals.every((v, i) => v === S.solution[i])) return;
+        if (tick) step();
+        S.done = true; clock(); save();
+        const key = 'sudoku-best-' + S.level, prev = +G.get(key, 0), secs = Math.max(1, Math.floor(S.elapsed)), record = !S.hints && (!prev || secs < prev);
+        if (record) G.set(key, secs);
+        const solved = G.getJSON('sudoku-solved') || {}; solved[S.level] = (+solved[S.level] || 0) + 1; G.setJSON('sudoku-solved', solved);
+        if (S.daily) { let rec = G.getJSON('sudoku-daily'); if (!rec || rec.date !== S.daily) rec = { date: S.daily, times: {} }; if (rec.times[S.level] == null) rec.times[S.level] = secs; G.setJSON('sudoku-daily', rec); }
+        info(); paint();
+        const text = (S.daily ? 'Daily ' + S.level : NAMES[S.level]) + ' puzzle in ' + fmtT(secs) + (S.mistakes ? ', ' + plural(S.mistakes, 'mistake') : ', no mistakes') + (S.hints ? ', ' + plural(S.hints, 'hint') + '.' : '.') + (record ? ' A new best time!' : '');
+        show('solved', 'Solved!', text);
+        [523, 659, 784, 1046].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.14, 'square', 0.03), k * 110));
+    }
+    // One overlay for 'solved', 'paused', and 'confirm' (abandon the puzzle in progress?)
+    function show(m, title, text) {
+        mode = m; ov.hidden = false;
+        $('ov-title').textContent = title; $('ov-text').textContent = text;
+        $('again').textContent = m === 'paused' ? 'Resume' : m === 'confirm' ? 'Start new puzzle' : 'New puzzle';
+        $('keep').hidden = m !== 'confirm';
+        say(title + ' ' + text);
+        (m === 'confirm' ? $('keep') : $('again')).focus({ preventScroll: true });
+    }
+    function hide() { const had = ov.contains(document.activeElement); ov.hidden = true; mode = ''; if (had && S && !S.done) gridEl.children[sel >= 0 ? sel : 0].focus({ preventScroll: true }); }
+    function setPaused(on) {
+        if (!S || S.done || busy || (on && mode)) return;
+        paused = on;
+        if (on) show('paused', 'Paused', fmtT(S.elapsed) + ' on the clock. The puzzle is hidden until you resume.');
+        else if (mode === 'paused') hide();
+        clock(); paint();
+    }
+    const inProgress = () => S && !S.done && (S.vals.some((v, i) => v && !S.puzzle[i]) || S.notes.some(Boolean));
+    function guard(what, action) {
+        if (!inProgress()) return action();
+        pendingAction = action;
+        show('confirm', 'Start a new puzzle?', 'Your ' + (S.daily ? 'daily ' : '') + S.level + ' puzzle in progress (' + fmtT(S.elapsed) + ') will be lost' + (what ? ' when you ' + what : '') + '.');
+    }
+    function fresh(lv, daily) {
+        if (busy) return;
+        busy = true; clock(); hide(); paused = false;
+        $('new').disabled = $('daily').disabled = true; (daily ? $('daily') : $('new')).textContent = 'Generating…';
+        status(''); $('info').textContent = 'Generating ' + (daily ? 'the daily ' : 'a new ') + lv + ' puzzle…';
+        const seed = daily ? dailySeed(daily, lv) : (crypto.getRandomValues(new Uint32Array(1))[0]);
+        setTimeout(() => makePuzzle(lv, seed, ({ puzzle, solution }) => {
+            S = { level: lv, puzzle, solution, vals: puzzle.slice(), notes: new Array(81).fill(0), elapsed: 0, mistakes: 0, hints: 0, done: false, daily: daily || null };
+            busy = false; sel = -1; history = [];
+            $('new').disabled = $('daily').disabled = false; $('new').textContent = 'New puzzle'; $('daily').textContent = 'Daily puzzle';
+            $('level').value = lv; G.set('sudoku-level', lv);
+            paint(); info(); save(); clock();
+            say((daily ? 'Daily ' : 'New ') + lv + ' puzzle ready.');
+        }), 20);
+    }
+    function startDaily() {
+        const d = today();
+        if (S && S.daily === d && S.level === level() && !S.done) { status('This is today’s ' + S.level + ' puzzle.'); return; }
+        guard('open the daily puzzle', () => fresh(level(), d));
+    }
+
+    gridEl.addEventListener('click', e => { const b = e.target.closest('button'); if (b) select(+b.dataset.i); });
+    gridEl.addEventListener('focusin', e => { const b = e.target.closest('button'); if (b && +b.dataset.i !== sel) select(+b.dataset.i, true); });
+    $('pad').addEventListener('click', e => { const b = e.target.closest('button'); if (b) input(+b.dataset.d); });
+    $('erase').addEventListener('click', erase);
+    $('undo').addEventListener('click', undo);
+    $('hint').addEventListener('click', hint);
+    $('fill').addEventListener('click', fillNotes);
+    $('pause').addEventListener('click', () => setPaused(!paused));
+    $('print').addEventListener('click', () => window.print());
+    $('notes').addEventListener('click', () => { notesMode = !notesMode; paint(); });
+    $('showbad').addEventListener('change', () => { opts.bad = $('showbad').checked; G.set('sudoku-showbad', opts.bad ? '1' : '0'); paint(); });
+    $('showcon').addEventListener('change', () => { opts.con = $('showcon').checked; G.set('sudoku-conflicts', opts.con ? '1' : '0'); paint(); });
+    $('new').addEventListener('click', () => guard('', () => fresh(level())));
+    $('daily').addEventListener('click', startDaily);
+    $('again').addEventListener('click', () => {
+        if (mode === 'paused') return setPaused(false);
+        if (mode === 'confirm') { const a = pendingAction; pendingAction = null; hide(); if (a) a(); return; }
+        fresh(level());
+    });
+    $('keep').addEventListener('click', () => { if (mode === 'confirm') { pendingAction = null; $('level').value = S.level; hide(); } });
+    // Changing the level starts a new puzzle, so a puzzle in progress asks first (the menu shows its level until confirmed).
+    $('level').addEventListener('change', () => {
+        const lv = level();
+        if (!inProgress()) { fresh(lv); return; }
+        $('level').value = S.level;
+        guard('switch to ' + lv, () => { $('level').value = lv; fresh(lv); });
+    });
+    document.addEventListener('keydown', e => {
+        if (e.target.matches && e.target.matches('input, select, textarea') || e.altKey) return;
+        if (e.code === 'Escape' && mode === 'confirm') { $('keep').click(); return; }
+        if (e.code === 'Escape' && mode === 'paused') { setPaused(false); return; }
+        if (!(e.target === document.body || e.target.closest('.game-shell'))) return;
+        const m = /^(?:Digit|Numpad)([0-9])$/.exec(e.code);
+        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); undo(); return; }
+        if (e.ctrlKey || e.metaKey) return;
+        if (m) { e.preventDefault(); +m[1] ? input(+m[1]) : erase(); }
+        else if (e.code === 'Backspace' || e.code === 'Delete') { e.preventDefault(); erase(); }
+        else if (e.code === 'KeyN') { notesMode = !notesMode; paint(); say('Notes ' + (notesMode ? 'on' : 'off')); }
+        else if (e.code === 'KeyP') setPaused(!paused);
+        else if (e.code.startsWith('Arrow') && !blocked()) {
+            e.preventDefault(); if (sel < 0) return select(40);
+            const r = ROW(sel), c = COL(sel), d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.code];
+            select(((r + d[0] + 9) % 9) * 9 + (c + d[1] + 9) % 9);
+        }
+    });
+
+    opts.bad = $('showbad').checked = G.get('sudoku-showbad', '1') !== '0';
+    opts.con = $('showcon').checked = G.get('sudoku-conflicts', '1') !== '0';
+    const lv0 = G.get('sudoku-level', 'medium'); $('level').value = LEVELS[lv0] ? lv0 : 'medium';
+    build();
+    const saved = G.getJSON('sudoku-state'), arr = (a, f) => Array.isArray(a) && a.length === 81 && a.every(f);
+    if (saved && !saved.done && LEVELS[saved.level] && arr(saved.puzzle, v => v >= 0 && v <= 9) && arr(saved.solution, v => v >= 1 && v <= 9) && arr(saved.vals, v => v >= 0 && v <= 9)) {
+        S = Object.assign({ notes: new Array(81).fill(0), elapsed: 0, mistakes: 0, hints: 0, daily: null }, saved);
+        if (!arr(S.notes, v => Number.isInteger(v))) S.notes = new Array(81).fill(0);
+        S.elapsed = +S.elapsed || 0;
+        $('level').value = S.level; paint(); info(); clock();
+    } else fresh(level());
+    window.__sudoku = {
+        grade, solutions, makePuzzle, attempt, rng, dailySeed, LEVELS, input, select, undo, hint, erase, fillNotes, today,
+        pause: setPaused, fresh, setNotes(on) { notesMode = on; paint(); },
+        get state() { return S && { level: S.level, daily: S.daily, givens: S.puzzle.filter(Boolean).length, vals: S.vals.slice(), solution: S.solution.slice(), puzzle: S.puzzle.slice(), notes: S.notes.slice(), done: S.done, mistakes: S.mistakes, hints: S.hints, elapsed: S.elapsed, paused, mode, busy, sel, history: history.length, ticking: !!tick }; }
+    };
+});
+</script>
+</body>
+</html>

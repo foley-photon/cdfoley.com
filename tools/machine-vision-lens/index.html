@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Machine Vision Lens Calculator: Focal Length, FOV &amp; Depth of Field</title>
+<meta name="description" content="Pick a machine vision lens: focal length for a field of view and working distance, magnification, depth of field, pixel size on the part, and smallest defect.">
+<link rel="canonical" href="https://cdfoley.com/tools/machine-vision-lens/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Machine Vision Lens Selection Calculator">
+<meta property="og:description" content="Pick a machine vision lens: focal length for a field of view and working distance, magnification, depth of field, pixel size on the part, and smallest defect.">
+<meta property="og:url" content="https://cdfoley.com/tools/machine-vision-lens/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-machine-vision-lens.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Machine Vision Lens Calculator. Pick a machine vision lens: focal length for a field of view and working distance, magnification, depth of field, pixel size on the part, and smallest defect.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/vision-data.js"></script>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Machine Vision Lens Selection",
+   "url": "https://cdfoley.com/tools/machine-vision-lens/",
+   "description": "Pick a machine vision lens: focal length for a field of view and working distance, magnification, depth of field, pixel size on the part, and smallest defect.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "fov field of view magnification depth of field dof focal length sensor resolution pixel size camera lens calculator working distance",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Vision, Imaging & Color",
+     "item": "https://cdfoley.com/tools/#vision"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Machine Vision Lens Selection",
+     "item": "https://cdfoley.com/tools/machine-vision-lens/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#vision">Vision, Imaging &amp; Color</a></li><li aria-current="page">Machine Vision Lens Selection</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Machine Vision Lens Calculator</h1>
+        <p class="lede">Choose a camera sensor and a lens to see what the camera will see: how large an area it covers (the field of view), how small a defect it can resolve, and how much height variation stays sharp (the depth of field). The page also shows whether the lens or the pixels limit the finest detail, and the lower panel finds the focal length you need for a given field of view and distance.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Field of view (FOV)</dt><dd>The width and height of the area on the part that one image covers. Spreading the same pixels over a larger field makes each pixel cover more of the part.</dd>
+            <dt>Object distance</dt><dd>How far the part is from the lens (the vision system configurator calls it the working distance). Here it is measured from the lens’s front principal plane, an optical reference point, so it differs somewhat from the working distance that lens makers quote from the front of the lens barrel.</dd>
+            <dt>Focal length</dt><dd>The lens’s main specification, printed on the barrel (25&nbsp;mm, for example). From the same distance, a longer focal length sees a smaller area in more detail.</dd>
+            <dt>Magnification</dt><dd>The size of the image on the sensor divided by the true size on the part. Most machine vision setups work well below 1; the default setup here is 0.14.</dd>
+            <dt>Pixel pitch</dt><dd>The spacing between neighboring pixels on the sensor, listed in the camera datasheet as the pixel size, in micrometers (µm).</dd>
+            <dt>f-number</dt><dd>The aperture setting on the lens, written f/2.8, f/8, and so on. A larger number means a smaller opening: more depth of field, but less light and more blur from diffraction.</dd>
+            <dt>Depth of field</dt><dd>How far the part can move toward or away from the camera and still look sharp. “Sharp” means the blur stays within the acceptable blur you set, in pixels.</dd>
+            <dt>MTF at Nyquist</dt><dd>The share of contrast the lens keeps on the finest pattern the pixels can record (one dark and one light line per two pixels). Near 0&nbsp;% that detail is lost, however many pixels it spans.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Camera and lens</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="mv">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="sensor">Sensor preset</label>
+                    <select id="sensor" name="sensor" class="input">
+                        <option value="custom">Custom</option>
+                    </select>
+                    <p class="hint"><span data-vd-count>392</span> area-scan sensors from <span data-vd-makers>ten</span> makers, grouped by maker and series. Each array is the maker’s recommended recording size where one is stated (what most cameras output by default), otherwise the effective or active array; camera makers sometimes crop further, so check the camera datasheet. To size a whole system, try the <a href="/tools/vision-system-configurator/">vision system configurator</a>.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="pitch">Pixel pitch</label>
+                        <div class="input-unit"><input id="pitch" name="pitch" value="3.45" inputmode="decimal" data-positive data-label="pixel pitch"><select data-dim="length" data-units="µm,mm" data-default="µm"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="nx">Pixels (H)</label>
+                        <div class="input-unit"><input id="nx" name="nx" value="2448" inputmode="decimal" data-positive data-label="horizontal pixels"><span class="unit">px</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="ny">Pixels (V)</label>
+                        <div class="input-unit"><input id="ny" name="ny" value="2048" inputmode="decimal" data-positive data-label="vertical pixels"><span class="unit">px</span></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The pixel size and the pixel counts (the resolution) are in the camera datasheet. A sensor preset fills in all three.</p>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="f">Focal length <span class="sym">f</span></label>
+                        <div class="input-unit"><input id="f" name="f" value="25" inputmode="decimal" data-positive data-label="focal length"><select data-dim="length" data-units="mm" data-default="mm"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="wd">Object distance <span class="sym">s</span></label>
+                        <div class="input-unit"><input id="wd" name="wd" value="200" inputmode="decimal" data-positive data-label="object distance"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The focal length is printed on the lens. Object distance is measured from the lens’s front principal plane, not from the front of the barrel as in lens datasheets; the two can differ by several millimeters or more.</p>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="N">Lens f-number <span class="sym">N</span></label>
+                        <div class="input-unit"><input id="N" name="N" value="2.8" inputmode="decimal" data-positive data-label="f-number"><span class="unit">f/#</span></div>
+                        <p class="hint">The aperture setting on the lens. A larger number gives more depth of field, but less light and more diffraction blur.</p>
+                    </div>
+                    <div class="field">
+                        <label for="wl">Wavelength <span class="sym">λ</span></label>
+                        <div class="input-unit"><input id="wl" name="wl" value="550" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                        <p class="hint">The color of the light: LEDs peak near 470&nbsp;nm (blue), 525&nbsp;nm (green), 625&nbsp;nm (red), or 850&nbsp;nm (near infrared). Use 550&nbsp;nm for white light.</p>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="blur">Acceptable blur <span class="sym">c</span></label>
+                        <div class="input-unit"><input id="blur" name="blur" value="2" inputmode="decimal" data-positive data-label="acceptable blur"><span class="unit">px</span></div>
+                        <p class="hint">The largest defocus blur, in pixels, that still counts as sharp (the circle of confusion). Use 1–2.</p>
+                    </div>
+                    <div class="field">
+                        <label for="ppd">Pixels across a defect</label>
+                        <div class="input-unit"><input id="ppd" name="ppd" value="3" inputmode="decimal" data-positive data-label="pixels per defect"><span class="unit">px</span></div>
+                        <p class="hint">2 is the sampling minimum; 3–5&nbsp;px for reliable detection, 10 or more to measure.</p>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" id="mv-results" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="limit" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Field of view (H × V)</span><output class="result-value" data-out="fov">—</output></div>
+                    <div class="result"><span class="result-label">Magnification<span class="sym">m = f/(s − f)</span></span><output class="result-value" data-out="m">—</output></div>
+                    <div class="result"><span class="result-label">Sensor size</span><output class="result-value" data-out="sensor">—</output></div>
+                    <div class="result"><span class="result-label">Pixel size on the object</span><output class="result-value" data-out="pobj">—</output></div>
+                    <div class="result"><span class="result-label">Smallest detectable defect</span><output class="result-value" data-out="defect">—</output>
+                        <span class="result-note">Pixels across a defect × pixel size on the object: a first estimate. Contrast, lighting, and noise decide what is really detectable.</span></div>
+                    <div class="result"><span class="result-label">Depth of field<span class="sym">object side</span></span><output class="result-value" data-out="dof">—</output>
+                        <span class="result-note" id="dof-note"></span></div>
+                    <div class="result"><span class="result-label">Working f-number<span class="sym">N(1 + m)</span></span><output class="result-value" data-out="nw">—</output></div>
+                    <div class="result"><span class="result-label">Airy disk diameter<span class="sym">2.44 λ N<sub>w</sub></span></span><output class="result-value" data-out="airy">—</output></div>
+                    <div class="result"><span class="result-label">Optical cutoff ÷ sensor Nyquist</span><output class="result-value" data-out="ratio">—</output>
+                        <span class="result-note">2 or more: the pixels limit the finest detail. Below 1: the lens does, and more pixels will not help.</span></div>
+                    <div class="result"><span class="result-label">Diffraction MTF at sensor Nyquist</span><output class="result-value" data-out="mtf">—</output>
+                        <span class="result-note">Upper bound for an ideal lens at this working f-number; real lenses add aberrations. About 10&nbsp;% is needed to detect detail, and 20&nbsp;% or more is a safer target.</span></div>
+                    <div class="result"><span class="result-label">Lens extension beyond f<span class="sym">m·f</span></span><output class="result-value" data-out="ext">—</output>
+                        <span class="result-note">Extra lens-to-sensor spacing beyond infinity focus. If the lens cannot focus this close, a spacer ring (extension tube) adds it.</span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="tool-layout" style="margin-top:1.5rem">
+        <form class="panel" id="inv" autocomplete="off">
+            <div class="panel-head"><h2>Which focal length do I need?</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="inv">Reset</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="i-sw">Sensor width</label>
+                    <div class="input-unit"><input id="i-sw" name="sw" value="8.45" inputmode="decimal" data-positive data-label="sensor width"><select data-dim="length" data-units="mm" data-default="mm"></select></div>
+                    <p class="hint">2/3″ IMX250: 8.45&nbsp;mm. 1″ IMX183: 13.1&nbsp;mm. 1/1.8″ IMX252: 7.07&nbsp;mm.</p>
+                </div>
+                <div class="field">
+                    <label for="i-fov">Target field of view (width)</label>
+                    <div class="input-unit"><input id="i-fov" name="fov" value="100" inputmode="decimal" data-positive data-label="target field of view"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                </div>
+                <div class="field">
+                    <label for="i-wd">Object distance available</label>
+                    <div class="input-unit"><input id="i-wd" name="wd" value="300" inputmode="decimal" data-positive data-label="object distance"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                </div>
+            </div>
+        </form>
+        <section class="panel" id="inv-results" aria-labelledby="inv-h">
+            <div class="panel-head"><h2 id="inv-h">Lens choice</h2></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Required focal length<span class="sym">f = m s/(1 + m)</span></span><output class="result-value" data-out="freq">—</output></div>
+                    <div class="result"><span class="result-label">Required magnification</span><output class="result-value" data-out="mreq">—</output></div>
+                    <div class="result"><span class="result-label">Shorter standard lens (wider view)</span><output class="result-value" data-out="below">—</output></div>
+                    <div class="result"><span class="result-label">Longer standard lens (needs more distance)</span><output class="result-value" data-out="above">—</output></div>
+                </div>
+                <p class="hint" style="margin-top:.8rem">Standard machine vision focal lengths: 4, 5, 6, 8, 12, 16, 25, 35, 50, 75, and 100&nbsp;mm.</p>
+            </div>
+        </section>
+    </div>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>The lens is modeled as a thin lens. For an object at distance \(s\) from the front principal plane of a lens of focal length \(f\), the magnification (image size over object size) and the field of view are</p>
+        <div class="formula">\[ \begin{gathered} m = \frac{f}{s - f}, \quad \text{FOV} = \frac{\text{sensor size}}{m}, \\[6pt] \text{pixel on object} = \frac{p}{m}, \end{gathered} \]</div>
+        <p>where \(p\) is the pixel pitch. To resolve a defect reliably it should span several pixels (typically 3–5), so the smallest detectable defect is that many object-side pixels.</p>
+
+        <h2>Depth of field</h2>
+        <p>The depth of field is the range of object distances over which the geometric blur at the sensor stays under the acceptable circle of confusion \(c\) (a diameter, set here as a number of pixels). For a thin lens with the aperture stop at the lens, the near and far limits follow exactly from the hyperfocal distance \(H = f^2/(Nc) + f\):</p>
+        <div class="formula">\[ \begin{gathered} s_\text{near} = \frac{s(H - f)}{H + s - 2f}, \\[8pt] s_\text{far} = \frac{s(H - f)}{H - s}, \\[8pt] \text{DOF} = s_\text{far} - s_\text{near}. \end{gathered} \]</div>
+        <p>For close-up work (\(s \ll H\)) this reduces to the familiar approximation</p>
+        <div class="formula">\[ \mathrm{DOF} \approx \frac{2\,N\,c\,(1 + m)}{m^2}. \]</div>
+        <div class="callout"><p><strong>A common mistake.</strong> The expression \(2Nc(1+m)\) is the <em>image-side</em> depth of focus: how far the sensor can move. Object-side depth of field carries the extra factor \(1/m^2\). At m = 0.14 the two differ by a factor of about 50. Using the wrong one makes a lens look far less forgiving than it is.</p></div>
+        <p>Closing the aperture (larger N) increases the depth of field in proportion to N in this approximation, but it also enlarges the diffraction spot in proportion to N and cuts the light on the sensor in proportion to \(1/N^2\): each full stop (N × √2) halves it. That trade-off is the central compromise in machine vision optics.</p>
+
+        <h2>Diffraction vs. pixel size</h2>
+        <p>At the sensor, light from a point forms an Airy disk whose diameter to the first dark ring is \(2.44\,\lambda N_w\), where \(N_w = N(1+m)\) is the working f-number (for a lens with equal entrance and exit pupils). In incoherent light, a diffraction-limited lens with a circular aperture transmits no detail finer than the cutoff frequency \(1/(\lambda N_w)\), in cycles per millimeter when \(\lambda\) is in millimeters. The sensor can only represent detail up to its Nyquist frequency \(1/(2p)\), one cycle per two pixels.</p>
+        <p>The ratio alone is not the whole story. An ideal lens’s MTF falls continuously to zero at the cutoff,</p>
+        <div class="formula">\[ \begin{gathered} \mathrm{MTF}(\nu) = \tfrac{2}{\pi}\bigl[\arccos\nu - \nu\sqrt{1-\nu^2}\bigr] \\[6pt] \nu = \frac{f_\text{Nyquist}}{f_\text{cutoff}}, \end{gathered} \]</div>
+        <p>so a ratio of exactly 1 still means zero contrast at Nyquist. A ratio of 1.2 gives about 8&nbsp;%, and 1.5 gives about 22&nbsp;%.</p>
+        <ul>
+            <li><strong>Cutoff ÷ Nyquist ≥ 2: sensor-limited.</strong> The optics keep useful contrast (39&nbsp;% or more) at the pixel Nyquist frequency. Smaller pixels or more magnification would help, and fine periodic patterns can alias.</li>
+            <li><strong>Between 1 and 2: balanced.</strong> Both the optics and the pixels limit resolution. Contrast at Nyquist is low, so small defects lose contrast before they lose pixels.</li>
+            <li><strong>Below 1: diffraction-limited.</strong> The pixels oversample the blur. Opening the aperture (smaller N), if depth of field allows, adds real resolution. Adding pixels does not.</li>
+        </ul>
+        <p>Real lenses fall short of the diffraction limit, most of all at wide apertures, where aberrations dominate, so these MTF values are upper bounds. Check the lens maker’s MTF curve at your sensor’s Nyquist frequency.</p>
+
+        <h2>Worked example</h2>
+        <p>A 2/3″ IMX250 camera (3.45&nbsp;µm pixels, 2448 × 2048) with a 25&nbsp;mm lens at f/2.8, 200&nbsp;mm from the part:</p>
+        <ul>
+            <li>m = 25/175 = 0.1429, so the 8.446 × 7.066&nbsp;mm sensor sees a 59.12 × 49.46&nbsp;mm field. Each pixel covers 24.15&nbsp;µm, so a 3-pixel defect is 72.5&nbsp;µm.</li>
+            <li>With c = 2&nbsp;px (6.9&nbsp;µm), H = 32.37&nbsp;m and the part stays in focus from 198.9 to 201.1&nbsp;mm: a depth of field of 2.16&nbsp;mm. The image-side formula would wrongly give 0.044&nbsp;mm.</li>
+            <li>N<sub>w</sub> = 3.2, so the Airy disk at 550&nbsp;nm is 4.29&nbsp;µm, 1.24&nbsp;pixels. The cutoff-to-Nyquist ratio is 3.92 (ideal-lens MTF at Nyquist 68&nbsp;%), so this setup is sensor-limited. To find smaller defects, increase magnification or use smaller pixels. Do not stop down.</li>
+        </ul>
+        <p>For a 100&nbsp;mm field at 300&nbsp;mm with the same sensor, the lower panel gives f = 23.4&nbsp;mm. A standard 16&nbsp;mm lens gives a 150&nbsp;mm field. A 25&nbsp;mm lens needs the part about 321&nbsp;mm away.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Thin-lens, paraxial model with a pupil magnification of 1. Real multi-element lenses have separated principal planes and asymmetric pupils, so treat distances as approximate and confirm with the lens vendor’s calculator or a test image.</li>
+            <li>Every lens has a minimum object distance, listed in its datasheet. Closer work needs a spacer ring (extension tube) or a macro lens. The “extension” result is the extra lens-to-sensor distance needed beyond infinity focus.</li>
+            <li>Telecentric lenses do not follow \(m = f/(s-f)\). Their magnification is fixed and their depth of field is set by the object-side NA.</li>
+            <li>Depth of field is geometric and ignores diffraction. When the Airy disk is comparable to \(c\) or larger, the usable depth is smaller than shown.</li>
+            <li>Pixel figures assume a monochrome sensor. In a color camera’s Bayer filter, green covers every other pixel and red and blue each cover every second row and column, so fine color detail is sampled at about half the monochrome pixel density in each direction. Allow up to about twice as many pixels across a defect, or use a monochrome camera.</li>
+            <li>Detectability also depends on contrast, lighting, noise, and the algorithm. The pixel-count rule is a starting point, not a guarantee.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>B. Jähne, <em>Digital Image Processing and Image Acquisition</em>, 7th ed., Springer (2026), <a href="https://doi.org/10.1007/978-3-032-04806-6" target="_blank" rel="noopener">doi:10.1007/978-3-032-04806-6</a>, secs. 3.4.2 and 3.4.4 (image scale, the imaging equation, depth of focus and depth of field), 3.5.2–3.5.3 (the MTF of diffraction-limited optics), and 5.2.3 (the sampling theorem).</li>
+            <li>J. E. Greivenkamp, <em>Field Guide to Geometrical Optics</em>, SPIE Press (2004), <a href="https://doi.org/10.1117/3.547461" target="_blank" rel="noopener">doi:10.1117/3.547461</a> (f-number, depth of focus and depth of field, hyperfocal distance).</li>
+            <li>J. E. Greivenkamp, “Camera Systems,” sec. 17 of the course notes for OPTI 201/202, <em>Geometrical and Instrumental Optics</em>, University of Arizona (2018), <a href="https://wp.optics.arizona.edu/jgreivenkamp/wp-content/uploads/sites/11/2018/12/201-202-17-Camera-Systems.pdf" target="_blank" rel="noopener">PDF</a> (the near and far limits and the hyperfocal distance for a thin lens with the stop at the lens; free).</li>
+            <li>G. D. Boreman, <em>Modulation Transfer Function in Optical and Electro-Optical Systems</em>, SPIE Press (2001), <a href="https://doi.org/10.1117/3.419857" target="_blank" rel="noopener">doi:10.1117/3.419857</a>, secs. 1.5 (the diffraction MTF of a circular aperture and its cutoff) and 2.1–2.2 (pixel footprint, sampling, the Nyquist frequency, and aliasing).</li>
+            <li>C. E. Shannon, “Communication in the presence of noise,” <em>Proc. IRE</em> <strong>37</strong>, 10–21 (1949), <a href="https://doi.org/10.1109/JRPROC.1949.232969" target="_blank" rel="noopener">doi:10.1109/JRPROC.1949.232969</a> (the sampling theorem behind the Nyquist frequency 1/(2p)).</li>
+            <li>C. Steger, M. Ulrich, and C. Wiedemann, <em>Machine Vision Algorithms and Applications</em>, 2nd ed., Wiley-VCH (2018), ISBN 978-3-527-41365-2, secs. 2.2.2–2.2.4 (lens model, pupils, depth of field, telecentric lenses) and 2.3.3 (color cameras and the Bayer filter).</li>
+            <li>B. E. Bayer, “Color imaging array,” U.S. Patent 3,971,065 (1976), <a href="https://patents.google.com/patent/US3971065A/en" target="_blank" rel="noopener">patents.google.com/patent/US3971065A</a> (the color filter layout: green on every other pixel, red and blue on alternate rows).</li>
+            <li>E. Hecht, <em>Optics</em>, 5th ed., Pearson (2017), ch. 5–6 (geometrical optics) and ch. 10 (diffraction).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>Edmund Optics, “Depth of Field and Depth of Focus,” <a href="https://www.edmundoptics.com/knowledge-center/application-notes/imaging/depth-of-field-and-depth-of-focus/" target="_blank" rel="noopener">edmundoptics.com</a> (how the f-number and the working distance change the depth of field, shown with real lens data).</li>
+            <li>Edmund Optics, “The Airy Disk and Diffraction Limit,” <a href="https://www.edmundoptics.com/knowledge-center/application-notes/imaging/limitations-on-resolution-and-contrast-the-airy-disk/" target="_blank" rel="noopener">edmundoptics.com</a> (the 2.44&nbsp;λ&nbsp;f/# spot, the cutoff frequency, and the 10&nbsp;% and 20&nbsp;% contrast guidance).</li>
+            <li>R. Paschotta, “F-number,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/bx3" target="_blank" rel="noopener">doi:10.61835/bx3</a> (stops, light throughput, and the working f-number).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="vision-system-configurator,motion-blur,focused-spot,article:machine-vision-optics"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const V = VisionData;
+    const sel = document.getElementById('sensor');
+    const picker = V.attachPicker(sel, { selected: 'imx250', custom: true });   // the static inputs below equal the IMX250 row
+    const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+    document.querySelectorAll('[data-vd-count]').forEach(e => { e.textContent = V.sensors.length; });
+    document.querySelectorAll('[data-vd-makers]').forEach(e => { e.textContent = WORDS[V.makers.length] || V.makers.length; });
+    const pitchIn = document.getElementById('pitch'), nxIn = document.getElementById('nx'), nyIn = document.getElementById('ny');
+    const pitchUnit = pitchIn.parentElement.querySelector('select');
+    sel.addEventListener('change', () => {
+        const s = V.sensorById(sel.value);
+        if (!s) return;
+        pitchIn.value = fmt.plain(Calc.fromSI('length', pitchUnit.value, s.pitch * 1e-6), 5);
+        nxIn.value = s.nx; nyIn.value = s.ny;
+    });
+    // a preset whose numbers no longer match the fields reads as Custom: after an edit, and on load for a link whose
+    // values differ from the preset's (an edited link, or one made before a correction to the sensor data)
+    const syncPreset = () => {
+        const s = V.sensorById(sel.value);
+        if (!s) return;
+        const p = Calc.toSI('length', pitchUnit.value, Calc.parseNum(pitchIn.value)) * 1e6;
+        if (Math.abs(p - s.pitch) > 1e-9 || Calc.parseNum(nxIn.value) !== s.nx || Calc.parseNum(nyIn.value) !== s.ny) { sel.value = 'custom'; picker.refresh(); }
+    };
+    [pitchIn, nxIn, nyIn].forEach(inp => inp.addEventListener('input', syncPreset));
+
+    const len = (x, sig) => fmt.si(x, 'm', sig || 4, { max: 0 });
+    const limit = document.getElementById('limit');
+    const dofNote = document.getElementById('dof-note');
+
+    Calc.create({
+        id: 'mv',
+        form: '#calc',
+        outputs: '#mv-results',
+        compute(v) {
+            picker.refresh();   // the sensor line under the preset (Reset and links set the preset without a change event)
+            if (!(v.wd > v.f)) throw Calc.fail('The object distance must be longer than the focal length.', 'wd');
+            const m = v.f / (v.wd - v.f);
+            const sw = v.pitch * v.nx, sh = v.pitch * v.ny;
+            const pobj = v.pitch / m;
+            const c = v.blur * v.pitch;
+            const H = v.f * v.f / (v.N * c) + v.f;
+            const near = v.wd * (H - v.f) / (H + v.wd - 2 * v.f);
+            // at the hyperfocal distance the far limit is infinite (the margin absorbs rounding when s is typed equal to H)
+            const far = v.wd < H * (1 - 1e-9) ? v.wd * (H - v.f) / (H - v.wd) : Infinity;
+            const dof = far - near;
+            const Nw = v.N * (1 + m);
+            const airy = 2.44 * v.wl * Nw;
+            const ratio = 2 * v.pitch / (v.wl * Nw);
+            // diffraction-limited MTF (circular pupil, incoherent) at the sensor Nyquist frequency
+            const nu = 1 / ratio;
+            const mtf = nu < 1 ? (2 / Math.PI) * (Math.acos(nu) - nu * Math.sqrt(1 - nu * nu)) : 0;
+
+            if (ratio >= 2) { limit.textContent = 'Sensor-limited'; limit.className = 'badge badge-ok'; }
+            else if (ratio >= 1) { limit.textContent = 'Balanced optics and pixels'; limit.className = 'badge badge-ok'; }
+            else { limit.textContent = 'Diffraction-limited'; limit.className = 'badge badge-warn'; }
+            // enough digits that the last one is at most a tenth of the depth of field, so the two limits differ in print
+            // (at 1:1 with a 100 mm lens the depth is 77 µm at 200 mm, which four digits round away)
+            const sigNF = Math.min(9, Math.max(4, Math.ceil(Math.floor(Math.log10(far)) + 1 - Math.log10(dof / 10))));
+            dofNote.textContent = isFinite(far)
+                ? 'In focus from ' + len(near, sigNF) + ' to ' + len(far, sigNF) + ' (c = ' + fmt.si(c, 'm', 3) + ').'
+                : 'At or beyond the hyperfocal distance: in focus from ' + len(near) + ' to infinity.';
+
+            return {
+                fov: len(sw / m, 4) + ' × ' + len(sh / m, 4),
+                m: fmt.num(m, 4) + '×',
+                sensor: len(sw, 4) + ' × ' + len(sh, 4),
+                pobj: fmt.si(pobj, 'm', 4) + '/px',
+                // when the optics limit resolution, report the Airy blur projected onto the part as well
+                defect: fmt.si(v.ppd * pobj, 'm', 3) + (ratio < 1 ? '  (optical blur on part ' + fmt.si(airy / m, 'm', 3) + ')' : ''),
+                dof: isFinite(dof) ? len(dof, 3) : '∞',
+                nw: 'f/' + fmt.num(Nw, 3),
+                airy: fmt.si(airy, 'm', 3) + '  (' + fmt.num(airy / v.pitch, 3) + ' px)',
+                ratio: fmt.num(ratio, 3) + (ratio >= 2 ? '  sensor-limited' : ratio >= 1 ? '  balanced' : '  diffraction-limited'),
+                mtf: fmt.pct(mtf, 2),
+                ext: len(m * v.f, 3)
+            };
+        },
+        onError() { limit.textContent = ''; limit.className = 'badge'; dofNote.textContent = ''; }   // no stale verdict or focus range beside blank results
+    });
+    syncPreset();   // the fields now hold the link's values
+
+    const STD = VisionData.focalLengths.map(x => x * 1e-3);   // the same series the vision system configurator picks from
+    Calc.create({
+        id: 'inv',
+        form: '#inv',
+        outputs: '#inv-results',
+        compute(v) {
+            const m = v.sw / v.fov;
+            const f = m * v.wd / (1 + m);
+            const fovWith = fs => v.sw * (v.wd - fs) / fs;
+            const below = STD.filter(x => x <= f * (1 + 1e-9)).pop();
+            const above = STD.find(x => x > f * (1 + 1e-9));
+            return {
+                freq: len(f, 3),
+                mreq: fmt.num(m, 4) + '×',
+                below: below && below < v.wd ? len(below, 3) + ' lens → FOV ' + len(fovWith(below), 3) : 'none shorter than ' + len(STD[0], 3),
+                above: above ? len(above, 3) + ' lens → needs ' + len(above * (1 + 1 / m), 3) + ' distance' : 'none longer than ' + len(STD[STD.length - 1], 3)
+            };
+        }
+    });
+});
+</script>
+</body>
+</html>

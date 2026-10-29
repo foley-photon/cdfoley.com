@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fresnel Equations Calculator: Reflectance, Brewster & Critical Angle</title>
+<meta name="description" content="Calculate s- and p-polarized Fresnel reflectance and transmittance vs. angle, the Brewster angle, critical angle, and uncoated window losses.">
+<link rel="canonical" href="https://cdfoley.com/tools/fresnel-equations/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Fresnel Reflection & Brewster Angle Calculator">
+<meta property="og:description" content="Calculate s- and p-polarized Fresnel reflectance and transmittance vs. angle, the Brewster angle, critical angle, and uncoated window losses.">
+<meta property="og:url" content="https://cdfoley.com/tools/fresnel-equations/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-fresnel-equations.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Fresnel Equations Calculator. Calculate s- and p-polarized Fresnel reflectance and transmittance vs. angle, the Brewster angle, critical angle, and uncoated window losses.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>.input-unit select.fr-preset { max-width: 58%; } .fr-ref th { white-space: normal; }</style>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Fresnel Reflection & Brewster Angle",
+   "url": "https://cdfoley.com/tools/fresnel-equations/",
+   "description": "Calculate s- and p-polarized Fresnel reflectance and transmittance vs. angle, the Brewster angle, critical angle, and uncoated window losses.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "fresnel reflectance brewster critical angle snell refraction polarization total internal reflection tir loss s p evanescent refractive index germanium silicon znse sapphire window",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Optics & Glazing",
+     "item": "https://cdfoley.com/tools/#beam"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Fresnel Reflection & Brewster Angle",
+     "item": "https://cdfoley.com/tools/fresnel-equations/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#beam">Optics &amp; Glazing</a></li><li aria-current="page">Fresnel Reflection &amp; Brewster Angle</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Fresnel Equations Calculator</h1>
+        <p class="lede">How much light reflects from, and passes through, a bare (uncoated) surface between two transparent materials, such as air and glass, at any angle and for each polarization? Use it to estimate losses at uncoated windows and viewports, ghost reflections, Brewster windows, and total internal reflection in prisms.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Refractive index, n</dt><dd>How much a material slows light. About 1.0003 for air, 1.33 for water, 1.45–1.52 for common optical glasses, and 4.0 for germanium in the infrared. It changes with wavelength.</dd>
+            <dt>Angle of incidence</dt><dd>The angle between the incoming beam and the surface normal, a line perpendicular to the surface. 0° is straight on.</dd>
+            <dt>s and p polarization</dt><dd>Light whose electric field oscillates parallel to the surface (s) or in the plane that contains the beam and the normal (p). Unpolarized light is an equal mix of the two.</dd>
+            <dt>Reflectance, R</dt><dd>The fraction of the power that is reflected: about 4&nbsp;% per surface for glass in air at normal incidence.</dd>
+            <dt>Brewster angle</dt><dd>The angle at which p-polarized light is not reflected at all, about 57° for glass in air.</dd>
+            <dt>Total internal reflection</dt><dd>Going from a higher to a lower index, such as glass to air, light beyond the critical angle (about 41° for glass) is reflected completely.</dd>
+            <dt>Uncoated window</dt><dd>A plate with two surfaces. It loses roughly twice the single-surface reflectance; an anti-reflection coating reduces that.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="n1">Incident medium index <span class="sym">n₁</span></label>
+                    <div class="input-unit"><input id="n1" name="n1" value="1" inputmode="decimal" data-positive data-label="index n₁"><select class="fr-preset" data-for="n1" aria-label="Incident medium preset"></select></div>
+                    <p class="hint">The material the light arrives from: 1 for vacuum or air, or the glass index for light leaving a prism or window.</p>
+                </div>
+                <div class="field">
+                    <label for="n2">Second medium index <span class="sym">n₂</span></label>
+                    <div class="input-unit"><input id="n2" name="n2" value="1.5168" inputmode="decimal" data-positive data-label="index n₂"><select class="fr-preset" data-for="n2" aria-label="Second medium preset"></select></div>
+                    <p class="hint">Preset indices are at the stated wavelength and near room temperature. Index varies with wavelength, so use your material’s value at your wavelength (refractiveindex.info lists most materials).</p>
+                </div>
+                <div class="field">
+                    <label for="ai">Angle of incidence <span class="sym">θ<sub>i</sub></span></label>
+                    <div class="input-unit"><input id="ai" name="ai" value="45" inputmode="decimal" data-nonneg data-label="angle of incidence"><select data-dim="angle" data-units="deg,rad,mrad" data-default="deg"></select></div>
+                    <p class="hint">Measured from the surface normal, 0–90°.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="flag" class="badge" hidden></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Reflectance, unpolarized<span class="sym">R</span></span><output class="result-value" data-out="r">—</output><span class="result-note">The average of s and p. For a linearly polarized laser, use R<sub>s</sub> or R<sub>p</sub>, whichever matches its polarization.</span></div>
+                    <div class="result"><span class="result-label">Reflectance, s-polarized<span class="sym">R<sub>s</sub></span></span><output class="result-value" data-out="rs">—</output></div>
+                    <div class="result"><span class="result-label">Reflectance, p-polarized<span class="sym">R<sub>p</sub></span></span><output class="result-value" data-out="rp">—</output></div>
+                    <div class="result"><span class="result-label">Transmittance s&nbsp;/&nbsp;p<wbr><span class="sym">T&nbsp;=&nbsp;1&nbsp;−&nbsp;R</span></span><output class="result-value" data-out="t">—</output></div>
+                    <div class="result"><span class="result-label">Refraction angle<span class="sym">θ<sub>t</sub></span></span><output class="result-value" data-out="at">—</output></div>
+                    <div class="result"><span class="result-label">Brewster angle<span class="sym">θ<sub>B</sub></span></span><output class="result-value" data-out="ab">—</output></div>
+                    <div class="result"><span class="result-label">Critical angle<span class="sym">θ<sub>c</sub></span></span><output class="result-value" data-out="ac">—</output></div>
+                    <div class="result"><span class="result-label">Normal-incidence reflectance<span class="sym">R₀</span></span><output class="result-value" data-out="r0">—</output></div>
+                    <div class="result"><span class="result-label">Uncoated window transmission at θ<sub>i</sub> (2 surfaces)</span><output class="result-value" data-out="tw">—</output><span class="result-note">Window of index n₂ in medium n₁: incoherent multiple reflections, no absorption, unpolarized light.</span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
+        <div class="panel-head"><h2 id="plot-h">Reflectance vs. angle of incidence</h2></div>
+        <div class="panel-body"><div id="r-plot"></div></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>Snell’s law gives the refraction angle, \(n_1\sin\theta_i = n_2\sin\theta_t\). The Fresnel amplitude reflection coefficients for s (TE, perpendicular to the plane of incidence) and p (TM, parallel) polarization are</p>
+        <div class="formula">\[ \begin{gathered} r_s = \frac{n_1\cos\theta_i - n_2\cos\theta_t}{n_1\cos\theta_i + n_2\cos\theta_t}, \\[10pt] r_p = \frac{n_2\cos\theta_i - n_1\cos\theta_t}{n_2\cos\theta_i + n_1\cos\theta_t}, \end{gathered} \]</div>
+        <p>with power reflectances \(R_s = |r_s|^2\), \(R_p = |r_p|^2\), and \(R = (R_s+R_p)/2\) for unpolarized light. For lossless media \(T = 1 - R\) in each polarization. (Sign conventions for \(r_p\) differ between textbooks, but the reflectances do not.)</p>
+        <div class="formula">\[ \begin{gathered} R_0 = \left(\frac{n_1-n_2}{n_1+n_2}\right)^2, \\[10pt] \theta_B = \arctan\frac{n_2}{n_1}, \\[10pt] \theta_c = \arcsin\frac{n_2}{n_1}\;\;(n_1>n_2). \end{gathered} \]</div>
+        <p>At the <strong>Brewster angle</strong> \(R_p = 0\): p-polarized light passes with no reflection loss, and the reflected beam is purely s-polarized. Laser tubes, Brewster windows, and polarizing plates use this. Above the <strong>critical angle</strong>, going from high to low index, no wave propagates into the second medium, and \(R = 1\) (total internal reflection). Only an evanescent field enters it, with an amplitude that falls by 1/e over \(\lambda_0 / \bigl(2\pi\sqrt{n_1^2\sin^2\theta_i - n_2^2}\bigr)\): 0.41 vacuum wavelengths at 45° in BK7, and longer close to the critical angle. A second surface that close lets some light tunnel across (frustrated total internal reflection), which this tool does not model.</p>
+        <p>An uncoated window has two surfaces. Summing the incoherent multiple reflections between them gives a transmission of \((1-R)/(1+R)\) per polarization; at normal incidence in air that is \(2n/(n^2+1)\), the “reflection factor” glass makers quote for uncoated plates. That is higher than \((1-R)^2\), the estimate that ignores multiple reflections: barely for glass (91.9&nbsp;% instead of 91.7&nbsp;% for N-BK7) but noticeably for high-index materials (47.0&nbsp;% instead of 40.9&nbsp;% for germanium).</p>
+
+        <h2>Reference values</h2>
+        <table class="fr-ref">
+            <thead><tr><th>Material (in&nbsp;air)</th><th class="num">R₀ per surface</th><th class="num">Window T</th><th class="num">θ<sub>B</sub></th></tr></thead>
+            <tbody>
+                <tr><td>Water, 589&nbsp;nm, <i>n</i>&nbsp;=&nbsp;1.333</td><td class="num">2.04&nbsp;%</td><td class="num">96.0&nbsp;%</td><td class="num">53.1°</td></tr>
+                <tr><td>CaF₂, 587.6&nbsp;nm, <i>n</i>&nbsp;=&nbsp;1.4338</td><td class="num">3.18&nbsp;%</td><td class="num">93.8&nbsp;%</td><td class="num">55.1°</td></tr>
+                <tr><td>Fused silica, 587.6&nbsp;nm, <i>n</i>&nbsp;=&nbsp;1.4585</td><td class="num">3.48&nbsp;%</td><td class="num">93.3&nbsp;%</td><td class="num">55.6°</td></tr>
+                <tr><td>N-BK7, 587.6&nbsp;nm, <i>n</i>&nbsp;=&nbsp;1.5168</td><td class="num">4.22&nbsp;%</td><td class="num">91.9&nbsp;%</td><td class="num">56.6°</td></tr>
+                <tr><td>Sapphire (o&#8209;ray), 587.6&nbsp;nm, <i>n</i>&nbsp;=&nbsp;1.768</td><td class="num">7.70&nbsp;%</td><td class="num">85.7&nbsp;%</td><td class="num">60.5°</td></tr>
+                <tr><td>ZnSe, 10.6&nbsp;µm, <i>n</i>&nbsp;=&nbsp;2.403</td><td class="num">17.0&nbsp;%</td><td class="num">70.9&nbsp;%</td><td class="num">67.4°</td></tr>
+                <tr><td>Silicon, 1550&nbsp;nm, <i>n</i>&nbsp;=&nbsp;3.476</td><td class="num">30.6&nbsp;%</td><td class="num">53.1&nbsp;%</td><td class="num">74.0°</td></tr>
+                <tr><td>Germanium, 10.6&nbsp;µm, <i>n</i>&nbsp;=&nbsp;4.002</td><td class="num">36.0&nbsp;%</td><td class="num">47.0&nbsp;%</td><td class="num">76.0°</td></tr>
+            </tbody>
+        </table>
+        <p>This is why infrared optics made of Si, Ge, or ZnSe are almost always anti-reflection coated. An uncoated germanium window loses more than half the beam.</p>
+
+        <h2>Worked example</h2>
+        <p>The default inputs: light in air (\(n_1 = 1\)) hits N-BK7 (\(n_2 = 1.5168\)) at 45°. Snell’s law gives \(\theta_t = 27.79°\). Then \(R_s = 9.60\)&nbsp;%, \(R_p = 0.92\)&nbsp;%, and unpolarized \(R = 5.26\)&nbsp;%, compared with 4.22&nbsp;% at normal incidence. The Brewster angle is 56.60°. Going the other way, from BK7 into air, light is totally internally reflected beyond \(\theta_c = 41.25°\). That is why a 45° BK7 right-angle prism works as a mirror.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Non-absorbing, isotropic media.</strong> Metals and strongly absorbing materials need a complex index \(\tilde n = n + ik\), which this tool does not support. Birefringent crystals (sapphire, quartz, calcite) have two indices, depending on the polarization relative to the crystal axis; the sapphire preset is the ordinary-ray index.</li>
+            <li><strong>Single, uncoated, smooth interface.</strong> Coatings, thin films, and surface roughness change the reflectance completely. Use the coating vendor’s curves for coated optics.</li>
+            <li><strong>Window transmission</strong> assumes incoherent addition: a thick window, or a beam with short coherence length. Thin plates with coherent light show etalon fringes: the transmission swings between \(\big((1-R)/(1+R)\big)^2\) and 1 and averages to the incoherent value. At normal incidence that is 84.5&nbsp;% to 100&nbsp;% for N-BK7, but 22.1&nbsp;% to 100&nbsp;% for germanium.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>M. Born and E. Wolf, <em>Principles of Optics</em>, 7th ed., Cambridge University Press (1999), <a href="https://doi.org/10.1017/CBO9781139644181" target="_blank" rel="noopener">doi:10.1017/CBO9781139644181</a>, sec. 1.5 (Fresnel formulae, Brewster angle, and total reflection) and ch. 7 (multiple-beam interference in a plane-parallel plate: the etalon limits).</li>
+            <li>E. Hecht, <em>Optics</em>, 5th ed., Pearson (2017), ch. 4 (the Fresnel equations, total internal reflection, and the evanescent wave) and ch. 8 (polarization by reflection).</li>
+            <li>SCHOTT, “TIE-35: Transmittance of optical glass,” technical information (November 2020), <a href="https://media.schott.com/api/public/content/3d5861d824f64033aafd5353a21f7603" target="_blank" rel="noopener">media.schott.com</a> (transmittance of a plate with multiple reflections, and the reflection factor 2n/(n²+1)).</li>
+            <li>I. H. Malitson, “Interspecimen comparison of the refractive index of fused silica,” <em>J. Opt. Soc. Am.</em> <strong>55</strong>, 1205–1209 (1965), <a href="https://doi.org/10.1364/JOSA.55.001205" target="_blank" rel="noopener">doi:10.1364/JOSA.55.001205</a> (fused silica preset: 1.4585 at 587.6&nbsp;nm, 20&nbsp;°C).</li>
+            <li>SCHOTT, “SCHOTT N-BK7®” optical glass data, <a href="https://www.schott.com/shop/advanced-optics/en/Optical-Glass/SCHOTT-N-BK7/c/glass-SCHOTT%20N-BK7%C2%AE" target="_blank" rel="noopener">schott.com</a> (N-BK7 preset: n<sub>d</sub>&nbsp;=&nbsp;1.51680 at 587.6&nbsp;nm).</li>
+            <li>I. H. Malitson, “A redetermination of some optical properties of calcium fluoride,” <em>Appl. Opt.</em> <strong>2</strong>, 1103–1107 (1963), <a href="https://doi.org/10.1364/AO.2.001103" target="_blank" rel="noopener">doi:10.1364/AO.2.001103</a> (CaF₂ preset: 1.4338 at 587.6&nbsp;nm, 24&nbsp;°C).</li>
+            <li>I. H. Malitson, “Refraction and dispersion of synthetic sapphire,” <em>J. Opt. Soc. Am.</em> <strong>52</strong>, 1377–1379 (1962), <a href="https://doi.org/10.1364/JOSA.52.001377" target="_blank" rel="noopener">doi:10.1364/JOSA.52.001377</a> (sapphire ordinary-ray preset: 1.768 at 587.6&nbsp;nm, 24&nbsp;°C).</li>
+            <li>J. Connolly, B. diBenedetto, and R. Donadio, “Specifications of Raytran material,” <em>Proc. SPIE</em> <strong>181</strong>, 141–144 (1979), <a href="https://doi.org/10.1117/12.957359" target="_blank" rel="noopener">doi:10.1117/12.957359</a> (CVD ZnSe preset: 2.403 at 10.6&nbsp;µm).</li>
+            <li>H. H. Li, “Refractive index of silicon and germanium and its wavelength and temperature derivatives,” <em>J. Phys. Chem. Ref. Data</em> <strong>9</strong>, 561–658 (1980), <a href="https://doi.org/10.1063/1.555624" target="_blank" rel="noopener">doi:10.1063/1.555624</a> (silicon preset 3.476 at 1550&nbsp;nm and germanium preset 4.002 at 10.6&nbsp;µm, both at 293&nbsp;K).</li>
+            <li>M. Daimon and A. Masumura, “Measurement of the refractive index of distilled water from the near-infrared region to the ultraviolet region,” <em>Appl. Opt.</em> <strong>46</strong>, 3811–3820 (2007), <a href="https://doi.org/10.1364/AO.46.003811" target="_blank" rel="noopener">doi:10.1364/AO.46.003811</a> (water preset: 1.333 at 589&nbsp;nm and room temperature).</li>
+            <li>H. R. Phillip and E. A. Taft, “Kramers-Kronig analysis of reflectance data for diamond,” <em>Phys. Rev.</em> <strong>136</strong>, A1445–A1448 (1964), <a href="https://doi.org/10.1103/PhysRev.136.A1445" target="_blank" rel="noopener">doi:10.1103/PhysRev.136.A1445</a> (diamond preset: 2.417 at 589&nbsp;nm).</li>
+            <li>P. E. Ciddor, “Refractive index of air: new equations for the visible and near infrared,” <em>Appl. Opt.</em> <strong>35</strong>, 1566–1573 (1996), <a href="https://doi.org/10.1364/AO.35.001566" target="_blank" rel="noopener">doi:10.1364/AO.35.001566</a> (air preset: 1.00028 for dry air at 15&nbsp;°C and 101.325&nbsp;kPa across the visible).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>R. Paschotta, “Fresnel equations,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/tql" target="_blank" rel="noopener">doi:10.61835/tql</a> (the s and p coefficients, with a plotting tool).</li>
+            <li>R. Paschotta, “Brewster’s angle,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/egh" target="_blank" rel="noopener">doi:10.61835/egh</a> (why p-polarized light is not reflected there, and Brewster windows and plates).</li>
+            <li>M. N. Polyanskiy, “Refractiveindex.info database of optical constants,” <em>Sci. Data</em> <strong>11</strong>, 94 (2024), <a href="https://doi.org/10.1038/s41597-023-02898-2" target="_blank" rel="noopener">doi:10.1038/s41597-023-02898-2</a>; free at <a href="https://refractiveindex.info/" target="_blank" rel="noopener">refractiveindex.info</a> (indices of most optical materials at any wavelength, including the data behind the presets).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="optical-density,aperture-transmission,focused-spot,energy-converter,grating-equation"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, fail } = Calc;
+    const PRESETS = [
+        ['', 'Custom'],
+        ['1', 'Vacuum / air ≈ 1'],
+        ['1.00028', 'Air, 15 °C, visible'],
+        ['1.333', 'Water, 589 nm'],
+        ['1.4338', 'CaF₂, 587.6 nm'],
+        ['1.4585', 'Fused silica, 587.6 nm'],
+        ['1.5168', 'N-BK7, 587.6 nm'],
+        ['1.768', 'Sapphire (o), 587.6 nm'],
+        ['2.403', 'ZnSe, 10.6 µm'],
+        ['2.417', 'Diamond, 589 nm'],
+        ['3.476', 'Silicon, 1550 nm'],
+        ['4.002', 'Germanium, 10.6 µm']
+    ];
+    document.querySelectorAll('.fr-preset').forEach(sel => {
+        sel.innerHTML = PRESETS.map(p => `<option value="${p[0]}">${p[1]}</option>`).join('');
+        const input = document.getElementById(sel.dataset.for);
+        const sync = () => {
+            const match = PRESETS.find(p => p[0] && parseFloat(p[0]) === Calc.parseNum(input.value));
+            sel.value = match ? match[0] : '';
+        };
+        sel.addEventListener('change', e => {
+            if (!sel.value) { e.stopPropagation(); return; }   // "Custom": keep it selected instead of re-syncing back to the matching preset
+            input.value = sel.value;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        input.addEventListener('input', sync);
+        sel._sync = sync;
+    });
+    const syncAll = () => document.querySelectorAll('.fr-preset').forEach(s => s._sync());
+
+    function fresnel(n1, n2, ti) {
+        if (n1 === n2) return { tir: false, Rs: 0, Rp: 0, tt: ti };   // no interface: nothing reflects, at any angle
+        const st = n1 / n2 * Math.sin(ti);
+        if (st >= 1) return { tir: true, Rs: 1, Rp: 1, tt: NaN };
+        const ci = ti >= Math.PI / 2 ? 0 : Math.cos(ti), ct = Math.sqrt(1 - st * st);   // cos(π/2) is 6e-17 in floating point
+        const rs = (n1 * ci - n2 * ct) / (n1 * ci + n2 * ct);
+        const rp = (n2 * ci - n1 * ct) / (n2 * ci + n1 * ct);
+        return { tir: false, Rs: rs * rs, Rp: rp * rp, tt: Math.asin(st) };
+    }
+    const deg = r => fmt.num(r * 180 / Math.PI, 5) + '°';
+    const flag = document.getElementById('flag');
+    const plotBox = document.getElementById('r-plot');
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            syncAll();
+            // 1e-5 slack: switching units at 90° rounds the angle to 6 digits (1.5708 rad, 90.0002°)
+            if (v.ai > Math.PI / 2 * (1 + 1e-5)) throw fail('The angle of incidence must be between 0° and 90°' + ({ rad: ' (0 to 1.5708 rad)', mrad: ' (0 to 1570.8 mrad)' }[v.$unit.ai] || '') + '.', 'ai');
+            const ti = Math.min(v.ai, Math.PI / 2);
+            const same = v.n1 === v.n2;
+            const F = fresnel(v.n1, v.n2, ti);
+            const R = (F.Rs + F.Rp) / 2;
+            const tB = Math.atan(v.n2 / v.n1);
+            const tc = v.n1 > v.n2 ? Math.asin(v.n2 / v.n1) : NaN;
+            const R0 = ((v.n1 - v.n2) / (v.n1 + v.n2)) ** 2;
+            const tw = p => (1 - p) / (1 + p);
+
+            flag.hidden = false;
+            if (F.tir) { flag.textContent = 'Total internal reflection'; flag.className = 'badge badge-warn'; }
+            else if (same) { flag.textContent = 'Index matched'; flag.className = 'badge'; }
+            // within 1° of θB, and the reflected beam at least 99 % s-polarized (high-index internal reflection
+            // has θB and θc under 1° apart, where Rp climbs to 100 %)
+            else if (Math.abs(ti - tB) < Math.PI / 180 && F.Rp < 0.01 * F.Rs) { flag.textContent = 'Near Brewster'; flag.className = 'badge badge-ok'; }
+            else { flag.textContent = v.n1 < v.n2 ? 'External reflection' : 'Internal reflection'; flag.className = 'badge'; }
+
+            const pct = x => x < 1e-4 && x > 0 ? fmt.sci(x * 100, 3) + ' %' : fmt.pct(x, 4);
+            return {
+                r: pct(R),
+                rs: pct(F.Rs),
+                rp: pct(F.Rp),
+                t: F.tir ? '0 % / 0 %' : pct(1 - F.Rs) + ' / ' + pct(1 - F.Rp),
+                at: F.tir ? 'none (TIR)' : deg(F.tt),
+                ab: same ? 'none (n₁ = n₂)' : deg(tB),
+                ac: isFinite(tc) ? deg(tc) : same ? 'none (n₁ = n₂)' : 'none (n₁ < n₂)',
+                r0: pct(R0),
+                tw: F.tir ? '0 %' : pct((tw(F.Rs) + tw(F.Rp)) / 2)
+            };
+        },
+        onError() {                             // no valid result: clear the chart and the verdict, but keep the presets in step with the inputs
+            clearTimeout(plotBox._plotT); plotBox.innerHTML = ''; plotBox._plot = null;   // stop plot.js redrawing the old chart on resize
+            flag.hidden = true; flag.textContent = ''; flag.className = 'badge';
+            syncAll();
+        },
+        after(v) {
+            const angles = Calc.math.linspace(0, 90, 361);
+            const rows = angles.map(a => fresnel(v.n1, v.n2, a * Math.PI / 180));
+            const tB = Math.atan(v.n2 / v.n1) * 180 / Math.PI;
+            const tc = v.n1 > v.n2 ? Math.asin(v.n2 / v.n1) * 180 / Math.PI : NaN;
+            const cur = fresnel(v.n1, v.n2, Math.min(v.ai, Math.PI / 2));
+            const a0 = Math.min(v.ai, Math.PI / 2) * 180 / Math.PI;
+            const vlines = v.n1 === v.n2 ? [] : [{ x: tB, label: 'θB ' + fmt.num(tB, 4) + '°', color: 'var(--c3)' }];
+            if (isFinite(tc)) vlines.push({ x: tc, label: 'θc ' + fmt.num(tc, 4) + '°', color: 'var(--c5)' });
+            Plot.draw('#r-plot', {
+                height: 300,
+                x: { label: 'Angle of incidence (°)', min: 0, max: 90 },
+                y: { label: 'Reflectance (%)', min: 0, max: 100 },
+                series: [
+                    { type: 'line', x: angles, y: rows.map(r => r.Rs * 100), label: 'Rs', color: 'var(--c1)' },
+                    { type: 'line', x: angles, y: rows.map(r => r.Rp * 100), label: 'Rp', color: 'var(--c2)' },
+                    { type: 'line', x: angles, y: rows.map(r => (r.Rs + r.Rp) * 50), label: 'R (unpolarized)', color: 'var(--c4)', dash: true },
+                    { type: 'points', x: [a0, a0], y: [cur.Rs * 100, cur.Rp * 100], color: 'var(--text)', r: 4 }
+                ],
+                vlines,
+                hover: { format: (x, hits) => `θi = ${fmt.num(x, 4)}° · ` + hits.filter(h => h.series.label).map(h => h.series.label + ' = ' + fmt.num(h.y, 4) + ' %').join(' · ') }
+            });
+        }
+    });
+});
+</script>
+</body>
+</html>

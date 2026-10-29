@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diffraction Grating Calculator: Grating Equation, Dispersion &amp; Resolution</title>
+<meta name="description" content="Solve the grating equation for diffraction angle, then get linear dispersion, resolving power, and bandpass for Littrow or Czerny-Turner spectrometers.">
+<link rel="canonical" href="https://cdfoley.com/tools/grating-equation/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Diffraction Grating & Spectrometer Calculator">
+<meta property="og:description" content="Solve the grating equation for diffraction angle, then get linear dispersion, resolving power, and bandpass for Littrow or Czerny-Turner spectrometers.">
+<meta property="og:url" content="https://cdfoley.com/tools/grating-equation/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-grating-equation.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Diffraction Grating &amp; Spectrometer Calculator. Solve the grating equation for diffraction angle, then get linear dispersion, resolving power, and bandpass for Littrow or Czerny-Turner spectrometers.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>
+    /* Static figures (Figures 1 and 2): 360-unit viewBox, full width on a phone and at most 440 px wide, so the
+       12 px labels render at 11.9 px or more at 390 px */
+    .gfig-svg { width: 100%; max-width: 440px; height: auto; display: block; margin: 0 auto; font-family: var(--font); }
+    .gfig-svg text { font-size: 12px; fill: var(--text-2); }
+    .gfig-svg .t-strong { fill: var(--text); font-weight: 600; }
+    .gfig-svg .sign { font-size: 16px; font-weight: 700; fill: var(--text); }
+    .gfig-svg .t1 { fill: var(--c1); font-weight: 600; }
+    .gfig-svg .t2 { fill: var(--c3); font-weight: 600; }
+    .gfig-svg .sub-s { font-size: 11px; }
+    .gfig-svg .sub { fill: var(--surface-2); stroke: var(--border-strong); }
+    .gfig-svg .teeth { fill: none; stroke: var(--text-2); stroke-width: 1; }
+    .gfig-svg .normal { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 5 4; }
+    .gfig-svg .arc { fill: none; stroke: var(--muted); stroke-width: 1.2; }
+    .gfig-svg .arc.a2 { stroke: var(--c3); }
+    .gfig-svg .r-in, .gfig-svg .r0, .gfig-svg .r1, .gfig-svg .r2 { fill: none; stroke-width: 2.2; }
+    .gfig-svg .r-in { stroke: var(--text); }
+    .gfig-svg .h-in { fill: var(--text); }
+    .gfig-svg .r0 { stroke: var(--muted); }
+    .gfig-svg .h0 { fill: var(--muted); }
+    .gfig-svg .r1 { stroke: var(--c1); }
+    .gfig-svg .h1 { fill: var(--c1); }
+    .gfig-svg .r2 { stroke: var(--c3); }
+    .gfig-svg .h2 { fill: var(--c3); }
+    .gfig-svg .beam { fill: var(--accent-soft); }
+    .gfig-svg .chief { fill: none; stroke: var(--accent); stroke-width: 1.4; }
+    .gfig-svg .mirror { fill: none; stroke: var(--text); stroke-width: 3; stroke-linecap: round; }
+    .gfig-svg .grating { stroke: var(--text); stroke-width: 4; }
+    .gfig-svg .slit { stroke: var(--text); stroke-width: 2.4; }
+    .gfig-svg .dim { fill: none; stroke: var(--muted); stroke-width: 1; }
+    .gfig-svg .halo { paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
+    /* the typical-values table: slightly tighter cells, so its four columns fit a 390 px phone */
+    .prose table.tv th, .prose table.tv td { padding-left: 0.55rem; padding-right: 0.55rem; }
+</style>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Diffraction Grating & Spectrometer",
+   "url": "https://cdfoley.com/tools/grating-equation/",
+   "description": "Solve the grating equation for diffraction angle, then get linear dispersion, resolving power, and bandpass for Littrow or Czerny-Turner spectrometers.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "grating equation spectrometer monochromator czerny turner dispersion resolution littrow blaze diffraction calculator linear resolving power bandpass free spectral range groove density lines per mm order sorting anamorphic magnification slit image deviation angle constant deviation horiba ebert echelle anomaly sign convention air wavelength",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Photon Energy & Spectroscopy",
+     "item": "https://cdfoley.com/tools/#photon"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Diffraction Grating & Spectrometer",
+     "item": "https://cdfoley.com/tools/grating-equation/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#photon">Photon Energy &amp; Spectroscopy</a></li><li aria-current="page">Diffraction Grating &amp; Spectrometer</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Diffraction Grating &amp; Spectrometer Calculator</h1>
+        <p class="lede">Where does a diffraction grating send each wavelength, and how finely can a spectrometer built around it separate wavelengths? Enter the grating’s groove density, the wavelength, and the geometry (a fixed angle of incidence, a Littrow mount, or a Czerny–Turner spectrometer) to get the diffraction angle, the dispersion at the detector, the bandpass for your slits, and the resolving power. Use it to choose a grating, to check that a wavelength reaches the detector, or to estimate a spectrometer’s resolution.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Groove density</dt><dd>The number of grooves (lines) per millimeter, printed on the grating or its data sheet, for example 600, 1200, or 2400&nbsp;lines/mm. More grooves spread the spectrum wider but reach a shorter longest wavelength. The groove spacing d is its inverse: 833&nbsp;nm at 1200&nbsp;lines/mm.</dd>
+            <dt>Diffraction order</dt><dd>A grating sends each wavelength into several directions, numbered m = 0, ±1, ±2, and so on. Order 0 is a plain mirror reflection with no separation of wavelengths; first order is the usual working order. Higher orders spread the spectrum more, but their spectra overlap.</dd>
+            <dt>Angles of incidence and diffraction</dt><dd>α and β, measured from the grating normal, the line perpendicular to the grating surface. An angle on the same side of the normal as the incoming light counts as positive, as in Figure 1 below.</dd>
+            <dt>Littrow and Czerny–Turner</dt><dd>Two common layouts. In Littrow, the grating sends the chosen wavelength straight back toward the source, as in tunable lasers. In a Czerny–Turner spectrometer, two concave mirrors bring the light to the grating and focus it on the exit slit or detector; the grating turns to select the wavelength while the angle between the beams, the deviation angle, stays fixed.</dd>
+            <dt>Dispersion</dt><dd>How far apart two wavelengths end up. The reciprocal linear dispersion, in nm/mm, is how many nanometers fall on each millimeter of the exit slit or detector; the smaller it is, the finer the detail.</dd>
+            <dt>Bandpass</dt><dd>The range of wavelengths that passes the exit slit at once, as a full width at half maximum. It is set by the slit widths and the dispersion and usually limits a spectrometer’s resolution.</dd>
+            <dt>Resolving power</dt><dd>λ/Δλ for the finest detail the grating itself could separate: the diffraction order times the number of illuminated grooves.</dd>
+            <dt>Free spectral range</dt><dd>Light at 500&nbsp;nm in first order leaves the grating in the same direction as 250&nbsp;nm in second order. The free spectral range is the band free of such overlap; order-sorting filters block the light that would overlap.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="mode">Geometry</label>
+                    <select id="mode" name="mode" class="input">
+                        <option value="fixed" selected>Fixed incidence angle α</option>
+                        <option value="littrow">Littrow (α = β)</option>
+                        <option value="ct">Constant deviation (Czerny–Turner)</option>
+                    </select>
+                    <p class="hint">Fixed incidence: the light meets the grating at a set angle, as in a spectrograph or a bench setup. Littrow: the grating sends the wavelength back toward the source, as in a tunable laser. Constant deviation: the grating turns between fixed entrance and exit arms, as in most scanning monochromators and Czerny–Turner spectrometers.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="G">Groove density <span class="sym">1/d</span></label>
+                        <div class="input-unit"><input id="G" name="G" value="1200" inputmode="decimal" data-positive data-label="groove density"><span class="unit">lines/mm</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="m">Diffraction order <span class="sym">m</span></label>
+                        <div class="input-unit"><input id="m" name="m" value="1" data-label="diffraction order"><span class="unit">—</span></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The groove density is printed on the grating or its data sheet. The order is usually 1; positive orders lie on the incoming side of the mirror reflection (m = 0), negative orders on the other side.</p>
+                <div class="field">
+                    <label for="wl">Wavelength <span class="sym">λ</span></label>
+                    <div class="input-unit"><input id="wl" name="wl" value="500" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <p class="hint">The wavelength in the air around the grating, as on spectrometer scales and in tables of visible lines (Hα: 656.28&nbsp;nm in air, 656.46&nbsp;nm in vacuum). At the default settings, the vacuum value would move β by only about 0.01°.</p>
+                </div>
+                <div class="field" id="f-alpha">
+                    <label for="alpha">Angle of incidence <span class="sym">α</span></label>
+                    <div class="input-unit"><input id="alpha" name="alpha" value="30" data-label="angle of incidence"><select data-dim="angle" data-units="deg,mrad,rad" data-default="deg"></select></div>
+                    <p class="hint">Measured from the grating normal, 0° when the light arrives straight on. Angles on the incoming side of the normal are positive (Figure&nbsp;1 below).</p>
+                </div>
+                <div class="field" id="f-dev" hidden>
+                    <label for="dev">Deviation (included) angle <span class="sym">D<sub>V</sub> = α − β</span></label>
+                    <div class="input-unit"><input id="dev" name="dev" value="30" data-label="deviation angle"><select data-dim="angle" data-units="deg,mrad,rad" data-default="deg"></select></div>
+                    <p class="hint">The fixed angle between the beam arriving at the grating and the beam leaving it, from the instrument’s manual. Enter it positive when the arriving beam is the one farther from the grating normal (α &gt; β), negative when the leaving beam is (β &gt; α). HORIBA’s tables give D<sub>V</sub> = β − α, so enter their value with a minus sign.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="LB">Focusing focal length <span class="sym">L<sub>B</sub></span></label>
+                        <div class="input-unit"><input id="LB" name="LB" value="300" inputmode="decimal" data-positive data-label="focal length"><select data-dim="length" data-units="mm,cm,m" data-default="mm"></select></div>
+                        <p class="hint">Of the mirror or lens that focuses the spectrum onto the exit slit or detector; usually the spectrometer’s quoted focal length.</p>
+                    </div>
+                    <div class="field">
+                        <label for="W">Illuminated grating width <span class="sym">W</span></label>
+                        <div class="input-unit"><input id="W" name="W" value="50" inputmode="decimal" data-positive data-label="illuminated width"><select data-dim="length" data-units="mm,cm" data-default="mm"></select></div>
+                        <p class="hint">Measured across the grooves. A collimated beam of diameter D covers W = D/cos α.</p>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="slit">Slit width <span class="sym">w</span></label>
+                    <div class="input-unit"><input id="slit" name="slit" value="50" inputmode="decimal" data-positive data-label="slit width"><select data-dim="length" data-units="µm,mm" data-default="µm"></select></div>
+                    <p class="hint">Entrance and exit slits are taken as equally wide, the usual monochromator setting. For a spectrograph with a detector array, enter the entrance slit and read the slit-image result.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Diffraction angle<span class="sym">β</span></span><output class="result-value" data-out="beta">—</output>
+                        <span class="result-note">From the grating normal, positive on the incoming side. The mirror reflection (m = 0) leaves at −α.</span></div>
+                    <div class="result"><span class="result-label">Angle of incidence<span class="sym">α</span></span><output class="result-value" data-out="alpha">—</output></div>
+                    <div class="result"><span class="result-label">Deviation angle<span class="sym">α − β</span></span><output class="result-value" data-out="dev">—</output></div>
+                    <div class="result"><span class="result-label">Littrow angle for this λ and m</span><output class="result-value" data-out="littrow">—</output>
+                        <span class="result-note">The grating angle that sends this wavelength back along the incoming beam. Catalogs quote blaze wavelengths for this geometry.</span></div>
+                    <div class="result"><span class="result-label">Angular dispersion<span class="sym">dβ/dλ</span></span><output class="result-value" data-out="angDisp">—</output></div>
+                    <div class="result"><span class="result-label">Reciprocal linear dispersion<span class="sym">dλ/dx</span></span><output class="result-value" data-out="rld">—</output>
+                        <span class="result-note">Nanometers per millimeter along the exit slit or detector; the smaller, the finer the detail.</span></div>
+                    <div class="result"><span class="result-label">Bandpass, equal slits<span class="sym">B</span></span><output class="result-value" data-out="bp">—</output>
+                        <span class="result-note">The band (FWHM) that passes when the entrance and exit slits are both w wide: w·dλ/dx, or the entrance-slit image times dλ/dx when the image is wider. Aberrations and diffraction add to it.</span></div>
+                    <div class="result"><span class="result-label">Entrance-slit image width<span class="sym">w·cos α/cos β</span></span><output class="result-value" data-out="img">—</output>
+                        <span class="result-note">The slit as imaged at the exit, for equal collimator and focusing focal lengths. With a detector array instead of an exit slit, the bandpass is about this width times dλ/dx, which spectrometers usually spread over 3 to 6 pixels.</span></div>
+                    <div class="result"><span class="result-label">Resolving power<span class="sym">R = |m|N</span></span><output class="result-value" data-out="R">—</output>
+                        <span class="result-note">The grating’s own limit (Rayleigh criterion). Real spectrometers are usually limited by their slits or pixels long before this.</span></div>
+                    <div class="result"><span class="result-label">Diffraction-limited resolution<span class="sym">λ/R</span></span><output class="result-value" data-out="dl">—</output></div>
+                    <div class="result"><span class="result-label">Grooves illuminated<span class="sym">N</span></span><output class="result-value" data-out="N">—</output></div>
+                    <div class="result"><span class="result-label">Free spectral range<span class="sym">λ/|m|</span></span><output class="result-value" data-out="fsr">—</output>
+                        <span class="result-note">The band above λ free of overlap from the next order. In first order, second-order light at λ/2 lands where λ does, so use an order-sorting filter if the source also emits there.</span></div>
+                    <div class="result"><span class="result-label">Longest wavelength in this order</span><output class="result-value" data-out="lmax">—</output>
+                        <span class="result-note">Where a beam would graze the grating surface (|α| or |β| reaching 90°). An instrument’s grating drive usually stops sooner.</span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="ang-h">
+        <div class="panel-head"><h2 id="ang-h">Diffraction angle vs. wavelength</h2><span class="badge" id="plot-mode" style="white-space:nowrap" hidden></span></div>
+        <div class="panel-body"><div id="g-plot"></div></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>For a plane reflection grating with groove spacing \(d\) (the inverse of the groove density), light incident at angle \(\alpha\) is diffracted into angles \(\beta\) that satisfy the grating equation</p>
+        <div class="formula">\[ m\lambda = d\,(\sin\alpha + \sin\beta) . \]</div>
+        <p><strong>Sign convention.</strong> Both angles are measured from the grating normal, and two angles have the same sign when they lie on the same side of it (Palmer’s convention). With the incoming side taken as positive, the zero order is the mirror reflection, \(\beta = -\alpha\); positive orders lie on the incoming side of it and negative orders on the other side (Figure&nbsp;1). An order exists only if \(|\sin\beta| \le 1\); otherwise it is evanescent and carries no power away from the grating. Other books use other sign conventions, so check them before comparing angles between sources.</p>
+        <figure>
+            <svg viewBox="0 0 360 240" class="gfig-svg" role="img" aria-label="Reflection grating with 1200 lines per millimeter and 500 nanometer light arriving at 30 degrees from the grating normal. The mirror reflection, order 0, leaves at minus 30 degrees on the other side of the normal. Order plus 1 leaves at plus 5.7 degrees and order plus 2 at plus 44.4 degrees, both on the incoming side, which counts as positive. Order minus 1 would need a sine of minus 1.1, so it does not exist."><rect class="sub" x="40" y="192" width="280" height="16"/><path class="teeth" d="M40,192 L50,188.8 L50,192 M50,192 L60,188.8 L60,192 M60,192 L70,188.8 L70,192 M70,192 L80,188.8 L80,192 M80,192 L90,188.8 L90,192 M90,192 L100,188.8 L100,192 M100,192 L110,188.8 L110,192 M110,192 L120,188.8 L120,192 M120,192 L130,188.8 L130,192 M130,192 L140,188.8 L140,192 M140,192 L150,188.8 L150,192 M150,192 L160,188.8 L160,192 M160,192 L170,188.8 L170,192 M170,192 L180,188.8 L180,192 M180,192 L190,188.8 L190,192 M190,192 L200,188.8 L200,192 M200,192 L210,188.8 L210,192 M210,192 L220,188.8 L220,192 M220,192 L230,188.8 L230,192 M230,192 L240,188.8 L240,192 M240,192 L250,188.8 L250,192 M250,192 L260,188.8 L260,192 M260,192 L270,188.8 L270,192 M270,192 L280,188.8 L280,192 M280,192 L290,188.8 L290,192 M290,192 L300,188.8 L300,192 M300,192 L310,188.8 L310,192 M310,192 L320,188.8 L320,192"/><path class="normal" d="M180,192 V40"/><path class="arc" d="M180,152 A40,40 0 0,0 160,157.4"/><path class="arc" d="M180,152 A40,40 0 0,1 200,157.4"/><path class="arc a2" d="M180,120 A72,72 0 0,0 129.6,140.6"/><path class="r-in" d="M101,55.2 L180,192"/><path class="h-in" d="M148.4,137.3 L140.8,132.4 L148,128.2 Z"/><path class="r0" d="M180,192 L255,62.1"/><path class="h0" d="M255,62.1 L254.6,71.1 L247.4,66.9 Z"/><path class="r1" d="M180,192 L165,42.8"/><path class="h1" d="M165,42.8 L170,50.3 L161.6,51.1 Z"/><path class="r2" d="M180,192 L97.4,107.7"/><path class="h2" d="M97.4,107.7 L106,110.5 L100,116.4 Z"/><text class="t-strong" x="185" y="34">grating normal</text><text class="sign" x="150" y="184" text-anchor="middle">+</text><text class="sign" x="210" y="184" text-anchor="middle">−</text><text x="95" y="61.2" text-anchor="end">incoming light</text><text x="95" y="75.2" text-anchor="end">α = +30°</text><text class="t1" x="158" y="33.8" text-anchor="end">m = +1, β = +5.7°</text><text class="t2" x="93.4" y="111.7" text-anchor="end">m = +2</text><text class="t2" x="93.4" y="125.7" text-anchor="end">β = +44.4°</text><text x="261" y="60.1">m = 0, mirror</text><text x="261" y="74.1">β = −30°</text><text class="halo" x="166" y="143.8" text-anchor="middle">α</text><text class="halo" x="194" y="143.8" text-anchor="middle">β₀</text><text class="t2" x="112.5" y="145.9" text-anchor="middle">β₂</text><text x="232" y="118">m = −1 would need</text><text x="232" y="132">sin β = −1.1:</text><text x="232" y="146">no such beam</text><text x="180" y="226" text-anchor="middle">grating, 1200 lines/mm, light at 500 nm</text></svg>
+            <figcaption>Figure 1. Angles and orders for the calculator’s defaults: 1200&nbsp;lines/mm and 500&nbsp;nm light arriving at α = +30°. Angles on the incoming side of the normal (+) are positive. The zero order leaves as from a mirror, at β = −30°; the +1 and +2 orders leave at +5.7° and +44.4°, on the incoming side of it. The −1 order would need sin β = −1.1, so there is no such beam. Angles computed from the grating equation.</figcaption>
+        </figure>
+        <p>Here \(\lambda\) is the wavelength in the medium around the grating, normally air, as on spectrometer scales and in HORIBA’s tutorial. The vacuum wavelength is about 0.03&nbsp;% longer; at the default settings it would move \(\beta\) by about 0.01°.</p>
+
+        <h3>Mountings</h3>
+        <ul>
+            <li><strong>Littrow:</strong> the light returns along its incoming path, \(\alpha = \beta\), so \(\sin\alpha = m\lambda/2d\). Tunable lasers use it, and echelle gratings work close to it.</li>
+            <li><strong>Constant deviation (Czerny–Turner):</strong> the angle between the incident and diffracted beams, \(D_V = \alpha - \beta\), is fixed by the instrument, and the grating rotates to scan (Figure&nbsp;2). With scan angle \(\phi = (\alpha+\beta)/2\), the equation becomes \(m\lambda = 2d\cos(D_V/2)\sin\phi\), so \(\alpha = \phi + D_V/2\) and \(\beta = \phi - D_V/2\) (Palmer writes \(2K\) for \(D_V\)). Which beam makes the larger angle with the normal depends on which way the grating turns. Enter \(D_V\) as negative when the diffracted beam does (\(\beta > \alpha\)); that is the orientation of HORIBA’s tables, which define \(D_V = \beta - \alpha\). The orientation changes the dispersion, which follows \(\cos\beta\): at 500&nbsp;nm with 1200&nbsp;lines/mm and a 300&nbsp;mm focal length, \(D_V = +30^\circ\) gives 2.77&nbsp;nm/mm and \(D_V = -30^\circ\) gives 2.33&nbsp;nm/mm.</li>
+        </ul>
+        <figure>
+            <svg viewBox="0 0 360 290" class="gfig-svg" role="img" aria-label="Czerny–Turner spectrometer seen from above. Light from the entrance slit, of width w, is made parallel by a concave collimating mirror and falls on the plane grating at angle alpha. The grating sends the chosen wavelength at angle beta to a concave focusing mirror of focal length L B, which focuses it on the exit slit or detector. The fixed angle between the two beams at the grating is the deviation angle D V, 30 degrees here; the beam covers a width W of the grating. At 500 nanometers with 1200 lines per millimeter, alpha is 33.1 degrees and beta 3.1 degrees."><path class="beam" d="M121.9,237.1 L150.6,66 L122.5,73.5 Z"/><path class="beam" d="M150.6,66 L122.5,73.5 L163.5,226.6 L196.5,237.4 Z"/><path class="beam" d="M196.5,237.4 L163.5,226.6 L206.7,65.2 L240.2,74.2 Z"/><path class="beam" d="M240.2,74.2 L206.7,65.2 L238.1,237.1 Z"/><path class="chief" d="M121.9,237.1 L136.5,69.7"/><path class="chief" d="M136.5,69.7 L180,232"/><path class="chief" d="M180,232 L223.5,69.7"/><path class="chief" d="M223.5,69.7 L238.1,237.1"/><path class="h-in" d="M158.3,150.9 L153,145 L159.9,143.2 Z"/><path class="h-in" d="M201.7,150.9 L203.4,158.6 L196.5,156.7 Z"/><path class="mirror" d="M157.8,68.5 A336,336 0 0,0 115.4,72.2"/><path class="mirror" d="M244.6,72.2 A336,336 0 0,0 202.2,68.5"/><path class="grating" d="M148.1,221.6 L211.9,242.4"/><path class="slit" d="M118.9,236.8 L109.9,236"/><path class="slit" d="M124.9,237.3 L133.8,238.1"/><path class="slit" d="M235.1,237.3 L226.2,238.1"/><path class="slit" d="M241.1,236.8 L250.1,236"/><path class="normal" d="M180,232 L219,112.8"/><path class="arc" d="M187.8,203 A30,30 0 0,0 172.2,203"/><path class="arc" d="M196.2,182.6 A52,52 0 0,0 166.5,181.8"/><path class="arc" d="M206.1,152.2 A84,84 0 0,0 201.7,150.9"/><path class="dim" d="M193.4,247 L160.3,236.2 M192,251.2 l2.8,-8.5 M159,240.4 l2.8,-8.5"/><path class="dim" d="M240.1,79.5 L253.2,229 M235.6,79.9 l8.9,-0.8 M248.7,229.4 l8.9,-0.8"/><text class="halo" x="180" y="191" text-anchor="middle">D<tspan class="sub-s" dy="3">V</tspan></text><text class="halo" x="179.7" y="172" text-anchor="middle">α</text><text class="halo" x="211.1" y="156.2">β</text><text class="t-strong halo" x="223" y="108.8">normal</text><text x="120.5" y="47.7" text-anchor="end">collimating</text><text x="120.5" y="61.7" text-anchor="end">mirror</text><text x="239.5" y="47.7">focusing</text><text x="239.5" y="61.7">mirror</text><text x="107.9" y="241.1" text-anchor="end">entrance</text><text x="107.9" y="255.1" text-anchor="end">slit, w</text><text x="252.1" y="241.1">exit slit</text><text x="252.1" y="255.1">or detector</text><text x="252.6" y="158.3">L<tspan class="sub-s" dy="3">B</tspan></text><text x="172.3" y="259.4" text-anchor="middle">W</text><text x="180" y="278" text-anchor="middle">grating: 1200 lines/mm, 500 nm, D<tspan class="sub-s" dy="3">V</tspan><tspan dy="-3"> = 30°</tspan></text></svg>
+            <figcaption>Figure 2. A Czerny–Turner spectrometer seen from above, with the angles of the constant-deviation example: D<sub>V</sub> = 30°, 1200&nbsp;lines/mm, 500&nbsp;nm, so α = 33.1° and β = 3.1°. The collimating mirror makes the light from the entrance slit (width w) parallel, and the beam covers a width W of the grating; the focusing mirror, of focal length L<sub>B</sub>, forms the spectrum on the exit slit or detector. The grating turns about its center to change the wavelength while D<sub>V</sub> stays fixed. Turning it the other way (D<sub>V</sub> = −30°) gives α = 3.1° and β = 33.1°.</figcaption>
+        </figure>
+
+        <h3>Dispersion, resolution, and bandpass</h3>
+        <div class="formula">\[ \begin{gathered} \frac{d\beta}{d\lambda} = \frac{m}{d\cos\beta}, \\[4pt] \frac{d\lambda}{dx} = \frac{d\cos\beta}{|m|\,L_B}, \\[4pt] R = \frac{\lambda}{\Delta\lambda} = |m|N = \frac{W\,|\sin\alpha + \sin\beta|}{\lambda} \le \frac{2W}{\lambda} . \end{gathered} \]</div>
+        <p>The reciprocal linear dispersion \(d\lambda/dx\) (nm per mm at the focal plane) turns a width at the exit into a band of wavelengths. The grating also changes the width of the entrance-slit image: it is magnified by \(\cos\alpha/\cos\beta\), times \(L_B/L_A\) when the collimating focal length \(L_A\) differs from \(L_B\). The bandpass is set by the wider of that image and the exit slit:</p>
+        <div class="formula">\[ B \approx \frac{d\lambda}{dx}\,\max\!\left(w_\text{exit},\ w\,\frac{\cos\alpha}{\cos\beta}\,\frac{L_B}{L_A}\right) . \]</div>
+        <p>The calculator takes \(L_A = L_B\) and equal slits, \(w_\text{exit} = w\), so \(B = w\,d\max(\cos\alpha,\cos\beta)/(|m|L_B)\): both orientations of a constant-deviation mount give the same bandpass, although their dispersions differ. With a detector array instead of an exit slit, \(B\) is about the slit-image width times \(d\lambda/dx\). The resolving power \(R = |m|N\) is the theoretical limit set by the number of illuminated grooves (Rayleigh criterion), and no geometry can exceed \(2W/\lambda\); practical spectrometers are usually slit- or pixel-limited well before reaching it. The results give the bandpass and the diffraction-limited width \(\lambda/R\) in wavelength, frequency, and wavenumber, with \(\Delta\nu = c\,\Delta\lambda/\lambda^2\) and \(\Delta\tilde\nu = \Delta\lambda/\lambda^2\) (about 0.03&nbsp;% high when \(\lambda\) is an air wavelength). The free spectral range \(\lambda/|m|\) is the band before the next order overlaps, so a first-order spectrum spanning more than a factor of two in wavelength needs order-sorting filters, unless the overlapping light is absorbed, as air absorbs it below about 190&nbsp;nm.</p>
+
+        <h2>Typical values: choosing a groove density</h2>
+        <p>For a 300&nbsp;mm Czerny–Turner with D<sub>V</sub> = 30° and 50&nbsp;µm slits, used in first order, this calculator gives the dispersion and bandpass at 500&nbsp;nm:</p>
+        <table class="tv">
+            <thead><tr><th class="num">Lines<br>per mm</th><th class="num">Longest<br>λ (nm)</th><th class="num">dλ/dx<br>(nm/mm)</th><th class="num">Bandpass<br>(nm)</th></tr></thead>
+            <tbody>
+                <tr><td class="num">300</td><td class="num">6220</td><td class="num">10.9</td><td class="num">0.546</td></tr>
+                <tr><td class="num">600</td><td class="num">3110</td><td class="num">5.52</td><td class="num">0.276</td></tr>
+                <tr><td class="num">1200</td><td class="num">1555</td><td class="num">2.77</td><td class="num">0.139</td></tr>
+                <tr><td class="num">1800</td><td class="num">1037</td><td class="num">1.81</td><td class="num">0.0903</td></tr>
+                <tr><td class="num">2400</td><td class="num">778</td><td class="num">1.28</td><td class="num">0.0637</td></tr>
+                <tr><td class="num">3600</td><td class="num">518</td><td class="num">0.548</td><td class="num">0.0274</td></tr>
+            </tbody>
+        </table>
+        <p>Doubling the groove density roughly halves both the bandpass and the longest wavelength. The longest wavelength in the table is where a beam would graze the grating, and near it the angles become extreme: 3600&nbsp;lines/mm at 500&nbsp;nm already needs α = 83.7°. A real instrument’s grating drive stops sooner; in HORIBA’s example monochromator a 3600&nbsp;lines/mm grating cannot go above 433&nbsp;nm.</p>
+
+        <h2>Worked example</h2>
+        <p>Take a 1200&nbsp;lines/mm grating (\(d = 833.3\)&nbsp;nm) at \(\alpha = 30^\circ\), first order, 500&nbsp;nm. Then \(\sin\beta = 0.6 - 0.5 = 0.1\), so \(\beta = 5.74^\circ\). The angular dispersion is 1.206&nbsp;mrad/nm, and with a 300&nbsp;mm focusing mirror the reciprocal linear dispersion is 2.76&nbsp;nm/mm. The grating shrinks the image of a 50&nbsp;µm entrance slit to 43.5&nbsp;µm (\(\cos 30^\circ/\cos 5.74^\circ = 0.870\)), so with 50&nbsp;µm slits the exit slit sets the bandpass: about 0.14&nbsp;nm (5.5&nbsp;cm⁻¹). Fifty millimeters of illuminated grating gives \(R = 60\,000\), or 8.3&nbsp;pm (10&nbsp;GHz) at 500&nbsp;nm, so the slits, not the grating, limit the resolution. In a Czerny–Turner with \(D_V = 30^\circ\), the same wavelength needs \(\alpha = 33.09^\circ\) and \(\beta = 3.09^\circ\). With \(D_V = -30^\circ\) the two angles swap: the reciprocal linear dispersion changes from 2.77 to 2.33&nbsp;nm/mm, while the bandpass stays 0.139&nbsp;nm.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Plane grating in the principal plane.</strong> No conical (off-plane) diffraction. Concave and holographic aberration-corrected gratings follow the same equation at their center, but their focal-plane properties differ.</li>
+            <li><strong>Geometric bandpass.</strong> The bandpass counts only the slit widths and the slit image. Aberrations and diffraction at the optics widen it further, and the diffracted wavefront must be good to about λ/10 for the grating to reach its theoretical resolving power (Palmer). The calculator assumes equal collimating and focusing focal lengths; otherwise scale the slit image by \(L_B/L_A\).</li>
+            <li><strong>Detector normal to the diffracted beam.</strong> \(d\lambda/dx\) is for a focal plane perpendicular to the central diffracted ray. A detector tilted by \(\gamma\) from that plane spreads the spectrum by \(1/\cos\gamma\), so \(d\lambda/dx = d\cos\beta\cos\gamma/(|m|\,L_B)\).</li>
+            <li><strong>Efficiency is not modeled.</strong> Which orders are bright depends on blaze angle, groove profile, polarization, and coating; use the manufacturer’s efficiency curves. As a rule of thumb, a blazed grating is most efficient where its groove facets reflect the incident beam into the diffracted one, \(\alpha + \beta = 2\theta_B\). Catalogs quote the blaze wavelength for first-order Littrow, \(\lambda_B = 2d\sin\theta_B\), so a grating blazed at the Littrow angle in the results peaks near \(\lambda\) when used in Littrow. In a constant-deviation mount the peak moves to \(\lambda_B\cos(D_V/2)\), and efficiency generally falls the farther a mount is from Littrow. First-order efficiency drops to about half its peak at roughly two thirds of the blaze wavelength and at 1.5 to 1.8 times it (rules of thumb from Palmer and HORIBA).</li>
+            <li><strong>Anomalies.</strong> Wherever an order starts or stops propagating, at the wavelength where its beam would graze the grating, the power in the other orders changes abruptly (a Rayleigh anomaly). Efficiency curves can also show sharp resonance anomalies. Both show up mainly for light polarized perpendicular to the grooves.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>C. Palmer, <em>Diffraction Grating Handbook</em>, 8th ed., MKS Instruments (2020), free from MKS at <a href="https://www.newport.com/diffraction-grating-handbook" target="_blank" rel="noopener">newport.com</a>: ch. 2 (the grating equation and its sign convention, Littrow and constant-deviation forms, eqs. 2-1 to 2-10; dispersion, eqs. 2-13 and 2-17; resolving power and its 2W/λ maximum, eqs. 2-19 to 2-23; free spectral range; blaze), ch. 6 (Czerny–Turner and Littrow mounts), ch. 8 (slit-image magnification, eq. 8-2, and instrumental bandpass, eq. 8-12), and ch. 9 (useful wavelength range and anomalies).</li>
+            <li>E. G. Loewen and E. Popov, <em>Diffraction Gratings and Applications</em>, Marcel Dekker (1997), reissued by CRC Press (2018), <a href="https://doi.org/10.1201/9781315214849" target="_blank" rel="noopener">doi:10.1201/9781315214849</a> (ch. 2, fundamental properties of gratings; ch. 8, surface waves and grating anomalies).</li>
+            <li>W. Demtröder, <em>Laser Spectroscopy 1: Basic Principles</em>, 5th ed., Springer (2014), <a href="https://doi.org/10.1007/978-3-642-53859-9" target="_blank" rel="noopener">doi:10.1007/978-3-642-53859-9</a>, ch. 4, “Spectroscopic Instrumentation,” pp. 113–256 (spectrographs and monochromators, including grating spectrometers).</li>
+            <li>A. Thorne, U. Litzén, and S. Johansson, <em>Spectrophysics: Principles and Applications</em>, Springer (1999), the rewritten successor of A. P. Thorne, <em>Spectrophysics</em>, 2nd ed., Chapman and Hall (1988), <a href="https://doi.org/10.1007/978-94-009-1193-2" target="_blank" rel="noopener">doi:10.1007/978-94-009-1193-2</a>, ch. 6, “Diffraction gratings” (textbook treatment of gratings and grating spectrographs).</li>
+            <li>M. Czerny and A. F. Turner, “Über den Astigmatismus bei Spiegelspektrometern,” <em>Z. Phys.</em> <strong>61</strong>, 792–797 (1930), <a href="https://doi.org/10.1007/BF01340206" target="_blank" rel="noopener">doi:10.1007/BF01340206</a> (the paper the Czerny–Turner mount is named after).</li>
+            <li>A. B. Shafer, L. R. Megill, and L. Droppleman, “Optimization of the Czerny–Turner spectrometer,” <em>J. Opt. Soc. Am.</em> <strong>54</strong>, 879–887 (1964), <a href="https://doi.org/10.1364/JOSA.54.000879" target="_blank" rel="noopener">doi:10.1364/JOSA.54.000879</a> (aberrations of the two-mirror mount and how an asymmetric layout corrects them).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>HORIBA Scientific, “<a href="https://www.horiba.com/int/scientific/technologies/diffraction-gratings/diffraction-gratings-ruled-and-holographic/" target="_blank" rel="noopener">Diffraction gratings ruled and holographic</a>,” “<a href="https://www.horiba.com/int/monochromator-system-optics/" target="_blank" rel="noopener">Monochromator system optics</a>,” “<a href="https://www.horiba.com/int/bandpass-resolution/" target="_blank" rel="noopener">Bandpass and resolution</a>,” and “<a href="https://www.horiba.com/int/scientific/technologies/spectrometers-and-monochromators/order-resolution-and-dispersion/" target="_blank" rel="noopener">Order, resolution, and dispersion</a>,” online optics tutorial (the grating equation for air wavelengths, HORIBA’s D<sub>V</sub> = β − α convention, dispersion on a tilted detector, the slit-image magnification and bandpass, 3 to 6 pixels per bandpass, and grating-drive limits).</li>
+            <li>R. Paschotta, “Diffraction gratings,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/5ch" target="_blank" rel="noopener">doi:10.61835/5ch</a> (diffraction orders, blazed gratings, and the Littrow configuration).</li>
+            <li>R. Paschotta, “Monochromators,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/4yv" target="_blank" rel="noopener">doi:10.61835/4yv</a> (how a Czerny–Turner monochromator works, and its bandwidth and stray light).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="doppler-broadening,energy-converter,machine-vision-lens,photon-flux,article:spectroscopic-units"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, K } = Calc;
+    const DEG = 180 / Math.PI;
+    const modeSel = document.getElementById('mode');
+    const fAlpha = document.getElementById('f-alpha');
+    const fDev = document.getElementById('f-dev');
+    const plotBox = document.getElementById('g-plot');
+    const plotMode = document.getElementById('plot-mode');
+    const deg = r => fmt.num(r * DEG, 5) + '°';
+    const nb = s => s.replace(/ /g, String.fromCharCode(160));
+    // a spectral width Δλ at λ (in pm or larger, as in the line broadening calculator), also as a
+    // frequency (Δν = cΔλ/λ²) and a wavenumber (Δν̃ = Δλ/λ²)
+    const width = (dl, wl) => { const dnu = K.c * dl / (wl * wl); return nb(fmt.si(dl, 'm', 4, { min: -12 })) + ' (' + nb(fmt.si(dnu, 'Hz', 4)) + ', ' + nb(fmt.num(dnu / (K.c * 100), 4) + ' cm⁻¹') + ')'; };
+
+    // α and β (radians) for order m at wavelength λ; null when the order does not propagate (|α|, |β| < 90°)
+    function solve(mode, m, lam, d, alpha, dev) {
+        if (mode === 'littrow') { const s = m * lam / (2 * d); return Math.abs(s) < 1 ? { a: Math.asin(s), b: Math.asin(s) } : null; }
+        if (mode === 'ct') {
+            const s = m * lam / (2 * d * Math.cos(dev / 2));
+            if (Math.abs(s) > 1) return null;
+            const phi = Math.asin(s);
+            const a = phi + dev / 2, b = phi - dev / 2;
+            return (Math.abs(a) < Math.PI / 2 && Math.abs(b) < Math.PI / 2) ? { a, b } : null;
+        }
+        const s = m * lam / d - Math.sin(alpha);
+        return Math.abs(s) < 1 ? { a: alpha, b: Math.asin(s) } : null;
+    }
+
+    // longest wavelength order m reaches (the grazing limit); solve() succeeds only below it
+    function lmaxOf(mode, m, d, alpha, dev) {
+        if (mode === 'fixed') return d * (1 + Math.sign(m) * Math.sin(alpha)) / Math.abs(m);
+        if (mode === 'ct') return 2 * d * Math.cos(dev / 2) ** 2 / Math.abs(m);   // |α|, |β| < 90° caps sin φ at cos(D_V/2)
+        return 2 * d / Math.abs(m);
+    }
+
+    // Show the angle input the geometry uses. This also runs on every geometry change, so it works
+    // while another input is invalid. A hidden angle that is blank or not a number goes back to its
+    // default, because it would otherwise block every result. A geometry the select doesn't offer
+    // (from an edited link) becomes 'fixed'. Returns true if it changed an input.
+    function syncMode() {
+        let changed = false;
+        if (modeSel.selectedIndex < 0) { modeSel.value = 'fixed'; changed = true; }
+        [[fAlpha, 'fixed'], [fDev, 'ct']].forEach(([field, mode]) => {
+            field.hidden = modeSel.value !== mode;
+            const inp = field.querySelector('input'), unit = field.querySelector('select');
+            if (field.hidden && isNaN(Calc.parseNum(inp.value))) {
+                inp.value = inp.defaultValue;
+                unit.value = unit.dataset.prev = unit.dataset.default;
+                changed = true;
+            }
+        });
+        return changed;
+    }
+
+    // β(λ) for orders ±1 and ±2 (or m and its neighbours when |m| > 2), with the current point.
+    // Returns false if no curve has a point in range.
+    function drawPlot(v) {
+        const d = 1e-3 / v.G;
+        const lo = v.wl * 0.05, hi = v.wl * 2.5;
+        const low = Math.abs(v.m) <= 2;
+        const orders = low ? [-2, -1, 1, 2] : [v.m - 1, v.m, v.m + 1];
+        const colors = low ? ['var(--c4)', 'var(--c2)', 'var(--c1)', 'var(--c3)'] : ['var(--c2)', 'var(--c1)', 'var(--c3)'];
+        // sample the current λ and each order's cutoff too, so the point sits on its curve and curves run to grazing
+        const extra = [v.wl].concat(orders.map(m => lmaxOf(v.mode, m, d, v.alpha, v.dev) * (1 - 1e-9))).filter(l => l > lo && l < hi);
+        const xs = Calc.math.linspace(lo, hi, 400).concat(extra).sort((p, q) => p - q);
+        const series = orders.map((m, i) => ({
+            type: 'line', x: xs.map(l => l * 1e9),
+            y: xs.map(l => { const s = solve(v.mode, m, l, d, v.alpha, v.dev); return s ? s.b * DEG : NaN; }),
+            label: 'm = ' + (m > 0 ? '+' : '−') + Math.abs(m), color: colors[i]
+        }));
+        const any = series.some(s => s.y.some(isFinite));
+        const cur = solve(v.mode, v.m, v.wl, d, v.alpha, v.dev);
+        if (cur) series.push({ type: 'points', x: [v.wl * 1e9], y: [cur.b * DEG], color: 'var(--text)', r: 5 });
+        plotMode.innerHTML = { fixed: 'α = ' + fmt.num(v.alpha * DEG, 4) + '°', littrow: 'Littrow', ct: 'D<sub>V</sub> = ' + fmt.num(v.dev * DEG, 4) + '°' }[v.mode];
+        plotMode.hidden = false;
+        Plot.draw(plotBox, {
+            height: 300,
+            x: { label: 'Wavelength (nm)', min: 0 },
+            y: { label: 'Diffraction angle β (deg)' },
+            series,
+            vlines: cur ? [] : [{ x: v.wl * 1e9, label: 'λ = ' + fmt.si(v.wl, 'm', 4), color: 'var(--danger)' }],
+            hover: { format: (x, hits) => {
+                const on = hits.filter(h => h.series.label);   // the unlabelled series is the current point
+                if (on.length) return 'λ = ' + fmt.num(x, 4) + ' nm' + on.map(h => ' · ' + h.series.label + ': β = ' + fmt.num(h.y, 4) + '°').join('');
+                return hits.length ? 'Current point: λ = ' + fmt.num(x, 4) + ' nm, β = ' + fmt.num(hits[0].y, 4) + '°' : 'No plotted order reaches λ = ' + fmt.num(x, 4) + ' nm';
+            } }
+        });
+        return any;
+    }
+
+    const calc = Calc.create({
+        form: '#calc',
+        compute(v) {
+            syncMode();
+            v.mode = modeSel.value;                     // syncMode() replaces a geometry the select doesn't offer
+            if (!Number.isInteger(v.m)) throw Calc.fail('The diffraction order must be an integer.', 'm');
+            if (v.m === 0) throw Calc.fail('Zero order is specular reflection (β = −α) and has no dispersion. Choose m ≠ 0.', 'm');
+            if (v.mode === 'fixed' && Math.abs(v.alpha) >= Math.PI / 2) throw Calc.fail('The angle of incidence must be between −90° and 90°.', 'alpha');
+            // D_V = α − β is signed: negative when the diffracted beam is the one farther from the normal (β > α)
+            if (v.mode === 'ct' && Math.abs(v.dev) >= Math.PI) throw Calc.fail('The deviation angle must be between −180° and 180°.', 'dev');
+
+            const d = 1e-3 / v.G;                       // groove spacing, m
+            const N = v.W / d;
+            if (N < 2) throw Calc.fail('Only ' + fmt.num(N, 3) + ' grooves are illuminated (N = W/d), and a grating needs at least two. Check the groove density (lines per mm) and the illuminated width.', 'G');
+            const lmax = lmaxOf(v.mode, v.m, d, v.alpha, v.dev);
+            const sol = solve(v.mode, v.m, v.wl, d, v.alpha, v.dev);
+            if (!sol) {
+                const why = { fixed: '|sin β| would exceed 1, so the order is evanescent', littrow: 'the Littrow angle would pass 90°',
+                              ct: 'the grating would have to turn past grazing (|α| or |β| ≥ 90°)' }[v.mode];
+                const angleHelps = v.wl < 2 * d / Math.abs(v.m);   // no geometry gets past 2d/|m|, since sin α + sin β < 2
+                const tips = [Math.abs(v.m) > 1 && 'a lower order', 'a coarser grating',
+                              angleHelps && v.mode === 'fixed' && 'a different angle of incidence', angleHelps && v.mode === 'ct' && 'a deviation angle closer to 0°'].filter(Boolean);
+                const err = Calc.fail('Order m = ' + String(v.m).replace('-', '−') + ' cannot reach ' + fmt.si(v.wl, 'm', 4) + ': ' + why + '. Here this order is limited to λ < ' + fmt.si(lmax, 'm', 4) +
+                    '. Try ' + tips.slice(0, -1).join(', ') + (tips.length > 2 ? ', or ' : tips.length > 1 ? ' or ' : '') + tips[tips.length - 1] + '.', 'wl');
+                err.plotted = drawPlot(v);              // the curves show where each order ends
+                throw err;
+            }
+            const { a, b } = sol;
+            const cb = Math.cos(b);
+            const angDisp = v.m / (d * cb);              // rad/m
+            const rld = d * cb / (Math.abs(v.m) * v.LB); // m of λ per m of focal plane
+            // the grating images the entrance slit with magnification cos α/cos β (equal collimator and focusing focal
+            // lengths); with equal entrance and exit slits the wider of the exit slit and that image sets the bandpass
+            const T = Math.cos(a) / cb;
+            const R = Math.abs(v.m) * N;
+            const sL = v.m * v.wl / (2 * d);
+
+            return {
+                beta: deg(b),
+                alpha: deg(a),
+                dev: deg(a - b),
+                littrow: Math.abs(sL) < 1 ? deg(Math.asin(sL)) : 'not possible',
+                angDisp: fmt.num(Math.abs(angDisp) * 1e-9 * 1e3, 4) + ' mrad/nm  (' + fmt.num(Math.abs(angDisp) * 1e-9 * DEG, 4) + '°/nm)',
+                rld: fmt.num(rld * 1e9 / 1e3, 4) + ' nm/mm',
+                bp: width(v.slit * Math.max(1, T) * rld, v.wl),
+                img: nb(fmt.si(T * v.slit, 'm', 4)) + ' (×' + fmt.num(T, 4) + ')',
+                R: fmt.num(R, 5),
+                dl: width(v.wl / R, v.wl),
+                N: fmt.num(N, 5),
+                fsr: fmt.si(v.wl / Math.abs(v.m), 'm', 4),
+                lmax: fmt.si(lmax, 'm', 4)
+            };
+        },
+        after: drawPlot,
+        onError(err) {
+            if (err.plotted) return;                    // the plot already shows the current inputs
+            plotMode.hidden = true; plotMode.textContent = '';
+            clearTimeout(plotBox._plotT); plotBox._plot = null;   // stop plot.js redrawing the old chart on resize
+            plotBox.innerHTML = '';
+        }
+    });
+    modeSel.addEventListener('change', syncMode);
+    if (syncMode()) calc.run();
+});
+</script>
+</body>
+</html>

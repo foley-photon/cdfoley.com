@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conductance Lab (beta) | Casey D. Foley, PhD</title>
+<meta name="description" content="Beta: vacuum conductance of tubes, slits, ducts, annuli, cones, elbows and whole pumping lines from molecular to viscous flow, checked by Monte Carlo, plus Monte Carlo conductance of CAD models.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="./conductance.css">
+<link rel="stylesheet" href="./cad.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.186.1/three.module.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.186.1/three.core.js":
+      "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.186.1/three.core.min.js" } }
+</script>
+<link rel="modulepreload" href="./js/ui/app.js">
+<link rel="modulepreload" href="./js/ui/store.js">
+<link rel="modulepreload" href="./js/ui/format.js">
+<link rel="modulepreload" href="./js/ui/url-state.js">
+<link rel="modulepreload" href="./js/ui/components-ui.js">
+<link rel="modulepreload" href="./js/ui/schematic.js">
+<link rel="modulepreload" href="./js/engine/gas.js">
+<link rel="modulepreload" href="./js/engine/interp.js">
+<link rel="modulepreload" href="./js/engine/tables.js">
+<link rel="modulepreload" href="./js/engine/molecular.js">
+<link rel="modulepreload" href="./js/engine/flow.js">
+<link rel="modulepreload" href="./js/engine/elements.js">
+<link rel="modulepreload" href="./js/engine/network.js">
+</head>
+<body data-section="beta">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/beta/">Beta tools</a></li><li aria-current="page">Conductance Lab</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <span class="eyebrow">Beta</span>
+        <h1>Conductance Lab <span class="badge badge-warn">BETA</span></h1>
+        <p class="lede">Conductance of tubes, slits, ducts, annuli, cones and elbows, alone or as a whole pumping line, from molecular to viscous flow. Check the formulas with a Monte Carlo simulation, or load a CAD model and simulate it directly.</p>
+    </header>
+
+    <div class="callout callout-warn" role="note">
+        <p><strong>Beta: not yet validated by the author.</strong> The Self-test tab compares this tool with published reference values; treat other results as provisional. Found a wrong number? Email <a href="mailto:foley.photon@gmail.com">foley.photon@gmail.com</a>.</p>
+    </div>
+
+    <section class="panel cl-conditions" aria-label="Gas, temperature and units">
+        <div class="cl-cond-row">
+            <div class="field cl-f-gas">
+                <label for="cl-gas">Gas</label>
+                <select id="cl-gas" class="input"></select>
+            </div>
+            <div class="field cl-f-t">
+                <label for="cl-T">Temperature</label>
+                <div class="input-unit"><input id="cl-T" inputmode="decimal" autocomplete="off" spellcheck="false" value="20"><select id="cl-T-unit" aria-label="Temperature unit"><option value="°C" selected>°C</option><option value="K">K</option><option value="°F">°F</option></select></div>
+            </div>
+            <div class="field cl-f-cd">
+                <label for="cl-cd">Discharge coefficient <span class="sym">C<sub>d</sub></span> <span class="cl-cd-assumed" id="cl-cd-assumed">(assumed)</span></label>
+                <div class="input-unit"><input id="cl-cd" inputmode="decimal" autocomplete="off" spellcheck="false" aria-describedby="cl-cd-hint"><button type="button" class="cl-linkbtn" id="cl-cd-default" hidden>default</button></div>
+                <p class="hint" id="cl-cd-hint">Thin sharp-edged plate at a large pressure ratio. Rounded or nozzle-like entrances approach 1.</p>
+            </div>
+            <div class="field cl-f-units">
+                <span class="field-label">Units</span>
+                <div class="cl-units">
+                    <select id="cl-lu" class="input" aria-label="Length unit"><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option><option value="in">in</option></select>
+                    <select id="cl-su" class="input" aria-label="Speed and conductance unit"><option value="L/s">L/s</option><option value="m³/h">m³/h</option><option value="L/min">L/min</option><option value="cfm">cfm</option></select>
+                    <select id="cl-pu" class="input" aria-label="Pressure unit"><option value="mbar">mbar</option><option value="Pa">Pa</option><option value="Torr">Torr</option><option value="mTorr">mTorr</option></select>
+                </div>
+            </div>
+        </div>
+        <div class="cl-cond-row cl-custom" id="cl-custom" hidden>
+            <div class="field"><label for="cl-gM">Molar mass</label><div class="input-unit"><input id="cl-gM" inputmode="decimal" autocomplete="off"><span class="unit">g/mol</span></div></div>
+            <div class="field"><label for="cl-geta">Viscosity at 20 °C <span class="sym">η</span></label><div class="input-unit"><input id="cl-geta" inputmode="decimal" autocomplete="off"><span class="unit">µPa·s</span></div></div>
+            <div class="field"><label for="cl-gom">Viscosity exponent <span class="sym">ω</span></label><div class="input-unit"><input id="cl-gom" inputmode="decimal" autocomplete="off"></div></div>
+            <div class="field"><label for="cl-gga">Heat-capacity ratio <span class="sym">γ</span></label><div class="input-unit"><input id="cl-gga" inputmode="decimal" autocomplete="off"></div></div>
+            <div class="field"><label for="cl-gcd">Default <span class="sym">C<sub>d</sub></span></label><div class="input-unit"><input id="cl-gcd" inputmode="decimal" autocomplete="off"></div></div>
+        </div>
+        <p class="calc-error" id="cl-gas-error" role="alert"></p>
+    </section>
+
+    <div class="cl-tabs" role="tablist" aria-label="Mode">
+        <button type="button" role="tab" id="tabbtn-components" aria-controls="tab-components" aria-selected="true" tabindex="0">Components</button>
+        <button type="button" role="tab" id="tabbtn-cad" aria-controls="tab-cad" aria-selected="false" tabindex="-1">CAD model (Monte Carlo)</button>
+        <button type="button" role="tab" id="tabbtn-selftest" aria-controls="tab-selftest" aria-selected="false" tabindex="-1">Self-test</button>
+    </div>
+
+    <section role="tabpanel" id="tab-components" aria-labelledby="tabbtn-components" class="cl-panel">
+        <div class="tool-layout">
+            <section class="panel" aria-labelledby="cl-line-h">
+                <div class="panel-head"><h2 id="cl-line-h">Pumping line</h2>
+                    <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+                </div>
+                <div class="panel-body">
+                    <p class="callout cl-notice" id="cl-notice" role="status" hidden></p>
+                    <div class="field">
+                        <span class="field-label" id="cl-presets-l">Examples</span>
+                        <div class="chip-row" id="cl-presets" role="group" aria-labelledby="cl-presets-l"></div>
+                    </div>
+                    <div class="field">
+                        <span class="field-label" id="cl-bc-l">Boundary</span>
+                        <div class="seg" role="radiogroup" aria-labelledby="cl-bc-l">
+                            <input type="radio" name="cl-bc" id="cl-bc-pump" value="pump" checked><label for="cl-bc-pump">Chamber → pump</label>
+                            <input type="radio" name="cl-bc" id="cl-bc-dp" value="dp"><label for="cl-bc-dp">Between two pressures</label>
+                        </div>
+                    </div>
+                    <ol class="cl-chain" id="cl-chain" aria-label="Elements of the line, in flow order"></ol>
+                    <div class="field cl-add">
+                        <label for="cl-add">Add element</label>
+                        <div class="cl-add-row"><select id="cl-add" class="input"></select><button type="button" class="btn btn-secondary btn-sm" id="cl-add-btn">Add</button></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel sticky-panel" aria-labelledby="cl-res-h">
+                <div class="panel-head"><h2 id="cl-res-h">Results</h2><span class="badge" id="cl-regime-badge" hidden></span></div>
+                <div class="panel-body">
+                    <div class="calc-error" id="cl-error" role="alert"></div>
+                    <div class="results" id="cl-results">
+                        <div class="result primary" id="cl-r-primary" aria-live="polite" hidden><span class="result-label"></span><span class="result-value"></span><span class="result-note" hidden></span></div>
+                        <div class="result" id="cl-r-cline" hidden><span class="result-label"></span><span class="result-value"></span><span class="result-note" hidden></span></div>
+                        <div class="result" id="cl-r-cmol" hidden><span class="result-label"></span><span class="result-value"></span><span class="result-note" hidden></span></div>
+                        <div class="result" id="cl-r-smol" hidden><span class="result-label"></span><span class="result-value"></span><span class="result-note" hidden></span></div>
+                        <div class="result" id="cl-r-q" hidden><span class="result-label"></span><span class="result-value"></span><span class="result-note" hidden></span></div>
+                        <div class="result" id="cl-r-pn" hidden><span class="result-label"></span><span class="result-value"></span><span class="result-note" hidden></span></div>
+                        <div class="result" id="cl-r-regime" hidden><span class="result-label"></span><span class="result-value"></span><span class="result-note" hidden></span></div>
+                    </div>
+                    <h3 class="cl-subhead">Checks</h3>
+                    <ul class="cl-checks" id="cl-checks"></ul>
+
+                    <div class="cl-mc" id="cl-mc">
+                        <h3 class="cl-subhead">Verify by Monte Carlo</h3>
+                        <button type="button" class="btn btn-primary" id="cl-mc-run" disabled>Verify by Monte Carlo (molecular flow)</button>
+                        <p class="hint" id="cl-mc-hint">Simulates the same geometry particle by particle (exact geometry, molecular flow). Long or narrow lines take longer; see Options.</p>
+                        <details class="cl-mc-opts">
+                            <summary>Options</summary>
+                            <div class="field-row">
+                                <div class="field"><label for="cl-mc-target">Target precision (95 %)</label>
+                                    <select id="cl-mc-target" class="input"><option value="0.03">±3 %</option><option value="0.01" selected>±1 %</option><option value="0.003">±0.3 %</option></select></div>
+                                <div class="field"><label for="cl-mc-time">Maximum time</label>
+                                    <select id="cl-mc-time" class="input"><option value="10">10 s</option><option value="20" selected>20 s</option><option value="60">60 s</option></select></div>
+                                <div class="field"><label for="cl-mc-seed">Seed</label>
+                                    <input id="cl-mc-seed" class="input" inputmode="numeric" autocomplete="off" placeholder="random" aria-describedby="cl-mc-seed-err cl-mc-seed-h">
+                                    <p class="cl-ferr" id="cl-mc-seed-err" hidden></p></div>
+                            </div>
+                            <p class="hint" id="cl-mc-seed-h">A seed fixes the random numbers. A run that stops at a precision or time limit can still end after a slightly different number of particles, so repeated runs agree within their intervals, not digit for digit.</p>
+                        </details>
+                        <div class="cl-mc-running" id="cl-mc-running" hidden>
+                            <progress id="cl-mc-prog" max="1" value="0" aria-label="Monte Carlo progress"></progress>
+                            <p class="cl-mc-status" id="cl-mc-status" aria-live="polite"></p>
+                            <button type="button" class="btn btn-secondary btn-sm" id="cl-mc-stop">Stop</button>
+                        </div>
+                        <div class="results cl-mc-results" id="cl-mc-results" hidden>
+                            <div class="result" id="cl-mc-r-value" hidden><span class="result-label"></span><span class="result-value"></span><span class="result-note" hidden></span></div>
+                            <div class="result" id="cl-mc-r-formula" hidden><span class="result-label"></span><span class="result-value"></span><span class="result-note" hidden></span></div>
+                            <div class="result" id="cl-mc-r-badge" hidden><span class="result-label"></span><span class="result-value"></span><span class="result-note" hidden></span></div>
+                            <p class="hint" id="cl-mc-note"></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="panel cl-wide cl-dep" aria-labelledby="cl-sch-h">
+            <div class="panel-head"><h2 id="cl-sch-h">Schematic</h2>
+                <div class="cl-toggles">
+                    <div class="seg" role="radiogroup" aria-label="Horizontal scale">
+                        <input type="radio" name="cl-sch-mode" id="cl-sch-scale" value="scale"><label for="cl-sch-scale">To scale</label>
+                        <input type="radio" name="cl-sch-mode" id="cl-sch-comp" value="compressed"><label for="cl-sch-comp">Compressed</label>
+                    </div>
+                    <div class="seg" role="radiogroup" aria-label="Share of the resistance at">
+                        <input type="radio" name="cl-sch-basis" id="cl-sch-op" value="op" checked><label for="cl-sch-op">This pressure</label>
+                        <input type="radio" name="cl-sch-basis" id="cl-sch-mol" value="mol"><label for="cl-sch-mol">Molecular limit</label>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="cl-schematic-scroll" id="cl-schematic"></div>
+                <div class="cl-sch-legend" id="cl-legend"></div>
+                <p class="hint">Click an element to find its card. Compressed view shortens long elements (marked with a break) so the whole line fits.</p>
+            </div>
+        </section>
+
+        <section class="panel cl-wide cl-dep" aria-labelledby="cl-table-h">
+            <div class="panel-head"><h2 id="cl-table-h">Elements</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" id="cl-csv">Copy as CSV</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="cl-table-scroll"><table class="cl-table" id="cl-table"></table></div>
+                <p class="hint">α is the molecular transmission probability referred to the inlet. "C alone" is the element between two large volumes in molecular flow; "C here" is its conductance at the operating point, Q/(p<sub>in</sub> − p<sub>out</sub>).</p>
+            </div>
+        </section>
+
+        <div class="grid grid-2 cl-plots cl-dep">
+            <section class="panel" aria-labelledby="cl-plot-op-h">
+                <div class="panel-head"><h2 id="cl-plot-op-h">Effective pumping speed vs chamber pressure</h2></div>
+                <div class="panel-body"><div class="cl-plot" id="cl-plot-op"></div>
+                    <p class="hint">Gray dashed lines: Kn = 0.5 and 0.01 for the element with the largest share. Rarefaction effects already show above Kn = 0.5: where the curve leaves the molecular line, the flow is no longer purely molecular.</p></div>
+            </section>
+            <section class="panel" aria-labelledby="cl-plot-c-h">
+                <div class="panel-head"><h2 id="cl-plot-c-h">Line conductance vs mean pressure (small pressure difference)</h2></div>
+                <div class="panel-body"><div class="cl-plot" id="cl-plot-c"></div>
+                    <p class="hint">Small pressure difference. At high pressure, real flows are limited by inertia, choking and turbulence; see the operating curve.</p></div>
+            </section>
+        </div>
+        <div class="cl-range field-row">
+            <div class="field"><label for="cl-pmin">Plot from</label><div class="input-unit"><input id="cl-pmin" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="unit" data-unit="pressure">mbar</span></div></div>
+            <div class="field"><label for="cl-pmax">to</label><div class="input-unit"><input id="cl-pmax" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="unit" data-unit="pressure">mbar</span></div></div>
+        </div>
+    </section>
+
+    <section role="tabpanel" id="tab-cad" aria-labelledby="tabbtn-cad" class="cl-panel" hidden>
+        <div id="cad-root"><p class="hint">Loading the 3D tools…</p></div>
+    </section>
+
+    <section role="tabpanel" id="tab-selftest" aria-labelledby="tabbtn-selftest" class="cl-panel" hidden>
+        <div id="selftest-root"></div>
+    </section>
+
+    <article class="prose cl-prose" id="how">
+        <h2>How this works</h2>
+
+        <h3>What conductance is</h3>
+        <p>A conductance \(C\) relates the gas throughput \(Q\) of a component to the pressure difference across it, \(Q = C\,(p_1 - p_2)\), so it has the units of a pumping speed. In molecular flow, where molecules hit the walls far more often than each other, a component passes the fraction \(\alpha\) (its transmission probability) of the molecules that enter it:</p>
+        <div class="formula">$$C = \alpha\,\frac{A\,\bar v}{4},\qquad \bar v = \sqrt{\frac{8RT}{\pi M}}$$</div>
+        <p>\(A\bar v/4\) is the conductance of a thin orifice of area \(A\). For air at 20 °C, \(\bar v\) = 463 m/s, so an orifice passes 11.6 L/s for every square centimeter of its area. Every tube, duct or elbow conducts less than an orifice of its own entrance area.</p>
+        <p>Textbooks combine conductances like electrical resistors: \(1/C = \sum 1/C_i\) in series and \(C = \sum C_i\) in parallel. In molecular flow the series rule is only approximate. Each \(C_i\) is measured between two large volumes, so it includes an entrance loss, and inside a line the molecules entering the next element are not a still gas. Simply adding resistances counts the entrances more than once and underestimates the line, by up to tens of percent for short elements.</p>
+
+        <h3>Molecular flow, element by element</h3>
+        <p>Each element type has its own transmission probability, referred to its inlet:</p>
+        <ul>
+            <li><strong>Round tubes</strong> use Berman's closed form, which agrees with Matuda's integral-equation values to 0.07 % for L/D from 1 to 500. Dushman's popular approximation \(\alpha \approx 1/(1 + 3L/4d)\) is up to 12 % high.</li>
+            <li><strong>Slits and rectangular ducts</strong> use a table of our own integral-equation solutions for the infinitely wide slot and test-particle Monte Carlo (TPMC) results for finite ducts, interpolated monotonically. A slit is a duct whose width is much larger than its gap, so its end walls are included.</li>
+            <li><strong>Annuli</strong> (a tube with a rod) and <strong>cones</strong> use TPMC tables of 2.3 to 30 million particles per point. A converging cone follows from the diverging one by reciprocity, \(A_1\alpha_{12} = A_2\alpha_{21}\), so the conductance does not depend on the direction.</li>
+            <li><strong>90° mitered elbows</strong> combine the two legs as tubes (Oatley's rule) and multiply by a correction \(\kappa\) from TPMC: \(\alpha = \kappa(A/R, B/R)\,\alpha_\mathrm{O}\). Without \(\kappa\) the result would be off by −4.8 % to +1.0 %.</li>
+            <li><strong>Black boxes</strong> (a valve or trap with a datasheet conductance) are scaled to the gas and temperature and replaced by a round tube of the flange bore with the same molecular conductance. Their molecular value is exact by construction; outside molecular flow it is an estimate.</li>
+        </ul>
+        <table>
+            <caption class="visually-hidden">Measured accuracy of the molecular transmission probabilities</caption>
+            <thead><tr><th>Element</th><th>Method</th><th class="num">Largest deviation found</th></tr></thead>
+            <tbody>
+                <tr><td>Round tube</td><td>Berman's closed form; compared with Matuda (L/D 1–500)</td><td class="num">0.07 %</td></tr>
+                <tr><td>Wide slot</td><td>Integral equation (this work); compared with JPCRD Table 29</td><td class="num">0.10 %</td></tr>
+                <tr><td>Rectangular duct</td><td>TPMC table; 23 independent TPMC points; Santeler and Boeckmann</td><td class="num">0.19 %; 0.09 %</td></tr>
+                <tr><td>Annulus</td><td>TPMC table; 21 independent TPMC points; Berman's table</td><td class="num">0.43 %; 0.20 %</td></tr>
+                <tr><td>Cone or reducer</td><td>TPMC table; 52 independent TPMC points; NASA TN D-2330</td><td class="num">0.36 %; 0.4 %</td></tr>
+                <tr><td>90° elbow</td><td>Oatley legs × \(\kappa\) (TPMC); 8 independent TPMC points</td><td class="num">0.30 %</td></tr>
+            </tbody>
+        </table>
+        <p>Outside the tables' ranges the values are extrapolated and the element is flagged; the accuracy is then about ±1 %.</p>
+
+        <h3>Joining elements</h3>
+        <p>The line is solved as a network: every element is an entrance edge plus an interior (core) edge between nodes, and chambers and parallel junctions are ideal mixing volumes. In molecular flow this network reduces exactly to Haefer's addition theorem:</p>
+        <div class="formula">$$\frac{1}{C} = \frac{4}{A_1\bar v} + \sum_i \frac{4}{A_i\bar v}\left(\frac{1}{\alpha_i} - 1\right) + \sum_\text{contractions} \frac{4}{\bar v}\left(\frac{1}{A_\text{to}} - \frac{1}{A_\text{from}}\right)$$</div>
+        <p>Haefer's theorem still underestimates a line slightly, because molecules leaving one element are beamed forward. Our TPMC found the true conductance 1.4 % to 3.0 % higher for one junction between dissimilar elements and 5 % to 6.4 % higher for two. So consecutive pieces with the same cross-section (a tube and an elbow of the same bore, for example) are first merged into one element, and every result carries an error band: up to 3.5 % per remaining junction, plus the elements' own accuracy, capped at 25 %. The Monte Carlo check is the arbiter when the band is wide.</p>
+        <p>Haefer's theorem assumes the gas is fully mixed at every junction, and across a short element it is not. Behind a short diverging cone, or a narrow opening a short distance upstream, much of the gas flies straight onto the end face of a rod and bounces back: our chain simulations found the exact value up to 29 % below the formula for a cone into an annulus, and up to 68 % below for a small orifice just in front of a rod. The opposite happens where two narrow openings face each other across a short gap, such as the gaps of two annuli on one rod or two plates with aligned holes: gas flies straight from one into the next, and the exact value was up to 42 % and 59 % above the formula. For each short tube, cone or duct the tool therefore works out how the gas spreads from the opening before it to the opening after it, with a view-factor (radiosity) calculation, and widens the band by one and a half times the difference from Haefer's mixed assumption. Every junction at a rod also widens the band by up to 10 % below and 5 % above the formula. Where an opening only partly overlaps the next one, part of the gas meets a wall face that the formula does not see; the line is flagged, its band is wide, and the Monte Carlo check should decide. Openings that do not overlap at all are refused: no gas can pass.</p>
+        <p>A pump's speed \(S\) is measured on a test dome, so it already includes the entrance into its inlet. When the pump sits at the end of a line of the same bore, that entrance is counted twice unless it is removed:</p>
+        <div class="formula">$$\frac{1}{S_c} = \frac{1}{S} - \frac{4}{A_p\,\bar v}$$</div>
+        <p>This Oatley/Ho correction reproduces Livesey's example: a 300 L/s pump on a 100 mm × 200 mm tube gives \(S_\text{eff}\) = 188 L/s in air, where the simple series rule gives 156 L/s. When the pump inlet is wider than the line, the formula assumes that the gas spreads over the whole inlet, as on the test dome; the real speed then depends on the adapter and the pump throat, so add them as elements (the Monte Carlo check asks for them).</p>
+
+        <h3>From molecular to viscous flow</h3>
+        <p>The flow regime is set by the rarefaction parameter \(\delta = r\,p/(\eta\,v_m)\), with \(v_m = \sqrt{2RT/M}\), or equivalently by the Knudsen number \(\mathrm{Kn} = \lambda/D_h\), with the mean free path \(\lambda = (\sqrt{\pi}/2)\,\eta\,v_m/p\) taken from the viscosity. Flow is molecular for Kn &gt; 0.5, transitional for 0.01 &lt; Kn ≤ 0.5 and viscous below.</p>
+        <p>The interior of each element follows Sharipov's kinetic-theory solution for a long tube, \(G_P(\delta)\), written as a Poiseuille term plus a molecular term weighted by a rarefaction function \(Z\):</p>
+        <div class="formula">$$Q = k_v\,\frac{p_a^2 - p_b^2}{2} + C_m\,s\left[I_Z\!\left(\frac{p_a}{s}\right) - I_Z\!\left(\frac{p_b}{s}\right)\right],\qquad k_v = \frac{\pi R^4}{8\,\eta\,L}\ \text{(tube)}$$</div>
+        <p>For a long round tube this is exactly Sharipov's result at any pressure ratio; in the viscous limit it becomes Poiseuille flow with the slip correction, \(G_P \to \delta/4 + 1.018\). The entrance edge adds the right end correction: a short tube in viscous flow behaves as if it were \(3\pi R/8\) longer, as creeping-flow (Stokes) theory predicts, Sampson's orifice resistance in series with Poiseuille's (Dagan, Weinbaum and Pfeffer 1982). Ducts, annuli and cones use their own laminar coefficients with \(Z\) evaluated at their hydraulic size. In a slit, a flat duct or a narrow annulus, molecules fly long distances along the gap in molecular flow; gas collisions cut those flights off, which the round-tube \(Z\) does not know. There the molecular term is limited by Sharipov's plane-channel solution, \(Q \le \frac{w h^2 v_m}{2L}\left(G_P^\text{ch}(\delta) - \frac{\delta}{6}\right)\Delta p\) with \(\delta\) on the gap \(h\), which a 0.1 mm × 100 mm slit 100 mm deep reproduces to 0.4 % (without this limit it was up to twice too high). Other transitional results for non-circular elements are approximate (about ±10 %).</p>
+        <p>Entrances and orifices pass the smaller of a linear (rarefied) law and the isentropic nozzle flow \(Q = C_d\,A\,p\,\psi(r,\gamma)\sqrt{R_sT}\). Below the critical pressure ratio \(r^* = \left(2/(\gamma+1)\right)^{\gamma/(\gamma-1)}\) the orifice chokes, and the discharge coefficient \(C_d\) in the conditions bar sets the flow. Inside ducts the flow chokes at the outlet when it reaches the isothermal speed of sound. Reynolds numbers above 2300 and Mach numbers above 0.3 are flagged: turbulence and compressibility are not modeled.</p>
+        <p>The simple sum \(C_\text{visc} + C_\text{mol}\), which many calculators (including this site's pump-down tool) use, is up to 19 % high in the transitional range compared with Sharipov's solution.</p>
+
+        <h3>The Monte Carlo method</h3>
+        <p>Test-particle Monte Carlo follows molecules one at a time: each enters with a cosine (Lambertian) direction, travels in a straight line, and leaves every wall it hits in a new cosine direction, until it leaves through an opening. The fraction that reaches the far opening estimates \(\alpha\), with the statistical uncertainty \(\sigma = \sqrt{\alpha(1-\alpha)/N}\) for \(N\) particles; the results show 95 % intervals. "Verify by Monte Carlo" traces the line's exact analytic geometry in parallel Web Workers, so it checks the formula's combination rules, not just its tables.</p>
+        <p>The CAD tab traces particles through a triangle mesh. The mesh is welded and checked for holes, its open edges become the openings, and a reciprocity test (\(A_1\alpha_{12} = A_2\alpha_{21}\)) catches leaky or inconsistent meshes. Faceted circles lose area: a 16-sided tube conducts about 3.5 % less than a round one, so export at least 64 segments per circle. The wall pressure comes from the density of wall hits of the particles launched from the selected inlet, \(p_t/p_\text{in} = (h_t/A_t)\big/(N_\text{in}/A_\text{in})\): the inlet at \(p_\text{in}\) and every other opening pumping. With several inlets the map shows the gas that enters through the selected one.</p>
+
+        <h3>Assumptions and limits</h3>
+        <ul>
+            <li>Isothermal gas and walls; diffuse (cosine) reflection everywhere.</li>
+            <li>No thermal transpiration, no turbulence model and no pump curves: the pumping speed is a constant for the selected gas.</li>
+            <li>The Monte Carlo methods are free-molecular only; they verify the molecular limit, not transitional or viscous flow.</li>
+            <li>Transitional results for short tubes and non-circular elements are good to about ±10 % (long slits and flat ducts follow the plane-channel solution), and viscous results for elements shorter than their diameter to about ±20 %.</li>
+        </ul>
+
+        <h3>References</h3>
+        <ol class="refs">
+            <li>D. J. Santeler and M. D. Boeckmann, rectangular-duct transmission probabilities, J. Vac. Sci. Technol. A (1991). <a href="https://doi.org/10.1116/1.577280" target="_blank" rel="noopener">doi:10.1116/1.577280</a></li>
+            <li>A. S. Berman, J. Appl. Phys. 36, 3356 (1965). <a href="https://doi.org/10.1063/1.1702984" target="_blank" rel="noopener">doi:10.1063/1.1702984</a></li>
+            <li>S. Matuda, J. Vac. Soc. Jpn 58, 311 (2015). <a href="https://doi.org/10.3131/jvsj2.58.311" target="_blank" rel="noopener">doi:10.3131/jvsj2.58.311</a></li>
+            <li>F. Sharipov and V. Seleznev, J. Phys. Chem. Ref. Data 27, 657 (1998). <a href="https://srd.nist.gov/jpcrdreprint/1.556019.pdf" target="_blank" rel="noopener">NIST reprint</a></li>
+            <li>F. Sharipov, "Rarefied gas dynamics and its applications to vacuum technology", CERN Accelerator School, CERN-2007-003. <a href="https://doi.org/10.5170/CERN-2007-003" target="_blank" rel="noopener">doi:10.5170/CERN-2007-003</a></li>
+            <li>R. G. Livesey, "Flow of gases through tubes and orifices", in J. M. Lafferty (ed.), <em>Foundations of Vacuum Science and Technology</em>, Wiley (1998), ch. 2.</li>
+            <li>W. Haefer, addition theorem for molecular flow, Vacuum (1980). <a href="https://doi.org/10.1016/S0042-207X(80)80745-7" target="_blank" rel="noopener">doi:10.1016/S0042-207X(80)80745-7</a></li>
+            <li>C. W. Oatley, Br. J. Appl. Phys. 8 (1957). <a href="https://doi.org/10.1088/0508-3443/8/1/305" target="_blank" rel="noopener">doi:10.1088/0508-3443/8/1/305</a></li>
+            <li>D. J. Santeler, corrected series rule, J. Vac. Sci. Technol. A (1986). <a href="https://doi.org/10.1116/1.573923" target="_blank" rel="noopener">doi:10.1116/1.573923</a></li>
+            <li>E. A. Richley and T. W. Reynolds, NASA TN D-2330 (1964). <a href="https://ntrs.nasa.gov/citations/19640011357" target="_blank" rel="noopener">NTRS 19640011357</a></li>
+            <li>D. H. Davis, Monte Carlo calculation of molecular flow rates through elbows and other geometries, J. Appl. Phys. (1960). <a href="https://doi.org/10.1063/1.1735797" target="_blank" rel="noopener">doi:10.1063/1.1735797</a></li>
+            <li>H. W. Liepmann, orifice flow of rarefied gases, J. Fluid Mech. 10 (1961). <a href="https://doi.org/10.1017/S002211206100007X" target="_blank" rel="noopener">doi:10.1017/S002211206100007X</a></li>
+            <li>T. Fujimoto and M. Usami, orifice and short-tube flow, J. Fluids Eng. (1984). <a href="https://doi.org/10.1115/1.3243132" target="_blank" rel="noopener">doi:10.1115/1.3243132</a></li>
+            <li>Z. Dagan, S. Weinbaum and R. Pfeffer, creeping flow through an orifice of finite length, J. Fluid Mech. 115 (1982).</li>
+            <li>S. Varoutis et al., short-tube DSMC data, J. Vac. Sci. Technol. A (2009). <a href="https://doi.org/10.1116/1.3248273" target="_blank" rel="noopener">doi:10.1116/1.3248273</a></li>
+            <li>S. Woop, C. Benthin and I. Wald, "Watertight ray/triangle intersection", JCGT 2(1) (2013). <a href="https://jcgt.org/published/0002/01/05/" target="_blank" rel="noopener">jcgt.org</a></li>
+            <li>I. Wald, "On fast construction of SAH-based bounding volume hierarchies" (2007).</li>
+            <li>F. N. Fritsch and R. E. Carlson, "Monotone piecewise cubic interpolation", SIAM J. Numer. Anal. 17 (1980).</li>
+            <li>D. Eberly, "Triangulation by Ear Clipping" (2002).</li>
+            <li>Leybold, <em>Fundamentals of Vacuum Technology</em>. <a href="https://archive.org/details/FundamentalsOfVacuumTechnology" target="_blank" rel="noopener">archive.org</a></li>
+            <li>Molflow+ documentation (ideas only; no code is used). <a href="https://molflow.docs.cern.ch/" target="_blank" rel="noopener">molflow.docs.cern.ch</a></li>
+            <li>3D view: three.js (MIT license). Formulas: KaTeX (MIT license). Both are loaded from cdnjs.cloudflare.com.</li>
+        </ol>
+    </article>
+</main>
+<div id="site-footer"></div>
+<script type="module" src="./js/ui/app.js"></script>
+</body>
+</html>

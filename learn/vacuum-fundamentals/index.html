@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vacuum Fundamentals: Pressure Regimes, Conductance &amp; Pump-Down</title>
+<meta name="description" content="Practical vacuum technology guide: pressure units and regimes, mean free path, conductance, pump-down time, outgassing, leaks, and choosing vacuum gauges.">
+<link rel="canonical" href="https://cdfoley.com/learn/vacuum-fundamentals/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Vacuum Fundamentals">
+<meta property="og:description" content="Practical vacuum technology guide: pressure units and regimes, mean free path, conductance, pump-down time, outgassing, leaks, and choosing vacuum gauges.">
+<meta property="og:url" content="https://cdfoley.com/learn/vacuum-fundamentals/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/learn-vacuum-fundamentals.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Vacuum Fundamentals. Practical vacuum technology guide: pressure units and regimes, mean free path, conductance, pump-down time, outgassing, leaks, and choosing vacuum gauges.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Article","headline":"Vacuum Fundamentals","description":"Pressure regimes, gas kinetics, conductance, pump-down physics, outgassing, leaks, and gauge selection.","author":{"@type":"Person","name":"Casey D. Foley","url":"https://cdfoley.com/"},"image":"https://cdfoley.com/assets/img/og/learn-vacuum-fundamentals.jpg","datePublished":"2026-10-06T09:00:00-04:00","dateModified":"2026-10-17T14:02:02-04:00","mainEntityOfPage":"https://cdfoley.com/learn/vacuum-fundamentals/"}
+</script>
+<style>
+    .fig { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; font-family: var(--font); }
+    .fig .grid { stroke: var(--border); stroke-dasharray: 2 3; }
+    .fig .axis { stroke: var(--border-strong); fill: none; }
+    .fig .band { fill: var(--surface-2); }
+    .fig .tick { fill: var(--muted); font-size: 10px; }
+    .fig .axlabel { fill: var(--text-2); font-size: 10.5px; font-weight: 500; }
+    .fig .lab { fill: var(--text); font-size: 11px; font-weight: 600; }
+    .fig .sub { fill: var(--muted); font-size: 10.5px; }
+    .fig .eq { fill: var(--text-2); font-size: 11px; font-family: var(--mono); }
+    .fig .pumplab { fill: var(--c2); }
+    .fig .main { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+    .fig .comp { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 5 4; opacity: 0.8; }
+    .fig .pumpline { stroke: var(--c2); stroke-width: 1.6; }
+    .fig .box { fill: var(--surface-2); stroke: var(--border-strong); stroke-width: 1.5; }
+    .fig .pipe { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+    .fig .flow { stroke: var(--accent); stroke-width: 2; }
+    .fig .flowhead { fill: var(--accent); }
+    @media (max-width: 560px) {
+        .fig .tick, .fig .sub { font-size: 12.8px; }
+        .fig .axlabel, .fig .lab, .fig .eq { font-size: 13.2px; }
+    }
+</style>
+</head>
+<body data-section="learn">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/learn/">Learn</a></li><li aria-current="page">Vacuum Fundamentals</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <span class="eyebrow">Vacuum</span>
+        <h1>Vacuum Fundamentals</h1>
+        <p class="lede">How to read and convert vacuum pressures, why gas behaves so differently at low pressure, and how to estimate a pumping line’s conductance, a chamber’s pump-down time, its outgassing load, and the leak rate it can tolerate. The thread running through all of it: once a chamber reaches high vacuum, the pipes between chamber and pump and the gas coming off the walls usually decide how fast it pumps down, not the size of the pump.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Millibar and torr</dt><dd>The pressure units of everyday vacuum work. 1&nbsp;mbar is 100&nbsp;pascals, the SI unit; 1&nbsp;Torr is 1/760 of a standard atmosphere, about 1.33&nbsp;mbar. Atmospheric pressure is about 1013&nbsp;mbar or 760&nbsp;Torr.</dd>
+            <dt>Mean free path</dt><dd>The average distance a gas molecule travels before it hits another molecule. In room-temperature air it is about 66&nbsp;µm at 1&nbsp;mbar and 66&nbsp;mm at 0.001&nbsp;mbar.</dd>
+            <dt>Molecular flow</dt><dd>The low-pressure regime in which molecules hit the walls far more often than each other. Gas no longer flows like a fluid, and a pump can only catch the molecules that happen to wander into its inlet.</dd>
+            <dt>Pumping speed</dt><dd>The volume of gas a pump removes per second at its inlet, in L/s or m³/h, as rated on its datasheet. The speed delivered to the chamber is lower whenever a pipe or valve sits in between.</dd>
+            <dt>Conductance</dt><dd>How easily gas passes through a pipe, valve, or opening, in the same units as pumping speed. A pipe throttles a pump when its conductance is not much larger than the pump’s speed.</dd>
+            <dt>Gas load</dt><dd>The amount of gas flowing per second, given as pressure times volume per second (mbar·L/s); also called throughput. Leaks, outgassing, and process gas are all gas loads, and the chamber settles where the pump removes as much as comes in.</dd>
+            <dt>Outgassing</dt><dd>The slow release of gas, mostly water vapor, from the inside surfaces and materials of a vacuum system. After the first few minutes of pumping it usually sets the pressure.</dd>
+            <dt>Bake-out</dt><dd>Heating the evacuated chamber, typically to 150–250&nbsp;°C for a day or two, to drive off adsorbed water. It lowers the outgassing rate by orders of magnitude.</dd>
+            <dt>Leak rate</dt><dd>The gas load entering through a defect, in mbar·L/s. A virtual leak is gas trapped inside the chamber, for example under a screw, that bleeds out slowly and looks like a leak.</dd>
+            <dt>Gas-dependent gauge</dt><dd>Most vacuum gauges infer pressure from a gas property and are calibrated for nitrogen, so in other gases they read wrong unless corrected. Capacitance diaphragm gauges, which measure force, are the exception.</dd>
+        </dl></details>
+        <div class="article-meta"><span>By Casey D. Foley, PhD</span><span>14 min read</span><span>Updated October 2026</span></div>
+    </header>
+
+    <div class="article-layout">
+        <article class="prose">
+            <h2>Pressure units and ranges</h2>
+            <p>Vacuum work uses several pressure units, often on the same drawing. The SI unit is the pascal (Pa); the millibar (mbar, equal to the hectopascal) dominates European equipment and most pump datasheets; the torr survives in North American labs and older literature. Vacuum pressures are absolute, measured from zero, although some industrial gauges show vacuum as a negative pressure relative to the local atmosphere. The defining relations are exact:</p>
+            <div class="formula">\[ \begin{aligned} 1\ \text{atm} &= 101\,325\ \text{Pa} \\ &= 1013.25\ \text{mbar} = 760\ \text{Torr}, \\[4pt] 1\ \text{mbar} &= 100\ \text{Pa} = 0.750\ \text{Torr} \end{aligned} \]</div>
+            <p>The <a href="/tools/pressure-converter/">pressure unit converter</a> does the arithmetic and names the vacuum range for any value. Pressure spans more than fifteen orders of magnitude between atmosphere and the best laboratory vacuum, so it is divided into ranges, each with its own physics, pumps, and gauges:</p>
+            <table>
+                <thead><tr><th>Range</th><th class="num">Pressure (mbar)</th><th>Typical pumps</th><th>Typical gauges</th><th>Dominant gas</th></tr></thead>
+                <tbody>
+                    <tr><td>Rough (low)</td><td class="num">1013 – 1</td><td>Rotary vane, scroll, Roots</td><td>Diaphragm, Pirani</td><td>Air (volume gas)</td></tr>
+                    <tr><td>Medium (fine)</td><td class="num">1 – 10⁻³</td><td>Roots + backing pump</td><td>Capacitance manometer, Pirani</td><td>Air, water vapor</td></tr>
+                    <tr><td>High</td><td class="num">10⁻³ – 10⁻⁷</td><td>Turbomolecular, cryopump, diffusion</td><td>Cold- or hot-cathode ionization</td><td>Water vapor</td></tr>
+                    <tr><td>Ultra-high</td><td class="num">10⁻⁷ – 10⁻¹²</td><td>Turbo + ion, NEG, or sublimation pumps, after bake-out</td><td>Bayard–Alpert, extractor, or inverted-magnetron ionization</td><td>Hydrogen</td></tr>
+                    <tr><td>Extreme-high</td><td class="num">&lt; 10⁻¹²</td><td>Cryogenic and getter pumping</td><td>Extractor or specialized ionization</td><td>Hydrogen</td></tr>
+                </tbody>
+            </table>
+            <p>These are the boundaries of the first edition of ISO&nbsp;3529-1 (1981), still used in much of the vacuum literature, with extreme-high vacuum below 10⁻¹²&nbsp;mbar as in CERN’s vacuum courses; the converter applies them and also names the ISO&nbsp;3529-1:2019 range where it differs. The current international vocabulary, ISO&nbsp;3529-1:2019, agrees down to 10⁻³&nbsp;mbar but moves the high/ultra-high boundary to 10⁻⁸&nbsp;mbar (10⁻⁶&nbsp;Pa) and starts extreme-high vacuum at 10⁻¹¹&nbsp;mbar (10⁻⁹&nbsp;Pa): modern pumps reach 10⁻⁸&nbsp;mbar with elastomer seals, while lower pressures need metal seals and bake-out. Either way, the ranges are conventions, not physical thresholds.</p>
+
+            <h2>Gas kinetics: mean free path and flow regimes</h2>
+            <p>Whether the gas in a pipe behaves like a fluid or like independent molecules decides which conductance formula applies and how a pump works. The deciding number is the <strong>mean free path</strong>, the average distance a molecule travels between collisions with other molecules:</p>
+            <div class="formula">\[ \lambda = \frac{k_B T}{\sqrt{2}\,\pi d_m^2\, p} \]</div>
+            <p>Here \(d_m\) is the molecule’s effective (hard-sphere) diameter. For air, \(d_m \approx 0.372\ \text{nm}\) (Kennard’s hard-sphere value from the viscosity at 15&nbsp;°C), the value the <a href="/tools/mean-free-path/">mean free path calculator</a> uses, so at 20&nbsp;°C \(\lambda \approx 6.6\ \text{mm}\) at 1&nbsp;Pa, or \(\lambda\,[\text{mm}] \approx 0.066 / p\,[\text{mbar}]\). The classic rule \(\lambda \approx 5\ \text{cm}\) at 1&nbsp;mTorr is the same number in other units.</p>
+            <table>
+                <thead><tr><th>Pressure</th><th class="num">Mean free path (air, 20&nbsp;°C)</th></tr></thead>
+                <tbody>
+                    <tr><td>1&nbsp;atm</td><td class="num">65&nbsp;nm</td></tr>
+                    <tr><td>1&nbsp;mbar</td><td class="num">66&nbsp;µm</td></tr>
+                    <tr><td>10⁻³&nbsp;mbar</td><td class="num">66&nbsp;mm</td></tr>
+                    <tr><td>10⁻⁶&nbsp;mbar</td><td class="num">66&nbsp;m</td></tr>
+                </tbody>
+            </table>
+            <p>What matters is how λ compares with the size of the system, expressed as the <strong>Knudsen number</strong> \(\mathrm{Kn} = \lambda / D\), where \(D\) is a characteristic dimension such as a tube diameter. The usual boundaries, which the calculators also use, are below; the change between regimes is gradual.</p>
+            <ul>
+                <li><strong>Viscous (continuum) flow, Kn &lt; 0.01.</strong> Molecules collide mostly with each other, the gas flows as a fluid, and conductance rises with pressure. For air this means \(p\cdot D \gtrsim 0.66\ \text{Pa}\cdot\text{m}\) (0.66&nbsp;mbar·cm, about 0.5&nbsp;Torr·cm).</li>
+                <li><strong>Molecular flow, Kn &gt; 0.5.</strong> Molecules travel wall to wall without meeting each other, and conductance depends only on geometry, gas species, and temperature, not on pressure. For air this means \(p\cdot D \lesssim 1.3\times10^{-2}\ \text{Pa}\cdot\text{m}\) (about 0.01&nbsp;Torr·cm); texts that start molecular flow at Kn = 1 halve that.</li>
+                <li><strong>Transitional (Knudsen) flow</strong> lies in between, where interpolation formulas such as Knudsen’s bridge the two limits.</li>
+            </ul>
+            <p>For a 25&nbsp;mm line, flow is viscous above roughly 26&nbsp;Pa (0.26&nbsp;mbar) and molecular below about 0.5&nbsp;Pa (5&nbsp;×&nbsp;10⁻³&nbsp;mbar). High vacuum systems, with their turbopumps and ionization gauges, work in the molecular regime, where intuition about “suction” fails: a pump cannot pull gas toward it. It can only capture molecules that wander into its inlet, so no pump’s speed can exceed the conductance of its own inlet opening, about 11.6&nbsp;L/s per cm² for air.</p>
+            <p>Two more kinetic quantities explain why surfaces dominate high vacuum. At 20&nbsp;°C the number density \(n = p/k_BT\) is 2.5&nbsp;×&nbsp;10²⁵&nbsp;m⁻³ at atmosphere and still 2.5&nbsp;×&nbsp;10¹⁶&nbsp;m⁻³ at 10⁻⁶&nbsp;mbar. The wall impingement rate</p>
+            <div class="formula">\[ \begin{aligned} \Phi &= \frac{p}{\sqrt{2\pi m k_B T}} \\ &\approx 2.9\times10^{22}\ \text{m}^{-2}\,\text{s}^{-1}\ \text{per Pa} \\ &\phantom{{}\approx{}}\text{(N}_2\text{, 20}^\circ\text{C)} \end{aligned} \]</div>
+            <p>means that at 10⁻⁶&nbsp;mbar a clean surface receives enough nitrogen molecules to form a monolayer in about 3&nbsp;s, if every molecule sticks. The <a href="/tools/mean-free-path/">mean free path calculator</a> computes all of these for common gases.</p>
+
+            <h2>Throughput, pumping speed, and conductance</h2>
+            <p>This section explains why a pump rarely delivers its rated speed to the chamber. Vacuum systems are analyzed with an electrical analogy. <strong>Throughput</strong> \(Q\) is the gas flow, as pressure × volume per time (mbar·L/s or Pa·m³/s; 1&nbsp;Pa·m³/s = 10&nbsp;mbar·L/s). A pump of <strong>speed</strong> \(S\) at inlet pressure \(p\) removes \(Q = pS\); its rated speed is measured at its inlet flange (ISO&nbsp;21360-1). A tube, valve, or port has a <strong>conductance</strong> \(C\) defined by \(Q = C\,(p_1 - p_2)\). Conductances combine like electrical conductances: in parallel they add; in series their reciprocals add.</p>
+            <figure>
+                <svg viewBox="0 0 400 190" class="fig" role="img" aria-label="Diagram: a chamber at pressure p and volume V is connected through a tube, valve, or port of conductance C to a pump of speed S. The effective speed at the chamber is S times C divided by S plus C.">
+                <rect class="box" x="8" y="26" width="112" height="104" rx="10"/>
+                <text class="lab" x="64" y="66" text-anchor="middle">Chamber</text>
+                <text class="sub" x="64" y="89" text-anchor="middle">pressure p</text>
+                <text class="sub" x="64" y="110" text-anchor="middle">volume V</text>
+                <rect class="pipe" x="120" y="62" width="166" height="32"/>
+                <path class="flow" d="M134 78H268"/><path class="flowhead" d="M262 72l10 6-10 6z"/>
+                <text class="lab" x="203" y="50" text-anchor="middle">Tube, valve, or port</text>
+                <text class="sub" x="203" y="116" text-anchor="middle">conductance C</text>
+                <circle class="box" cx="337" cy="78" r="52"/>
+                <text class="lab" x="337" y="74" text-anchor="middle">Pump</text>
+                <text class="sub" x="337" y="97" text-anchor="middle">speed S</text>
+                <text class="eq" x="200" y="172" text-anchor="middle">Speed at the chamber = S·C/(S + C)</text>
+                </svg>
+                <figcaption>A chamber pumped through a conductance. The pump only ever sees the gas that gets through the tube.</figcaption>
+            </figure>
+            <p>The result that drives most vacuum design is the <strong>effective pumping speed</strong> at the chamber:</p>
+            <div class="formula">\[ \frac{1}{S_\text{eff}} = \frac{1}{S} + \frac{1}{C} \quad\Rightarrow\quad S_\text{eff} = \frac{S\,C}{S + C} \]</div>
+            <p>Whichever of \(S\) and \(C\) is smaller dominates. In molecular flow, for air at 20&nbsp;°C, the standard results are:</p>
+            <ul>
+                <li><strong>Thin aperture:</strong> \(C = 11.6\,A\ \text{L/s}\), with \(A\) in cm².</li>
+                <li><strong>Long round tube (\(L \gg d\)):</strong> \(C = 12.1\,d^3/L\ \text{L/s}\), with \(d\) and \(L\) in cm.</li>
+                <li><strong>Tube of any length:</strong> the entrance’s aperture conductance times the tube’s transmission probability \(\alpha\), the chance that a molecule entering one end leaves by the other; \(\alpha\) falls from 1 for a thin aperture to \(4d/3L\) for a long tube. Santeler’s formula
+                <div class="formula">\[ \alpha \approx \left[\,1 + \frac{3L}{4d}\left(1 + \frac{1}{3 + \tfrac{6L}{7d}}\right)\right]^{-1} \]</div>
+                is within 0.7&nbsp;% of the exact value at any length, while the older shortcut of adding aperture and long-tube resistances (Dushman’s approximation) runs up to 12&nbsp;% high. The <a href="/tools/pumpdown/">conductance and pump-down calculator</a> uses Berman’s more accurate closed form.</li>
+            </ul>
+            <p>The \(d^3\) dependence is unforgiving: halving a tube’s bore cuts its molecular conductance by a factor of eight. Molecular conductance also scales as \(\sqrt{T/M}\), so the same tube conducts helium about 2.7 times better than air. In laminar viscous flow, by contrast, \(C \approx 136\, d^4 \bar p / L\ \text{L/s}\) for air at 20&nbsp;°C (\(d\) and \(L\) in cm, mean pressure \(\bar p\) in mbar), which is huge at roughing pressures. Between the limits the calculator uses Knudsen’s transitional formula:</p>
+            <figure>
+                <svg viewBox="0 0 400 330" class="fig" role="img" aria-label="Log-log plot of the conductance of a 25 millimeter bore, 1 meter long line for air versus the mean pressure in the line. In molecular flow, below about 0.005 millibar, it is constant at 1.8 liters per second. In viscous flow it rises in proportion to pressure, to about 50,000 liters per second near atmosphere. It equals the 9.7 liter per second speed of a 35 cubic meter per hour pump at about 0.16 millibar.">
+                <rect class="band" x="54" y="14" width="82.6" height="256"/>
+                <rect class="band" x="218.2" y="14" width="171.8" height="256"/>
+                <line class="grid" x1="54" x2="390" y1="270" y2="270"/><text class="tick" x="48" y="274" text-anchor="end">0.1</text>
+                <line class="grid" x1="54" x2="390" y1="227.3" y2="227.3"/><text class="tick" x="48" y="231.3" text-anchor="end">1</text>
+                <line class="grid" x1="54" x2="390" y1="184.7" y2="184.7"/><text class="tick" x="48" y="188.7" text-anchor="end">10</text>
+                <line class="grid" x1="54" x2="390" y1="142" y2="142"/><text class="tick" x="48" y="146" text-anchor="end">100</text>
+                <line class="grid" x1="54" x2="390" y1="99.3" y2="99.3"/><text class="tick" x="48" y="103.3" text-anchor="end">10³</text>
+                <line class="grid" x1="54" x2="390" y1="56.7" y2="56.7"/><text class="tick" x="48" y="60.7" text-anchor="end">10⁴</text>
+                <line class="grid" x1="54" x2="390" y1="14" y2="14"/><text class="tick" x="48" y="18" text-anchor="end">10⁵</text>
+                <line class="grid" x1="54" x2="54" y1="14" y2="270"/><text class="tick" x="54" y="289" text-anchor="middle">10⁻⁴</text>
+                <line class="grid" x1="102" x2="102" y1="14" y2="270"/><text class="tick" x="102" y="289" text-anchor="middle">10⁻³</text>
+                <line class="grid" x1="150" x2="150" y1="14" y2="270"/><text class="tick" x="150" y="289" text-anchor="middle">10⁻²</text>
+                <line class="grid" x1="198" x2="198" y1="14" y2="270"/><text class="tick" x="198" y="289" text-anchor="middle">10⁻¹</text>
+                <line class="grid" x1="246" x2="246" y1="14" y2="270"/><text class="tick" x="246" y="289" text-anchor="middle">1</text>
+                <line class="grid" x1="294" x2="294" y1="14" y2="270"/><text class="tick" x="294" y="289" text-anchor="middle">10</text>
+                <line class="grid" x1="342" x2="342" y1="14" y2="270"/><text class="tick" x="342" y="289" text-anchor="middle">100</text>
+                <line class="grid" x1="390" x2="390" y1="14" y2="270"/><text class="tick" x="390" y="289" text-anchor="middle">10³</text>
+                <path class="axis" d="M54,14V270H390"/>
+                <text class="axlabel" x="222" y="322" text-anchor="middle">Mean pressure in the line, mbar (log scale)</text>
+                <text class="axlabel" x="13" y="142" text-anchor="middle" transform="rotate(-90 13 142)">Conductance, L/s (log scale)</text>
+                <line class="pumpline" x1="54" x2="390" y1="185.2" y2="185.2"/>
+                <path class="comp" d="M115.4,269.8L390,25.8"/>
+                <path class="comp" d="M54,216.7H390"/>
+                <path class="main" d="M54,216.8L114.7,217.5L127.7,217.2L138.5,216.2L150.5,214.2L156,212.9L161.5,211.2L167,209.2L172.3,207L183.1,201.4L193.7,194.9L205.4,186.6L218.6,176.3L234.7,163L277,126.1L390,25.8"/>
+                <text class="lab" x="60" y="34">Molecular</text>
+                <text class="lab" x="177.4" y="34" text-anchor="middle">Transition</text>
+                <text class="lab" x="224.2" y="34">Viscous</text>
+                <text class="sub pumplab" x="60" y="178.2">Pump, 9.7 L/s</text>
+                <text class="sub" x="384" y="233.7" text-anchor="end">Molecular flow, 1.8 L/s</text>
+                <text class="sub" x="172" y="250">Laminar term only</text>
+                <text class="lab" x="262" y="112" text-anchor="end">25 mm × 1 m line</text>
+                </svg>
+                <figcaption>Conductance of a 25&nbsp;mm bore, 1&nbsp;m long line for air at 20&nbsp;°C versus the mean pressure in it (Knudsen’s formula, as in the pump-down calculator), with its laminar (Poiseuille) term and molecular-flow value dashed and the viscous and molecular ranges shaded. It passes the 9.7&nbsp;L/s of a 35&nbsp;m³/h pump at about 0.16&nbsp;mbar.</figcaption>
+            </figure>
+            <p>So a roughing line hardly matters near atmosphere but throttles the pump toward the end of roughing: with the calculator’s default 35&nbsp;m³/h pump on this line, the chamber sees essentially the full pump speed near atmosphere but only a third of it at 0.1&nbsp;mbar. In molecular flow every pipe costs speed, which is why high vacuum pumps are flanged directly to the chamber whenever possible.</p>
+            <p><strong>Worked example.</strong> A 300&nbsp;L/s turbopump is connected to a chamber through a 40&nbsp;mm bore tube 30&nbsp;cm long. The tube’s entrance alone would conduct 11.6&nbsp;×&nbsp;π(2&nbsp;cm)² ≈ 146&nbsp;L/s; with \(L/d = 7.5\) its transmission probability is 0.139, so \(C\) ≈ 20&nbsp;L/s (Dushman’s approximation gives 22&nbsp;L/s), and the chamber sees about <strong>19&nbsp;L/s, roughly 6&nbsp;% of the pump’s rating</strong>. The same pump on a 100&nbsp;mm bore, 20&nbsp;cm long port (\(\alpha\) = 0.357, \(C\) ≈ 324&nbsp;L/s) delivers about 156&nbsp;L/s. A useful design target is \(C \ge 2\text{–}3\,S\), so that \(S_\text{eff}\) is at least 67–75&nbsp;% of \(S\); elbows, valves, baffles, and cold traps each subtract further, and the <a href="/tools/pumpdown/">calculator</a> runs these combinations.</p>
+            <p>One caution: the reciprocal rule assumes elements joined through volumes much larger than their openings. When a port opens straight into a pump inlet of the same bore, it counts the shared opening twice; combining transmission probabilities instead (Oatley’s method, refined by Santeler) gives roughly 190&nbsp;L/s for the 100&nbsp;mm port. For real geometries, trust a Monte Carlo model or the vendor’s data.</p>
+
+            <h2>Pump-down: four regimes</h2>
+            <p>A chamber pumped down from atmosphere passes through distinct regimes. Each has its own time dependence and its own lever for speeding it up.</p>
+            <figure>
+                <svg viewBox="0 0 400 400" class="fig" role="img" aria-label="Schematic pump-down curve on logarithmic pressure and time axes, from 1 second to about 12 days. The pressure first falls exponentially while the gas in the volume is pumped out, then roughly as 1 over t while water desorbs from the walls, then as 1 over the square root of t from diffusion out of the bulk, and finally levels off at a constant floor set by permeation and hydrogen.">
+                <line class="grid" x1="54" x2="390" y1="14" y2="14"/><text class="tick" x="48" y="18" text-anchor="end">10³</text>
+                <line class="grid" x1="54" x2="390" y1="95.5" y2="95.5"/><text class="tick" x="48" y="99.5" text-anchor="end">1</text>
+                <line class="grid" x1="54" x2="390" y1="177" y2="177"/><text class="tick" x="48" y="181" text-anchor="end">10⁻³</text>
+                <line class="grid" x1="54" x2="390" y1="258.5" y2="258.5"/><text class="tick" x="48" y="262.5" text-anchor="end">10⁻⁶</text>
+                <line class="grid" x1="54" x2="390" y1="340" y2="340"/><text class="tick" x="48" y="344" text-anchor="end">10⁻⁹</text>
+                <line class="grid" x1="54" x2="54" y1="14" y2="340"/><text class="tick" x="54" y="359" text-anchor="middle">1 s</text>
+                <line class="grid" x1="153.6" x2="153.6" y1="14" y2="340"/><text class="tick" x="153.6" y="359" text-anchor="middle">1 min</text>
+                <line class="grid" x1="253.2" x2="253.2" y1="14" y2="340"/><text class="tick" x="253.2" y="359" text-anchor="middle">1 h</text>
+                <line class="grid" x1="330.4" x2="330.4" y1="14" y2="340"/><text class="tick" x="330.4" y="359" text-anchor="middle">1 day</text>
+                <line class="grid" x1="377.8" x2="377.8" y1="14" y2="340"/><text class="tick" x="377.8" y="359" text-anchor="middle">1 week</text>
+                <path class="axis" d="M54,14V340H390"/>
+                <text class="axlabel" x="222" y="392" text-anchor="middle">Pumping time (log scale)</text>
+                <text class="axlabel" x="13" y="177" text-anchor="middle" transform="rotate(-90 13 177)">Pressure, mbar (log scale)</text>
+                <path class="comp" d="M54,15.7L70.2,17.3L77.2,18.4L83.7,19.7L89.6,21.3L94.9,23.1L99.9,25.1L104.7,27.5L109.2,30.3L113.4,33.4L117.3,36.7L121.2,40.7L124.8,45L128.2,49.6L131.6,54.9L134.6,60.4L137.7,66.7L140.8,73.8L143.6,81.1L146.4,89.3L151.7,107.7L156.8,129.3L161.2,152.6L165.7,180.6L169.6,209.8L173.6,244"/>
+                <path class="comp" d="M167.4,216.9L390,324.9"/>
+                <path class="comp" d="M227.3,271.8L390,311.3"/>
+                <path class="comp" d="M54,308L390,308"/>
+                <path class="main" d="M54,15.7L69.4,17.2L82,19.3L87.6,20.7L92.9,22.4L98,24.3L102.4,26.4L106.6,28.7L110.8,31.4L114.8,34.5L118.4,37.8L122,41.7L125.4,45.7L128.5,50L131.6,54.9L137.2,65.5L142.2,77.3L147,91L151.4,106.6L155.6,124.1L159.8,144.8L163.2,164.1L168.5,198.3L170.2,207.8L171.3,212.6L172.4,215.9L173.6,218.1L175,219.6L178.3,221.7L194.8,229.5L246.1,253.2L276.6,266.4L302.9,276.8L325.6,284.7L347.2,291L357.5,293.6L368.2,296L379.1,298.1L390,299.9"/>
+                <text class="lab" x="166" y="48">1 · Volume gas</text>
+                <text class="sub" x="166" y="68">p falls as exp(−t/τ)</text>
+                <text class="lab" x="196" y="170">2 · Desorption, mostly water</text>
+                <text class="sub" x="196" y="190">p falls as 1/t</text>
+                <text class="lab" x="216" y="276" text-anchor="end">3 · Bulk diffusion</text>
+                <text class="sub" x="216" y="296" text-anchor="end">p falls as 1/√t</text>
+                <text class="lab" x="62" y="330">4 · Floor: permeation and H₂</text>
+                </svg>
+                <figcaption>Schematic pump-down curve (log–log). The solid line is the sum of the dashed gas sources, each drawn where it contributes at least a tenth of the total (the constant floor is drawn across). Time scales vary widely between systems, but the sequence and slopes are typical of an unbaked metal chamber with some elastomer seals.</figcaption>
+            </figure>
+            <ol>
+                <li><strong>Volume gas.</strong> At first the gas in the chamber volume dominates, and at constant speed \(p(t) = p_0\,e^{-t/\tau}\) with time constant \(\tau = V/S_\text{eff}\), so the time to reach \(p\) is \(t = (V/S_\text{eff})\ln(p_0/p)\). A 100&nbsp;L chamber on a 10&nbsp;L/s (36&nbsp;m³/h) roughing pump has τ = 10&nbsp;s and reaches 1&nbsp;mbar from atmosphere in about 69&nbsp;s, if the pump holds its speed; real pumps slow down near their ultimate pressure (single-stage rotary-vane pumps below about 1&nbsp;mbar, or 10&nbsp;mbar with gas ballast), so allow margin.</li>
+                <li><strong>Surface desorption.</strong> Below roughly 10⁻²–10⁻³&nbsp;mbar on a roughing pump, and lower once a faster high vacuum pump takes over (the crossover is system-dependent), molecules leaving the walls, mainly water, outnumber those left in the volume. The pressure now falls roughly as \(1/t\), the signature of water bound to the surface with a wide spread of binding energies. A bigger pump lowers the curve but does not change its slope: every additional decade of pressure takes about ten times longer.</li>
+                <li><strong>Diffusion from the bulk.</strong> Gas dissolved in a material diffuses to the surface and desorbs, giving a slower \(1/\sqrt{t}\) decline wherever polymers such as O-rings, cable insulation, or plastic parts are present. Hydrogen dissolved in steel also leaves by diffusion, but at room temperature so slowly that its rate hardly changes during a pump-down; only heating reduces it.</li>
+                <li><strong>Permeation.</strong> Gas passing through the walls themselves, such as helium through glass and elastomer O-rings, or water and air through polymer seals, adds a constant gas load. With the hydrogen from steel it sets a floor that no amount of pumping time removes; only a bigger pump or better seals lower it.</li>
+            </ol>
+            <p>The base pressure a chamber finally reaches is \(p_\text{ult} \approx p_\text{pump} + Q_\text{total}/S_\text{eff}\), where \(p_\text{pump}\) is the pump’s own base pressure. The <a href="/tools/pumpdown/">pump-down calculator</a> takes both terms. In most systems the gas-load term dominates, so the base pressure on a pump’s datasheet says little about the chamber.</p>
+
+            <h2>Outgassing and bake-out</h2>
+            <p>Once the volume gas is gone, the walls set the gas load, so materials, cleanliness, and baking usually matter more than pump size. Outgassing rates are quoted per unit area; the table gives them in mbar·L/(s·cm²). For unbaked materials a rate means little without the pumping time, and values for nominally identical materials scatter by orders of magnitude. Treat these as typical, measure what matters in your own system, and compare results with ISO/TS&nbsp;20177:2018, which standardizes how outgassing rates are measured and reported:</p>
+            <table>
+                <thead><tr><th>Material and condition</th><th class="num">Rate</th></tr></thead>
+                <tbody>
+                    <tr><td>Stainless steel, cleaned, unbaked, after 1&nbsp;h</td><td class="num">10⁻⁹ – 10⁻⁷</td></tr>
+                    <tr><td>Stainless steel, cleaned, unbaked, after 10&nbsp;h</td><td class="num">3&nbsp;×&nbsp;10⁻¹⁰</td></tr>
+                    <tr><td>Stainless steel baked 24&nbsp;h at 150&nbsp;°C (mostly H₂)</td><td class="num">3&nbsp;×&nbsp;10⁻¹²</td></tr>
+                    <tr><td>Fluoroelastomer (FKM), unbaked, after 1&nbsp;h</td><td class="num">4&nbsp;×&nbsp;10⁻⁷ – 10⁻⁶</td></tr>
+                    <tr><td>Neoprene, after 10&nbsp;h</td><td class="num">10⁻⁵</td></tr>
+                </tbody>
+            </table>
+            <p>One square meter (10⁴&nbsp;cm²) of unbaked steel at 10⁻⁸&nbsp;mbar·L/(s·cm²) produces 10⁻⁴&nbsp;mbar·L/s, which holds a chamber pumped at 200&nbsp;L/s at about 5&nbsp;×&nbsp;10⁻⁷&nbsp;mbar. A little of the wrong material can dominate: in a CERN example, 1&nbsp;cm² of neoprene, 0.01&nbsp;% of the inner surface of a 1&nbsp;m² steel vessel, releases more gas after 10&nbsp;h of pumping than all the steel. The calculator’s optional outgassing input adds such a load to the pump-down.</p>
+            <p>Water is the main gas in an unbaked system in the high vacuum range. It adsorbs on every surface exposed to room air, and its desorption rate rises steeply with temperature, so heat is the most effective way to shorten the desorption phase:</p>
+            <ul>
+                <li><strong>Bake-out.</strong> Heating a stainless-steel system to roughly 150–250&nbsp;°C for one to two days (at least about 12&nbsp;h above 120&nbsp;°C) removes most adsorbed water, after which hydrogen diffusing out of the steel is the main gas. Bake temperatures are limited by the weakest component: fluoroelastomer seals (about 150&nbsp;°C), viewports, feedthroughs, the turbopump inlet (often about 120&nbsp;°C), sensors, and the product itself. Hotter bakes need metal-gasket knife-edge (CF) flanges, standardized in ISO&nbsp;3669, which tolerate 350–400&nbsp;°C.</li>
+                <li><strong>Partial heating still helps.</strong> Even moderate heating of the chamber walls shortens the desorption phase; a cooler bake works if it lasts longer.</li>
+                <li><strong>Vent with dry nitrogen.</strong> Venting with dry gas and minimizing the time a chamber stands open to humid air limits water re-adsorption. Every exposure to room air undoes part of the previous pump-down or bake.</li>
+                <li><strong>Keep it clean.</strong> Fingerprints, cutting fluids, and hydrocarbon films outgas slowly and persistently. Clean, degrease, and handle vacuum-side parts with gloves.</li>
+            </ul>
+
+            <h2>Leaks, virtual leaks, and rate-of-rise</h2>
+            <p>When a chamber pumps down slowly, the first question is whether gas is leaking in or coming off the walls. Leak rates are gas loads, quoted in mbar·L/s (or Pa·m³/s): a leak of 1&nbsp;mbar·L/s raises the pressure in a closed 1&nbsp;L volume by 1&nbsp;mbar every second. A quick system-level diagnostic is the <strong>rate-of-rise test</strong>: isolate the chamber from its pump and record pressure versus time. The total gas load is</p>
+            <div class="formula">\[ Q = V\,\frac{dp}{dt} \]</div>
+            <p>A 50&nbsp;L chamber rising from 1&nbsp;×&nbsp;10⁻³ to 2&nbsp;×&nbsp;10⁻³&nbsp;mbar in 100&nbsp;s has \(Q\) = 5&nbsp;×&nbsp;10⁻⁴&nbsp;mbar·L/s. The shape of the curve indicates the source, although both causes often add:</p>
+            <ul>
+                <li><strong>Real leak:</strong> a straight-line rise that continues as the pressure climbs, because the gas comes from an effectively unlimited source outside.</li>
+                <li><strong>Outgassing:</strong> a rise that bends over and levels off as the gas and the walls approach equilibrium.</li>
+                <li><strong>Virtual leak:</strong> gas trapped in an internal pocket (a blind tapped hole under a screw, a double weld enclosing a gap, an O-ring groove, stacked washers, a porous casting) slowly bleeds into the chamber. It behaves like a leak with a long time constant, and spraying helium on the outside finds nothing. The fixes are design fixes: vented screws, single continuous welds on the vacuum side, and no trapped volumes.</li>
+            </ul>
+            <p>Locating a real leak is best done with a helium leak detector, a mass spectrometer tuned to mass 4, used either by spraying helium outside an evacuated part or by sniffing outside a helium-filled part. In vacuum mode the best detectors resolve about 5&nbsp;×&nbsp;10⁻¹²&nbsp;mbar·L/s; sniffing is less sensitive, because air already contains 5&nbsp;ppm of helium. The signal takes about \(3V/S_\text{He}\) to reach 95&nbsp;% of its final value (\(V\) the evacuated volume, \(S_\text{He}\) the helium pumping speed at the part), so spray sparingly, start at the top (helium rises), and wait.</p>
+            <p>Leak specifications should come from the application. In a pumped system, leaks should typically contribute no more than a tenth of the working pressure. A sealed device of internal volume \(V\) that may gain no more than \(\Delta p\) over its service life \(t\) needs a total leak-plus-permeation rate \(Q &lt; V\,\Delta p / t\). For 1&nbsp;L, 10⁻³&nbsp;mbar over 10&nbsp;years, that is about <strong>3&nbsp;×&nbsp;10⁻¹²&nbsp;mbar·L/s</strong>, at the detection limit of the best helium leak detectors. A rate-of-rise test cannot see a leak that small, because the device’s own outgassing is orders of magnitude larger; sealed vacuum products therefore also carry internal getters to pump what still comes in.</p>
+
+            <h2>Choosing gauges</h2>
+            <p>No single gauge covers the full range, and most read correctly only for the gas they were calibrated in, usually nitrogen.</p>
+            <table>
+                <thead><tr><th>Gauge</th><th class="num">Range (mbar)</th><th>Gas dependence and notes</th></tr></thead>
+                <tbody>
+                    <tr><td>Capacitance diaphragm (CDG)</td><td class="num">1000 – 10⁻⁵</td><td>None: it measures force. Each head covers three to four decades below its full scale; the reference for process control and backfilling.</td></tr>
+                    <tr><td>Pirani (thermal conductivity)</td><td class="num">~1000 – 10⁻⁴</td><td>Strong. Inexpensive; most accurate at about 10⁻³–1&nbsp;mbar; can be badly wrong in He or Ar.</td></tr>
+                    <tr><td>Cold cathode (inverted magnetron)</td><td class="num">10⁻² – 10⁻⁹</td><td>Moderate. Rugged, no filament; can be slow to start at low pressure; UHV models reach about 10⁻¹¹&nbsp;mbar.</td></tr>
+                    <tr><td>Hot cathode (Bayard–Alpert)</td><td class="num">~10⁻³ – 10⁻¹⁰</td><td>Moderate. Relative sensitivity ≈ 0.18 for He and ≈ 1.3 for Ar versus N₂; extractor gauges reach about 10⁻¹²&nbsp;mbar.</td></tr>
+                    <tr><td>Residual gas analyzer (RGA)</td><td class="num">&lt; 10⁻⁴</td><td>Measures composition directly: water (18), air leaks (28, 32, 40), hydrogen (2), hydrocarbons.</td></tr>
+                </tbody>
+            </table>
+            <p>Except for capacitance gauges, read vacuum gauges as good to tens of percent, not as precise numbers. For an ionization gauge in a known gas, divide the nitrogen-equivalent reading by the relative sensitivity: a Bayard–Alpert gauge showing 1.8&nbsp;×&nbsp;10⁻⁷&nbsp;mbar in pure helium means about 1&nbsp;×&nbsp;10⁻⁶&nbsp;mbar. Tabulated factors are nominal and can be off by 10–20&nbsp;% for an individual gauge.</p>
+            <p>Two practical rules follow. First, never control a backfill or vent of a non-air gas with a thermal-conductivity gauge. Above roughly 1&nbsp;mbar its reading can be off by large factors (one maker’s Pirani shows only about 40&nbsp;mbar when the chamber is full of argon at atmospheric pressure), and chambers have been over-pressurized that way. Use a capacitance manometer. Second, put the gauge where the pressure matters. In molecular flow there are real pressure gradients, and a gauge mounted next to the pump reads lower than the pressure at the work.</p>
+            <p>An RGA is the fastest way to diagnose a slow system. A spectrum dominated by mass 18 (with 17) means water, which needs time or heat. Peaks at 28 and 32 in roughly a 4:1 ratio, with argon at 40, point to an air leak. Clusters of peaks repeating every 14 mass units (one CH₂ group, as in 29, 43, 57) indicate hydrocarbon contamination.</p>
+
+            <h2>Quick reference</h2>
+            <ul>
+                <li>λ (air, 20&nbsp;°C) ≈ 6.6&nbsp;mm × (1&nbsp;Pa / \(p\)), or about 5&nbsp;cm at 1&nbsp;mTorr.</li>
+                <li>Viscous flow when \(p\cdot D\) &gt; 0.66&nbsp;Pa·m; molecular flow when \(p\cdot D\) &lt; 1.3&nbsp;×&nbsp;10⁻²&nbsp;Pa·m (air).</li>
+                <li>Molecular-flow conductance (air, 20&nbsp;°C): aperture \(11.6\,A\ \text{L/s}\) (\(A\) in cm²); long tube \(12.1\,d^3/L\ \text{L/s}\) (\(d\), \(L\) in cm); any tube, \(\alpha\) × its aperture conductance.</li>
+                <li>\(S_\text{eff} = S\,C/(S + C)\); aim for \(C \ge 2\text{–}3\,S\).</li>
+                <li>Volume pump-down: \(t = (V/S_\text{eff}) \ln(p_0/p)\). Base pressure: \(p \approx p_\text{pump} + Q/S_\text{eff}\). Rate-of-rise: \(Q = V\,dp/dt\).</li>
+            </ul>
+
+            <h2>References</h2>
+            <h3>Primary sources and standards</h3>
+            <ol class="refs">
+                <li>ISO&nbsp;3529-1:2019, Vacuum technology — Vocabulary — Part 1: General terms, 2nd ed., International Organization for Standardization (2019, confirmed 2024) (the definition of vacuum and the international vacuum ranges).</li>
+                <li>K. Jousten, “ISO standards for vacuum metrology,” in <em>Proceedings of the 7th IMEKO TC16 Conference on Pressure and Vacuum Measurement</em> (Washington, DC, 2023), 1–4 (2024), <a href="https://doi.org/10.21014/tc16-2023.06" target="_blank" rel="noopener">doi:10.21014/tc16-2023.06</a> (the ISO&nbsp;3529-1:2019 range boundaries, the 1981 high-vacuum limit they replaced, and why they changed; the current standards for gauge calibration, ISO&nbsp;3567, and for measuring outgassing rates, ISO/TS&nbsp;20177:2018).</li>
+                <li>ISO&nbsp;21360-1:2020, Vacuum technology — Standard methods for measuring vacuum-pump performance — Part 1: General description (how a pump’s speed is measured at its inlet).</li>
+                <li>ISO&nbsp;3669:2026, Vacuum technology — Dimensions of knife-edge flanges, 4th ed., replacing ISO&nbsp;3669:2020 (the metal-sealed CF flanges of baked systems).</li>
+                <li>A. Thompson and B. N. Taylor, <em>Guide for the Use of the International System of Units (SI)</em>, NIST Special Publication 811 (2008), <a href="https://doi.org/10.6028/NIST.SP.811e2008" target="_blank" rel="noopener">doi:10.6028/NIST.SP.811e2008</a> (the exact definitions 1&nbsp;atm = 101&nbsp;325&nbsp;Pa and 1&nbsp;Torr = 101&nbsp;325/760&nbsp;Pa).</li>
+                <li>E. H. Kennard, <em>Kinetic Theory of Gases, with an Introduction to Statistical Mechanics</em>, McGraw-Hill (1938) (§64: the hard-sphere mean free path; the table on p.&nbsp;149: molecular diameters from the viscosity at 15&nbsp;°C, including 0.372&nbsp;nm for air).</li>
+                <li>M. Knudsen, “Die Gesetze der Molekularströmung und der inneren Reibungsströmung der Gase durch Röhren,” <em>Ann. Phys.</em> <strong>333</strong>, 75–130 (1909), <a href="https://doi.org/10.1002/andp.19093330106" target="_blank" rel="noopener">doi:10.1002/andp.19093330106</a> (molecular-flow conductance of long tubes and the transitional-flow formula the calculator uses).</li>
+                <li>P. Clausing, “Über die Strömung sehr verdünnter Gase durch Röhren von beliebiger Länge,” <em>Ann. Phys.</em> <strong>404</strong>, 961–989 (1932), <a href="https://doi.org/10.1002/andp.19324040804" target="_blank" rel="noopener">doi:10.1002/andp.19324040804</a>; English translation, “The flow of highly rarefied gases through tubes of arbitrary length,” <em>J. Vac. Sci. Technol.</em> <strong>8</strong>, 636–646 (1971), <a href="https://doi.org/10.1116/1.1316379" target="_blank" rel="noopener">doi:10.1116/1.1316379</a> (the transmission probability of a tube of any length).</li>
+                <li>A. S. Berman, “Free molecule transmission probabilities,” <em>J. Appl. Phys.</em> <strong>36</strong>, 3356 (1965), <a href="https://doi.org/10.1063/1.1702984" target="_blank" rel="noopener">doi:10.1063/1.1702984</a> (the closed form for Clausing’s problem used by the calculator).</li>
+                <li>D. J. Santeler, “New concepts in molecular gas flow,” <em>J. Vac. Sci. Technol. A</em> <strong>4</strong>, 338–343 (1986), <a href="https://doi.org/10.1116/1.573923" target="_blank" rel="noopener">doi:10.1116/1.573923</a> (the simple transmission-probability formula and a beaming correction to Oatley’s combining rule).</li>
+                <li>C. W. Oatley, “The flow of gas through composite systems at very low pressures,” <em>Br. J. Appl. Phys.</em> <strong>8</strong>, 15–19 (1957), <a href="https://doi.org/10.1088/0508-3443/8/1/305" target="_blank" rel="noopener">doi:10.1088/0508-3443/8/1/305</a> (combining the transmission probabilities of elements joined in series).</li>
+                <li>P. A. Redhead, “Modeling the pump-down of a reversibly adsorbed phase. I. Monolayer and submonolayer initial coverage,” <em>J. Vac. Sci. Technol. A</em> <strong>13</strong>, 467–475 (1995), <a href="https://doi.org/10.1116/1.579381" target="_blank" rel="noopener">doi:10.1116/1.579381</a> (why the pressure falls about as 1/t while water desorbs).</li>
+                <li>P. Chiggiato, “Outgassing properties of vacuum materials for particle accelerators,” lecture notes, CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.07124" target="_blank" rel="noopener">arXiv:2006.07124</a> (2020) (outgassing rates of unbaked and baked steel and of polymers, the 1/t design rule, bake-out conditions and limits, and the base-pressure equation).</li>
+                <li>R. Grinham and A. Chew, “A review of outgassing and methods for its reduction,” <em>Appl. Sci. Converg. Technol.</em> <strong>26</strong>, 95–109 (2017), <a href="https://doi.org/10.5757/ASCT.2017.26.5.95" target="_blank" rel="noopener">doi:10.5757/ASCT.2017.26.5.95</a> (averaged literature outgassing rates for steel and fluoroelastomer, time exponents, and their scatter).</li>
+                <li>Leybold GmbH, <em>Fundamentals of Vacuum Technology</em>, rev. W. Umrath, Cologne (2016) (how single-stage rotary pumps lose speed at low pressure, outgassing standard values, gauge measuring ranges, a Pirani gauge’s reading in argon, and the shapes of pressure-rise curves).</li>
+                <li>Leybold GmbH, <em>Full Line Catalog</em>, chapter “Leak Detecting Instruments” (edition 09/2025), <a href="https://www.leybold.com/content/dam/brands/leybold/downloads/catalogue-chapters-pdf/070_EN_Leak_Dectection.pdf" target="_blank" rel="noopener">leybold.com</a> (minimum detectable helium leak rates and the 3V/S response time).</li>
+                <li>G. Pigny and A. Rocha, “Vacuum controls and diagnostics,” lecture notes, CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.03263" target="_blank" rel="noopener">arXiv:2006.03263</a> (2020) (ranges and typical uncertainties of Pirani, inverted-magnetron, and Bayard–Alpert gauges).</li>
+                <li>J. E. Bartmess and R. M. Georgiadis, “Empirical methods for determination of ionization gauge relative sensitivities for different gases,” <em>Vacuum</em> <strong>33</strong>, 149–153 (1983), <a href="https://doi.org/10.1016/0042-207X(83)90004-0" target="_blank" rel="noopener">doi:10.1016/0042-207X(83)90004-0</a> (ionization-gauge relative sensitivities for many gases).</li>
+                <li>Stanford Research Systems, “Gas correction factors for Bayard–Alpert ionization gauges,” application note, <a href="https://www.thinksrs.com/downloads/pdfs/applicationnotes/IG1BAgasapp.pdf" target="_blank" rel="noopener">thinksrs.com</a> (nominal factors, He 0.18 and Ar 1.29 relative to N₂, and how far individual gauges can differ).</li>
+                <li>J. F. O’Hanlon, <em>A User’s Guide to Vacuum Technology</em>, 3rd ed., Wiley (2003), <a href="https://doi.org/10.1002/0471467162" target="_blank" rel="noopener">doi:10.1002/0471467162</a> (ch. 2–4, gas properties, gas flow, and gas release from solids; ch. 5 and 8–9, gauges and residual gas analysis; ch. 24, leak detection).</li>
+                <li>K. Jousten (ed.), <em>Handbook of Vacuum Technology</em>, 2nd ed., Wiley-VCH (2016), <a href="https://doi.org/10.1002/9783527688265" target="_blank" rel="noopener">doi:10.1002/9783527688265</a> (ch. 3–4, gas kinetics and gas flow; ch. 13–14, total and partial pressure gauges; ch. 19, leak detection).</li>
+                <li>J. M. Lafferty (ed.), <em>Foundations of Vacuum Science and Technology</em>, Wiley (1998) (the standard reference on gas kinetics, gas flow, pumps, and gauges).</li>
+                <li>A. Chambers, <em>Modern Vacuum Physics</em>, CRC Press (2004), <a href="https://doi.org/10.1201/9780203492406" target="_blank" rel="noopener">doi:10.1201/9780203492406</a> (ch. 3–5, gas kinetics, outgassing, and gas flow; ch. 7, gauges).</li>
+            </ol>
+            <h3>Free introductions</h3>
+            <ul class="refs">
+                <li>E. Al-Dmour, “Fundamentals of vacuum physics and technology,” CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.01464" target="_blank" rel="noopener">arXiv:2006.01464</a> (units, ranges, mean free path, flow regimes, conductance, and gas sources in 21 pages). The whole course, with lectures on outgassing, gauges, and acceptance testing, is free at <a href="https://doi.org/10.17181/CAS2017Glumslov" target="_blank" rel="noopener">doi:10.17181/CAS2017Glumslov</a>.</li>
+                <li>Pfeiffer Vacuum, <em>The Vacuum Technology Book</em> (online), <a href="https://www.pfeiffervacuum.com/global/en/knowledge/vacuum-technology/knowledge-book/table_of_content/" target="_blank" rel="noopener">pfeiffervacuum.com</a> (sections 1.2–1.3 on gas kinetics, flow, desorption, permeation, leaks, bake-out, venting, and residual gas; 2.3 on pipe conductance; 7 on leak detection).</li>
+                <li>Leybold, “Vacuum fundamentals,” online knowledge base, <a href="https://www.leybold.com/en/knowledge/vacuum-fundamentals" target="_blank" rel="noopener">leybold.com</a> (pressure ranges, gas flow, pumps, gauges, and leak detection, from the company’s classic primer).</li>
+                <li>Hiden Analytical, “Residual gas analysis with quadrupole mass spectrometry,” <a href="https://www.hidenanalytical.com/tech-data/residual-gas-analysis-quadrupole-mass-spectrometry/" target="_blank" rel="noopener">hidenanalytical.com</a> (how to read an RGA spectrum: water, air leaks, and hydrocarbons).</li>
+            </ul>
+        </article>
+        <aside class="toc" data-toc></aside>
+    </div>
+
+    <section class="related">
+        <h2>Related tools and articles</h2>
+        <div data-related="pressure-converter,mean-free-path,pumpdown,article:spc-for-laser-processes"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+</body>
+</html>

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Color Converter: HEX to RGB, HSV, HSL, CMYK, CIELAB &amp; Delta E</title>
+<meta name="description" content="Convert colors between HEX, RGB, HSV, HSL, CMYK, XYZ, CIELAB, and LCh, calculate Delta E (ΔE 1976 and CIEDE2000), and learn how color is measured.">
+<link rel="canonical" href="https://cdfoley.com/tools/color-converter/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Color Converter and Color Measurement Guide">
+<meta property="og:description" content="Convert colors between HEX, RGB, HSV, HSL, CMYK, XYZ, CIELAB, and LCh, calculate Delta E (ΔE 1976 and CIEDE2000), and learn how color is measured.">
+<meta property="og:url" content="https://cdfoley.com/tools/color-converter/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-color-converter.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Color Converter &amp; Delta E Calculator. Convert colors between HEX, RGB, HSV, HSL, CMYK, XYZ, CIELAB, and LCh, calculate Delta E (ΔE 1976 and CIEDE2000), and learn how color is measured.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script defer src="/assets/js/color-math.js"></script>
+<script defer src="/assets/js/glazing-weights.js"></script>
+<style>
+    .swatch-big { height: 120px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); position: relative; }
+    .swatch-big .tag { position: absolute; left: 10px; bottom: 10px; font: 650 0.85rem var(--mono); background: rgba(255,255,255,.85); color: #111; padding: 0.15rem 0.45rem; border-radius: 4px; }
+    .cgrid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.55rem 0.8rem; align-items: center; margin-top: 1rem; }
+    .cgrid > span { font-size: 0.82rem; font-weight: 650; color: var(--text-2); }
+    .cgrid .row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.4rem; }
+    .cgrid input { width: 100%; font: 500 0.92rem var(--mono); padding: 0.4rem 0.5rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); }
+    .cgrid input:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .cgrid small { display: block; font-size: 0.68rem; color: var(--muted); margin-top: 0.1rem; text-align: center; }
+    .canv { width: 100%; height: auto; display: block; border-radius: var(--radius-sm); touch-action: none; cursor: crosshair; }
+    .picker { display: grid; gap: 0.6rem; }
+    .slider { display: grid; grid-template-columns: 1.4rem minmax(0, 1fr) 2.6rem; gap: 0.5rem; align-items: center; font: 600 0.82rem var(--mono); color: var(--text-2); }
+    .slider input[type=range] { -webkit-appearance: none; appearance: none; height: 14px; border-radius: 7px; border: 1px solid var(--border-strong); }
+    .slider input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid #333; }
+    .slider input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid #333; }
+    .viz2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 1.2rem; margin-top: 1.5rem; }
+    .gamut { font-size: 0.82rem; margin-top: 0.5rem; }
+    .gamut.ok { color: var(--ok); } .gamut.bad { color: var(--warn); }
+    .ref-row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.8rem; }
+    .ref-row input { font: 500 0.92rem var(--mono); padding: 0.4rem 0.5rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); width: 9rem; }
+    .ref-row .mini { width: 34px; height: 34px; border-radius: 6px; border: 1px solid var(--border-strong); }
+    table.cs { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .cgrid input[aria-invalid="true"], .ref-row input[aria-invalid="true"] { border-color: var(--danger); color: var(--danger); }
+    .spec-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; margin-top: 0.7rem; font-size: 0.88rem; color: var(--text-2); }
+    .spec-opts select.input { width: auto; max-width: 100%; padding: 0.35rem 0.6rem; font-size: 0.88rem; }
+    .imp-msg.bad { color: var(--danger); }
+    @media (max-width: 600px) {
+        table.cs thead { display: none; }
+        table.cs, table.cs tbody, table.cs tr, table.cs td { display: block; width: auto; }
+        table.cs tr { padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+        table.cs td { border: 0; padding: 0.1rem 0; }
+        table.cs td:first-child { font-weight: 650; color: var(--text); }
+        table.cs td:nth-child(3)::before { content: 'Device-independent: '; color: var(--muted); }
+        table.cs td:nth-child(4)::before { content: 'Typical use: '; color: var(--muted); }
+    }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Color Converter & Color Measurement",
+   "url": "https://cdfoley.com/tools/color-converter/",
+   "description": "Convert colors between HEX, RGB, HSV, HSL, CMYK, XYZ, CIELAB, and LCh, calculate Delta E (ΔE 1976 and CIEDE2000), and learn how color is measured.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "color colour hex rgb srgb hsv hsl cmyk cielab lab lch xyz xyy delta e 2000 ΔE2000 ciede2000 de2000 de00 chromaticity spectrophotometer camera low-e coating color measurement color difference calculator",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Vision, Imaging & Color",
+     "item": "https://cdfoley.com/tools/#vision"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Color Converter & Color Measurement",
+     "item": "https://cdfoley.com/tools/color-converter/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#vision">Vision, Imaging &amp; Color</a></li><li aria-current="page">Color Converter &amp; Color Measurement</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Color Converter &amp; Delta E Calculator</h1>
+        <p class="lede">Type a color in any format, or pick one, and every other format updates: HEX, RGB, HSV, HSL, CMYK, CIE XYZ, xyY, CIELAB, and LCh. The diagrams show where the color sits in each system, the Delta E (ΔE) panel measures how far apart two colors are, and the spectrum panel turns a measured reflectance or transmittance curve into a color. Below, a guide explains what each code means and how cameras and spectrophotometers measure color, including on low-e coated glass.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>sRGB and hex codes</dt><dd>sRGB is the default color space of the web and of most image files. A hex code such as #3366CC is an sRGB color: red, green, and blue levels from 0 to 255, written in base 16.</dd>
+            <dt>Gamut</dt><dd>The range of colors a device or color space can show. Many saturated cyans and greens lie outside sRGB, so no hex code shows them exactly; the converter flags such colors.</dd>
+            <dt>CIE XYZ and Y</dt><dd>Device-independent numbers for how the CIE standard observer responds to a color, computed from its spectrum. Y is the luminance, scaled so that a perfect white is 100.</dd>
+            <dt>CIELAB (L*, a*, b*)</dt><dd>The color space used to specify and measure colors and their tolerances. L* runs from 0 (black) to 100 (white); +a* is redder and −a* greener; +b* is yellower and −b* bluer.</dd>
+            <dt>Chroma and hue (LCh)</dt><dd>CIELAB in polar form. Chroma C* is the distance from gray: 0 for a neutral, about 61 for the default blue. Hue angle h is the direction around the gray axis: 0° along +a* (red), 90° yellow, 180° green, 270° blue.</dd>
+            <dt>ΔE (Delta E)</dt><dd>One number for how different two colors look. With the CIEDE2000 formula (ΔE00), differences below about 1 are at the limit of what people can see with the samples side by side in good light.</dd>
+            <dt>Illuminant and observer</dt><dd>The light a color is evaluated under and the standard eye that sees it. D65 is average daylight; the 2° observer models a small field of view and the 10° observer a larger one. CIELAB values compare only when both match.</dd>
+            <dt>Reflectance spectrum</dt><dd>The fraction of light a sample reflects (or transmits) at each wavelength, which is what a spectrophotometer measures. For non-fluorescent samples, the color under any light can be computed from it.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <section class="panel" aria-labelledby="c-h">
+            <div class="panel-head"><h2 id="c-h">Color</h2><div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" id="c-reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div></div>
+            <div class="panel-body">
+                <div class="swatch-big" id="swatch"><span class="tag" id="swatch-tag">#3366CC</span></div>
+                <div class="gamut ok" id="gamut" role="status"></div>
+                <div class="cgrid" id="fields">
+                    <span>HEX</span><div class="row"><div><input data-g="hex" data-i="0" value="#3366CC" spellcheck="false" aria-label="Hex code"></div></div>
+                    <span>RGB</span><div class="row"><div><input data-g="rgb" data-i="0" aria-label="Red"><small>R 0–255</small></div><div><input data-g="rgb" data-i="1" aria-label="Green"><small>G</small></div><div><input data-g="rgb" data-i="2" aria-label="Blue"><small>B</small></div></div>
+                    <span>HSV</span><div class="row"><div><input data-g="hsv" data-i="0" aria-label="HSV hue"><small>H °</small></div><div><input data-g="hsv" data-i="1" aria-label="HSV saturation"><small>S %</small></div><div><input data-g="hsv" data-i="2" aria-label="HSV value"><small>V %</small></div></div>
+                    <span>HSL</span><div class="row"><div><input data-g="hsl" data-i="0" aria-label="HSL hue"><small>H °</small></div><div><input data-g="hsl" data-i="1" aria-label="HSL saturation"><small>S %</small></div><div><input data-g="hsl" data-i="2" aria-label="HSL lightness"><small>L %</small></div></div>
+                    <span>CMYK</span><div class="row"><div><input data-g="cmyk" data-i="0" aria-label="Cyan"><small>C %</small></div><div><input data-g="cmyk" data-i="1" aria-label="Magenta"><small>M %</small></div><div><input data-g="cmyk" data-i="2" aria-label="Yellow"><small>Y %</small></div><div><input data-g="cmyk" data-i="3" aria-label="Black"><small>K %</small></div></div>
+                    <span>CIELAB</span><div class="row"><div><input data-g="lab" data-i="0" aria-label="CIELAB L*"><small>L*</small></div><div><input data-g="lab" data-i="1" aria-label="CIELAB a*"><small>a*</small></div><div><input data-g="lab" data-i="2" aria-label="CIELAB b*"><small>b*</small></div></div>
+                    <span>LCh</span><div class="row"><div><input data-g="lch" data-i="0" aria-label="LCh L*"><small>L*</small></div><div><input data-g="lch" data-i="1" aria-label="LCh chroma"><small>C*</small></div><div><input data-g="lch" data-i="2" aria-label="LCh hue angle"><small>h °</small></div></div>
+                    <span>XYZ</span><div class="row"><div><input data-g="xyz" data-i="0" aria-label="X"><small>X</small></div><div><input data-g="xyz" data-i="1" aria-label="Y"><small>Y</small></div><div><input data-g="xyz" data-i="2" aria-label="Z"><small>Z</small></div></div>
+                    <span>xyY</span><div class="row"><div><input data-g="xyY" data-i="0" aria-label="x"><small>x</small></div><div><input data-g="xyY" data-i="1" aria-label="y"><small>y</small></div><div><input data-g="xyY" data-i="2" aria-label="Y"><small>Y</small></div></div>
+                </div>
+                <p class="hint" style="margin-top:.8rem">Type in any row and the others update. HEX, RGB, HSV, HSL, and CMYK are sRGB values; XYZ, xyY, CIELAB, and LCh are for illuminant D65 and the 2° observer, with white at Y = 100, as a spectrophotometer set to D65/2° reports them. CSS lab() and ICC color management use a D50 white instead, so their numbers differ: #3366CC is <code>lab(44.12% 10.95 -59.09)</code> in CSS.</p>
+            </div>
+        </section>
+
+        <section class="panel" aria-labelledby="p-h">
+            <div class="panel-head"><h2 id="p-h">Pick and adjust</h2></div>
+            <div class="panel-body picker">
+                <canvas id="sv" class="canv" width="300" height="220" role="img" aria-label="Saturation and value picker"></canvas>
+                <canvas id="hue" class="canv" width="300" height="18" role="img" aria-label="Hue picker"></canvas>
+                <div class="slider"><span>R</span><input type="range" min="0" max="255" id="sr" aria-label="Red"><output id="srv"></output></div>
+                <div class="slider"><span>G</span><input type="range" min="0" max="255" id="sg" aria-label="Green"><output id="sgv"></output></div>
+                <div class="slider"><span>B</span><input type="range" min="0" max="255" id="sb" aria-label="Blue"><output id="sbv"></output></div>
+                <p class="hint" style="margin:0">The square varies saturation (left to right) and value (top to bottom) at the hue chosen on the strip. The sliders show how each RGB channel changes the color: additive mixing of red, green, and blue light.</p>
+            </div>
+        </section>
+    </div>
+
+    <div class="viz2">
+        <section class="panel" aria-labelledby="xy-h">
+            <div class="panel-head"><h2 id="xy-h">CIE 1931 chromaticity diagram</h2></div>
+            <div class="panel-body"><canvas id="xy" class="canv" width="340" height="360" role="img" aria-label="Chromaticity diagram with the sRGB gamut and the current color"></canvas>
+                <p class="hint" style="margin:.5rem 0 0">The horseshoe holds every chromaticity (color regardless of brightness) the eye can see, with pure spectral colors on its edge (wavelengths in nm). The triangle is the sRGB gamut that screens and hex codes can show. White (D65) sits near the middle. ● current color, ○ reference.</p></div>
+        </section>
+        <section class="panel" aria-labelledby="ab-h">
+            <div class="panel-head"><h2 id="ab-h">CIELAB a*b* plane</h2><span class="badge" id="ab-L">L* —</span></div>
+            <div class="panel-body"><canvas id="ab" class="canv" width="340" height="340" role="img" aria-label="CIELAB a star b star plane at the current lightness"></canvas>
+                <p class="hint" style="margin:.5rem 0 0">A slice through color space at the current lightness L*. +a* is red, −a* green, +b* yellow, −b* blue; distance from the center is chroma. Faded areas fall outside sRGB. The line joins the current color to the reference; its length is the a*b* part of ΔE*ab (the ΔL* part is not shown).</p></div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="de-h">
+        <div class="panel-head"><h2 id="de-h">Color difference (ΔE)</h2></div>
+        <div class="panel-body">
+            <div class="ref-row">
+                <span class="mini" id="ref-sw"></span>
+                <label for="ref">Reference</label>
+                <input id="ref" value="#3A66C4" spellcheck="false" aria-label="Reference color as hex or L*, a*, b*">
+                <button type="button" class="btn btn-secondary btn-sm" id="ref-set">Use current color as reference</button>
+                <span class="hint" style="margin:0">The standard you compare against: a hex code, or L*, a*, b* separated by commas or semicolons. The current color is the sample.</span>
+                <span class="hint" id="ref-msg" role="status" style="margin:0;color:var(--danger)"></span>
+            </div>
+            <div class="results">
+                <div class="result primary"><span class="result-label">ΔE00 (CIEDE2000)</span><output class="result-value" id="de00">—</output><span class="result-note" id="de-note"></span></div>
+                <div class="result"><span class="result-label">ΔE*ab (CIE 1976)</span><output class="result-value" id="de76">—</output></div>
+                <div class="result"><span class="result-label">ΔL* · Δa* · Δb* <span class="sym">sample − reference</span></span><output class="result-value" id="dlab">—</output></div>
+                <div class="result"><span class="result-label">ΔC* · ΔH* <span class="sym">chroma, hue</span></span><output class="result-value" id="dch">—</output></div>
+            </div>
+            <p class="hint" style="margin:.8rem 0 0">ΔE00 uses k<sub>L</sub> = k<sub>C</sub> = k<sub>H</sub> = 1, the values for the CIE reference viewing conditions. ΔC* and ΔH* are the CIELAB (1976) chroma and hue differences, whose squares add up with ΔL*² to ΔE*ab². Compare only colors with the same illuminant and observer: colors converted here from HEX, RGB, or a spectrum are D65/2°, so compare them with Lab measured in D65/2°. Two readings taken with the same instrument settings (for example, both D65/10°) can be compared directly.</p>
+        </div>
+    </section>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="sp-h">
+        <div class="panel-head"><h2 id="sp-h">Color from a measured spectrum</h2></div>
+        <div class="panel-body">
+            <p style="margin:0 0 .7rem;color:var(--text-2);font-size:.94rem">Paste wavelength and reflectance or transmittance from a spectrophotometer, one pair per line (nm or µm; fraction or %). The color is computed by the CIE 15 method: the spectrum is interpolated to 5&nbsp;nm steps, weighted by the D65 illuminant and the CIE 1931 2° color-matching functions, and summed from 380 to 780&nbsp;nm. For data at 10 or 20&nbsp;nm intervals, the result agrees with the ASTM E308 weighting tables to within about 0.03 ΔE00.</p>
+            <textarea id="spec" class="input" rows="6" aria-label="Spectrum: wavelength and value, one pair per line" placeholder="380, 4.1&#10;390, 4.3&#10;…&#10;780, 36.0"></textarea>
+            <div class="spec-opts"><label for="spec-unit">Values in</label><select id="spec-unit" class="input"><option value="auto">auto (percent if any value exceeds 1.5)</option><option value="pct">percent</option><option value="frac">fraction (0–1)</option></select></div>
+            <p class="hint" style="margin:.4rem 0 0">Separate the numbers with commas, spaces, tabs, or semicolons; with decimal commas, use tabs, semicolons, or spaces. Only the first two numbers on each line are used. The data must cover at least 400–700&nbsp;nm; data that stop short of 380 or 780&nbsp;nm are extended with their end values (the ASTM E308 practice, which CIE 15 calls a rough approximation). Choose percent for very dark or anti-reflection samples whose values all stay at or below 1.5&nbsp;%.</p>
+            <div class="btn-row" style="margin-top:.7rem"><button type="button" class="btn btn-primary btn-sm" id="spec-go">Compute color</button><button type="button" class="btn btn-secondary btn-sm" id="spec-ex" style="white-space:normal">Load example (double-silver low-e, film side)</button><button type="button" class="btn btn-ghost btn-sm" id="spec-use" disabled>Use as current color</button></div>
+            <div class="imp-msg" id="spec-msg" role="status" style="font-size:.88rem;margin-top:.6rem"></div>
+            <div id="spec-plot" style="margin-top:.6rem"></div>
+        </div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <nav class="hint" aria-label="On this page"><strong>On this page:</strong> <a href="#codes">What the codes mean</a> · <a href="#delta-e">Color difference</a> · <a href="#instruments">How instruments measure color</a> · <a href="#low-e">Low-e glass</a> · <a href="#how-calculated">How it is calculated</a> · <a href="#worked-example">Worked example</a> · <a href="#limits">Assumptions and limits</a> · <a href="#references">References</a></nav>
+        <h2 id="codes">What the color codes mean</h2>
+        <p>Every code above describes the same color in a different coordinate system. Some describe the signal sent to a display; others describe what a standard observer sees.</p>
+        <table class="cs">
+            <thead><tr><th>Code</th><th>What it encodes</th><th>Device-independent?</th><th>Typical use</th></tr></thead>
+            <tbody>
+                <tr><td>HEX</td><td>The three sRGB channel values (0–255) written in base 16: #RRGGBB, or #RGB as shorthand for #RRGGBB.</td><td>Only through sRGB</td><td>Web and software colors</td></tr>
+                <tr><td>RGB</td><td>Red, green, and blue drive levels, gamma-encoded. #3366CC is R 51, G 102, B 204.</td><td>Only when the space is named (sRGB, Adobe RGB, Display P3); camera RGB depends on the sensor</td><td>Displays, cameras, image files</td></tr>
+                <tr><td>HSV / HSB</td><td>RGB rearranged as a cylinder: hue angle, saturation, and value (the largest channel).</td><td>No, inherits RGB</td><td>Color pickers, simple machine-vision thresholds</td></tr>
+                <tr><td>HSL</td><td>Like HSV, but lightness is the average of the largest and smallest channels, so the purest hues sit at L = 50&nbsp;% and white at 100&nbsp;%.</td><td>No, inherits RGB</td><td>CSS, design tools</td></tr>
+                <tr><td>CMYK</td><td>Cyan, magenta, yellow, and black ink coverage. The formula here is the naive conversion; real printing needs an ICC profile for the press, inks, and paper.</td><td>No, depends on inks and paper</td><td>Print</td></tr>
+                <tr><td>XYZ</td><td>CIE tristimulus values: the standard observer’s response, computed from a spectrum. Y is the luminance, 100 for the white.</td><td>Yes, for a stated illuminant and observer</td><td>The hub that every other space converts through</td></tr>
+                <tr><td>xyY</td><td>Chromaticity x = X/(X + Y + Z) and y = Y/(X + Y + Z), plus the luminance Y.</td><td>Yes, as for XYZ</td><td>Gamut diagrams, LED and display specs</td></tr>
+                <tr><td>CIELAB</td><td>L* lightness, a* red–green, b* yellow–blue, built so equal distances look roughly equally different.</td><td>Yes, for a stated illuminant, observer, and white</td><td>Color tolerances, coatings, plastics, paint, QC</td></tr>
+                <tr><td>LCh</td><td>CIELAB in polar form: lightness, chroma (distance from gray), and hue angle.</td><td>Yes, as for CIELAB</td><td>Describing shifts as lighter, more saturated, or hue-shifted</td></tr>
+            </tbody>
+        </table>
+        <p>sRGB values are gamma-encoded, so channel value 128 is only about 22&nbsp;% of full light; the converter linearizes them before computing XYZ (exact formulas under <a href="#how-calculated">How it is calculated</a>). Many CIELAB colors, especially saturated cyans and greens, fall outside sRGB. They cannot be shown exactly on a typical screen or written as a hex code, which is why the converter flags out-of-gamut colors.</p>
+        <p><strong>D65 or D50?</strong> CIELAB numbers depend on the white they are computed against. This page uses D65, the white of the sRGB standard and a common spectrophotometer setting. CSS lab() and lch() and ICC color management use a D50 white, reached from sRGB by a chromatic adaptation transform, so the same color gets different numbers: #3366CC is L* 45.03, a* 18.71, b* −57.85 here but <code>lab(44.12% 10.95 -59.09)</code> in CSS. Pasted into CSS lab(), this page’s values give a visibly different blue, <code>rgb(83, 99, 205)</code>, ΔE00 = 5.0 away.</p>
+
+        <h2 id="hsv-vs-cielab">Hue in HSV is not hue in CIELAB</h2>
+        <p>HSV and HSL are geometric rearrangements of RGB, not models of perception. A fully saturated yellow and a fully saturated blue both have V = 100&nbsp;%, but yellow looks far lighter (L* 97 against 32). Equal steps in HSV hue are not equal perceived steps, and HSV hue angles do not match CIELAB hue angles. Use HSV for quick thresholds on images taken under fixed conditions; use CIELAB and ΔE when the numbers must match what people see or what another instrument reports.</p>
+
+        <h2 id="delta-e">Color difference: ΔE*ab and ΔE00</h2>
+        <p>The simplest color difference is the straight-line distance in CIELAB, ΔE*ab. CIELAB is not perfectly uniform. A given ΔE*ab looks larger between near-neutral colors than between saturated ones, mostly in chroma and hue; lightness steps look smaller near black and white than at mid-gray; and in the blues, the ellipses that bound equally visible differences are tilted. CIEDE2000 (ΔE00) corrects for these effects with weighting functions for lightness, chroma, and hue, a hue-dependent factor, a rotation term for the blues, and a rescaling of a* near the gray axis. For the default colors, ΔE*ab is 4.68 but ΔE00 only 1.01: most of the difference is chroma in a saturated blue, where the eye is least sensitive, and the blue rotation term lowers it further.</p>
+        <p>How visible is a given ΔE00? In a study with 175 observers comparing pairs of ceramic samples in a viewing booth, half of the observers could see a difference of ΔE00 = 0.8 (ΔE*ab = 1.2), and half judged a difference of ΔE00 = 1.8 (ΔE*ab = 2.7) no longer acceptable as a match. The notes under the result use these thresholds. Visibility also depends on sample size, gloss, texture, and how close the samples sit, so production tolerances are agreed between buyer and seller against a master sample, often with separate limits on ΔL*, Δa*, and Δb* (or ΔL*, ΔC*, and ΔH*) when one direction matters more.</p>
+
+        <h2 id="instruments">How instruments measure color</h2>
+        <p><strong>Spectrophotometers</strong> measure the reflectance or transmittance spectrum, usually every 10&nbsp;nm over 400–700&nbsp;nm or a wider range, and compute XYZ by weighting it with a standard illuminant and observer (the method of ASTM E308 and CIE 15). Because they measure the spectrum, the color under any standard illuminant and observer can be computed afterward, except for fluorescent samples, whose emission depends on the instrument’s own light source. Measurement geometry matters: d/8° integrating-sphere instruments can include (SCI) or exclude (SCE) the specular reflection, while 45°/0° instruments exclude it, much as a viewer looks past the glare. Always report the illuminant, the observer (2° or 10°), and the geometry with the numbers.</p>
+        <p>Instruments of the same model typically agree to within a few tenths of a ΔE*ab on standard ceramic tiles, but instruments of different makes often differ by 0.5–1 ΔE*ab or more on the same samples. Compare readings from one instrument where you can; when two must agree, measure shared reference samples on both and track the offset.</p>
+        <p><strong>Handheld spectrophotometers</strong> are the lab and QC reference. They press against the sample with a fixed aperture and their own calibrated light source. <strong>Inline (non-contact) spectrophotometers</strong> measure on a moving line from a fixed standoff. They need a stable distance and tilt, a defined geometry, and regular checks against reference tiles. Their CIELAB agrees with a handheld instrument’s only as well as the two geometries and calibrations match, so check the offset on shared samples before comparing numbers.</p>
+        <p><strong>Cameras</strong> report device RGB, not CIE values. A camera’s red, green, and blue sensitivities are not a linear transformation of the CIE color-matching functions, and auto exposure, auto white balance, gamma, and changes in lighting all move the numbers. As a result, HSV or RGB values from a camera often have no simple, let alone linear, relationship to CIELAB from a spectrophotometer, even when both track the same physical change. Cameras work well for relative color control: lock exposure, gain, and white balance, use a stable enclosed light source, read linear (raw) values, and compare each part to reference samples in the same image. For absolute color, characterize the camera against a color target to build a correction (a 3&nbsp;×&nbsp;3 matrix or a polynomial), and verify it against a spectrophotometer over the range of colors you produce: a correction fitted on one material often fails on another.</p>
+
+        <h2 id="low-e">Measuring the color of low-e coated glass</h2>
+        <p>A sputtered (soft-coat) low-e coating is a stack of thin silver and dielectric layers, and its color comes from thin-film interference; pyrolytic (hard-coat) low-e uses a fluorine-doped tin-oxide layer instead. A few nanometers of change in a dielectric layer moves a* and b* by a unit or more, so color is one of the most sensitive production checks of coating thickness and uniformity. Silver thickness also sets the sheet resistance and emissivity (see the <a href="/tools/low-e-sheet-resistance/">sheet resistance tool</a>), so measuring color and sheet resistance together checks both the dielectric and the silver layers.</p>
+        <ul>
+            <li><strong>Measure three things:</strong> transmitted color, reflected color from the glass side (what you see from outside when the coating is on surface #2), and reflected color from the film side. They differ, and specifications usually name each one.</li>
+            <li><strong>Use specular geometry.</strong> Coated glass is mirror-like, so the reflected color lives in the specular component. Use a specular-included (SCI) sphere or a dedicated specular-reflectance geometry. A 45°/0° instrument largely misses it.</li>
+            <li><strong>Control what is behind the sample.</strong> A lite’s reflectance includes the reflection from its uncoated back surface, about 4&nbsp;% for clear glass (<a href="/tools/fresnel-equations/">Fresnel reflection</a>); light that passes through and returns from whatever lies behind adds more. Back the sample with a light trap or black velvet, never a white tile, and state whether the measurement is on monolithic glass or the finished insulating unit, since the second lite and gap change reflected color.</li>
+            <li><strong>Watch the angle.</strong> The interference spectrum shifts to shorter wavelengths as the viewing angle increases, because the optical path through each layer shrinks, so reflected color changes with angle; the direction of the change depends on the coating design. Measure at the specified angle, usually near-normal, and check off-angle appearance separately if the façade will be seen obliquely.</li>
+            <li><strong>Substrate matters.</strong> The iron in clear glass tints transmission and glass-side reflection green (6&nbsp;mm clear float glass transmits with a* near −2, low-iron glass near −0.5), so the same coating looks different on clear and low-iron glass and at different thicknesses.</li>
+            <li><strong>Map uniformity.</strong> Measure several points across the lite and report the spread as ΔE to the center or to a master. Edge and end effects in the coater show up here first.</li>
+            <li><strong>Cameras and handhelds together.</strong> A camera system under fixed lighting can flag streaks and gradients over the whole lite, while spot measurements with a spectrophotometer anchor the absolute values. Expect to correlate them empirically; the relationship is usually not linear and can differ between coatings.</li>
+        </ul>
+        <p>The <a href="/tools/glazing-performance/">glazing performance calculator</a> computes transmitted and reflected CIELAB for full glazing units, and the spectrum panel above converts any measured curve to color.</p>
+
+        <h2 id="how-calculated">How it is calculated</h2>
+        <p><strong>sRGB to XYZ.</strong> Each 8-bit channel is divided by 255 and linearized with the sRGB transfer function of IEC 61966-2-1; the inverse brings linear values back:</p>
+        <div class="formula">\[ \begin{aligned} C_\text{lin} &= \begin{cases} C/12.92 & C \le 0.04045 \\ \left(\dfrac{C + 0.055}{1.055}\right)^{2.4} & C > 0.04045 \end{cases} \\[6pt] C &= \begin{cases} 12.92\,C_\text{lin} & C_\text{lin} \le 0.0031308 \\ 1.055\,C_\text{lin}^{1/2.4} - 0.055 & C_\text{lin} > 0.0031308 \end{cases} \end{aligned} \]</div>
+        <p>The linear values go through the matrix built from the sRGB primaries, (x, y) = (0.64, 0.33), (0.30, 0.60), and (0.15, 0.06), with its columns scaled so that R = G = B = 1 gives the D65 white of the CIE 1931 2° observer computed from the CIE 1&nbsp;nm tables, (X<sub>n</sub>, Y<sub>n</sub>, Z<sub>n</sub>) = (95.047, 100, 108.883):</p>
+        <div class="formula">\[ \begin{pmatrix} X \\ Y \\ Z \end{pmatrix} = 100 \begin{pmatrix} 0.4124564 & 0.3575761 & 0.1804375 \\ 0.2126729 & 0.7151522 & 0.0721750 \\ 0.0193339 & 0.1191920 & 0.9503041 \end{pmatrix} \begin{pmatrix} R_\text{lin} \\ G_\text{lin} \\ B_\text{lin} \end{pmatrix} \]</div>
+        <p>The code keeps this matrix and its inverse at full precision, so grays stay neutral through any round trip. IEC 61966-2-1 prints a 4-decimal matrix based on the rounded white chromaticity (0.3127, 0.3290), and CSS Color 4 uses that chromaticity exactly; the CIELAB values they give differ from this page’s by at most 0.02. Chromaticity is x = X/(X + Y + Z) and y = Y/(X + Y + Z).</p>
+        <p><strong>CIELAB and LCh</strong> (CIE 15; ISO/CIE 11664-4) follow from XYZ and the white:</p>
+        <div class="formula">\[ \begin{aligned} L^* &= 116\, f(Y/Y_n) - 16, \\ a^* &= 500\,[f(X/X_n) - f(Y/Y_n)], \\ b^* &= 200\,[f(Y/Y_n) - f(Z/Z_n)], \\ f(t) &= \begin{cases} t^{1/3} & t > (6/29)^3 = 216/24389 \\ (841/108)\,t + 4/29 & \text{otherwise,} \end{cases} \\ C^*_{ab} &= \sqrt{a^{*2} + b^{*2}}, \qquad h_{ab} = \operatorname{atan2}(b^*, a^*). \end{aligned} \]</div>
+        <p>The hue angle h<sub>ab</sub> runs from 0° to 360°. The inverse transform follows CIE 15 (Appendix D of the 2004 edition), with its break at L* = 8.</p>
+        <p><strong>HSV, HSL, and CMYK</strong> use the gamma-encoded sRGB values R, G, B from 0 to 1, with max and min the largest and smallest of the three. HSV (Smith): V = max and S = (max − min)/max. HSL (Joblove and Greenberg; CSS Color 4): L = (max + min)/2 and S = (max − min)/(1 − |2L − 1|). Both use the same hue angle, set by which channel is largest. CMYK: K = 1 − max, C = (1 − R − K)/(1 − K), and likewise M from G and Y from B.</p>
+        <p><strong>Color differences</strong> are sample minus reference. The CIELAB differences (CIE 15) are</p>
+        <div class="formula">\[ \begin{aligned} \Delta E^*_{ab} &= \sqrt{\Delta L^{*2} + \Delta a^{*2} + \Delta b^{*2}}, \\ \Delta C^*_{ab} &= C^*_{ab,1} - C^*_{ab,0}, \qquad \Delta H^*_{ab} = 2\sqrt{C^*_{ab,1}\, C^*_{ab,0}}\,\sin(\Delta h_{ab}/2), \end{aligned} \]</div>
+        <p>with Δh<sub>ab</sub> wrapped into ±180°, so that \((\Delta E^*_{ab})^2 = (\Delta L^*)^2 + (\Delta C^*_{ab})^2 + (\Delta H^*_{ab})^2\). CIEDE2000 (CIE 15; ISO/CIE 11664-6) rescales a* near the gray axis and weights the differences, here with k<sub>L</sub>&nbsp;=&nbsp;k<sub>C</sub>&nbsp;=&nbsp;k<sub>H</sub>&nbsp;=&nbsp;1:</p>
+        <div class="formula">\[ \begin{aligned} \Delta E_{00} &= \sqrt{\left(\frac{\Delta L'}{k_L S_L}\right)^{2} + \left(\frac{\Delta C'}{k_C S_C}\right)^{2} + \left(\frac{\Delta H'}{k_H S_H}\right)^{2} + R_T\,\frac{\Delta C'}{k_C S_C}\,\frac{\Delta H'}{k_H S_H}}, \\ a' &= (1 + G)\,a^*, \qquad G = 0.5\left(1 - \sqrt{\frac{\bar C^{*7}_{ab}}{\bar C^{*7}_{ab} + 25^7}}\right), \\ C' &= \sqrt{a'^2 + b^{*2}}, \qquad h' = \operatorname{atan2}(b^*, a'), \\ \Delta L' &= L^*_1 - L^*_0, \qquad \Delta C' = C'_1 - C'_0, \qquad \Delta H' = 2\sqrt{C'_1 C'_0}\,\sin(\Delta h'/2), \\ S_L &= 1 + \frac{0.015\,(\bar L' - 50)^2}{\sqrt{20 + (\bar L' - 50)^2}}, \qquad S_C = 1 + 0.045\,\bar C', \qquad S_H = 1 + 0.015\,\bar C'\,T, \\ T &= 1 - 0.17\cos(\bar h' - 30^\circ) + 0.24\cos 2\bar h' + 0.32\cos(3\bar h' + 6^\circ) - 0.20\cos(4\bar h' - 63^\circ), \\ R_T &= -2\sqrt{\frac{\bar C'^{7}}{\bar C'^{7} + 25^7}}\,\sin\!\left(60^\circ \exp\!\left[-\left(\frac{\bar h' - 275^\circ}{25^\circ}\right)^{2}\right]\right). \end{aligned} \]</div>
+        <p>Bars are means over the two colors; the mean hue and Δh′ account for the 360° wrap, following the implementation notes of Sharma, Wu, and Dalal, whose 34 published test pairs this code reproduces to their four decimals.</p>
+        <p><strong>Spectrum to color</strong> (CIE 15; ASTM E308). The measured reflectance or transmittance R(λ) is interpolated to λ<sub>i</sub> = 380, 385, …, 780&nbsp;nm by third-order (Lagrange) interpolation through the four nearest data points, one of the methods CIE 15 lists, and held at its end values beyond the data. The weights W<sub>X,i</sub>, W<sub>Y,i</sub>, W<sub>Z,i</sub> are D65 times the color-matching functions \(\bar x, \bar y, \bar z\), integrated over each 5&nbsp;nm step from the CIE 1&nbsp;nm tables and scaled so that \(\sum_i W_{Y,i} = 1\). Then</p>
+        <div class="formula">\[ \begin{aligned} X &= \frac{X_n}{\sum_i W_{X,i}} \sum_i R(\lambda_i)\,W_{X,i}, \qquad Z = \frac{Z_n}{\sum_i W_{Z,i}} \sum_i R(\lambda_i)\,W_{Z,i}, \\ Y &= 100 \sum_i R(\lambda_i)\,W_{Y,i}, \end{aligned} \]</div>
+        <p>so a perfect white gives exactly L* = 100 and a* = b* = 0. For 1 and 5&nbsp;nm data the interpolation changes nothing; for 10 and 20&nbsp;nm data it matches ASTM E308’s tabulated weights to within about 0.03 ΔE00 on typical reflectance spectra, where straight-line interpolation can be off by more than 0.5.</p>
+
+        <h2 id="worked-example">Worked example</h2>
+        <p>The default colors reproduce by hand. #3366CC is R, G, B = 51, 102, 204, or 0.2000, 0.4000, 0.8000 of full scale, which linearize to 0.033105, 0.132868, 0.603827. The matrix gives X, Y, Z = 17.012, 14.564, 59.030, so X/X<sub>n</sub>, Y/Y<sub>n</sub>, Z/Z<sub>n</sub> = 0.178983, 0.145643, 0.542138, whose cube roots are 0.563556, 0.526134, 0.815399. Then L* = 116 × 0.526134 − 16 = 45.03, a* = 500 × (0.563556 − 0.526134) = 18.71, and b* = 200 × (0.526134 − 0.815399) = −57.85, with C*ab = 60.80 and h<sub>ab</sub> = 287.9°. The same steps take the reference #3A66C4 to L*, a*, b* = 44.78, 16.69, −53.63.</p>
+        <p>The differences are ΔL* = +0.25, Δa* = +2.02, and Δb* = −4.22, so ΔE*ab = 4.68, of which ΔC*ab = +4.63 and ΔH*ab = +0.65. For CIEDE2000, both colors are strongly chromatic, so G = 0.0007 and a′ barely changes: ΔL′ = 0.250, ΔC′ = 4.633, ΔH′ = 0.652. At the means L′ = 44.91, C′ = 58.49, and h′ = 287.6°, the weights are S<sub>L</sub> = 1.057, S<sub>C</sub> = 3.632, and S<sub>H</sub> = 1.323 (T = 0.368), and the blue rotation term is R<sub>T</sub> = −1.449. The weighted differences 0.236, 1.276, and 0.492 combine as √(0.236² + 1.276² + 0.492² − 1.449 × 1.276 × 0.492) = 1.01; without R<sub>T</sub> the result would be 1.39.</p>
+        <p>In the spectrum panel, <em>Load example</em> gives L* 25.50, a* 20.60, b* −6.49 and Y = 4.58&nbsp;% for the illustrative low-e reflectance curve, which is tabulated every 20&nbsp;nm; an independent ASTM E308 calculation gives 25.50, 20.60, −6.50.</p>
+
+        <h2 id="limits">Assumptions and limits</h2>
+        <ul>
+            <li><strong>One viewing condition.</strong> Everything is for CIE illuminant D65 and the 1931 2° observer, with no 10° observer, no other illuminant, and no chromatic adaptation. CIELAB from a D65/10° instrument setting, from CSS lab(), or from ICC (D50) software is therefore not interchangeable with these values, though two readings taken in the same setting can still be compared in the ΔE panel.</li>
+            <li><strong>sRGB only.</strong> HEX, RGB, HSV, HSL, and CMYK are sRGB codes; convert Display P3 or Adobe RGB values first. Colors outside sRGB are clipped channel by channel, not gamut-mapped, so their swatch and RGB-based codes are approximate, while XYZ, xyY, CIELAB, and LCh stay exact. HEX and RGB show the nearest 8-bit value.</li>
+            <li><strong>CMYK is the naive formula</strong> applied to gamma-encoded sRGB. It ignores inks, paper, dot gain, and black generation; use the printer’s ICC profile for print.</li>
+            <li><strong>No plausibility check on CIE entries.</strong> Any L*, a*, b*, XYZ, or xyY entry is accepted, including combinations outside the spectral locus that no real color can have.</li>
+            <li><strong>ΔE00 is for small differences</strong> between uniform samples under the CIE reference conditions: a D65 simulator at 1000&nbsp;lx, a mid-gray surround, samples larger than 4° placed edge to edge, and differences up to about 5 CIELAB units. It is not a Euclidean distance in any color space, and it jumps slightly where the two hues differ by about 180°.</li>
+            <li><strong>Spectrum panel.</strong> For non-fluorescent samples only. The values must be reflectance factors or transmittances relative to a perfect white or to air, covering at least 400–700&nbsp;nm, and they are used as given, with no bandpass correction. The interpolation assumes a smooth spectrum, which holds for reflectance and transmittance but not for line spectra, and the geometry (SCI, SCE, or specular) and sample backing are whatever the data were measured with.</li>
+        </ul>
+
+        <h2 id="references">References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>CIE 015:2018, <em>Colorimetry</em>, 4th ed., CIE, Vienna (2018), <a href="https://doi.org/10.25039/TR.015.2018" target="_blank" rel="noopener">doi:10.25039/TR.015.2018</a> (standard observers and illuminants, tristimulus values and chromaticity, CIELAB and LCh, ΔE*ab and ΔH*ab, CIEDE2000, measurement geometries).</li>
+            <li>CIE 15:2004, <em>Colorimetry</em>, 3rd ed., CIE, Vienna (2004), superseded by ref. 1: §7.2 (interpolating spectral data, with third-order Lagrange interpolation among the methods listed, and extending them with end values “as a rough approximation”), §8.3 (CIEDE2000 and its reference conditions), and Appendix D (inverse CIELAB transform).</li>
+            <li>ISO/CIE 11664-4:2019, <em>Colorimetry — Part 4: CIE 1976 L*a*b* colour space</em>; ISO/CIE 11664-6:2022, <em>Colorimetry — Part 6: CIEDE2000 colour-difference formula</em> (the standardized CIELAB and CIEDE2000 definitions).</li>
+            <li>CIE datasets (2019): “CIE 1931 colour-matching functions, 2 degree observer,” <a href="https://doi.org/10.25039/CIE.DS.xvudnb9b" target="_blank" rel="noopener">doi:10.25039/CIE.DS.xvudnb9b</a>; “CIE standard illuminant D65,” <a href="https://doi.org/10.25039/CIE.DS.hjfjmt59" target="_blank" rel="noopener">doi:10.25039/CIE.DS.hjfjmt59</a>; “CIE 1931 chromaticity coordinates of spectrum loci, 2 degree observer,” <a href="https://doi.org/10.25039/CIE.DS.mifmy4x4" target="_blank" rel="noopener">doi:10.25039/CIE.DS.mifmy4x4</a> (the spectrum weights, the white X<sub>n</sub>, Y<sub>n</sub>, Z<sub>n</sub> = 95.047, 100, 108.883, and the spectral locus of the diagram).</li>
+            <li>IEC 61966-2-1:1999, <em>Multimedia systems and equipment — Colour measurement and management — Part 2-1: Colour management — Default RGB colour space — sRGB</em> (sRGB primaries, D65 white, and transfer function).</li>
+            <li>W3C, <em>CSS Color Module Level 4</em>, Candidate Recommendation Draft (2026), <a href="https://www.w3.org/TR/css-color-4/" target="_blank" rel="noopener">w3.org/TR/css-color-4</a> (hex notation, HSL, the sRGB transfer function, and the D50 white of CSS lab() and of ICC color management).</li>
+            <li>A. R. Smith, “Color gamut transform pairs,” <em>ACM SIGGRAPH Comput. Graph.</em> <strong>12</strong>, 12–19 (1978), <a href="https://doi.org/10.1145/965139.807361" target="_blank" rel="noopener">doi:10.1145/965139.807361</a> (HSV).</li>
+            <li>G. H. Joblove and D. Greenberg, “Color spaces for computer graphics,” <em>ACM SIGGRAPH Comput. Graph.</em> <strong>12</strong>, 20–25 (1978), <a href="https://doi.org/10.1145/965139.807362" target="_blank" rel="noopener">doi:10.1145/965139.807362</a> (HSL).</li>
+            <li>M. R. Luo, G. Cui, and B. Rigg, “The development of the CIE 2000 colour-difference formula: CIEDE2000,” <em>Color Res. Appl.</em> <strong>26</strong>, 340–350 (2001), <a href="https://doi.org/10.1002/col.1049" target="_blank" rel="noopener">doi:10.1002/col.1049</a> (what each CIEDE2000 term corrects).</li>
+            <li>G. Sharma, W. Wu, and E. N. Dalal, “The CIEDE2000 color-difference formula: Implementation notes, supplementary test data, and mathematical observations,” <em>Color Res. Appl.</em> <strong>30</strong>, 21–30 (2005), <a href="https://doi.org/10.1002/col.20070" target="_blank" rel="noopener">doi:10.1002/col.20070</a>; test data at <a href="https://hajim.rochester.edu/ece/sites/gsharma/ciede2000/" target="_blank" rel="noopener">hajim.rochester.edu/ece/sites/gsharma/ciede2000</a> (the implementation followed here and the 34 test pairs it reproduces).</li>
+            <li>R. D. Paravina, R. Ghinea, L. J. Herrera, et al., “Color difference thresholds in dentistry,” <em>J. Esthet. Restor. Dent.</em> <strong>27</strong>, S1–S9 (2015), <a href="https://doi.org/10.1111/jerd.12149" target="_blank" rel="noopener">doi:10.1111/jerd.12149</a> (50:50&nbsp;% perceptibility and acceptability thresholds, ΔE00 = 0.8 and 1.8, from 175 observers).</li>
+            <li>ASTM E308-22, <em>Standard Practice for Computing the Colors of Objects by Using the CIE System</em>, <a href="https://doi.org/10.1520/E0308-22" target="_blank" rel="noopener">doi:10.1520/E0308-22</a>; ASTM E1164-23, <em>Standard Practice for Obtaining Spectrometric Data for Object-Color Evaluation</em>, <a href="https://doi.org/10.1520/E1164-23" target="_blank" rel="noopener">doi:10.1520/E1164-23</a>; ASTM D2244-25, <em>Standard Practice for Calculation of Color Tolerances and Color Differences from Instrumentally Measured Color Coordinates</em>, <a href="https://doi.org/10.1520/D2244-25" target="_blank" rel="noopener">doi:10.1520/D2244-25</a> (computing color from spectra, the measurement parameters to report, and tolerances agreed between buyer and seller).</li>
+            <li>J. Seymour, “Evaluation of reference materials for standardization of spectrophotometers,” <em>TAGA Proceedings</em> 2013, 355–379, <a href="https://library-files.taga.org/2013-proceedings/T20130355.pdf" target="_blank" rel="noopener">PDF</a> (surveys how closely spectrophotometers of the same and of different makes agree).</li>
+            <li>G. Hong, M. R. Luo, and P. A. Rhodes, “A study of digital camera colorimetric characterization based on polynomial modeling,” <em>Color Res. Appl.</em> <strong>26</strong>, 76–84 (2001), <a href="https://doi.org/10.1002/1520-6378(200102)26:1%3C76::AID-COL8%3E3.0.CO;2-3" target="_blank" rel="noopener">doi:10.1002/1520-6378(200102)26:1&lt;76::AID-COL8&gt;3.0.CO;2-3</a> (camera RGB is not colorimetric; characterization against a target, and why it depends on the material).</li>
+            <li>R. S. Berns, <em>Billmeyer and Saltzman’s Principles of Color Technology</em>, 4th ed., Wiley (2019), <a href="https://doi.org/10.1002/9781119367314" target="_blank" rel="noopener">doi:10.1002/9781119367314</a>, chs. 4–6 and 10 (colorimetry, color difference and tolerances, measurement geometry and spectrophotometry, digital cameras).</li>
+            <li>G. Ding and C. Clavero, “Silver-based low-emissivity coating technology for energy-saving window applications,” in <em>Modern Technologies for Creating the Thin-film Systems and Coatings</em>, InTech (2017), <a href="https://doi.org/10.5772/67085" target="_blank" rel="noopener">doi:10.5772/67085</a> (sputtered silver and pyrolytic tin-oxide low-e coatings).</li>
+            <li>H. A. Macleod, <em>Thin-Film Optical Filters</em>, 5th ed., CRC Press (2017), <a href="https://doi.org/10.1201/b21960" target="_blank" rel="noopener">doi:10.1201/b21960</a> (interference in multilayer coatings and its shift with angle).</li>
+            <li>M. Rubin, “Optical properties of soda lime silica glasses,” <em>Sol. Energy Mater.</em> <strong>12</strong>, 275–288 (1985), <a href="https://doi.org/10.1016/0165-1633(85)90052-8" target="_blank" rel="noopener">doi:10.1016/0165-1633(85)90052-8</a> (optical constants of clear and low-iron glass, from which the transmitted a* values above are computed).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>Konica Minolta, “Precise Color Communication,” illustrated booklet, <a href="https://www.konicaminolta.com/instruments/knowledge/color/" target="_blank" rel="noopener">konicaminolta.com</a> (color spaces, ΔE and CIEDE2000, illuminants and observers, SCI and SCE geometry, and fluorescent samples).</li>
+            <li>MDN Web Docs, “&lt;color&gt; CSS type,” <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/color_value" target="_blank" rel="noopener">developer.mozilla.org</a> (how hex, rgb(), hsl(), lab(), and lch() colors are written on the web).</li>
+            <li>CIE, “e-ILV,” the free online <em>International Lighting Vocabulary</em> (CIE S&nbsp;017:2020), <a href="https://cie.co.at/e-ilv" target="_blank" rel="noopener">cie.co.at/e-ilv</a> (the official definition of each colorimetric term on this page).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="low-e-sheet-resistance,glazing-performance,vision-system-configurator,article:machine-vision-optics"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const C = window.ColorMath, Wt = window.GlazingWeights, { fmt } = Calc;
+    const $ = id => document.getElementById(id);
+    const LOCUS = [[0.1741,0.005],[0.174,0.005],[0.1738,0.0049],[0.1736,0.0049],[0.1733,0.0048],[0.173,0.0048],[0.1726,0.0048],[0.1721,0.0048],[0.1714,0.0051],[0.1703,0.0058],[0.1689,0.0069],[0.1669,0.0086],[0.1644,0.0109],[0.1611,0.0138],[0.1566,0.0177],[0.151,0.0227],[0.144,0.0297],[0.1355,0.0399],[0.1241,0.0578],[0.1096,0.0868],[0.0913,0.1327],[0.0687,0.2007],[0.0454,0.295],[0.0235,0.4127],[0.0082,0.5384],[0.0039,0.6548],[0.0139,0.7502],[0.0389,0.812],[0.0743,0.8338],[0.1142,0.8262],[0.1547,0.8059],[0.1929,0.7816],[0.2296,0.7543],[0.2658,0.7243],[0.3016,0.6923],[0.3374,0.6588],[0.3731,0.6245],[0.4087,0.5896],[0.4441,0.5547],[0.4788,0.5202],[0.5125,0.4866],[0.5448,0.4544],[0.5752,0.4242],[0.6029,0.3965],[0.627,0.3725],[0.6482,0.3514],[0.6658,0.334],[0.6801,0.3197],[0.6915,0.3083],[0.7006,0.2993],[0.7079,0.292],[0.714,0.2859],[0.719,0.2809],[0.723,0.2769],[0.726,0.274],[0.7283,0.2717],[0.73,0.27],[0.7311,0.2689],[0.732,0.268],[0.7327,0.2673],[0.7334,0.2666],[0.734,0.266],[0.7344,0.2656],[0.7346,0.2654],[0.7347,0.2653]];
+    const LOCUS_NM = i => 380 + 5 * i;
+    const DEFAULT = '#3366CC', DEFAULT_REF = '#3A66C4';
+    // zero the tiny a*, b* that floating-point rounding leaves on neutral grays, so they read 0 with hue 0°
+    const tidy = lab => lab.map((x, i) => i && Math.abs(x) < 5e-5 ? 0 : x);
+    const hexLab = h => tidy(C.xyzToLab(C.rgbToXyz(C.hexToRgb(h))));
+
+    let xyz = C.rgbToXyz(C.hexToRgb(DEFAULT));
+    let hueMemo = 220;
+    let ref = hexLab(DEFAULT_REF);
+
+    const inputs = Array.from(document.querySelectorAll('#fields input'));
+    const groupVals = g => inputs.filter(i => i.dataset.g === g).map(i => i.value);
+    const num = s => Calc.parseNum(s);
+    const r1 = (x, d) => (Math.round(x * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d).replace(/^-0(\.0+)?$/, '0$1');
+    // signed difference, with no sign on a value that rounds to zero
+    const sgn = (x, d) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? '' : x > 0 ? '+' : '−') + r1(Math.abs(x), d);
+    // sRGB channels rounded to 1e-12, so floating-point noise cannot tip an 8-bit value or tint a gray
+    const toRgb = X => C.xyzToRgb(X).map(c => Math.round(c * 1e12) / 1e12);
+    // true when the channels are exactly an 8-bit sRGB color (a HEX, RGB, or picker entry)
+    const is8bit = raw => raw.every(c => c >= 0 && c <= 1 && Math.abs(c * 255 - Math.round(c * 255)) < 1e-6);
+    const f4 = x => String(+x.toFixed(4));
+    const enc = s => encodeURIComponent(s).replace(/%2C/g, ',');
+    // the reference as a hex code when it is exactly one, otherwise as L*, a*, b* to 4 decimals
+    const refCode = () => { const raw = toRgb(C.labToXyz(ref)); return is8bit(raw) ? C.rgbToHex(raw).slice(1) : ref.map(f4).join(','); };
+    const refShown = () => { const s = refCode(); return s.indexOf(',') < 0 ? '#' + s : s.split(',').join(', '); };
+
+    function fromGroup(g) {
+        if (g === 'hex') { const rgb = C.hexToRgb(groupVals('hex')[0]); return rgb ? C.rgbToXyz(rgb) : null; }
+        const v = groupVals(g).map(num);
+        if (v.some(x => !isFinite(x))) return null;
+        // percentages are clamped to 0–100 the way RGB is clamped to 0–255; physically impossible entries are rejected
+        const pc = x => Math.min(100, Math.max(0, x)) / 100;
+        if (g === 'rgb') return C.rgbToXyz(v.map(x => Math.min(255, Math.max(0, x)) / 255));
+        if (g === 'hsv' || g === 'hsl') { hueMemo = (v[0] % 360 + 360) % 360; return C.rgbToXyz((g === 'hsv' ? C.hsvToRgb : C.hslToRgb)([v[0], pc(v[1]), pc(v[2])])); }
+        if (g === 'cmyk') return C.rgbToXyz(C.cmykToRgb(v.map(pc)));
+        if (g === 'lab') return v[0] >= 0 ? C.labToXyz(v) : null;
+        if (g === 'lch') return v[0] >= 0 && v[1] >= 0 ? C.labToXyz(C.lchToLab(v)) : null;
+        if (g === 'xyz') return v.every(x => x >= 0) ? v.map(x => x / 100) : null;
+        if (g === 'xyY') return v[0] >= 0 && v[1] > 0 && v[0] + v[1] <= 1 && v[2] >= 0 ? C.xyYToXyz([v[0], v[1], v[2] / 100]) : null;
+        return null;
+    }
+
+    let shownHash = '';   // the fragment render() last wrote: the color shown
+    // a link to a section of this page (e.g. #how-calculated) keeps its fragment through the first render, so it can scroll there
+    const anchorEl = /^#[A-Za-z][\w-]*$/.test(location.hash) ? document.getElementById(location.hash.slice(1)) : null;
+    let keepAnchor = !!anchorEl;
+    function render(skip) {
+        const rgbRaw = toRgb(xyz), ok = C.inGamut(rgbRaw), rgb = C.clip(rgbRaw), hex = C.rgbToHex(rgb);
+        const lab = tidy(C.xyzToLab(xyz)), lch = C.labToLch(lab), xyY = C.xyzToXyY(xyz);
+        let hsv = C.rgbToHsv(rgb), hsl = C.rgbToHsl(rgb);
+        if (hsv[1] < 1e-6) { hsv[0] = hueMemo; hsl[0] = hueMemo; } else hueMemo = hsv[0];
+        const cmyk = C.rgbToCmyk(rgb);
+        const vals = {
+            hex: [hex], rgb: rgb.map(c => Math.round(c * 255)), hsv: [r1(hsv[0], 1), r1(hsv[1] * 100, 1), r1(hsv[2] * 100, 1)],
+            hsl: [r1(hsl[0], 1), r1(hsl[1] * 100, 1), r1(hsl[2] * 100, 1)], cmyk: cmyk.map(c => r1(c * 100, 1)),
+            lab: lab.map(x => r1(x, 2)), lch: [r1(lch[0], 2), r1(lch[1], 2), r1(lch[2], 1)],
+            xyz: xyz.map(x => r1(x * 100, 3)), xyY: [r1(xyY[0], 4), r1(xyY[1], 4), r1(xyY[2] * 100, 3)]
+        };
+        inputs.forEach(i => { if (i.dataset.g !== skip) { i.value = vals[i.dataset.g][+i.dataset.i]; i.removeAttribute('aria-invalid'); } });
+        $('swatch').style.background = hex;
+        $('swatch-tag').textContent = hex;
+        const g = $('gamut');
+        g.className = 'gamut ' + (ok ? 'ok' : 'bad');
+        g.textContent = ok ? 'Inside the sRGB gamut: the swatch and hex code show this color to within 8-bit rounding.' : 'Outside the sRGB gamut: the RGB channels are clipped to 0–255, so the swatch and the HEX, RGB, HSV, HSL, and CMYK values only approximate this color. CIELAB, LCh, XYZ, and xyY are exact.';
+        ['r', 'g', 'b'].forEach((ch, k) => {
+            const s = $('s' + ch); s.value = Math.round(rgb[k] * 255); $('s' + ch + 'v').textContent = s.value;
+            const lo = rgb.map(c => Math.round(c * 255)), hi = lo.slice(); lo[k] = 0; hi[k] = 255;
+            s.style.background = 'linear-gradient(90deg, rgb(' + lo + '), rgb(' + hi + '))';
+        });
+        drawSV(hsv); drawHue(hsv[0]); drawXY(xyY); drawAB(lab); deltaE(lab);
+        // the share link keeps the exact color: its hex code when that is exact, otherwise CIELAB to 4 decimals
+        if (keepAnchor) keepAnchor = false;
+        else try { history.replaceState(null, '', '#' + (is8bit(rgbRaw) ? 'c=' + hex.slice(1) : 'lab=' + enc(lab.map(f4).join(','))) + '&ref=' + enc(refCode())); shownHash = location.hash; } catch (e) { /* ignore */ }
+    }
+
+    inputs.forEach(i => i.addEventListener('input', () => {
+        const g = i.dataset.g, X = fromGroup(g), bad = !(X && X.every(isFinite));
+        inputs.forEach(j => { if (j.dataset.g === g) { if (bad) j.setAttribute('aria-invalid', 'true'); else j.removeAttribute('aria-invalid'); } });
+        if (!bad) { xyz = X; render(g); }
+    }));
+    inputs.forEach(i => i.addEventListener('change', () => render(null)));
+    ['r', 'g', 'b'].forEach(ch => $('s' + ch).addEventListener('input', () => {
+        xyz = C.rgbToXyz(['r', 'g', 'b'].map(c => +$('s' + c).value / 255)); render(null);
+    }));
+
+    // Canvases get a backing store at the screen's pixel density, so lines and labels stay sharp on phones;
+    // the drawing code works in CSS pixels (the size returned here).
+    function hiDPI(c) {
+        const d = Math.min(3, window.devicePixelRatio || 1), w = c.width, h = c.height;
+        if (d > 1) { c.width = Math.round(w * d); c.height = Math.round(h * d); c.getContext('2d').setTransform(c.width / w, 0, 0, c.height / h, 0, 0); }
+        return [w, h];
+    }
+    // reference marker: a white ring with a dark outline, larger than the current-color dot so it shows on any background
+    function ring(x, cx, cy) {
+        x.beginPath(); x.arc(cx, cy, 9, 0, 2 * Math.PI);
+        x.lineWidth = 4; x.strokeStyle = '#111'; x.stroke(); x.lineWidth = 2; x.strokeStyle = '#fff'; x.stroke();
+    }
+
+    // ── HSV picker ──
+    const sv = $('sv'), svx = sv.getContext('2d'), hu = $('hue'), hux = hu.getContext('2d');
+    const [SW, SH] = hiDPI(sv), [HW, HH] = hiDPI(hu);
+    let svHue = null;
+    function drawSV(hsv) {
+        const W = SW, H = SH;
+        svx.fillStyle = C.rgbToHex(C.hsvToRgb([hsv[0], 1, 1])); svx.fillRect(0, 0, W, H);
+        let gw = svx.createLinearGradient(0, 0, W, 0); gw.addColorStop(0, '#fff'); gw.addColorStop(1, 'rgba(255,255,255,0)');
+        svx.fillStyle = gw; svx.fillRect(0, 0, W, H);
+        let gb = svx.createLinearGradient(0, 0, 0, H); gb.addColorStop(0, 'rgba(0,0,0,0)'); gb.addColorStop(1, '#000');
+        svx.fillStyle = gb; svx.fillRect(0, 0, W, H);
+        const x = hsv[1] * W, y = (1 - hsv[2]) * H;
+        svx.lineWidth = 2; svx.strokeStyle = hsv[2] > 0.55 ? '#111' : '#fff';
+        svx.beginPath(); svx.arc(x, y, 7, 0, 2 * Math.PI); svx.stroke();
+        svHue = hsv[0];
+    }
+    function drawHue(h) {
+        const W = HW, H = HH, g = hux.createLinearGradient(0, 0, W, 0);
+        for (let i = 0; i <= 6; i++) g.addColorStop(i / 6, C.rgbToHex(C.hsvToRgb([i * 60, 1, 1])));
+        hux.fillStyle = g; hux.fillRect(0, 0, W, H);
+        const x = h / 360 * W; hux.fillStyle = '#fff'; hux.strokeStyle = '#111'; hux.lineWidth = 1.5;
+        hux.fillRect(x - 3, 0, 6, H); hux.strokeRect(x - 3, 0.5, 6, H - 1);
+    }
+    function drag(canvas, fn) {
+        const at = e => { const r = canvas.getBoundingClientRect(); return [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))]; };
+        canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); fn(...at(e)); });
+        canvas.addEventListener('pointermove', e => { if (e.buttons) fn(...at(e)); });
+    }
+    drag(sv, (fx, fy) => { const h = svHue == null ? hueMemo : svHue; hueMemo = h; xyz = C.rgbToXyz(C.hsvToRgb([h, fx, 1 - fy])); render(null); });
+    drag(hu, fx => {
+        const hsv = C.rgbToHsv(C.clip(C.xyzToRgb(xyz))); const s = hsv[1] < 1e-6 ? 1 : hsv[1], v = hsv[2] < 1e-6 ? 1 : hsv[2];
+        hueMemo = fx * 360; xyz = C.rgbToXyz(C.hsvToRgb([hueMemo, s, v])); render(null);
+    });
+
+    // ── Chromaticity diagram ──
+    const xy = $('xy'), xyx = xy.getContext('2d');
+    const [XW, XH] = hiDPI(xy), PX = x => 34 + x / 0.8 * (XW - 46), PY = y => XH - 30 - y / 0.9 * (XH - 42);
+    const bg = document.createElement('canvas'); bg.width = XW; bg.height = XH;
+    (function () {
+        const b = bg.getContext('2d'), img = b.createImageData(XW, XH), poly = LOCUS.map(p => [PX(p[0]), PY(p[1])]);
+        const inside = (x, y) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+        for (let py = 0; py < XH; py++) for (let px = 0; px < XW; px++) {
+            if (!inside(px + 0.5, py + 0.5)) continue;
+            const cx = (px - 34) / (XW - 46) * 0.8, cy = (XH - 30 - py) / (XH - 42) * 0.9;
+            const lin = [[3.2404542, -1.5371385, -0.4985314], [-0.9692660, 1.8760108, 0.0415560], [0.0556434, -0.2040259, 1.0572252]].map(r => r[0] * cx / cy + r[1] + r[2] * (1 - cx - cy) / cy).map(c => Math.max(0, c));
+            const mx = Math.max(...lin) || 1, k = (py * XW + px) * 4;
+            lin.forEach((c, i) => { img.data[k + i] = Math.round(255 * Math.max(0, C.toGamma(c / mx))); });
+            img.data[k + 3] = 255;
+        }
+        b.putImageData(img, 0, 0);
+    })();
+    function drawXY(xyY) {
+        const css = getComputedStyle(document.body), ink = css.getPropertyValue('--text-2').trim() || '#333', muted = css.getPropertyValue('--muted').trim() || '#777';
+        xyx.clearRect(0, 0, XW, XH); xyx.drawImage(bg, 0, 0, XW, XH);
+        xyx.strokeStyle = muted; xyx.lineWidth = 1; xyx.fillStyle = muted; xyx.font = '11px ' + css.getPropertyValue('--font');
+        xyx.beginPath(); xyx.moveTo(PX(0), PY(0.9)); xyx.lineTo(PX(0), PY(0)); xyx.lineTo(PX(0.8), PY(0)); xyx.stroke();
+        for (let t = 0; t <= 0.8001; t += 0.2) { xyx.fillText(t.toFixed(1), PX(t) - 8, XH - 14); }
+        for (let t = 0; t <= 0.9001; t += 0.3) { xyx.fillText(t.toFixed(1), 6, PY(t) + 4); }
+        xyx.fillText('x', PX(0.4) + 14, XH - 2); xyx.fillText('y', 6, PY(0.45) + 18);
+        xyx.beginPath(); LOCUS.forEach((p, i) => i ? xyx.lineTo(PX(p[0]), PY(p[1])) : xyx.moveTo(PX(p[0]), PY(p[1]))); xyx.closePath(); xyx.strokeStyle = ink; xyx.stroke();
+        [460, 480, 500, 520, 540, 560, 580, 600, 620].forEach(nm => { const p = LOCUS[(nm - 380) / 5]; xyx.fillStyle = ink; xyx.fillText(nm, PX(p[0]) + (nm < 510 ? -26 : 5), PY(p[1]) + (nm < 510 ? 4 : 2)); });
+        xyx.beginPath(); [[0.64, 0.33], [0.30, 0.60], [0.15, 0.06]].forEach((p, i) => i ? xyx.lineTo(PX(p[0]), PY(p[1])) : xyx.moveTo(PX(p[0]), PY(p[1]))); xyx.closePath();
+        xyx.strokeStyle = '#111'; xyx.lineWidth = 1.5; xyx.stroke(); xyx.fillStyle = '#111'; xyx.fillText('sRGB', PX(0.40), PY(0.40));
+        xyx.beginPath(); xyx.arc(PX(0.3127), PY(0.3290), 3, 0, 2 * Math.PI); xyx.fillStyle = '#fff'; xyx.fill(); xyx.strokeStyle = '#111'; xyx.stroke();
+        const rxy = C.xyzToXyY(C.labToXyz(ref));
+        ring(xyx, PX(rxy[0]), PY(rxy[1]));
+        xyx.beginPath(); xyx.arc(PX(xyY[0]), PY(xyY[1]), 6, 0, 2 * Math.PI); xyx.fillStyle = C.rgbToHex(C.clip(C.xyzToRgb(xyz))); xyx.fill(); xyx.lineWidth = 2; xyx.strokeStyle = '#111'; xyx.stroke();
+    }
+
+    // ── a*b* plane ──
+    const ab = $('ab'), abx = ab.getContext('2d'), [AW, AH] = hiDPI(ab), AR = 128;
+    const AX = a => (a + AR) / (2 * AR) * AW, AY = b => AH - (b + AR) / (2 * AR) * AH;
+    const abBg = document.createElement('canvas'); abBg.width = AW; abBg.height = AH;
+    let abL = null;
+    function paintAB(L) {
+        const b = abBg.getContext('2d'), img = b.createImageData(AW, AH);
+        for (let py = 0; py < AH; py++) for (let px = 0; px < AW; px++) {
+            const a = px / AW * 2 * AR - AR, bb = (AH - py) / AH * 2 * AR - AR;
+            const rgb = C.xyzToRgb(C.labToXyz([L, a, bb])), ok = C.inGamut(rgb), c = C.clip(rgb), k = (py * AW + px) * 4;
+            img.data[k] = 255 * c[0]; img.data[k + 1] = 255 * c[1]; img.data[k + 2] = 255 * c[2]; img.data[k + 3] = ok ? 255 : 55;
+        }
+        b.putImageData(img, 0, 0); abL = L;
+    }
+    function drawAB(lab) {
+        if (abL === null || Math.abs(lab[0] - abL) > 0.75) paintAB(lab[0]);
+        // axes, labels, and the reference line use the theme's text color over a halo of the panel color, so they read in both themes
+        const css = getComputedStyle(document.body), ink = css.getPropertyValue('--text').trim() || '#111', halo = css.getPropertyValue('--surface').trim() || '#fff';
+        abx.clearRect(0, 0, AW, AH); abx.drawImage(abBg, 0, 0, AW, AH);
+        abx.strokeStyle = ink; abx.globalAlpha = 0.5; abx.lineWidth = 1;
+        abx.beginPath(); abx.moveTo(AX(0), 0); abx.lineTo(AX(0), AH); abx.moveTo(0, AY(0)); abx.lineTo(AW, AY(0)); abx.stroke();
+        abx.globalAlpha = 1; abx.font = '600 11px ' + css.getPropertyValue('--font'); abx.lineJoin = 'round'; abx.lineWidth = 3; abx.strokeStyle = halo; abx.fillStyle = ink;
+        [['+a* red', AW - 50, AY(0) - 6], ['−a* green', 6, AY(0) - 6], ['+b* yellow', AX(0) + 6, 14], ['−b* blue', AX(0) + 6, AH - 8]].forEach(([t, x, y]) => { abx.strokeText(t, x, y); abx.fillText(t, x, y); });
+        abx.beginPath(); abx.moveTo(AX(ref[1]), AY(ref[2])); abx.lineTo(AX(lab[1]), AY(lab[2]));
+        abx.strokeStyle = halo; abx.lineWidth = 3.5; abx.stroke(); abx.strokeStyle = ink; abx.lineWidth = 1.5; abx.stroke();
+        ring(abx, AX(ref[1]), AY(ref[2]));
+        abx.beginPath(); abx.arc(AX(lab[1]), AY(lab[2]), 6, 0, 2 * Math.PI); abx.fillStyle = C.rgbToHex(C.clip(C.xyzToRgb(xyz))); abx.fill(); abx.strokeStyle = '#111'; abx.lineWidth = 2; abx.stroke();
+        $('ab-L').textContent = 'L* ' + r1(lab[0], 1);
+    }
+
+    // ── ΔE ──
+    function parseRef(s) {
+        const rgb = C.hexToRgb(s); if (rgb) return tidy(C.xyzToLab(C.rgbToXyz(rgb)));
+        // semicolons separate the numbers when present, so decimal commas work: 50,5; 20; 30
+        const v = String(s).split(/;/.test(s) ? /;/ : /[\s,]+/).map(num).filter(isFinite);
+        return v.length === 3 && v[0] >= 0 ? v : null;
+    }
+    function deltaE(lab) {
+        const d00 = C.deltaE00(ref, lab), d76 = C.deltaE76(ref, lab);
+        const c1 = Math.hypot(ref[1], ref[2]), c2 = Math.hypot(lab[1], lab[2]);
+        let dh = Math.atan2(lab[2], lab[1]) - Math.atan2(ref[2], ref[1]);
+        if (dh > Math.PI) dh -= 2 * Math.PI; else if (dh < -Math.PI) dh += 2 * Math.PI;
+        const dH = 2 * Math.sqrt(c1 * c2) * Math.sin(dh / 2);   // signed ΔH*ab (CIE 15)
+        $('de00').textContent = r1(d00, 2); $('de76').textContent = r1(d76, 2);
+        $('dlab').textContent = [lab[0] - ref[0], lab[1] - ref[1], lab[2] - ref[2]].map(x => sgn(x, 2)).join(' · ');
+        $('dch').textContent = sgn(c2 - c1, 2) + ' · ' + sgn(dH, 2);
+        // 0.8 and 1.8 are the 50:50 % perceptibility and acceptability thresholds of Paravina et al. (2015), 175 observers
+        $('de-note').textContent = d00 < 0.8 ? 'Below the usual visibility threshold: most observers see no difference, even side by side.' : d00 < 1.8 ? 'Near the visibility threshold: about half of observers or more see it side by side.' : d00 < 3.5 ? 'Visible side by side to most observers.' : d00 < 5 ? 'A clear difference.' : 'Clearly different colors. ΔE00 is designed for small differences, so large values are only approximate.';
+        $('ref-sw').style.background = C.rgbToHex(C.clip(C.xyzToRgb(C.labToXyz(ref))));
+    }
+    function refError(m) { const el = $('ref'); if (m) el.setAttribute('aria-invalid', 'true'); else el.removeAttribute('aria-invalid'); $('ref-msg').textContent = m; }
+    $('ref').addEventListener('input', () => {
+        const r = parseRef($('ref').value);
+        if (r) { refError(''); ref = r; render(null); } else refError('Enter a hex code, or L*, a*, b* as three numbers (L* ≥ 0).');
+    });
+    $('ref-set').addEventListener('click', () => { ref = tidy(C.xyzToLab(xyz)); $('ref').value = refShown(); refError(''); render(null); });
+
+    // ── Spectrum to color ──
+    let specXyz = null;
+    function spectrumColor(text) {
+        const pts = []; let cols = 0;
+        text.split(/\r\n?|\n/).forEach(l => {
+            const s = l.trim(); if (!s) return;
+            // tab-, semicolon-, and space-separated exports may use decimal commas ("380 4,1"); otherwise commas and spaces separate the numbers
+            const ws = s.split(/\s+/), dec = /[;\t]/.test(s) || (ws.length > 1 && /\d,\d/.test(s) && ws.every(x => /^(%|[-+]?(\d+(,\d*)?|,\d+)%?)$/.test(x)));
+            const cells = (dec ? s.split(/[;\t]+|\s+/).map(x => x.replace(',', '.')) : s.split(/[\s,]+/)).filter(x => x && x !== '%');
+            const n = cells.map(x => Number(x.replace(/%$/, '')));
+            if (n.length >= 2 && isFinite(n[0]) && isFinite(n[1])) { pts.push([n[0], n[1]]); cols = Math.max(cols, n.length); }
+        });
+        if (pts.length < 5) throw new Error('need at least 5 wavelength, value pairs');
+        pts.sort((a, b) => a[0] - b[0]);
+        // a wavelength listed more than once is averaged, so the interpolation nodes are distinct
+        const uniq = []; pts.forEach(p => { const q = uniq[uniq.length - 1]; if (q && q[0] === p[0]) q[1] += (p[1] - q[1]) / ++q[2]; else uniq.push([p[0], p[1], 1]); });
+        if (uniq.length < 5) throw new Error('need at least 5 different wavelengths');
+        const mode = $('spec-unit').value, micron = pts[pts.length - 1][0] < 50;
+        const pct = mode === 'pct' || (mode === 'auto' && pts.some(p => p[1] > 1.5));
+        const wl = uniq.map(p => micron ? p[0] * 1000 : p[0]), val = uniq.map(p => pct ? p[1] / 100 : p[1]);
+        if (wl[0] > 400 || wl[wl.length - 1] < 700) throw new Error('the spectrum should cover at least 400–700 nm (found ' + Math.round(wl[0]) + '–' + Math.round(wl[wl.length - 1]) + ' nm)');
+        // third-order (Lagrange) interpolation through the four nearest data points, one of the methods CIE 15 lists
+        // (linear interpolation of 20 nm data was up to 0.6 ΔE00 off ASTM E308); end values are held beyond the data
+        const at = nm => {
+            const n = wl.length; if (nm <= wl[0]) return val[0]; if (nm >= wl[n - 1]) return val[n - 1];
+            let i = 1; while (wl[i] < nm) i++; if (wl[i] === nm) return val[i];
+            const lo = Math.min(Math.max(i - 2, 0), n - 4); let s = 0;
+            for (let j = lo; j < lo + 4; j++) { let w = val[j]; for (let k = lo; k < lo + 4; k++) if (k !== j) w *= (nm - wl[k]) / (wl[j] - wl[k]); s += w; }
+            return s;
+        };
+        let X = 0, Y = 0, Z = 0, Xn = 0, Zn = 0;
+        for (let i = 0; i < Wt.grid.n; i++) {
+            const nm = Wt.grid.start + i * Wt.grid.step; if (nm < 380 || nm > 780) continue;
+            const s = at(nm); X += s * Wt.X[i]; Y += s * Wt.Y[i]; Z += s * Wt.Z[i]; Xn += Wt.X[i]; Zn += Wt.Z[i];
+        }
+        if (X < 0 || Y < 0 || Z < 0) throw new Error('the values give a negative X, Y, or Z; check for negative readings');
+        // rescale so the white point matches the converter's D65 white (X 95.047, Z 108.883)
+        return { xyz: [X / Xn * C.WHITE[0], Y, Z / Zn * C.WHITE[2]], wl, val, pct, micron, cols, auto: mode === 'auto', extended: wl[0] > 380 || wl[wl.length - 1] < 780 };
+    }
+    $('spec-go').addEventListener('click', () => {
+        const msg = $('spec-msg');
+        try {
+            const r = spectrumColor($('spec').value); specXyz = r.xyz;
+            const lab = C.xyzToLab(r.xyz), rgb = C.xyzToRgb(r.xyz);
+            const how = ['Values read as ' + (r.pct ? 'percent' : 'fractions (0–1)') + (r.auto && !r.pct ? ' because none exceeds 1.5 (choose percent if they are %)' : ''),
+                'wavelengths in ' + (r.micron ? 'µm' : 'nm')].concat(r.extended ? ['extended with the end values to cover 380–780 nm'] : [], r.cols > 2 ? ['columns after the second ignored'] : []).join('; ') + '.';
+            const mn = s => s.replace(/^-/, '−');   // typographic minus in the displayed values
+            msg.className = 'imp-msg ok';
+            msg.innerHTML = '<span style="display:inline-block;width:18px;height:18px;border-radius:4px;vertical-align:-4px;border:1px solid var(--border-strong);background:' + C.rgbToHex(C.clip(rgb)) + '"></span> ' +
+                'L* ' + mn(r1(lab[0], 2)) + ', a* ' + mn(r1(lab[1], 2)) + ', b* ' + mn(r1(lab[2], 2)) + ' · Y ' + r1(r.xyz[1] * 100, 2) + ' % · ' + C.rgbToHex(C.clip(rgb)) + (C.inGamut(rgb) ? '' : ' (outside sRGB)') +
+                '<span class="hint" style="display:block;margin-top:.2rem">' + how + '</span>';
+            $('spec-use').disabled = false;
+            if (window.Plot) Plot.draw('#spec-plot', { height: 220, x: { label: 'Wavelength (nm)', min: Math.min(380, r.wl[0]), max: Math.max(780, r.wl[r.wl.length - 1]) }, y: { label: 'R or T (%)', min: 0 },
+                series: [{ type: 'line', x: r.wl, y: r.val.map(v => 100 * v), label: 'Measured spectrum', color: 'var(--c1)' }], vlines: [{ x: 380, label: '380 nm', color: 'var(--muted)' }, { x: 780, label: '780 nm', color: 'var(--muted)' }],
+                ariaLabel: 'Measured reflectance or transmittance (%) versus wavelength (nm)' });
+        } catch (e) { msg.className = 'imp-msg bad'; msg.textContent = 'Could not read the spectrum: ' + e.message + '.'; $('spec-use').disabled = true; }
+    });
+    $('spec-unit').addEventListener('change', () => { if ($('spec-msg').textContent) $('spec-go').click(); });
+    $('spec-use').addEventListener('click', () => { if (specXyz) { xyz = specXyz; render(null); window.scrollTo({ top: 0, behavior: 'smooth' }); } });
+    $('spec-ex').addEventListener('click', () => {
+        // Illustrative film-side reflectance of a generic double-silver low-e coating, 380–780 nm in 20 nm steps (%)
+        const R = [12.0, 10.5, 8.6, 6.9, 5.4, 4.3, 3.6, 3.3, 3.3, 3.6, 4.4, 5.8, 8.0, 11.2, 15.6, 21.0, 27.4, 34.2, 41.0, 47.2, 52.6];
+        $('spec').value = R.map((r, i) => (380 + 20 * i) + ', ' + r.toFixed(1)).join('\n');
+        $('spec-unit').value = 'auto';
+        $('spec-go').click();
+    });
+
+    $('c-reset').addEventListener('click', () => { xyz = C.rgbToXyz(C.hexToRgb(DEFAULT)); ref = hexLab(DEFAULT_REF); $('ref').value = DEFAULT_REF; refError(''); render(null); });
+
+    // Restore from the URL: c = hex code, or lab = L*,a*,b* for a color that is not an exact hex code; ref = hex code or L*,a*,b*
+    try {
+        const p = new URLSearchParams(location.hash.slice(1));
+        const c = p.get('c'), lb = p.get('lab'), rf = p.get('ref');
+        const lv = lb ? lb.split(',').map(num) : null;
+        if (lv && lv.length === 3 && lv.every(isFinite) && lv[0] >= 0) xyz = C.labToXyz(lv);
+        else if (c && C.hexToRgb(c)) xyz = C.rgbToXyz(C.hexToRgb(c));
+        if (rf) { const r = parseRef(rf); if (r) { ref = r; $('ref').value = C.hexToRgb(rf) ? '#' + rf.trim().replace(/^#/, '').toUpperCase() : /;/.test(rf) ? rf : rf.split(/\s*,\s*/).join(', '); } }
+    } catch (e) { /* ignore */ }
+    render(null);
+    if (anchorEl) anchorEl.scrollIntoView();
+    document.addEventListener('themechange', () => render(null));
+    // A color link opened in the tab that already shows the converter changes only the fragment, which does not reload
+    // the page: reload when it describes another color (not for an in-page #anchor, or Back to the color shown).
+    window.addEventListener('hashchange', () => { if (/(^#|&)(c|lab|ref)=/.test(location.hash) && location.hash !== shownHash) location.reload(); });
+});
+</script>
+</body>
+</html>

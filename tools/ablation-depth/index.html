@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ablation Threshold &amp; Depth Calculator: Liu D² Method, Incubation</title>
+<meta name="description" content="Find laser ablation threshold fluence and beam radius from crater diameters (Liu D² method), then ablation depth per pulse, incubation, and optimum fluence.">
+<link rel="canonical" href="https://cdfoley.com/tools/ablation-depth/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Ablation Threshold & Depth Calculator">
+<meta property="og:description" content="Find laser ablation threshold fluence and beam radius from crater diameters (Liu D² method), then ablation depth per pulse, incubation, and optimum fluence.">
+<meta property="og:url" content="https://cdfoley.com/tools/ablation-depth/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-ablation-depth.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Ablation Threshold &amp; Depth Calculator. Find laser ablation threshold fluence and beam radius from crater diameters (Liu D² method), then ablation depth per pulse, incubation, and optimum fluence.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Ablation Threshold & Depth",
+   "url": "https://cdfoley.com/tools/ablation-depth/",
+   "description": "Find laser ablation threshold fluence and beam radius from crater diameters (Liu D² method), then ablation depth per pulse, incubation, and optimum fluence.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "ablation threshold depth liu method incubation penetration depth rate d2 crater diameter fluence laser calculator",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Laser Processing",
+     "item": "https://cdfoley.com/tools/#process"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Ablation Threshold & Depth",
+     "item": "https://cdfoley.com/tools/ablation-depth/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#process">Laser Processing</a></li><li aria-current="page">Ablation Threshold &amp; Depth</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Ablation Threshold &amp; Depth Calculator</h1>
+        <p class="lede">How much fluence does it take to start removing material, and how much does each pulse remove? Part 1 finds the threshold fluence and the true beam size on the part from crater diameters you measured (the Liu D² method). Part 2 takes a threshold, from part 1 or from the literature, and estimates the depth per pulse, how the threshold drops over many pulses (incubation), the crater volume, and the fluence that removes the most material per joule.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Ablation threshold</dt><dd>The lowest peak fluence that removes material. For metals hit by one 10&nbsp;ps pulse at 1064&nbsp;nm it is about 0.5–2&nbsp;J/cm² (table below).</dd>
+            <dt>Peak fluence</dt><dd>The energy per unit area at the center of a Gaussian spot: twice the pulse energy divided by the area of the 1/e² circle. Every fluence on this page is a peak value.</dd>
+            <dt>Crater diameter</dt><dd>The width of the spot where material was removed, measured with a microscope. It grows with pulse energy, but slowly.</dd>
+            <dt>Liu (D²) method</dt><dd>Plotting the square of the crater diameter against the logarithm of the pulse energy gives a straight line. Its slope gives the beam size on the part, and where it reaches zero gives the threshold.</dd>
+            <dt>Effective penetration depth</dt><dd>A depth scale fitted to measurements: each time the fluence is multiplied by e (2.718), the depth removed per pulse grows by this amount. About 9–50&nbsp;nm for metals with picosecond pulses.</dd>
+            <dt>Incubation</dt><dd>The drop in threshold as more pulses hit the same spot, because each pulse leaves changes that help the next one. The incubation coefficient S is 1 when there is no such effect and smaller when there is.</dd>
+            <dt>Removal efficiency</dt><dd>The volume of material removed per unit of laser energy, in µm³/µJ, or per watt of average power, in mm³/(W·min).</dd>
+            <dt>Optimum fluence</dt><dd>The peak fluence that removes the most material per joule with a Gaussian beam: about 7.4 (e²) times the threshold.</dd>
+        </dl></details>
+    </header>
+
+    <h2 style="font-size:1.2rem;margin:0 0 1rem">1 · Threshold from crater diameters (Liu method)</h2>
+    <div class="tool-layout">
+        <form class="panel" id="liu" autocomplete="off">
+            <div class="panel-head"><h3>Measured craters</h3>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="liu">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="liu-data">Pulse energy and crater diameter, one pair per line</label>
+                    <textarea id="liu-data" name="data" class="input" rows="8" spellcheck="false">
+# E      D
+1      13.1
+2      21.1
+4      28.2
+8      32.6
+16     38.0</textarea>
+                    <p class="hint">Paste from a spreadsheet: tab-, comma-, or space-separated. Decimal commas (13,1) work when tabs, semicolons, or spaces separate the columns. Lines starting with # are ignored. Measure each diameter at the edge of the ablated region, with every crater made by the same number of pulses. Use five or more energies spread over at least a factor of 10, roughly 1.5× to 20× threshold, so the slope is well defined; three different energies are the minimum for a fit.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="liu-eu">Energy unit</label>
+                        <select id="liu-eu" name="eu" class="input"><option value="nJ">nJ</option><option value="µJ" selected>µJ</option><option value="mJ">mJ</option></select>
+                    </div>
+                    <div class="field">
+                        <label for="liu-du">Diameter unit</label>
+                        <select id="liu-du" name="du" class="input"><option value="µm" selected>µm</option><option value="mm">mm</option></select>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" id="liu-out" aria-labelledby="liu-h">
+            <div class="panel-head"><h3 id="liu-h">Fit results</h3><span id="liu-badge" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Threshold fluence (peak)<span class="sym">F<sub>th</sub></span></span><output class="result-value" data-out="fth">—</output>
+                        <span class="result-note">Valid for the number of pulses per crater you used: with one pulse each, this is F<sub>th</sub>(1) for part 2.</span></div>
+                    <div class="result"><span class="result-label">Threshold pulse energy<span class="sym">E<sub>th</sub></span></span><output class="result-value" data-out="eth">—</output></div>
+                    <div class="result"><span class="result-label">Beam radius at the surface (1/e²)<span class="sym">w₀</span></span><output class="result-value" data-out="w0">—</output></div>
+                    <div class="result"><span class="result-label">Spot diameter (1/e²)<span class="sym">2w₀</span></span><output class="result-value" data-out="d0">—</output></div>
+                    <div class="result"><span class="result-label">Slope of D² vs ln E<span class="sym">2w₀²</span></span><output class="result-value" data-out="slope">—</output></div>
+                    <div class="result"><span class="result-label">Coefficient of determination<span class="sym">R²</span></span><output class="result-value" data-out="r2">—</output></div>
+                    <div class="result"><span class="result-label">Points used</span><output class="result-value" data-out="n">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="liu-plot-h">
+        <div class="panel-head"><h3 id="liu-plot-h">D² vs. pulse energy</h3></div>
+        <div class="panel-body"><div id="liu-plot"></div></div>
+    </section>
+
+    <h2 style="font-size:1.2rem;margin:2.5rem 0 1rem">2 · Depth, incubation &amp; removal efficiency</h2>
+    <div class="tool-layout">
+        <form class="panel" id="abl" autocomplete="off">
+            <div class="panel-head"><h3>Process</h3>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="abl">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="a-f0">Peak fluence <span class="sym">F₀ = 2E<sub>p</sub>/πw₀²</span></label>
+                    <div class="input-unit"><input id="a-f0" name="f0" value="1.5" inputmode="decimal" data-positive data-label="peak fluence"><select data-dim="fluence" data-units="mJ/cm²,J/cm²" data-default="J/cm²"></select></div>
+                    <p class="hint">From the pulse energy and spot size: the <a href="/tools/fluence/">fluence</a> calculator gives it.</p>
+                </div>
+                <div class="field">
+                    <label for="a-fth">Single-pulse threshold fluence <span class="sym">F<sub>th</sub>(1)</span></label>
+                    <div class="input-unit"><input id="a-fth" name="fth" value="0.2" inputmode="decimal" data-positive data-label="threshold fluence"><select data-dim="fluence" data-units="mJ/cm²,J/cm²" data-default="J/cm²"></select></div>
+                    <p class="hint">A peak value for one pulse per spot: from part 1 with single-pulse craters, or from the literature (typical values below).</p>
+                </div>
+                <div class="field">
+                    <label for="a-delta">Effective penetration depth <span class="sym">δ<sub>eff</sub></span></label>
+                    <div class="input-unit"><input id="a-delta" name="delta" value="20" inputmode="decimal" data-positive data-label="effective penetration depth"><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <p class="hint">A fitted parameter, not the optical absorption depth. Get it from the slope of measured depth per pulse against ln F₀.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="a-n">Pulses per spot <span class="sym">N</span></label>
+                        <div class="input-unit"><input id="a-n" name="n" value="10" inputmode="decimal" data-min="1" data-label="pulses per spot"><span class="unit">—</span></div>
+                    </div>
+                    <div class="field" style="margin-bottom:.95rem">
+                        <label for="a-s">Incubation coefficient <span class="sym">S</span></label>
+                        <div class="input-unit"><input id="a-s" name="s" value="0.85" inputmode="decimal" data-min="0" data-max="1" data-label="incubation coefficient"><span class="unit">—</span></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.65rem 0 .95rem">S = 1 means no incubation; measured values for metals are mostly 0.7–0.9 (table below). For a scanned process, take the pulse count from the <a href="/tools/pulse-overlap/">overlap</a> tool, counted the same way as in the source of your S (often pulses per spot diameter).</p>
+                <div class="field">
+                    <label for="a-d">Spot diameter (1/e², optional) <span class="sym">2w₀</span></label>
+                    <div class="input-unit"><input id="a-d" name="d" value="30" inputmode="decimal" data-optional data-label="spot diameter"><select data-dim="length" data-units="µm,mm" data-default="µm"></select></div>
+                    <p class="hint">Needed only for the crater diameter and volume.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" id="abl-out" aria-labelledby="abl-h">
+            <div class="panel-head"><h3 id="abl-h">Results</h3><span id="abl-badge" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Depth removed by pulse N (on axis)<span class="sym">δ ln(F₀/F<sub>th</sub>(N))</span></span><output class="result-value" data-out="ln">—</output></div>
+                    <div class="result"><span class="result-label">Single-pulse depth<span class="sym">δ ln(F₀/F<sub>th</sub>(1))</span></span><output class="result-value" data-out="l1">—</output></div>
+                    <div class="result"><span class="result-label">Estimated total depth after N pulses</span><output class="result-value" data-out="ltot">—</output>
+                        <span class="result-note">For shallow features: deep grooves and holes remove less per pulse.</span></div>
+                    <div class="result"><span class="result-label">Incubated threshold<span class="sym">F<sub>th</sub>(N)</span></span><output class="result-value" data-out="fthn">—</output></div>
+                    <div class="result"><span class="result-label">Fluence ratio<span class="sym">F₀/F<sub>th</sub>(N)</span></span><output class="result-value" data-out="ratio">—</output></div>
+                    <div class="result"><span class="result-label">Removal efficiency<span class="sym">V/E<sub>p</sub></span></span><output class="result-value" data-out="eta">—</output></div>
+                    <div class="result"><span class="result-label">Specific removal rate<span class="sym">(dV/dt)/P</span></span><output class="result-value" data-out="rate">—</output></div>
+                    <div class="result"><span class="result-label">Optimum peak fluence<span class="sym">e²·F<sub>th</sub>(N)</span></span><output class="result-value" data-out="fopt">—</output></div>
+                    <div class="result"><span class="result-label">Efficiency vs. optimum</span><output class="result-value" data-out="erel">—</output>
+                        <span class="result-note">At least 75&nbsp;% from about 3 to 26 times threshold, and at least 90&nbsp;% from about 4 to 15 times.</span></div>
+                    <div class="result"><span class="result-label">Crater diameter after N pulses<span class="sym">D</span></span><output class="result-value" data-out="dcr">—</output></div>
+                    <div class="result"><span class="result-label">Volume removed by pulse N</span><output class="result-value" data-out="vol">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="eta-h">
+        <div class="panel-head"><h3 id="eta-h">Removal efficiency vs. fluence</h3></div>
+        <div class="panel-body"><div id="eta-plot"></div></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <h3>Threshold from crater diameters</h3>
+        <p>A Gaussian beam ablates wherever the local fluence \(F_0e^{-2r^2/w_0^2}\) exceeds the threshold. The crater diameter therefore depends on pulse energy as</p>
+        <div class="formula">\[ D^2 = 2w_0^2 \ln\!\left(\frac{E_p}{E_\text{th}}\right), \quad F_\text{th} = \frac{2E_\text{th}}{\pi w_0^2}. \]</div>
+        <p>Plotting \(D^2\) against \(\ln E_p\) gives a straight line. Its slope is \(2w_0^2\) and its intercept with \(D^2 = 0\) is \(E_\text{th}\) (Liu, 1982). You measure the beam radius at the work surface and the threshold together, without a separate beam profiler. A bent line suggests a non-Gaussian beam, a second ablation regime, or craters measured at different pulse numbers.</p>
+        <p>Craters made with N pulses each give \(F_\text{th}(N)\) rather than the single-pulse threshold. Repeating the fit at several N and plotting \(\ln F_\text{th}(N)\) against \(\ln N\) gives \(S - 1\) as the slope. This is the ablation counterpart of the S-on-1 test that ISO&nbsp;21254-2 specifies for the damage thresholds of optical components.</p>
+
+        <h3>Logarithmic depth law</h3>
+        <p>If the absorbed energy density decays exponentially into the material with a characteristic length \(\delta_\text{eff}\), material is removed down to the depth where the deposited energy density falls to its threshold:</p>
+        <div class="formula">\[ L = \delta_\text{eff}\,\ln\!\left(\frac{F_0}{F_\text{th}}\right). \]</div>
+        <p>Depth grows with the <em>logarithm</em> of fluence. Doubling the fluence adds a fixed increment \(\delta_\text{eff}\ln 2\) instead of doubling the depth. For ultrashort pulses on metals, two logarithmic regimes are commonly seen (Nolte et al., 1997). At low fluence \(\delta_\text{eff}\) is close to the optical penetration depth, about 13&nbsp;nm for copper near 800&nbsp;nm. At higher fluence the electron heat-diffusion length takes over and \(\delta_\text{eff}\) is several times larger. Fit each regime separately.</p>
+        <div class="callout callout-warn">
+            <p><strong>δ<sub>eff</sub> is a fit parameter, not 1/α.</strong> Take crystalline silicon at 1064&nbsp;nm. Absorption is weak (α ≈ 10&nbsp;cm⁻¹ at room temperature), so the optical penetration depth is about a millimeter. Nanosecond ablation depths there are set by heating, melting, and the rise in absorption with temperature, not by optical absorption. Measure δ<sub>eff</sub> for your material, wavelength, and pulse duration. Do not take it from optical constants.</p>
+        </div>
+
+        <h3>Incubation</h3>
+        <p>Repeated exposure lowers the threshold through accumulated changes to the surface: plastic deformation and defects, roughening, and chemical changes such as oxidation. The widely used empirical model of Jee et al. (1988) is</p>
+        <div class="formula">\[ F_\text{th}(N) = F_\text{th}(1)\,N^{\,S-1}, \]</div>
+        <p>where \(S = 1\) means no incubation. The total-depth estimate here sums the logarithmic law pulse by pulse, with the \(n\)-th pulse seeing \(F_\text{th}(n)\) and a fractional \(N\) rounded to whole pulses. It suits shallow features. In deep grooves and holes, the walls spread the beam, the effective fluence at the bottom drops, and the depth saturates; in copper craters the depth stopped growing after about 1000 pulses (Žemaitis et al., 2018).</p>
+
+        <h3>Maximum removal efficiency at e² × threshold</h3>
+        <p>Integrating the logarithmic depth profile over a Gaussian spot gives the volume per pulse and the volume per unit energy:</p>
+        <div class="formula">\[ V = \frac{\pi \delta_\text{eff} w_0^2}{4}\ln^2\!\frac{F_0}{F_\text{th}}, \]</div>
+        <div class="formula">\[ \eta = \frac{V}{E_p} = \frac{\delta_\text{eff}}{2F_0}\ln^2\!\frac{F_0}{F_\text{th}}. \]</div>
+        <p>\(\eta\) is maximized at \(F_0 = e^2F_\text{th} \approx 7.39\,F_\text{th}\), where \(\eta_\text{max} = 2\delta_\text{eff}/(e^2F_\text{th})\) (Račiukaitis et al., 2009; Neuenschwander et al., 2010). Furmanski et al. (2007) had found nearly the same optimum, 7.6&nbsp;F<sub>th</sub>, numerically for overlapping trenches. For a top-hat beam the optimum is \(eF_\text{th}\). The peak is broad: anywhere from about 3× to 26× threshold keeps at least 75&nbsp;% of \(\eta_\text{max}\), and the 5× to 15× that Neuenschwander et al. (2014) suggest as a rule of thumb keeps at least 90&nbsp;%. Running far above it puts the extra energy into heat, the plume, and plasma rather than into removal. To use more average power efficiently, keep the fluence near the optimum and raise the repetition rate, with the scan speed, or split the beam into several spots, rather than raising the pulse energy.</p>
+
+        <h2>Typical values</h2>
+        <p>Measured values for metals with 10&nbsp;ps pulses at 1064&nbsp;nm, all as peak fluence. They depend on the surface finish and on how many pulses hit each spot, so use them to choose starting inputs, not as predictions.</p>
+        <table>
+            <thead><tr><th>Material and process</th><th class="num">F<sub>th</sub> (J/cm²)</th><th class="num">δ<sub>eff</sub> (nm)</th><th class="num">S</th></tr></thead>
+            <tbody>
+                <tr><td>Copper, single craters (Žemaitis et al., 2018)</td><td class="num">2.0 (1 pulse)<br>0.19 (1000 pulses)</td><td class="num">≈ 50<br>(first pulses)</td><td class="num">0.70</td></tr>
+                <tr><td>Copper, polished, scanned lines (Neuenschwander et al., 2010)</td><td class="num">1.07</td><td class="num">33</td><td class="num">—</td></tr>
+                <tr><td>Stainless steel 1.4301, fit to removal rate (Neuenschwander et al., 2014)</td><td class="num">0.055</td><td class="num">8.9</td><td class="num">—</td></tr>
+                <tr><td>Single craters on sheet as received (Račiukaitis et al., 2009): stainless steel 304, aluminum, copper</td><td class="num">0.5, 0.85, 1.73 (1 pulse)</td><td class="num">—</td><td class="num">—</td></tr>
+            </tbody>
+        </table>
+        <p>The fits on many-pulse lines and areas give incubated values, far below the single-pulse thresholds. For S, Račiukaitis et al. call 0.8–0.9 typical for metals; copper with picosecond pulses gives 0.7–0.8 (Žemaitis et al., 2018, and the values they cite), and Jee et al. measured 0.92 for nanosecond damage of single-crystal copper and aluminum.</p>
+
+        <h2>Worked example</h2>
+        <p>Take F₀ = 1.5&nbsp;J/cm², F<sub>th</sub>(1) = 0.2&nbsp;J/cm², δ<sub>eff</sub> = 20&nbsp;nm, N = 10, S = 0.85, and a 30&nbsp;µm spot. These are illustrative values.</p>
+        <ul>
+            <li>F<sub>th</sub>(10) = 0.2 × 10<sup>−0.15</sup> = 0.142&nbsp;J/cm², so F₀/F<sub>th</sub> = 10.6.</li>
+            <li>Single-pulse depth: 20&nbsp;nm × ln 7.5 = 40.3&nbsp;nm. Depth of the 10th pulse: 47.2&nbsp;nm (average over the 10 pulses: 44.8&nbsp;nm). Total after 10 pulses: about 0.45&nbsp;µm.</li>
+            <li>η = 3.71&nbsp;µm³/µJ, or 0.22&nbsp;mm³/(W·min). That is 97&nbsp;% of the optimum, which falls at 1.05&nbsp;J/cm².</li>
+            <li>Crater diameter after 10 pulses: 32.6&nbsp;µm. The 10th pulse removes about 20&nbsp;µm³.</li>
+        </ul>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Gaussian spatial profile, normal incidence, constant absorptance, and no plasma shielding. At ns durations and high fluence, plasma and melt ejection break the logarithmic law.</li>
+            <li>Peak fluence everywhere. If a threshold was reported as the average fluence \(E_p/\pi w_0^2\) instead of the peak, double it before using it here.</li>
+            <li>The incubation law has no floor. Measured thresholds usually level off at large N (Di Niso et al., 2014; Neuenschwander et al., 2014), so beyond the pulse counts where S was fitted this model overstates incubation: F<sub>th</sub>(N) and the optimum fluence come out too low, and the depths too high. Fit S over the pulse counts you actually use.</li>
+            <li>δ<sub>eff</sub> is held fixed while the threshold incubates. On copper and iron, δ<sub>eff</sub> also falls with pulse number, roughly in step with the threshold, so the maximum efficiency \(2\delta_\text{eff}/(e^2F_\text{th})\) changes less with N than this model predicts (Neuenschwander et al., 2014).</li>
+            <li>Depth and efficiency come from a model fitted to data. Use them to compare process settings, not as absolute predictions for a new material.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>J. M. Liu, “Simple technique for measurements of pulsed Gaussian-beam spot sizes,” <em>Opt. Lett.</em> <strong>7</strong>, 196–198 (1982), <a href="https://doi.org/10.1364/OL.7.000196" target="_blank" rel="noopener">doi:10.1364/OL.7.000196</a> (the D² vs. ln E method).</li>
+            <li>Y. Jee, M. F. Becker, and R. M. Walser, “Laser-induced damage on single-crystal metal surfaces,” <em>J. Opt. Soc. Am. B</em> <strong>5</strong>, 648–659 (1988), <a href="https://doi.org/10.1364/JOSAB.5.000648" target="_blank" rel="noopener">doi:10.1364/JOSAB.5.000648</a> (the incubation law F<sub>N</sub> = F<sub>1</sub>N<sup>S−1</sup>; S = 0.92).</li>
+            <li>S. Nolte, C. Momma, H. Jacobs, A. Tünnermann, B. N. Chichkov, B. Wellegehausen, and H. Welling, “Ablation of metals by ultrashort laser pulses,” <em>J. Opt. Soc. Am. B</em> <strong>14</strong>, 2716–2722 (1997), <a href="https://doi.org/10.1364/JOSAB.14.002716" target="_blank" rel="noopener">doi:10.1364/JOSAB.14.002716</a> (two logarithmic ablation regimes in metals).</li>
+            <li>P. B. Johnson and R. W. Christy, “Optical constants of the noble metals,” <em>Phys. Rev. B</em> <strong>6</strong>, 4370–4379 (1972), <a href="https://doi.org/10.1103/PhysRevB.6.4370" target="_blank" rel="noopener">doi:10.1103/PhysRevB.6.4370</a> (copper’s optical penetration depth, λ/4πk ≈ 13&nbsp;nm at 800&nbsp;nm).</li>
+            <li>J. Furmanski, A. M. Rubenchik, M. D. Shirk, and B. C. Stuart, “Deterministic processing of alumina with ultrashort laser pulses,” <em>J. Appl. Phys.</em> <strong>102</strong>, 073112 (2007), <a href="https://doi.org/10.1063/1.2794376" target="_blank" rel="noopener">doi:10.1063/1.2794376</a> (crater and trench volume from the logarithmic law; the optimum fluence found numerically).</li>
+            <li>G. Račiukaitis, M. Brikas, P. Gečys, B. Voisiat, and M. Gedvilas, “Use of high repetition rate and high power lasers in microfabrication: How to keep the efficiency high?” <em>J. Laser Micro/Nanoeng.</em> <strong>4</strong>, 186–191 (2009), <a href="https://doi.org/10.2961/jlmn.2009.03.0008" target="_blank" rel="noopener">doi:10.2961/jlmn.2009.03.0008</a> (the optimum at e²F<sub>th</sub>, measured thresholds, typical S; free to read).</li>
+            <li>B. Neuenschwander, G. F. Bucher, C. Nussbaum, B. Joss, M. Muralt, U. W. Hunziker, and P. Schuetz, “Processing of metals and dielectric materials with ps-laserpulses: results, strategies, limitations and needs,” <em>Proc. SPIE</em> <strong>7584</strong>, 75840R (2010), <a href="https://doi.org/10.1117/12.846521" target="_blank" rel="noopener">doi:10.1117/12.846521</a> (crater volume, the optimum fluence for Gaussian and top-hat beams, copper values).</li>
+            <li>B. Neuenschwander, B. Jaeggi, M. Schmid, and G. Hennig, “Surface structuring with ultra-short laser pulses: Basics, limitations and needs for high throughput,” <em>Phys. Procedia</em> <strong>56</strong>, 1047–1058 (2014), <a href="https://doi.org/10.1016/j.phpro.2014.08.017" target="_blank" rel="noopener">doi:10.1016/j.phpro.2014.08.017</a> (the 5–15× rule of thumb, incubation of δ<sub>eff</sub>, steel values; open access).</li>
+            <li>A. Žemaitis, M. Gaidys, M. Brikas, P. Gečys, G. Račiukaitis, and M. Gedvilas, “Advanced laser scanning for highly-efficient ablation and ultrafast surface structuring: experiment and model,” <em>Sci. Rep.</em> <strong>8</strong>, 17376 (2018), <a href="https://doi.org/10.1038/s41598-018-35604-z" target="_blank" rel="noopener">doi:10.1038/s41598-018-35604-z</a> (copper thresholds versus pulse number, S, and depth saturation; open access).</li>
+            <li>F. Di Niso, C. Gaudiuso, T. Sibillano, F. P. Mezzapesa, A. Ancona, and P. M. Lugarà, “Role of heat accumulation on the incubation effect in multi-shot laser ablation of stainless steel at high repetition rates,” <em>Opt. Express</em> <strong>22</strong>, 12200 (2014), <a href="https://doi.org/10.1364/OE.22.012200" target="_blank" rel="noopener">doi:10.1364/OE.22.012200</a> (thresholds level off at high pulse numbers; open access).</li>
+            <li>M. A. Green, “Self-consistent optical parameters of intrinsic silicon at 300K including temperature coefficients,” <em>Sol. Energy Mater. Sol. Cells</em> <strong>92</strong>, 1305–1310 (2008), <a href="https://doi.org/10.1016/j.solmat.2008.06.009" target="_blank" rel="noopener">doi:10.1016/j.solmat.2008.06.009</a> (silicon absorption at 1064&nbsp;nm).</li>
+            <li>ISO&nbsp;21254-2:2011, Lasers and laser-related equipment — Test methods for laser-induced damage threshold — Part 2: Threshold determination (the 1-on-1 and S-on-1 test procedures, written for optical components).</li>
+            <li>D. Bäuerle, <em>Laser Processing and Chemistry</em>, 4th ed., Springer (2011), <a href="https://doi.org/10.1007/978-3-642-17613-5" target="_blank" rel="noopener">doi:10.1007/978-3-642-17613-5</a> (textbook background).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>R. Paschotta, “Laser ablation,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/kf6" target="_blank" rel="noopener">doi:10.61835/kf6</a> (the ablation threshold, and why efficiency is poor both just above threshold and far above it).</li>
+            <li>R. Paschotta, “Fluence,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/j0u" target="_blank" rel="noopener">doi:10.61835/j0u</a> (fluence and the peak fluence of a Gaussian beam).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="fluence,pulse-overlap,thermal-diffusion,focused-spot,lidt,article:laser-ablation-process-windows"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, fromSI } = Calc;
+    const E_UNIT = { nJ: 1e-9, 'µJ': 1e-6, mJ: 1e-3 };
+    const D_UNIT = { 'µm': 1e-6, mm: 1e-3 };
+    const fl = (F, u = 'J/cm²') => fmt.num(fromSI('fluence', u, F), 4) + ' ' + u;
+    const E2 = Math.E * Math.E;
+
+    /* ── Part 1: Liu fit ─────────────────────────────────────────────── */
+    // Tabs, semicolons, or spaces between columns leave any comma inside its number. It is a decimal comma
+    // ("13,1", "0,035") unless the data has decimal points or every such comma could be a thousands separator
+    // ("1,000"). With no decimal points, a single "d,ddd" group reads two ways, so it is refused, as calc.js
+    // does for single inputs. Lines with neither ("1, 13.1", "1,13.1") are read as comma-separated values.
+    function parsePairs(text) {
+        const lines = String(text).split(/\r?\n/).map(l => l.trim()).filter(l => l && l[0] !== '#');
+        const cols = lines.map(l => /[\t;]/.test(l) ? l.split(/\s*[\t;]\s*/)
+            : /\s/.test(l) && !/(^|\s),|,(\s|$)/.test(l) ? l.split(/\s+/) : null);
+        const fields = [].concat(...cols.filter(Boolean));
+        const decComma = !fields.some(f => /\d\.\d/.test(f)) && fields.some(f => /^[-+]?(0?,\d+|\d*,(\d\d?|\d{4,}))$/.test(f));
+        const amb = !decComma && !fields.some(f => /\d\.\d/.test(f)) && fields.find(f => /^[-+]?[1-9]\d{0,2},\d{3}$/.test(f));
+        if (amb) throw Calc.fail('“' + amb + '” is ambiguous (crater data): enter ' + amb.replace(',', '') + ' or ' + amb.replace(',', '.') + '.', 'data');
+        // Calc.parseNum refuses "1,500" as ambiguous, so thousands separators are removed here
+        const num = f => Calc.parseNum(decComma ? f.replace(',', '.') : /^[-+]?\d{1,3}(,\d{3})+(\.\d*)?$/.test(f) ? f.replace(/,/g, '') : f);
+        const pts = [];
+        lines.forEach((l, i) => {
+            let nums = cols[i] ? cols[i].map(num).filter(Number.isFinite) : [];
+            if (nums.length < 2) nums = Calc.parseList(l);
+            if (nums.length >= 2) pts.push([nums[0], nums[1]]);
+        });
+        return pts;
+    }
+    const liuBadge = document.getElementById('liu-badge');
+    let liuFit = null;
+
+    Calc.create({
+        form: '#liu', id: 'liu', outputs: '#liu-out',
+        compute(v) {
+            const eu = E_UNIT[v.eu], du = D_UNIT[v.du];
+            const raw = parsePairs(v.data);
+            const pts = raw.filter(p => p[0] > 0 && p[1] > 0).sort((a, b) => a[0] - b[0]);
+            if (pts.length < 3) throw Calc.fail('Enter at least three lines with a positive pulse energy and crater diameter (' + pts.length + ' found).', 'data');
+            const nE = new Set(pts.map(p => p[0])).size;
+            if (nE < 3) throw Calc.fail('Use at least three different pulse energies (' + nE + ' found).', 'data');
+            const x = pts.map(p => Math.log(p[0] * eu));
+            const y = pts.map(p => (p[1] * du) ** 2);
+            const n = x.length, mx = x.reduce((a, b) => a + b) / n, my = y.reduce((a, b) => a + b) / n;
+            let sxy = 0, sxx = 0, syy = 0;
+            for (let i = 0; i < n; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) ** 2; syy += (y[i] - my) ** 2; }
+            if (!(sxx > 0)) throw Calc.fail('Use at least three different pulse energies.', 'data');
+            const m = sxy / sxx, b = my - m * mx;
+            if (!(m > 0)) throw Calc.fail('Crater diameter must increase with pulse energy (fitted slope ≤ 0). Check the data.', 'data');
+            const w0 = Math.sqrt(m / 2);
+            const Eth = Math.exp(-b / m);
+            const Fth = 2 * Eth / (Math.PI * w0 * w0);
+            const r2 = syy > 0 ? sxy * sxy / (sxx * syy) : 1;
+            liuFit = { pts, eu, du, m, Eth, w0 };
+            liuBadge.textContent = r2 >= 0.98 ? 'Good linear fit' : r2 >= 0.9 ? 'Check linearity' : 'Poor fit';
+            liuBadge.className = 'badge ' + (r2 >= 0.98 ? 'badge-ok' : r2 >= 0.9 ? 'badge-warn' : 'badge-bad');
+            const skipped = raw.length - pts.length;
+            return {
+                fth: fl(Fth),
+                eth: fmt.si(Eth, 'J', 4),
+                w0: fmt.si(w0, 'm', 4),
+                d0: fmt.si(2 * w0, 'm', 4),
+                slope: fmt.num(m / (du * du), 4) + ' ' + v.du + '²',
+                r2: fmt.num(r2, 5),
+                n: n + (skipped ? ' (' + skipped + ' with E or D ≤ 0 skipped)' : '')
+            };
+        },
+        after(v) {
+            const { pts, eu, du, m, Eth } = liuFit;
+            const eMax = Math.max(...pts.map(p => p[0])) * 1.4;
+            const xs = Calc.math.logspace(Eth / eu, eMax, 80);
+            const fitY = xs.map(E => m * Math.log(E * eu / Eth) / (du * du));
+            Plot.draw('#liu-plot', {
+                height: 280,
+                x: { label: 'Pulse energy (' + v.eu + ')', log: true },
+                y: { label: 'D² (' + v.du + '²)', min: 0 },
+                series: [
+                    { type: 'line', x: xs, y: fitY, label: 'Fit: D² = 2w₀² ln(E/Eₜₕ)', color: 'var(--c1)' },
+                    { type: 'points', x: pts.map(p => p[0]), y: pts.map(p => p[1] ** 2), label: 'Measured', color: 'var(--c2)', r: 4.5 }
+                ],
+                vlines: [{ x: Eth / eu, label: 'Eₜₕ', color: 'var(--c5)' }],
+                hover: { format: (x, hits) => hits.map(h => (h.series.label === 'Measured' ? 'measured' : 'fit') + ': E = ' + fmt.num(h.x, 4) + ' ' + v.eu + ', D² = ' + fmt.num(h.y, 4) + ' ' + v.du + '²').join(' · ') }
+            });
+        },
+        onError() {
+            liuFit = null;
+            liuBadge.textContent = ''; liuBadge.className = '';
+            const el = document.getElementById('liu-plot'); el.innerHTML = ''; el._plot = null;
+        }
+    });
+
+    /* ── Part 2: depth & efficiency ──────────────────────────────────── */
+    const ablBadge = document.getElementById('abl-badge');
+    // ln n!: exact sum below 20, Stirling series above (error < 1e-9)
+    const lnFact = n => {
+        if (n < 20) { let s = 0; for (let k = 2; k <= n; k++) s += Math.log(k); return s; }
+        return n * Math.log(n) - n + 0.5 * Math.log(2 * Math.PI * n) + 1 / (12 * n) - 1 / (360 * n ** 3);
+    };
+    Calc.create({
+        form: '#abl', id: 'abl', outputs: '#abl-out',
+        compute(v) {
+            const fthN = v.fth * Math.pow(v.n, v.s - 1);
+            const r1 = v.f0 / v.fth, rN = v.f0 / fthN, l1 = Math.log(r1);
+            // Total on-axis depth: pulse k removes δ·ln(F₀/F_th(k)) once F₀ > F_th(k). Summed in closed form over the
+            // whole pulses k0…nTot, where k0 is the first pulse above its threshold (a fractional N is rounded).
+            const nTot = Math.max(1, Math.round(v.n));
+            const k0 = l1 > 0 ? 1 : v.s < 1 ? Math.floor(Math.exp(-l1 / (1 - v.s))) + 1 : Infinity;
+            const tot = k0 > nTot ? 0 : v.delta * ((nTot - k0 + 1) * l1 + (1 - v.s) * (lnFact(nTot) - lnFact(k0 - 1)));
+            const rounded = nTot !== v.n ? 'N rounded to ' + nTot : '';
+            const above = rN > 1;
+            const a = Math.log(rN);
+            const eta = above ? v.delta / (2 * v.f0) * a * a : 0;          // m³/J
+            const etaMax = 2 * v.delta / (E2 * fthN);
+            const rel = eta / etaMax;
+            const hasD = isFinite(v.d);
+            if (hasD && !(v.d > 0)) throw Calc.fail('Spot diameter must be greater than zero.', 'd');
+            const w = v.d / 2;
+
+            if (!above) { ablBadge.textContent = 'Below threshold'; ablBadge.className = 'badge badge-bad'; }
+            else if (rel >= 0.75) { ablBadge.textContent = 'Efficient window'; ablBadge.className = 'badge badge-ok'; }
+            else if (rN < E2) { ablBadge.textContent = 'Near threshold'; ablBadge.className = 'badge badge-warn'; }
+            else { ablBadge.textContent = 'Well above optimum'; ablBadge.className = 'badge badge-warn'; }
+
+            return {
+                ln: above ? fmt.si(v.delta * a, 'm', 4) : '0 (below threshold)',
+                l1: r1 > 1 ? fmt.si(v.delta * l1, 'm', 4) : '0 (below threshold)',
+                ltot: tot > 0 ? fmt.si(tot, 'm', 4) + (rounded ? ' (' + rounded + ')' : '') : '0 (below threshold' + (rounded ? ', ' + rounded : '') + ')',
+                fthn: fl(fthN, v.$unit.fth),
+                ratio: fmt.num(rN, 4) + ' ×',
+                eta: fmt.num(eta * 1e12, 4) + ' µm³/µJ',
+                rate: fmt.num(eta * 6e10, 4) + ' mm³/(W·min)',
+                fopt: fl(E2 * fthN, v.$unit.f0),
+                erel: fmt.pct(rel, 4),
+                dcr: hasD ? (above ? fmt.si(w * Math.sqrt(2 * a), 'm', 4) : '0') : null,
+                vol: hasD ? fmt.num(above ? Math.PI * v.delta * w * w * a * a / 4 * 1e18 : 0, 4) + ' µm³' : null
+            };
+        },
+        after(v) {
+            const fthN = v.fth * Math.pow(v.n, v.s - 1);
+            const rN = v.f0 / fthN;
+            const xMax = Math.max(100, 2 * rN);
+            const xs = Calc.math.logspace(1, xMax, 200);
+            const g = x => Math.log(x) ** 2 / x / (4 / E2);               // η/η_max
+            const series = [{ type: 'line', x: xs, y: xs.map(g), label: 'η / η_max', color: 'var(--c1)', fill: true }];
+            if (rN > 1) series.push({ type: 'points', x: [rN], y: [g(rN)], color: 'var(--c2)', r: 5 });
+            Plot.draw('#eta-plot', {
+                height: 260,
+                x: { label: 'F₀ / Fₜₕ(N)', log: true, min: 1, max: xMax },
+                y: { label: 'Removal efficiency / maximum', min: 0, max: 1.2 },
+                series,
+                vlines: [{ x: E2, label: 'e² ≈ 7.39', color: 'var(--c3)' }],
+                hover: { format: (x, hits) => hits.length ? `F₀/Fₜₕ = ${fmt.num(hits[0].x, 3)} · η/η_max = ${fmt.pct(hits[0].y, 3)}` : '' }
+            });
+        },
+        onError() {
+            ablBadge.textContent = ''; ablBadge.className = '';
+            const el = document.getElementById('eta-plot'); el.innerHTML = ''; el._plot = null;
+        }
+    });
+});
+</script>
+</body>
+</html>

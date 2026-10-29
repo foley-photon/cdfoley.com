@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paddle Ball: Free Retro Table-Tennis Arcade Game</title>
+<meta name="description" content="Play Paddle Ball free online: the classic two-paddle table-tennis arcade game against the computer at three levels, or with a friend. No ads.">
+<link rel="canonical" href="https://cdfoley.com/games/paddle-ball/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Paddle Ball">
+<meta property="og:description" content="Play Paddle Ball free online: the classic two-paddle table-tennis arcade game against the computer at three levels, or with a friend. No ads.">
+<meta property="og:url" content="https://cdfoley.com/games/paddle-ball/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/game-paddle-ball.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Paddle Ball. Play Paddle Ball free online: the classic two-paddle table-tennis arcade game against the computer at three levels, or with a friend. No ads.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "VideoGame",
+   "name": "Paddle Ball",
+   "url": "https://cdfoley.com/games/paddle-ball/",
+   "description": "Play Paddle Ball free online: the classic two-paddle table-tennis arcade game against the computer at three levels, or with a friend. No ads.",
+   "genre": "Sports",
+   "gamePlatform": "Web browser",
+   "playMode": [
+    "SinglePlayer",
+    "MultiPlayer"
+   ],
+   "applicationCategory": "GameApplication",
+   "operatingSystem": "Any (web browser)",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Games",
+     "item": "https://cdfoley.com/games/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Paddle Ball",
+     "item": "https://cdfoley.com/games/paddle-ball/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Paddle Ball</li></ol></nav>
+    <div class="game-shell" style="max-width:900px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Paddle Ball</h1>
+            <p class="lede">The classic two-paddle arcade duel. Return the ball past your opponent; where it hits your paddle sets the angle, and every rally speeds it up. Play to 5, 11, or 21 points, and win by two.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip" id="wins-chip">Wins vs computer<b id="wins">0</b></span><span class="chip" id="tally-chip" hidden>Match wins, left–right<b id="tally">0–0</b></span></div>
+            <div class="game-actions">
+                <select id="mode" aria-label="Players"><option value="1">1 player</option><option value="2">2 players</option></select>
+                <select id="level" aria-label="Computer difficulty"><option value="easy">Easy</option><option value="normal" selected>Normal</option><option value="hard">Hard</option></select>
+                <select id="points" aria-label="Match length"><option value="5">To 5</option><option value="11" selected>To 11</option><option value="21">To 21</option></select>
+                <button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button>
+                <button class="btn btn-secondary btn-sm" type="button" id="pause">Pause</button>
+                <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
+            </div>
+        </div>
+        <div class="game-stage">
+            <div class="arcade-box">
+                <canvas class="arcade" id="board" aria-label="Paddle Ball court" tabindex="0"></canvas>
+                <div class="game-overlay dark" id="overlay">
+                    <h2 id="ov-title">Paddle Ball</h2>
+                    <p id="ov-text">Move your paddle with the mouse, a finger, or <kbd>W</kbd> <kbd>S</kbd> / <kbd>↑</kbd> <kbd>↓</kbd>. Two players: left <kbd>W</kbd> <kbd>S</kbd>, right <kbd>↑</kbd> <kbd>↓</kbd>.</p>
+                    <button class="btn btn-primary" type="button" id="start">Start</button>
+                </div>
+            </div>
+        </div>
+        <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
+        <p class="game-help"><strong>One player:</strong> you are the cyan paddle on the left. Move it with the mouse, by dragging on the court, or with <kbd>W</kbd> <kbd>S</kbd> or <kbd>↑</kbd> <kbd>↓</kbd>. <strong>Two players:</strong> left uses <kbd>W</kbd> <kbd>S</kbd>, right uses <kbd>↑</kbd> <kbd>↓</kbd>; on a touch screen, each player drags on their own half of the court (a phone held sideways gives each of you more room). <kbd>P</kbd> pauses.</p>
+        <p class="game-help"><strong>Serving and scoring:</strong> the first serve of a match goes to a random side. After every point the ball is served from the center toward the player who lost the point, and an arrow shows which way it will go. You score when the ball gets past your opponent’s paddle. A match is played to 5, 11, or 21 points, but the winner must lead by two: at 10–10 in a match to 11, play goes on until one side is two points ahead.</p>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const G = window.Games, $ = id => document.getElementById(id);
+    const W = 800, H = 500, PW = 12, PH = 84, R = 7;
+    const cv = $('board'), view = G.canvas(cv, W, H, 0.7, () => draw()), ctx = view.ctx;
+    const AI = { easy: { speed: 260, err: 95, react: 0.4, wake: 0.6 }, normal: { speed: 370, err: 60, react: 0.2, wake: 0.4 }, hard: { speed: 500, err: 52, react: 0.08, wake: 0.2 } };   // err: how far off-center it aims (past PH / 2 + R = 49 it misses, so every level can be beaten); wake: how far across the ball must be before it reacts
+    const L = { x: 28, y: H / 2, target: null, score: 0, c: '#22d3ee' }, Rt = { x: W - 28 - PW, y: H / 2, target: null, score: 0, c: '#e879f9' };
+    const ball = { x: W / 2, y: H / 2, vx: 0, vy: 0, sp: 0 }, keys = {}, trail = [], tally = { L: 0, R: 0 };
+    const calm = window.matchMedia('(prefers-reduced-motion: reduce)');   // reduced motion: no trail, flash, or blinking ball
+    let state = 'title', paused = false, serveIn = 0, serveDir = 1, aiT = 0, aiAim = H / 2, aiErr = null, flash = null, trailT = 0, dirty = true;
+    const mode = () => $('mode').value, level = () => $('level').value, target = () => +$('points').value || 11;
+    const winsKey = () => 'paddle-wins-' + level();
+    const names = () => mode() === '1' ? ['You', 'computer', 'you', 'the computer'] : ['Left', 'right', 'the left player', 'the right player'];
+    const announce = text => { $('sr').textContent = text; };
+    // match point for p: one more point would reach the target with a two-point lead
+    const matchPoint = (p, o) => p.score + 1 >= target() && p.score + 1 - o.score >= 2;
+
+    function showWins() {
+        $('wins').textContent = G.get(winsKey(), '0'); $('tally').textContent = tally.L + '–' + tally.R;
+        $('wins-chip').hidden = mode() === '2'; $('tally-chip').hidden = mode() !== '2';
+    }
+    function newGame() {
+        G.audio();
+        L.score = Rt.score = 0; L.y = Rt.y = H / 2; L.target = Rt.target = null; flash = null;
+        serveDir = Math.random() < 0.5 ? -1 : 1; resetBall();
+        state = 'play'; paused = false; $('overlay').hidden = true; $('pause').textContent = 'Pause'; dirty = true;
+        $('level').disabled = mode() === '2'; cv.focus({ preventScroll: true }); showStage();
+        announce('Match to ' + target() + '. First serve goes ' + (serveDir > 0 ? 'right' : 'left') + '.');
+    }
+    function showStage() {             // starting a game brings the whole court into view, below the sticky header
+        const hd = document.querySelector('.site-header'), head = (hd ? hd.getBoundingClientRect().bottom : 0) + 8, r = cv.getBoundingClientRect();
+        let d = r.bottom > innerHeight - 8 ? r.bottom - innerHeight + 8 : 0;
+        if (r.top - d < head) d = r.top - head;
+        if (Math.abs(d) > 2) window.scrollBy(0, d);
+    }
+    function resetBall() { ball.x = W / 2; ball.y = H / 2; ball.vx = ball.vy = 0; ball.sp = 0; serveIn = 0.9; trail.length = 0; }
+    function serve() {
+        const a = (Math.random() - 0.5) * 0.8;
+        ball.sp = 340; ball.vx = serveDir * ball.sp * Math.cos(a); ball.vy = ball.sp * Math.sin(a);
+    }
+    function point(winner) {
+        const loser = winner === L ? Rt : L;
+        winner.score++; flash = calm.matches ? null : { side: winner === L ? 'left' : 'right', t: 0.5 };
+        G.tone(winner === L ? 660 : 220, winner === L ? 990 : 110, 0.25, 'square', 0.04);
+        serveDir = winner === L ? 1 : -1;            // serve toward the player who lost the point
+        if (winner.score >= target() && winner.score - loser.score >= 2) return gameOver(winner);
+        resetBall();
+        const n = names(), mp = matchPoint(L, Rt) ? n[2] : matchPoint(Rt, L) ? n[3] : '';
+        announce(n[0] + ' ' + L.score + ', ' + n[1] + ' ' + Rt.score + '.' + (mp ? ' Match point for ' + mp + '.' : ''));
+    }
+    function gameOver(winner) {
+        state = 'over'; dirty = true;
+        let msg;
+        if (mode() === '1') {
+            if (winner === L) { const w = (+G.get(winsKey(), 0) || 0) + 1; G.set(winsKey(), w); msg = 'You win ' + L.score + '–' + Rt.score + ' on ' + level() + '!'; }
+            else msg = 'The computer wins ' + Rt.score + '–' + L.score + '.';
+        } else { tally[winner === L ? 'L' : 'R']++; msg = (winner === L ? 'Left' : 'Right') + ' player wins ' + Math.max(L.score, Rt.score) + '–' + Math.min(L.score, Rt.score) + '.'; }
+        showWins();
+        $('ov-title').textContent = 'Game over'; $('ov-text').textContent = msg; $('start').textContent = 'Play again'; $('overlay').hidden = false;
+        announce(msg); $('start').focus({ preventScroll: true });
+    }
+
+    function predictY() {
+        const t = (Rt.x - R - ball.x) / ball.vx, span = H - 2 * R;
+        let y = ball.y + ball.vy * t - R;
+        y = ((y % (2 * span)) + 2 * span) % (2 * span); if (y > span) y = 2 * span - y;
+        return y + R;
+    }
+    function movePaddle(p, dt, up, down, speed) {
+        if (up || down) { p.target = null; p.y += ((down ? 1 : 0) - (up ? 1 : 0)) * 540 * dt; }
+        else if (p.target !== null) { const d = p.target - p.y; p.y += Math.sign(d) * Math.min(Math.abs(d), (speed || 1500) * dt); }
+        p.y = Math.max(PH / 2, Math.min(H - PH / 2, p.y));
+    }
+    function update(dt) {
+        if (flash && (flash.t -= dt) <= 0) flash = null;
+        if (state !== 'play' || paused) return;
+        const two = mode() === '2';
+        movePaddle(L, dt, keys.KeyW || (!two && keys.ArrowUp), keys.KeyS || (!two && keys.ArrowDown));
+        if (two) movePaddle(Rt, dt, keys.ArrowUp, keys.ArrowDown);
+        else {
+            const ai = AI[level()];
+            aiT -= dt;
+            const incoming = ball.vx > 0 && !serveIn;
+            if (!incoming) aiErr = null; else if (aiErr === null) aiErr = (Math.random() - 0.5) * 2 * ai.err;   // one aiming error per return
+            if (aiT <= 0) { aiT = ai.react; aiAim = incoming && ball.x > W * ai.wake ? predictY() + aiErr : H / 2 + (ball.y - H / 2) * 0.3; }
+            Rt.target = Math.abs(aiAim - Rt.y) > 4 ? aiAim : null;
+            movePaddle(Rt, dt, false, false, ai.speed);
+        }
+        if (serveIn > 0) { serveIn -= dt; if (serveIn <= 0) { serveIn = 0; serve(); } return; }
+        const n = Math.max(1, Math.ceil(ball.sp * dt / 4));
+        for (let i = 0; i < n && state === 'play' && !serveIn; i++) step(dt / n);
+        if ((trailT += dt) >= 1 / 60) { trailT %= 1 / 60; trail.push([ball.x, ball.y]); if (trail.length > 10) trail.shift(); }   // same trail length at any frame rate
+    }
+    function bounce(p, dir) {
+        const off = Math.max(-1, Math.min(1, (ball.y - p.y) / (PH / 2))), a = off * 0.95 + (Math.random() - 0.5) * 0.06;   // slight jitter: no endlessly repeating rallies
+        ball.sp = Math.min(900, ball.sp * 1.05);
+        ball.vx = dir * ball.sp * Math.cos(a); ball.vy = ball.sp * Math.sin(a);
+        ball.x = dir > 0 ? p.x + PW + R : p.x - R;
+        G.tone(dir > 0 ? 440 : 520, dir > 0 ? 440 : 520, 0.05, 'square', 0.035);
+    }
+    function step(h) {
+        ball.x += ball.vx * h; ball.y += ball.vy * h;
+        if (ball.y < R) { ball.y = R; ball.vy = Math.abs(ball.vy); G.tone(260, 260, 0.03, 'triangle', 0.025); }
+        if (ball.y > H - R) { ball.y = H - R; ball.vy = -Math.abs(ball.vy); G.tone(260, 260, 0.03, 'triangle', 0.025); }
+        // a return needs the ball's center still in front of the paddle's center line: a ball that has slipped past
+        // cannot be scooped back from behind (steps are at most 4 units, so the 13-unit window cannot be skipped)
+        if (ball.vx < 0 && ball.x - R <= L.x + PW && ball.x >= L.x + PW / 2 && Math.abs(ball.y - L.y) <= PH / 2 + R) bounce(L, 1);
+        if (ball.vx > 0 && ball.x + R >= Rt.x && ball.x <= Rt.x + PW / 2 && Math.abs(ball.y - Rt.y) <= PH / 2 + R) bounce(Rt, -1);
+        if (ball.x < -R * 2) point(Rt); else if (ball.x > W + R * 2) point(L);
+    }
+
+    function draw() {
+        view.begin();
+        ctx.fillStyle = '#05070f'; ctx.fillRect(0, 0, W, H);
+        if (flash) { const g = ctx.createLinearGradient(flash.side === 'left' ? W : 0, 0, flash.side === 'left' ? W * 0.6 : W * 0.4, 0); g.addColorStop(0, 'rgba(255,255,255,' + (flash.t * 0.25) + ')'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+        ctx.strokeStyle = 'rgba(203,213,225,.35)'; ctx.lineWidth = 4; ctx.setLineDash([14, 14]);
+        ctx.beginPath(); ctx.moveTo(W / 2, 8); ctx.lineTo(W / 2, H); ctx.stroke(); ctx.setLineDash([]);
+        ctx.font = '700 64px ui-monospace, "Cascadia Mono", Consolas, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillStyle = 'rgba(34,211,238,.85)'; ctx.fillText(L.score, W / 2 - 90, 24);
+        ctx.fillStyle = 'rgba(232,121,249,.85)'; ctx.fillText(Rt.score, W / 2 + 90, 24);
+        ctx.font = '600 13px Inter, system-ui, sans-serif'; ctx.fillStyle = 'rgba(203,213,225,.5)';
+        ctx.fillText(mode() === '1' ? 'YOU' : 'LEFT', W / 2 - 90, 96); ctx.fillText(mode() === '1' ? 'COMPUTER' : 'RIGHT', W / 2 + 90, 96);
+        if (state === 'play') {
+            ctx.font = '700 14px Inter, system-ui, sans-serif'; ctx.fillStyle = '#facc15';
+            if (matchPoint(L, Rt)) ctx.fillText('MATCH POINT', W / 2 - 90, 116);
+            if (matchPoint(Rt, L)) ctx.fillText('MATCH POINT', W / 2 + 90, 116);
+        }
+        for (const p of [L, Rt]) {
+            ctx.shadowColor = p.c; ctx.shadowBlur = 14; ctx.fillStyle = p.c;
+            ctx.fillRect(p.x, p.y - PH / 2, PW, PH); ctx.shadowBlur = 0;
+        }
+        if (!calm.matches) trail.forEach((t, i) => { ctx.globalAlpha = i / trail.length * 0.35; ctx.fillStyle = '#f8fafc'; ctx.fillRect(t[0] - R, t[1] - R, R * 2, R * 2); });
+        ctx.globalAlpha = 1;
+        if (state === 'play' && serveIn > 0) {        // serve arrow: which way the ball is about to go
+            const d = serveDir, x0 = W / 2 + d * 22, y0 = H / 2;
+            ctx.fillStyle = 'rgba(250,204,21,.9)'; ctx.beginPath();
+            ctx.moveTo(x0 + d * 26, y0); ctx.lineTo(x0 + d * 8, y0 - 12); ctx.lineTo(x0 + d * 8, y0 - 5); ctx.lineTo(x0, y0 - 5);
+            ctx.lineTo(x0, y0 + 5); ctx.lineTo(x0 + d * 8, y0 + 5); ctx.lineTo(x0 + d * 8, y0 + 12); ctx.closePath(); ctx.fill();
+        }
+        if (state === 'play' && (serveIn === 0 || calm.matches || Math.floor(serveIn * 6) % 2 === 0)) { ctx.fillStyle = '#ffffff'; ctx.fillRect(ball.x - R, ball.y - R, R * 2, R * 2); }
+        if (paused) { ctx.fillStyle = 'rgba(5,7,15,.6)'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#f5f3ff'; ctx.font = '800 40px Inter, system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.fillText('Paused', W / 2, H / 2); }
+    }
+
+    function togglePause() {
+        if (state !== 'play') return;
+        paused = !paused; dirty = true; $('pause').textContent = paused ? 'Resume' : 'Pause'; announce(paused ? 'Paused' : 'Resumed');
+    }
+    const HANDLED = ['KeyW', 'KeyS', 'ArrowUp', 'ArrowDown'];
+    document.addEventListener('keydown', e => {
+        if (e.target.matches && e.target.matches('input, select, textarea')) return;
+        if (HANDLED.includes(e.code)) { keys[e.code] = true; e.preventDefault(); }
+        else if (e.code === 'KeyP' || e.code === 'Escape') { e.preventDefault(); togglePause(); }
+        else if ((e.code === 'Space' || e.code === 'Enter') && state !== 'play' && !(e.target.matches && e.target.matches('button, a'))) { e.preventDefault(); newGame(); }
+    });
+    document.addEventListener('keyup', e => { keys[e.code] = false; });
+    const touches = new Map();
+    cv.addEventListener('pointerdown', e => {          // each finger steers the paddle on the half where it landed
+        e.preventDefault(); const p = view.point(e), side = mode() === '2' && p.x > W / 2 ? Rt : L;
+        touches.set(e.pointerId, side); side.target = p.y;
+        try { cv.setPointerCapture(e.pointerId); } catch (err) { /* pointer already gone */ }   // keep steering past the court's edge
+    });
+    cv.addEventListener('pointermove', e => {
+        const side = touches.get(e.pointerId) || (e.pointerType === 'mouse' && mode() === '1' ? L : null);
+        if (side) side.target = view.point(e).y;
+    });
+    ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, e => touches.delete(e.pointerId)));
+    $('start').addEventListener('click', newGame);
+    $('new').addEventListener('click', newGame);
+    $('pause').addEventListener('click', () => { togglePause(); cv.focus({ preventScroll: true }); });
+    $('mode').addEventListener('change', () => { G.set('paddle-mode', mode()); $('level').disabled = mode() === '2'; showWins(); dirty = true; if (state === 'play') newGame(); });
+    $('level').addEventListener('change', () => { G.set('paddle-level', level()); showWins(); if (state === 'play') newGame(); });
+    $('points').addEventListener('change', () => { G.set('paddle-points', target()); if (state === 'play') newGame(); });
+    G.soundButton($('sound'));
+    document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !paused) togglePause(); });
+    window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+    const sm = G.get('paddle-mode', '1'), sl = G.get('paddle-level', 'normal'), sp = G.get('paddle-points', '11');
+    if (sm === '1' || sm === '2') $('mode').value = sm;
+    if (AI[sl]) $('level').value = sl;
+    if (['5', '11', '21'].includes(sp)) $('points').value = sp;
+    $('level').disabled = mode() === '2'; showWins();
+    G.loop(dt => {                     // draw only while something moves: no work behind the start, pause, or game-over screens
+        update(dt);
+        if ((state === 'play' && !paused) || flash || dirty) { draw(); dirty = false; }
+    });
+    window.__paddle = {
+        newGame, sim(sec, hz) { const h = 1 / (hz || 120); for (let i = 0; i < Math.round(sec / h); i++) update(h); },
+        get state() { return { state, paused, left: L.score, right: Rt.score, ball: { ...ball }, Ly: L.y, Ry: Rt.y, serveIn, serveDir, trail: trail.length, target: target() }; },
+        setBall(x, y, vx, vy) { Object.assign(ball, { x, y, vx, vy, sp: Math.hypot(vx, vy) }); serveIn = 0; },
+        setLeft(y) { L.y = y; L.target = y; }, setLeftTarget(y) { L.target = y; }, setRight(y) { Rt.y = y; Rt.target = y; }, setScore(l, r) { L.score = l; Rt.score = r; }, keys
+    };
+});
+</script>
+</body>
+</html>
