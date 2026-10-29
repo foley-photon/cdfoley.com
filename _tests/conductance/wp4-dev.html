@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WP4 dev page: CAD tab | Conductance Lab (beta)</title>
+<meta name="robots" content="noindex, nofollow">
+<!--
+  Dev-only page (spec §7.5, not published: underscore folder). Mounts the CAD tab (beta/conductance/js/ui/cad-ui.js)
+  with a small store and format shim in place of WP5's, and with stubbed workers:
+    ?prep=stub   (default) the prep service runs in-process behind a Worker-like object; ?prep=real uses the module worker
+    ?runner=stub (default) an in-process runner that replays progress from WP2's mesh kernel; ?runner=real uses McRunner
+    ?theme=light|dark      sets the site theme before first paint
+    ?auto=1                runs a scripted session (load, run, display modes, clip, regions, pump, gas, project round
+                           trip, theme switch) and writes a JSON summary into #dev-result for headless --dump-dom checks
+    ?target=0.03           target precision of the scripted run (default 0.03)
+    ?stop=view             ends the scripted session after that step (run, view, theme, gas, project, ports)
+    ?profile=<url>         loads that SVG or DXF profile and simulates it exactly (use with runner=real)
+    ?file=<url>            loads that STL or OBJ (unit mm) before the scripted run, e.g. fixtures/wp3/elbow-dn40-mm.stl
+    ?frame=375             shows this page (without frame=) in an iframe of that width and copies its summary out
+  Serve from the worktree root: python -m http.server <port> --bind 127.0.0.1, then open
+  /_tests/conductance/wp4-dev.html
+-->
+<script>
+  (function () {
+    var t = new URLSearchParams(location.search).get('theme');
+    if (t === 'light' || t === 'dark') {
+      try { localStorage.setItem('theme', t); } catch (e) { /* storage unavailable */ }
+      document.documentElement.dataset.theme = t;
+    }
+  })();
+</script>
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/beta/conductance/cad.css">
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.186.1/three.module.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.186.1/three.core.js":
+      "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.186.1/three.core.min.js" } }
+</script>
+<style>
+  .dev-bar { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: center; margin: 0 0 1rem; font-size: 0.88rem; color: var(--text-2); }
+  .dev-bar .input { width: auto; padding: 0.3rem 0.5rem; font-size: 0.86rem; }
+  #dev-result { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--mono); font-size: 0.75rem; color: var(--muted); }
+</style>
+</head>
+<body data-section="beta">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+<main id="main" class="wrap page">
+  <header class="page-head">
+    <span class="eyebrow">Development</span>
+    <h1>CAD tab (WP4 dev page)</h1>
+  </header>
+  <div class="dev-bar" role="group" aria-label="Development settings">
+    <label>Gas <select class="input" id="dev-gas"></select></label>
+    <label>Temperature (K) <input class="input" id="dev-T" type="text" inputmode="decimal" value="293.15" size="7"></label>
+    <label>Speed unit <select class="input" id="dev-su"><option>L/s</option><option>m³/h</option><option>L/min</option><option>cfm</option></select></label>
+    <label>Length unit <select class="input" id="dev-lu"><option>mm</option><option>cm</option><option>m</option><option>in</option></select></label>
+    <button type="button" class="btn btn-ghost btn-sm" id="dev-theme">Toggle theme</button>
+    <span id="dev-mode"></span>
+  </div>
+  <div id="cad-root"><p class="hint">Loading the 3D tools…</p></div>
+  <pre id="dev-result" hidden></pre>
+</main>
+<div id="site-footer"></div>
+<script type="module">
+import { mount } from '/beta/conductance/js/ui/cad-ui.js';
+import { createService } from '/beta/conductance/js/engine/prep-service.js';
+import { McRunner } from '/beta/conductance/js/engine/mc-runner.js';
+import { runMeshBatch, toPreparedOrder } from '/beta/conductance/js/engine/mesh-mc.js';
+import { makeTracer } from '/beta/conductance/js/engine/bvh.js';
+import { summarizeMesh, Z95 } from '/beta/conductance/js/engine/stats.js';
+import { GAS_IDS, GASES } from '/beta/conductance/js/engine/gas.js';
+
+const Q = new URLSearchParams(location.search);
+const PREP = Q.get('prep') === 'real' ? 'real' : 'stub';
+const RUNNER = Q.get('runner') === 'real' ? 'real' : 'stub';
+const AUTO = Q.get('auto') === '1';
+const errors = [];
+addEventListener('error', (e) => { errors.push('error: ' + (e.message || e.type)); });
+addEventListener('unhandledrejection', (e) => { errors.push('rejection: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason))); e.preventDefault(); });
+
+// ------------------------------------------------------------------ store and format (stand-ins for WP5's modules)
+function createStore(initial) {
+  let v = { ...initial };
+  const subs = new Set();
+  return {
+    get: () => v,
+    set(patch) { v = { ...v, ...patch }; for (const f of [...subs]) f(v); },
+    subscribe(f) { subs.add(f); return () => subs.delete(f); },
+  };
+}
+const store = createStore({ gas: 'N2', T: 293.15, custom: null, Cd: null, lu: 'mm', su: 'L/s', pu: 'mbar' });
+const CALC_DIM = { length: 'length', speed: 'throughput', pressure: 'pressure', temperature: 'temperature' };
+const DEFAULT_UNIT = { length: () => store.get().lu, speed: () => store.get().su, pressure: () => store.get().pu, temperature: () => '°C' };
+const format = {
+  toSI: (dim, unit, x) => window.Calc.toSI(CALC_DIM[dim] || dim, unit, x),
+  fromSI: (dim, unit, x) => window.Calc.fromSI(CALC_DIM[dim] || dim, unit, x),
+  fmt(dim, x, { unit, sig = 4 } = {}) {
+    const u = unit || (DEFAULT_UNIT[dim] ? DEFAULT_UNIT[dim]() : '');
+    return window.Calc.fmt.num(format.fromSI(dim, u, x), sig) + ' ' + u;
+  },
+  fmtNum: (x, sig = 4) => window.Calc.fmt.num(x, sig),
+  parseInput: (text) => window.Calc.parseNum(text),
+};
+
+// ------------------------------------------------------------------ stub prep worker: the prep service in-process
+function inProcessPrepWorker() {
+  const w = { onmessage: null, onerror: null, terminated: false };
+  const svc = createService((msg) => setTimeout(() => { if (!w.terminated && w.onmessage) w.onmessage({ data: msg }); }, 0));
+  w.postMessage = (msg) => setTimeout(() => { if (!w.terminated) svc.onMessage(msg); }, 0);
+  w.terminate = () => { w.terminated = true; };
+  return w;
+}
+
+// ------------------------------------------------------------------ stub runner: WP2's mesh kernel in-process
+class StubRunner {
+  constructor() { this._busy = false; this._stop = false; }
+  get busy() { return this._busy; }
+  get workers() { return 1; }
+  stop() { this._stop = true; }
+  dispose() {}
+  runChain() { return Promise.reject(new Error('The stub runner simulates meshes only.')); }
+  async runMesh(scene, G, opts) {
+    if (this._busy) throw new Error('Another simulation is running (Stop it first).');
+    this._busy = true; this._stop = false;
+    const t0 = performance.now();
+    try {
+      const trace = makeTracer(scene), nP = scene.ports.length;
+      const sources = scene.ports.map((p, k) => k).filter((k) => k === opts.inletPort || (scene.ports[k].stick >= 1 && scene.ports[k].role !== 'pump'));
+      const per = sources.map((k) => ({ port: k, n: 0, absorbed: new Float64Array(nP), leaks: 0, stuck: 0, casts: 0 }));
+      const tally = new Uint32Array(scene.nTri);
+      const history = [], paths = [];
+      let particles = 0, casts = 0, leaks = 0, stuck = 0, inletN = 0, seq = 0, reason = 'target';
+      const target = opts.target || 0.01, maxTime = Number.isFinite(opts.maxTime) ? opts.maxTime : Infinity;
+      for (;;) {
+        for (const ps of per) {
+          const inlet = scene.ports[ps.port].role === 'inlet';
+          const r = runMeshBatch(scene, trace, { source: ps.port, n: 2000, seed: (opts.seed + 7919 * seq++) >>> 0, tally: inlet ? tally : null, paths: inlet && paths.length < (opts.paths || 0) ? Math.min(10, opts.paths - paths.length) : 0 });
+          ps.n += r.n; ps.stuck += r.stuck; ps.casts += r.casts; ps.leaks += r.leaks;
+          for (let j = 0; j < nP; j++) ps.absorbed[j] += r.absorbed[j];
+          particles += r.n + r.stuck; casts += r.casts; leaks += r.leaks; stuck += r.stuck;
+          if (inlet) inletN += r.n + r.stuck;
+          paths.push(...r.paths);
+        }
+        const sum = summarizeMesh(scene.ports, per, G.vbar, { inletPort: opts.inletPort, outletPort: opts.outletPort });
+        const p = sum.primary || sum.C || sum.Seff;
+        const elapsed = (performance.now() - t0) / 1000;
+        const rhw = p && p.value > 0 ? Z95 * p.sigma / p.value : NaN;
+        if (p && Number.isFinite(p.value)) history.push({ n: particles, value: p.value, lo: p.ci95[0], hi: p.ci95[1] });
+        const rate = elapsed > 0 ? particles / elapsed : 0;
+        const need = rhw > 0 ? particles * ((rhw / target) ** 2 - 1) : NaN;
+        if (this._stop) reason = 'stopped';
+        else if (rhw <= target && particles >= 1e4) reason = 'target';
+        else if (elapsed >= maxTime) reason = 'time';
+        else reason = null;
+        opts.onProgress && opts.onProgress({
+          kind: 'mesh', elapsed, particles, casts, castsPerSec: elapsed > 0 ? casts / elapsed : 0, value: p ? p.value : NaN,
+          sigma: p ? p.sigma : NaN, ci95: p ? p.ci95 : [NaN, NaN], relHalfWidth: rhw, etaSeconds: rate > 0 && need > 0 ? need / rate : 0,
+          history: history.slice(), final: !!reason, partial: sum, hits: toPreparedOrder(scene, tally), inletLaunches: [{ port: opts.inletPort, n: inletN }],
+          leaksPerMillion: casts > 0 ? leaks / casts * 1e6 : 0,
+        });
+        if (reason) {
+          return {
+            ports: scene.ports.map((q, k) => ({ index: k, id: q.id, name: q.name, role: q.role, stick: q.stick, area: q.area })),
+            perSource: per.map((s) => ({ ...s, absorbed: Array.from(s.absorbed) })), alpha: sum.alpha, C: sum.C, Seff: sum.Seff,
+            reciprocity: sum.reciprocity, inletPort: sum.inletPort, outletPort: sum.outletPort, pumpPort: sum.pumpPort,
+            leaksPerMillion: casts > 0 ? leaks / casts * 1e6 : 0, leaks, stuck, hits: toPreparedOrder(scene, tally),
+            inletLaunches: [{ port: opts.inletPort, n: inletN }], paths, particles, casts, ms: performance.now() - t0,
+            stopped: reason === 'stopped', reason, seed: opts.seed,
+          };
+        }
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    } finally { this._busy = false; }
+  }
+}
+
+let runner = null;
+function getRunner() {
+  if (runner) return runner;
+  if (RUNNER === 'real') {
+    const n = matchMedia('(max-width: 860px)').matches ? 2 : Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1));
+    runner = new McRunner({ createWorker: () => new Worker(new URL('/beta/conductance/js/workers/tpmc-worker.js', location.href), { type: 'module' }), workers: n });
+  } else runner = new StubRunner();
+  return runner;
+}
+
+// ------------------------------------------------------------------ dev bar
+const gasSel = document.getElementById('dev-gas');
+for (const id of GAS_IDS) { const o = document.createElement('option'); o.value = id; o.textContent = GASES[id].name; gasSel.appendChild(o); }
+gasSel.addEventListener('change', () => store.set({ gas: gasSel.value }));
+const Tin = document.getElementById('dev-T');
+Tin.addEventListener('change', () => { const T = Number(Tin.value); if (T > 0) store.set({ T }); });
+document.getElementById('dev-su').addEventListener('change', (e) => store.set({ su: e.target.value }));
+document.getElementById('dev-lu').addEventListener('change', (e) => store.set({ lu: e.target.value }));
+function toggleTheme() {
+  const root = document.documentElement;
+  const cur = root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  root.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+  document.dispatchEvent(new CustomEvent('themechange', { detail: root.dataset.theme }));
+}
+document.getElementById('dev-theme').addEventListener('click', toggleTheme);
+document.getElementById('dev-mode').textContent = 'prep: ' + PREP + ' · runner: ' + RUNNER;
+
+// ------------------------------------------------------------------ ?frame=375: this page at phone width inside an iframe
+// (headless Edge will not make a window narrower than about 500 px); the inner page's summary is copied out.
+const FRAME = Number(Q.get('frame'));
+if (FRAME > 0) {
+  const inner = new URL(location.href);
+  inner.searchParams.delete('frame');
+  const root = document.getElementById('cad-root');
+  root.textContent = '';
+  const f = document.createElement('iframe');
+  f.src = inner.href;
+  f.title = 'CAD tab at ' + FRAME + ' px';
+  f.style.cssText = 'width:' + FRAME + 'px;height:' + (Number(Q.get('fh')) || 900) + 'px;border:1px solid var(--border)';
+  root.appendChild(f);
+  const poll = setInterval(() => {
+    const d = f.contentDocument;
+    if (!d || !d.body || d.body.dataset.devDone !== '1') return;
+    clearInterval(poll);
+    const pre = document.getElementById('dev-result');
+    pre.textContent = d.getElementById('dev-result').textContent;
+    pre.hidden = false;
+    document.body.dataset.devDone = '1';
+  }, 50);
+}
+
+// ------------------------------------------------------------------ mount
+const t0 = performance.now();
+let handle = null;
+if (!(FRAME > 0)) {
+  handle = mount(document.getElementById('cad-root'), {
+    store, format, getRunner, openInComponents: (items) => { window.__openedItems = items; },
+    ...(PREP === 'stub' ? { createPrepWorker: inProcessPrepWorker } : {}),
+  });
+  window.__cad = handle;
+  if (AUTO) autoSession().catch((err) => { errors.push('auto: ' + (err && err.message ? err.message : String(err))); finish({ failed: true }); });
+}
+
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+async function until(fn, ms = 30000) {
+  const start = performance.now();
+  while (!fn()) { if (performance.now() - start > ms) throw new Error('timed out waiting for ' + fn.toString().slice(0, 80)); await sleep(20); }
+}
+const $ = (sel) => document.querySelector('#cad-root ' + sel);
+function fire(el, type) { el.dispatchEvent(new Event(type, { bubbles: true })); }
+
+const out = { steps: [] };
+function finish(extra = {}) {
+  Object.assign(out, extra);
+  out.errors = errors;
+  out.scroll = { scrollWidth: document.documentElement.scrollWidth, innerWidth };
+  // body has overflow-x: hidden on this site, so scrollWidth hides overflow: list elements that stick out instead
+  // (skipping content inside the tables' own scroll boxes)
+  const wide = [];
+  for (const n of document.querySelectorAll('#cad-root *')) {
+    if (n.closest('.cl-matrix-scroll')) continue;
+    const r = n.getBoundingClientRect();
+    if (r.width > 0 && r.right > document.documentElement.clientWidth + 0.5) wide.push((n.tagName + '.' + String(n.className).replace(/\s+/g, '.')).slice(0, 60) + ' ' + Math.round(r.right));
+  }
+  out.overflow = wide.slice(0, 12);
+  out.overflowCount = wide.length;
+  const pre = document.getElementById('dev-result');
+  pre.textContent = JSON.stringify(out, null, 1);
+  pre.hidden = false;
+  document.body.dataset.devDone = '1';
+}
+
+async function autoSession() {
+  const c = handle.controller;
+  await until(() => c.state.sceneReady && handle.viewer);
+  await sleep(50);
+  out.readyMs = Math.round(performance.now() - t0);
+  const prof = Q.get('profile');
+  if (prof) {
+    // ?profile=<url>&runner=real: load an SVG or DXF profile, simulate it exactly, open it in Components, then stop
+    const name = prof.split('/').pop();
+    await c.loadProfile({ name, text: await (await fetch(prof)).text() });
+    out.profile = { items: c.state.profile.items, bbox: $('[data-el="bbox"]').textContent, list: [...$('[data-el="profileItems"]').children].map((li) => li.textContent), message: c.state.message };
+    out.runLabel = $('[data-el="run"]').textContent;
+    $('[data-el="seed"]').value = '7'; fire($('[data-el="seed"]'), 'input');
+    c.state.runOpts.target = Number(Q.get('target')) || 0.01;
+    $('[data-el="run"]').click();
+    await until(() => c.state.running || c.state.results);
+    await until(() => !c.state.running && c.state.results, 120000);
+    await sleep(100);
+    out.profileRun = {
+      primary: $('[data-row="primary"] .result-value').textContent, note: $('[data-row="primary"] .result-note').textContent,
+      alpha: $('[data-row="alpha"] .result-value').textContent, formula: $('[data-row="reference"] .result-value').textContent,
+      formulaNote: $('[data-row="reference"] .result-note').textContent, status: $('[data-el="status"]').textContent,
+      conv: !!$('[data-el="convPlot"] svg'), axial: $('[data-el="axialPlot"]').textContent,
+    };
+    const pressure = $('[data-el="displaySeg"] input[value="pressure"]');
+    pressure.checked = true; fire(pressure, 'change');
+    out.legend = $('[data-el="legend"]').textContent;
+    $('[data-el="profileOpen"]').click();
+    out.opened = window.__openedItems || null;
+    finish();
+    return;
+  }
+  const file = Q.get('file');
+  if (file) {
+    // ?file=/_tests/conductance/fixtures/wp3/elbow-dn40-mm.stl: load a user file (unit mm) instead of the built-in
+    const name = file.split('/').pop();
+    const buffer = await (await fetch(file)).arrayBuffer();
+    await c.loadFile({ name, buffer });
+    await until(() => c.state.sceneReady && c.state.source && c.state.source.name === name);
+    out.file = { name, report: { nTri: c.state.report.nTri, closed: c.state.report.closed, severity: c.state.report.severity, loops: c.state.report.loops.length, faceting: c.state.report.faceting } };
+  }
+  const v = handle.viewer;
+  out.viewer = v.info ? v.info() : { webgl: v.webgl };
+  out.canvasLabel = v.canvas ? v.canvas.getAttribute('aria-label') : null;
+  out.bbox = $('[data-el="bbox"]').textContent;
+  out.ports = c.state.ports.map((p) => p.name + ':' + p.role);
+  out.meshBadge = $('[data-el="meshBadge"]').textContent;
+  out.runEnabled = !$('[data-el="run"]').disabled;
+  out.status0 = $('[data-el="status"]').textContent;
+  // run
+  const target = Number(Q.get('target')) || 0.03;
+  $('[data-el="target"]').value = String(0.03); fire($('[data-el="target"]'), 'change');
+  c.state.runOpts.target = target;
+  $('[data-el="seed"]').value = '20261012'; fire($('[data-el="seed"]'), 'input');
+  $('[data-el="run"]').click();
+  await until(() => c.state.running || c.state.results);
+  await until(() => !c.state.running && c.state.results, 120000);
+  await sleep(100);
+  const r = c.state.results;
+  out.run = {
+    particles: r.particles, casts: r.casts, ms: Math.round(r.ms), reason: r.reason,
+    C: r.summary.C ? [r.summary.C.value, r.summary.C.sigma] : null,
+    primary: $('[data-row="primary"] .result-value').textContent,
+    primaryNote: $('[data-row="primary"] .result-note').textContent,
+    alpha: $('[data-row="alpha"] .result-value').textContent,
+    reference: $('[data-row="reference"] .result-note').textContent,
+    matrixRows: $('[data-el="matrix"]').querySelectorAll('tbody tr').length,
+    matrixCell: ($('[data-el="matrix"] tbody tr td') || {}).textContent,
+    recip: $('[data-el="recipNote"]').textContent,
+    status: $('[data-el="status"]').textContent,
+    convSvg: !!$('[data-el="convPlot"] svg'), axialSvg: !!$('[data-el="axialPlot"] svg'),
+  };
+  out.steps.push('run');
+  if (Q.get('stop') === 'run') { finish(); return; }
+  // pressure map, wireframe, trajectories, clip, views
+  const pressure = $('[data-el="displaySeg"] input[value="pressure"]');
+  pressure.checked = true; fire(pressure, 'change');
+  await sleep(50);
+  out.legendTicks = [...$('[data-el="legend"]').querySelectorAll('.cl-legend-ticks span')].map((s) => s.textContent);
+  $('[data-el="average"]').checked = false; fire($('[data-el="average"]'), 'change');
+  $('[data-el="average"]').checked = true; fire($('[data-el="average"]'), 'change');
+  $('[data-el="wire"]').checked = true; fire($('[data-el="wire"]'), 'change');
+  $('[data-el="paths"]').checked = true; fire($('[data-el="paths"]'), 'change');
+  $('[data-el="clipAxis"]').value = 'x'; fire($('[data-el="clipAxis"]'), 'change');
+  $('[data-el="clipPos"]').value = '40'; fire($('[data-el="clipPos"]'), 'input');
+  $('[data-el="clipFlip"]').checked = true; fire($('[data-el="clipFlip"]'), 'change');
+  $('[data-el="viewDir"]').value = '+x'; fire($('[data-el="viewDir"]'), 'change');
+  await sleep(50);
+  out.viewerAfter = v.info ? v.info() : null;
+  // keyboard on the canvas: rotate, pan, dolly, reset
+  if (v.canvas) {
+    for (const key of ['ArrowLeft', 'ArrowUp', '+', '-', '0']) v.canvas.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    v.canvas.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true }));
+  }
+  out.steps.push('view');
+  if (Q.get('stop') === 'view') { finish(); return; }
+  // theme switch while showing the pressure map
+  toggleTheme(); await sleep(30); toggleTheme(); await sleep(30);
+  out.steps.push('theme');
+  if (Q.get('stop') === 'theme') { finish(); return; }
+  // gas change: recomputes C from the counts
+  const C0 = r.summary.C.value;
+  store.set({ gas: 'He' });
+  await sleep(30);
+  out.gas = { ratio: c.state.results ? c.state.results.summary.C.value / C0 : null, primary: $('[data-row="primary"] .result-value').textContent };
+  store.set({ gas: 'N2' });
+  out.steps.push('gas');
+  if (Q.get('stop') === 'gas') { finish(); return; }
+  // project round trip: save, then open, restores the results
+  const text = await c.exportProject();
+  await c.openProject(text, { applyConditions: (cond) => store.set({ gas: cond.gas, T: cond.T, custom: cond.custom }) });
+  await until(() => c.state.results && c.state.results.fromProject);
+  out.project = { bytes: text.length, fromProject: true, C: c.state.results.summary.C.value / C0, badge: $('[data-el="resultBadge"]').textContent };
+  out.steps.push('project');
+  if (Q.get('stop') === 'project') { finish(); return; }
+  // a role change clears; pump by speed; select region; auto-detect
+  const roleSel = $('[data-port="1"] .cl-port-role');
+  roleSel.value = 'pump'; fire(roleSel, 'change');
+  await until(() => c.state.sceneReady);
+  out.afterRole = { results: !!c.state.results, pumpRow: !!$('[data-port="1"] .cl-port-pump'), conv: ($('[data-port="1"] .cl-port-conv') || {}).textContent };
+  $('[data-el="select"]').click();
+  await c.pickRegion(10);
+  out.pending = $('[data-el="pendingText"]').textContent;
+  $('[data-el="pendingAdd"]').click();
+  await until(() => c.state.sceneReady);
+  out.portsAfterRegion = c.state.ports.map((p) => p.name + ':' + p.role + ':' + p.kind);
+  $('[data-el="select"]').click();
+  $('[data-el="auto"]').click();
+  await until(() => c.state.sceneReady);
+  out.portsAfterAuto = c.state.ports.map((p) => p.name + ':' + p.role);
+  out.steps.push('ports');
+  if (Q.get('stop') === 'ports') { finish(); return; }
+  // other built-ins load
+  for (const name of ['tube', 'cone', 'annulus', 'rect', 'elbow']) {
+    $('[data-builtin="' + name + '"]').click();
+    await until(() => c.state.sceneReady && c.state.source && c.state.source.name === name);
+    out['bbox_' + name] = $('[data-el="bbox"]').textContent;
+  }
+  out.steps.push('builtins');
+  out.totalMs = Math.round(performance.now() - t0);
+  finish();
+}
+</script>
+</body>
+</html>

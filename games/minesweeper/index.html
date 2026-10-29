@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minesweeper: Free Online Game</title>
+<meta name="description" content="Play Minesweeper free online: beginner to expert and custom boards, a safe first click, optional no-guess boards, chording, and stats. No ads, no sign-up.">
+<link rel="canonical" href="https://cdfoley.com/games/minesweeper/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Minesweeper">
+<meta property="og:description" content="Play Minesweeper free online: beginner to expert and custom boards, a safe first click, optional no-guess boards, chording, and stats. No ads, no sign-up.">
+<meta property="og:url" content="https://cdfoley.com/games/minesweeper/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/game-minesweeper.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Minesweeper. Play Minesweeper free online: beginner to expert and custom boards, a safe first click, optional no-guess boards, chording, and stats. No ads, no sign-up.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/games.css">
+<script src="/assets/js/site.js"></script>
+<script src="/assets/js/games.js"></script>
+<style>
+    .ms-scroll { overflow-x: auto; padding-bottom: 0.4rem; }
+    .ms-board { --cell: 30px; display: grid; gap: 2px; width: max-content; margin: 0 auto; padding: 8px; background: var(--border); border-radius: var(--radius-sm); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+    .ms-board button { width: var(--cell); height: var(--cell); border: 0; border-radius: 4px; padding: 0; font: 700 calc(var(--cell) * 0.52) var(--mono); line-height: 1; cursor: pointer; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+        background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, var(--surface)) 0%, color-mix(in srgb, var(--accent) 34%, var(--surface)) 100%); color: var(--text); }
+    .ms-board button:hover { filter: brightness(1.08); }
+    .ms-board button:focus { outline: none; }
+    .ms-board button:focus-visible { outline: 3px solid var(--text); outline-offset: -1px; position: relative; z-index: 1; }
+    .ms-board button.open { background: var(--surface); cursor: default; filter: none; }
+    :root[data-theme="dark"] .ms-board button:not(.open):not(.wrong) { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 36%, var(--surface)) 0%, color-mix(in srgb, var(--accent) 50%, var(--surface)) 100%); }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ms-board button:not(.open):not(.wrong) { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 36%, var(--surface)) 0%, color-mix(in srgb, var(--accent) 50%, var(--surface)) 100%); } }
+    .ms-board button.boom { background: var(--danger); color: #fff; }
+    .ms-board button.wrong { background: var(--warn-soft); color: var(--danger); }
+    .ms-board button.q { color: var(--text-2); }
+    .n1 { color: #2563eb !important; } .n2 { color: #16a34a !important; } .n3 { color: #dc2626 !important; } .n4 { color: #1e3a8a !important; }
+    .n5 { color: #9a3412 !important; } .n6 { color: #0e7490 !important; } .n7 { color: var(--text) !important; } .n8 { color: var(--muted) !important; }
+    :root[data-theme="dark"] .n1 { color: #60a5fa !important; } :root[data-theme="dark"] .n2 { color: #4ade80 !important; } :root[data-theme="dark"] .n3 { color: #f87171 !important; } :root[data-theme="dark"] .n4 { color: #a5b4fc !important; } :root[data-theme="dark"] .n5 { color: #fdba74 !important; } :root[data-theme="dark"] .n6 { color: #22d3ee !important; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .n1 { color: #60a5fa !important; } :root:not([data-theme="light"]) .n2 { color: #4ade80 !important; } :root:not([data-theme="light"]) .n3 { color: #f87171 !important; } :root:not([data-theme="light"]) .n4 { color: #a5b4fc !important; } :root:not([data-theme="light"]) .n5 { color: #fdba74 !important; } :root:not([data-theme="light"]) .n6 { color: #22d3ee !important; } }
+    .face { font-size: 1.2rem; line-height: 1; padding: 0.3rem 0.6rem; }
+    .ms-custom { display: flex; flex-wrap: wrap; align-items: end; gap: 0.6rem; margin: -0.2rem 0 0.8rem; font-size: 0.85rem; color: var(--text-2); }
+    .ms-custom[hidden] { display: none; }
+    .ms-custom label { display: grid; gap: 0.15rem; }
+    .ms-custom input { width: 5.2rem; padding: 0.3rem 0.45rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: 0.9rem; }
+    .ms-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.4rem 0.8rem; min-height: 2.2rem; margin: -0.2rem 0 0.5rem; text-align: center; }
+    .ms-status p { margin: 0; font-weight: 600; color: var(--text); }
+    .ms-opts { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; justify-content: center; margin-top: 0.8rem; }
+    .ms-stats { max-width: 760px; margin: 1.2rem auto 0; }
+    .ms-stats .tbl { overflow-x: auto; }
+    .ms-stats table { width: 100%; border-collapse: collapse; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+    .ms-stats th, .ms-stats td { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+    .ms-stats th:first-child, .ms-stats td:first-child { text-align: left; }
+    .ms-stats thead th { color: var(--text-2); font-weight: 600; }
+    .ms-stats p { font-size: 0.85rem; color: var(--text-2); margin: 0.6rem 0; }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "VideoGame",
+   "name": "Minesweeper",
+   "url": "https://cdfoley.com/games/minesweeper/",
+   "description": "Play Minesweeper free online: beginner to expert and custom boards, a safe first click, optional no-guess boards, chording, and stats. No ads, no sign-up.",
+   "genre": "Puzzle",
+   "gamePlatform": "Web browser",
+   "playMode": "SinglePlayer",
+   "applicationCategory": "GameApplication",
+   "operatingSystem": "Any (web browser)",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Games",
+     "item": "https://cdfoley.com/games/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Minesweeper",
+     "item": "https://cdfoley.com/games/minesweeper/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="games">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Minesweeper</li></ol></nav>
+    <div class="game-shell" style="max-width:1000px">
+        <header class="page-head" style="margin-bottom:1rem">
+            <h1>Minesweeper</h1>
+            <p class="lede">Clear every square that doesn’t hide a mine. Each number counts the mines touching that square. Your first click is always safe, and it always opens an area.</p>
+        </header>
+        <div class="game-bar">
+            <div class="chips"><span class="chip">Mines<b id="left">10</b></span><span class="chip">Time<b id="time">0</b></span><span class="chip">Best<b id="best">—</b></span></div>
+            <div class="game-actions">
+                <select id="level" aria-label="Board">
+                    <option value="beginner">Beginner · 9 × 9 · 10</option>
+                    <option value="intermediate">Intermediate · 16 × 16 · 40</option>
+                    <option value="expert">Expert · 30 × 16 · 99</option>
+                    <option value="custom">Custom…</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" type="button" id="flagmode" aria-pressed="false">🚩 Flag mode</button>
+                <button class="btn btn-secondary btn-sm face" type="button" id="face" aria-label="New game">🙂</button>
+            </div>
+        </div>
+        <form class="ms-custom" id="custom" novalidate hidden>
+            <label>Width<input type="number" id="cw" min="5" max="40" value="20" inputmode="numeric"></label>
+            <label>Height<input type="number" id="ch" min="5" max="30" value="12" inputmode="numeric"></label>
+            <label>Mines<input type="number" id="cm" min="1" max="231" value="40" inputmode="numeric"></label>
+            <button class="btn btn-secondary btn-sm" type="submit">Start</button>
+            <span id="custom-note">5–40 wide, 5–30 high.</span>
+        </form>
+        <div class="ms-status"><p id="msg" role="status" aria-live="polite"></p><button class="btn btn-primary btn-sm" type="button" id="again" hidden>Play again</button></div>
+        <div class="game-stage">
+            <div class="ms-scroll" id="scroll"><div class="ms-board" id="board" role="group" aria-label="Minesweeper board" aria-describedby="ms-keys"></div></div>
+        </div>
+        <div class="ms-opts">
+            <label class="toggle"><input type="checkbox" id="noguess"> No-guess boards</label>
+            <label class="toggle"><input type="checkbox" id="qmarks"> Question marks</label>
+            <label class="toggle"><input type="checkbox" id="chordclick" checked> Click a number to chord</label>
+        </div>
+        <p class="visually-hidden" id="sr" aria-live="polite"></p>
+        <p class="game-help"><strong>Click</strong> or tap a square to reveal it. <strong>Right-click</strong> or <strong>long-press</strong> to flag a mine; with <em>Flag mode</em> on, a tap flags and a long-press reveals. When a number has all its mines flagged, click it to open its other neighbors at once (chording); a middle-click or both mouse buttons also chord. <span id="ms-keys">Keyboard: <kbd>Tab</kbd> to the board, arrow keys move, <kbd>Enter</kbd> or <kbd>Space</kbd> reveals, <kbd>F</kbd> flags, <kbd>C</kbd> chords.</span> The face starts a new game.</p>
+        <p class="game-help"><strong>No-guess boards</strong> can always be cleared by logic from your first click, with no 50/50 guesses. <strong>Question marks</strong> adds a “?” step after the flag, for squares you’re unsure of. The timer pauses while this tab is hidden.</p>
+        <details class="fold ms-stats" id="stats-box">
+            <summary>Statistics</summary>
+            <div class="tbl"><table><thead><tr><th scope="col">Board</th><th scope="col">Played</th><th scope="col">Won</th><th scope="col">Win %</th><th scope="col">Best</th><th scope="col">Streak</th><th scope="col">Best streak</th></tr></thead><tbody id="stats"></tbody></table></div>
+            <p>Finished games on the three standard boards count, with no-guess boards kept separately. Abandoned and custom games aren’t counted. Statistics stay in this browser.</p>
+            <p><button class="btn btn-secondary btn-sm" type="button" id="reset-stats">Reset statistics</button></p>
+        </details>
+    </div>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const G = window.Games, $ = id => document.getElementById(id), board = $('board');
+    const LEVELS = { beginner: [9, 9, 10], intermediate: [16, 16, 40], expert: [30, 16, 99] };
+    const NAMES = { beginner: 'Beginner', intermediate: 'Intermediate', expert: 'Expert' };
+    const OPEN = 1, FLAG = 2, QUERY = 3;
+    const opt = { noguess: G.get('mines-noguess', '0') === '1', qmarks: G.get('mines-qmarks', '0') === '1', chord: G.get('mines-chordclick', '1') !== '0' };
+    let W, H, M, N, NB, mine, adj, st, level, started, over, won, opened, flags, ngBoard, focusI = 0, flagMode = false;
+    let elapsed = 0, runFrom = null, tick = null;
+    const stats = G.getJSON('mines-stats') || {};
+
+    const neighbors = i => { const x = i % W, y = (i / W) | 0, out = []; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < W && ny < H) out.push(ny * W + nx); } return out; };
+    const label = (i, what) => 'Row ' + ((i / W | 0) + 1) + ', column ' + (i % W + 1) + ': ' + what;
+    const say = t => { $('sr').textContent = t; };
+
+    // ── Clock: counts only while the game runs and the tab is visible ──
+    const clockMs = () => elapsed + (runFrom !== null ? performance.now() - runFrom : 0);
+    const showTime = () => { $('time').textContent = Math.floor(clockMs() / 1000); };
+    function runClock() { if (runFrom === null) runFrom = performance.now(); clearInterval(tick); tick = setInterval(showTime, 250); }
+    function pauseClock() { if (runFrom !== null) { elapsed += performance.now() - runFrom; runFrom = null; } clearInterval(tick); tick = null; }
+    document.addEventListener('visibilitychange', () => { if (!started || over) return; if (document.hidden) pauseClock(); else runClock(); });
+
+    // ── Statistics ──
+    const statKey = () => level === 'custom' ? null : level + (ngBoard ? '-ng' : '');
+    function rec(key) {
+        if (!stats[key]) { const old = key in LEVELS ? +G.get('mines-best-' + key, 0) : 0; stats[key] = { played: 0, won: 0, best: old || null, streak: 0, bestStreak: 0 }; }
+        return stats[key];
+    }
+    const fmtSec = s => s == null ? '—' : (s < 100 ? s.toFixed(1) : Math.round(s)) + ' s';
+    function showBest() { const k = level === 'custom' ? null : level + (opt.noguess ? '-ng' : ''); $('best').textContent = k && stats[k] && stats[k].best ? fmtSec(stats[k].best) : '—'; }
+    function renderStats() {
+        const keys = []; for (const l in LEVELS) keys.push(l); for (const l in LEVELS) if (stats[l + '-ng']) keys.push(l + '-ng');
+        $('stats').innerHTML = keys.map(k => {
+            const s = stats[k] || { played: 0, won: 0, best: null, streak: 0, bestStreak: 0 }, l = k.replace('-ng', '');
+            return '<tr><th scope="row">' + NAMES[l] + (k.endsWith('-ng') ? ', no-guess' : '') + '</th><td>' + s.played + '</td><td>' + s.won + '</td><td>' + (s.played ? Math.round(100 * s.won / s.played) + '%' : '—') + '</td><td>' + fmtSec(s.best) + '</td><td>' + s.streak + '</td><td>' + s.bestStreak + '</td></tr>';
+        }).join('');
+    }
+    function record(didWin, secs) {
+        const k = statKey(); if (!k) return false;
+        const s = rec(k); s.played++;
+        let best = false;
+        if (didWin) { s.won++; s.streak++; s.bestStreak = Math.max(s.bestStreak, s.streak); if (!s.best || secs < s.best) { s.best = secs; best = true; } }
+        else s.streak = 0;
+        G.setJSON('mines-stats', stats); renderStats(); showBest();
+        return best;
+    }
+
+    // ── Board ──
+    function customSize() {
+        const clamp = (v, a, b) => Math.max(a, Math.min(b, Math.round(+v) || a));
+        const asked = [$('cw').value, $('ch').value, $('cm').value].map(Number);
+        const w = clamp(asked[0], 5, 40), h = clamp(asked[1], 5, 30), m = clamp(asked[2], 1, w * h - 9);
+        $('cw').value = w; $('ch').value = h; $('cm').value = m; $('cm').max = w * h - 9;
+        $('custom-note').textContent = asked[0] === w && asked[1] === h && asked[2] === m ? '5–40 wide, 5–30 high, up to ' + (w * h - 9) + ' mines.' : 'Adjusted to ' + w + ' × ' + h + ' with ' + m + ' mines (the limits are 5–40 wide, 5–30 high, and up to ' + (w * h - 9) + ' mines).';
+        G.setJSON('mines-custom', [w, h, m]);
+        return [w, h, m];
+    }
+    function sizeCells() {
+        const avail = $('scroll').clientWidth;
+        const cell = Math.max(24, Math.min(36, Math.floor((avail - 16 - (W - 1) * 2) / W)));
+        board.style.setProperty('--cell', cell + 'px');
+    }
+    function newGame() {
+        level = $('level').value; G.set('mines-level', level);
+        $('custom').hidden = level !== 'custom';
+        let [w, h, m] = level === 'custom' ? customSize() : LEVELS[level];
+        // On a narrow portrait screen a wide board stands on its side, so it needs much less sideways scrolling.
+        if (w > h && $('scroll').clientWidth < w * 26 + 16 && window.innerHeight > window.innerWidth) [w, h] = [h, w];
+        const hadFocus = board.contains(document.activeElement);
+        W = w; H = h; M = m; N = W * H;
+        NB = Array.from({ length: N }, (_, i) => neighbors(i));
+        mine = new Uint8Array(N); adj = new Uint8Array(N); st = new Uint8Array(N);
+        started = false; over = false; won = false; opened = 0; flags = 0; ngBoard = false;
+        pauseClock(); elapsed = 0; runFrom = null; showTime();
+        $('face').textContent = '🙂'; $('msg').textContent = ''; $('again').hidden = true;
+        focusI = Math.min(focusI, N - 1);
+        board.setAttribute('aria-label', 'Minesweeper board, ' + W + ' columns by ' + H + ' rows, ' + M + ' mines');
+        board.style.gridTemplateColumns = 'repeat(' + W + ', var(--cell))';
+        board.innerHTML = Array.from({ length: N }, (_, i) => '<button type="button" data-i="' + i + '" tabindex="' + (i === focusI ? 0 : -1) + '" aria-label="' + label(i, 'hidden') + '"></button>').join('');
+        sizeCells(); showBest(); update();
+        if (hadFocus) board.children[focusI].focus();
+    }
+    function randomLayout(safe) {
+        mine.fill(0);
+        const banned = new Set([safe, ...NB[safe]]), pool = [];
+        for (let i = 0; i < N; i++) if (!banned.has(i)) pool.push(i);
+        for (let k = 0; k < M; k++) { const j = k + Math.floor(Math.random() * (pool.length - k)); [pool[k], pool[j]] = [pool[j], pool[k]]; mine[pool[k]] = 1; }
+        for (let i = 0; i < N; i++) { let s = 0; for (const j of NB[i]) s += mine[j]; adj[i] = s; }
+    }
+    // Can every safe square be opened from `start` by logic alone? The solver sees only what a player sees: open
+    // squares' numbers and the mine count. It opens squares that must be safe and marks squares that must be mines,
+    // using single numbers, pairs of overlapping numbers, and the total mine count, until it finishes or gets stuck.
+    function solvable(start) {
+        const K = new Uint8Array(N), q = []; let open = 0, known = 0;   // K: 0 unknown, 1 open, 2 known mine
+        const openAt = i => { q.push(i); while (q.length) { const k = q.pop(); if (K[k]) continue; K[k] = 1; open++; if (!adj[k]) for (const j of NB[k]) if (!K[j]) q.push(j); } };
+        const markMine = i => { if (!K[i]) { K[i] = 2; known++; } };
+        openAt(start);
+        let progress = true;
+        while (progress && open < N - M) {
+            progress = false;
+            const cons = [];
+            for (let i = 0; i < N; i++) if (K[i] === 1 && adj[i]) {
+                const u = []; let r = adj[i];
+                for (const j of NB[i]) { if (K[j] === 0) u.push(j); else if (K[j] === 2) r--; }
+                if (!u.length) continue;
+                if (r === 0) { u.forEach(openAt); progress = true; }
+                else if (r === u.length) { u.forEach(markMine); progress = true; }
+                else cons.push({ u, r });
+            }
+            if (progress) continue;
+            // Two numbers A and B that share squares: if A needs as many more mines than B as A has squares of its
+            // own, those squares are all mines and B's own squares are all safe.
+            const byCell = new Map();
+            cons.forEach((c, ci) => c.u.forEach(j => { if (!byCell.has(j)) byCell.set(j, []); byCell.get(j).push(ci); }));
+            pairs: for (let a = 0; a < cons.length; a++) {
+                const A = cons[a], seen = new Set();
+                for (const j of A.u) for (const b of byCell.get(j)) {
+                    if (b === a || seen.has(b)) continue; seen.add(b);
+                    const B = cons[b], onlyA = A.u.filter(x => !B.u.includes(x)), onlyB = B.u.filter(x => !A.u.includes(x));
+                    if ((onlyA.length || onlyB.length) && A.r - B.r === onlyA.length) { onlyA.forEach(markMine); onlyB.forEach(x => { if (!K[x]) openAt(x); }); progress = true; break pairs; }
+                }
+            }
+            if (progress) continue;
+            let unk = 0; for (let i = 0; i < N; i++) if (!K[i]) unk++;
+            if (unk && known === M) { for (let i = 0; i < N; i++) if (!K[i]) openAt(i); progress = true; }
+            else if (unk && M - known === unk) { for (let i = 0; i < N; i++) markMine(i); progress = true; }
+        }
+        return open === N - M;
+    }
+    function layMines(safe) {
+        ngBoard = false;
+        if (!opt.noguess) { randomLayout(safe); return; }
+        const t = performance.now();
+        do { randomLayout(safe); if (solvable(safe)) { ngBoard = true; return; } } while (performance.now() - t < 2500);
+        $('msg').textContent = 'No guess-free layout turned up for these settings, so this board may need a guess.';
+    }
+    function update() { $('left').textContent = M - flags; }
+    function paint(i) {
+        const b = board.children[i], s = st[i];
+        if (s === OPEN) {
+            b.className = 'open' + (adj[i] && !mine[i] ? ' n' + adj[i] : '');
+            b.textContent = mine[i] ? '✹' : adj[i] || '';
+            b.setAttribute('aria-label', label(i, mine[i] ? 'mine' : adj[i] ? adj[i] + (adj[i] > 1 ? ' mines' : ' mine') + ' nearby' : 'empty'));
+        } else if (s === FLAG) { b.className = ''; b.textContent = '🚩'; b.setAttribute('aria-label', label(i, 'flagged')); }
+        else if (s === QUERY) { b.className = 'q'; b.textContent = '?'; b.setAttribute('aria-label', label(i, 'question mark')); }
+        else { b.className = ''; b.textContent = ''; b.setAttribute('aria-label', label(i, 'hidden')); }
+    }
+    function reveal(i) {
+        if (st[i] === OPEN || st[i] === FLAG) return 0;
+        if (!started) { started = true; layMines(i); runClock(); }
+        if (mine[i]) { lose(i); return 0; }
+        const before = opened, stack = [i];
+        while (stack.length) {
+            const k = stack.pop();
+            if (st[k] === OPEN || st[k] === FLAG) continue;
+            st[k] = OPEN; opened++; paint(k);
+            if (adj[k] === 0) for (const j of NB[k]) if (st[j] !== OPEN && st[j] !== FLAG) stack.push(j);
+        }
+        if (opened === N - M) win();
+        return opened - before;
+    }
+    function chord(i) {
+        if (st[i] !== OPEN || !adj[i]) return 0;
+        let f = 0; for (const j of NB[i]) if (st[j] === FLAG) f++;
+        if (f !== adj[i]) return 0;
+        let n = 0; for (const j of NB[i]) { if (over) break; if (st[j] !== OPEN && st[j] !== FLAG) n += reveal(j); }
+        return n;
+    }
+    function cycleMark(i) {
+        if (st[i] === OPEN) return;
+        const was = st[i];
+        st[i] = was === 0 ? FLAG : was === FLAG && opt.qmarks ? QUERY : 0;
+        flags += (st[i] === FLAG) - (was === FLAG);
+        paint(i); update();
+    }
+    function finish() { over = true; pauseClock(); }
+    function lose(i) {
+        finish(); $('face').textContent = '😵';
+        for (let k = 0; k < N; k++) {
+            if (mine[k] && st[k] !== FLAG) { st[k] = OPEN; paint(k); }
+            else if (!mine[k] && st[k] === FLAG) { const b = board.children[k]; b.classList.add('wrong'); b.textContent = '✕'; b.setAttribute('aria-label', label(k, 'flagged, but no mine')); }
+        }
+        const b = board.children[i]; b.classList.add('boom'); b.textContent = '💥'; b.setAttribute('aria-label', label(i, 'the mine you hit'));
+        record(false);
+        $('msg').textContent = 'Boom! You hit a mine with ' + opened + ' of ' + (N - M) + ' safe squares cleared.';
+        $('again').hidden = false;
+    }
+    function win() {
+        finish(); won = true; $('face').textContent = '😎';
+        for (let k = 0; k < N; k++) if (mine[k] && st[k] !== FLAG) { st[k] = FLAG; flags++; paint(k); }
+        update();
+        const secs = Math.max(0.1, Math.round(clockMs() / 100) / 10);
+        $('time').textContent = secs < 100 ? secs.toFixed(1) : Math.round(secs);
+        const best = record(true, secs);
+        $('msg').textContent = 'Cleared in ' + fmtSec(secs).replace(' s', ' seconds') + (best ? ', a new best for ' + NAMES[level] + (ngBoard ? ' (no-guess)' : '') + '!' : '.');
+        $('again').hidden = false;
+    }
+    // how: 'primary' (click, tap, Enter), 'secondary' (right-click, long-press, F), or 'chord'
+    function act(i, how) {
+        if (over) return;
+        if (st[i] === OPEN) {
+            if (how === 'chord' || (how === 'primary' && opt.chord)) { const n = chord(i); if (n && !over) say(n + (n > 1 ? ' squares' : ' square') + ' opened.'); }
+            return;
+        }
+        if (how === 'chord') return;
+        if (how === 'secondary') { cycleMark(i); say(board.children[i].getAttribute('aria-label').replace(/^.*: /, '')); return; }
+        if (st[i] === FLAG) return;
+        const n = reveal(i);
+        if (n && !over) say(n === 1 ? board.children[i].getAttribute('aria-label').replace(/^.*: /, '') : n + ' squares opened.');
+    }
+
+    // ── Pointer input ──
+    const cellOf = e => { const b = e.target.closest && e.target.closest('#board button'); return b ? +b.dataset.i : null; };
+    let press = null, skipClick = false, lastTouch = 0, both = false, bothDone = false;
+    const cancelPress = () => { if (press) { clearTimeout(press.t); press = null; } };
+    const restFace = () => { if (!over) $('face').textContent = '🙂'; };
+    board.addEventListener('pointerdown', e => {
+        const i = cellOf(e); if (i === null) return;
+        skipClick = false;
+        if (e.pointerType === 'mouse') { if (e.button === 0 && !over && st[i] !== OPEN) $('face').textContent = '😮'; return; }
+        lastTouch = Date.now(); cancelPress();
+        // A long press does the opposite of a tap. It never reveals by accident: the click that follows it is skipped.
+        press = { x: e.clientX, y: e.clientY, t: setTimeout(() => {
+            press = null; skipClick = true;
+            if (over || st[i] === OPEN) return;
+            act(i, flagMode ? 'primary' : 'secondary');
+            if (navigator.vibrate && navigator.userActivation && navigator.userActivation.hasBeenActive) navigator.vibrate(15);
+        }, 450) };
+    });
+    board.addEventListener('pointermove', e => { if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) cancelPress(); });
+    board.addEventListener('pointerup', () => { cancelPress(); restFace(); });
+    board.addEventListener('pointercancel', () => { cancelPress(); restFace(); });
+    board.addEventListener('pointerleave', restFace);
+    board.addEventListener('mousedown', e => {
+        if (cellOf(e) === null) return;
+        if (e.button === 1) e.preventDefault();                  // no autoscroll on middle-click
+        if (e.buttons === 3) { both = true; bothDone = false; } else if (e.buttons === 1 || e.buttons === 2 || e.buttons === 4) both = false;
+    });
+    board.addEventListener('mouseup', e => {
+        const i = cellOf(e); if (i === null) return;
+        if (e.button === 1) act(i, 'chord');
+        else if (both && !bothDone) { bothDone = true; act(i, 'chord'); restFace(); }
+    });
+    board.addEventListener('contextmenu', e => {
+        const i = cellOf(e); if (i === null) return;
+        e.preventDefault();
+        if (both || Date.now() - lastTouch < 1500) return;       // a touch long-press is handled by its own timer
+        act(i, 'secondary');
+    });
+    board.addEventListener('click', e => {
+        const i = cellOf(e); if (i === null) return;
+        if (e.detail !== 0 && (skipClick || both)) { skipClick = false; return; }
+        act(i, st[i] !== OPEN && flagMode ? 'secondary' : 'primary');
+    });
+
+    // ── Keyboard: the board is one tab stop; arrow keys move between squares ──
+    function focusCell(j) { board.children[focusI].tabIndex = -1; focusI = j; const b = board.children[j]; b.tabIndex = 0; b.focus(); }
+    board.addEventListener('focusin', e => { const i = cellOf(e); if (i !== null && i !== focusI) { board.children[focusI].tabIndex = -1; focusI = i; e.target.tabIndex = 0; } });
+    board.addEventListener('keydown', e => {
+        const i = cellOf(e); if (i === null || e.ctrlKey || e.metaKey || e.altKey) return;
+        const x = i % W, y = (i / W) | 0, k = e.key;
+        const to = { ArrowLeft: x > 0 ? i - 1 : i, ArrowRight: x < W - 1 ? i + 1 : i, ArrowUp: y > 0 ? i - W : i, ArrowDown: y < H - 1 ? i + W : i, Home: y * W, End: y * W + W - 1, PageUp: x, PageDown: (H - 1) * W + x }[k];
+        if (to !== undefined) { e.preventDefault(); if (to !== i) focusCell(to); return; }
+        if (k === 'f' || k === 'F') { e.preventDefault(); act(i, 'secondary'); }
+        else if (k === 'c' || k === 'C') { e.preventDefault(); act(i, 'chord'); }
+    });
+
+    // ── Controls ──
+    $('flagmode').addEventListener('click', () => { flagMode = !flagMode; $('flagmode').classList.toggle('on', flagMode); $('flagmode').setAttribute('aria-pressed', flagMode); });
+    $('face').addEventListener('click', newGame);
+    $('again').addEventListener('click', () => { newGame(); board.children[focusI].focus(); });
+    $('level').addEventListener('change', newGame);
+    $('custom').addEventListener('submit', e => { e.preventDefault(); newGame(); });
+    [['noguess', 'noguess', 'mines-noguess'], ['qmarks', 'qmarks', 'mines-qmarks'], ['chordclick', 'chord', 'mines-chordclick']].forEach(([id, key, store]) => {
+        const box = $(id); box.checked = opt[key];
+        box.addEventListener('change', () => { opt[key] = box.checked; G.set(store, box.checked ? '1' : '0'); if (key === 'noguess') showBest(); });
+    });
+    let resetArmed = null;
+    $('reset-stats').addEventListener('click', () => {
+        const btn = $('reset-stats');
+        if (!resetArmed) { btn.textContent = 'Click again to reset'; resetArmed = setTimeout(() => { resetArmed = null; btn.textContent = 'Reset statistics'; }, 4000); return; }
+        clearTimeout(resetArmed); resetArmed = null; btn.textContent = 'Reset statistics';
+        for (const k in stats) delete stats[k];
+        for (const l in LEVELS) G.set('mines-best-' + l, '');      // the old best-time keys would otherwise come back
+        for (const l in LEVELS) rec(l).best = null;
+        G.setJSON('mines-stats', stats); renderStats(); showBest(); say('Statistics reset.');
+    });
+    let lastW = 0;
+    window.addEventListener('resize', () => { const w = $('scroll').clientWidth; if (w !== lastW) { lastW = w; sizeCells(); } });
+
+    const saved = G.getJSON('mines-custom');
+    if (Array.isArray(saved) && saved.length === 3) { $('cw').value = saved[0]; $('ch').value = saved[1]; $('cm').value = saved[2]; }
+    const l = G.get('mines-level', 'beginner'); if (l === 'custom' || LEVELS[l]) $('level').value = l;
+    for (const k in LEVELS) if (!stats[k] && +G.get('mines-best-' + k, 0)) rec(k);   // best times saved before statistics existed
+    renderStats(); newGame();
+    window.__mines = {
+        reveal: i => act(i, 'primary'), flag: i => act(i, 'secondary'), chord: i => act(i, 'chord'), newGame, opt,
+        state: () => ({ W, H, M, opened, flags, over, won, started, ngBoard, elapsed: clockMs() }),
+        mines: () => Array.from(mine), adj: () => Array.from(adj), cells: () => Array.from(st), stats: () => JSON.parse(JSON.stringify(stats)),
+        solvable: start => solvable(start)
+    };
+});
+</script>
+</body>
+</html>

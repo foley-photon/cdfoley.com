@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laser Pulse Overlap & Hatch Overlap Calculator (Scan Speed, Rep Rate)</title>
+<meta name="description" content="Calculate laser pulse overlap and hatch (line) overlap from scan speed, rep rate, spot size, and hatch spacing, plus pulses per spot and required scan speed.">
+<link rel="canonical" href="https://cdfoley.com/tools/pulse-overlap/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Pulse & Hatch Overlap Calculator">
+<meta property="og:description" content="Calculate laser pulse overlap and hatch (line) overlap from scan speed, rep rate, spot size, and hatch spacing, plus pulses per spot and required scan speed.">
+<meta property="og:url" content="https://cdfoley.com/tools/pulse-overlap/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-pulse-overlap.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Laser Pulse &amp; Hatch Overlap Calculator. Calculate laser pulse overlap and hatch (line) overlap from scan speed, rep rate, spot size, and hatch spacing, plus pulses per spot and required scan speed.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<style>
+    .po-svg { width: 100%; height: auto; display: block; font-family: var(--font); }
+    .po-svg text { fill: var(--text-2); font-size: 12px; }
+    .po-svg .po-dim { stroke: var(--muted); stroke-width: 1; }
+    .po-svg .po-axis { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 4 4; }
+    .po-legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font-size: 0.82rem; color: var(--text-2); margin-top: 0.4rem; }
+    .po-legend span::before { content: ''; display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 0.4rem; vertical-align: -1px; background: color-mix(in srgb, var(--c) 25%, transparent); border: 1.5px solid var(--c); }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Pulse & Hatch Overlap",
+   "url": "https://cdfoley.com/tools/pulse-overlap/",
+   "description": "Calculate laser pulse overlap and hatch (line) overlap from scan speed, rep rate, spot size, and hatch spacing, plus pulses per spot and required scan speed.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "overlap scan speed hatch pitch pulses per spot scribing marking pulse calculator distance rep rate laser",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Laser Processing",
+     "item": "https://cdfoley.com/tools/#process"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Pulse & Hatch Overlap",
+     "item": "https://cdfoley.com/tools/pulse-overlap/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#process">Laser Processing</a></li><li aria-current="page">Pulse &amp; Hatch Overlap</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Laser Pulse &amp; Hatch Overlap Calculator</h1>
+        <p class="lede">When a pulsed laser is scanned across a part, for marking, scribing, cleaning, or milling, how far apart do the pulses land, how much do neighboring spots overlap, and how much light does each point receive? Enter the spot size, scan speed, repetition rate, and line spacing to find out, or set a target overlap to get the scan speed you need.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Spot diameter (1/e²)</dt><dd>The size of the focused laser spot on the part, measured where the fluence has fallen to 13.5&nbsp;% of its central value. The default is 30&nbsp;µm.</dd>
+            <dt>Scan speed</dt><dd>How fast the beam moves across the part, set in the marking software; also called marking speed. Galvanometer scanners with a 100&nbsp;mm lens reach about 10&nbsp;m/s.</dd>
+            <dt>Repetition rate</dt><dd>How many pulses the laser fires each second. Together with the scan speed it sets how far apart the pulses land.</dd>
+            <dt>Pulse pitch</dt><dd>The distance between the centers of two consecutive pulses: the scan speed divided by the repetition rate. 1&nbsp;m/s at 100&nbsp;kHz gives 10&nbsp;µm.</dd>
+            <dt>Pulse overlap</dt><dd>How much of a spot’s diameter the next spot covers again. At 0&nbsp;% the spots just touch; a negative value means gaps between them.</dd>
+            <dt>Hatch spacing</dt><dd>The distance between neighboring scan lines when an area is filled with parallel lines; also called line pitch.</dd>
+            <dt>Pulses per spot</dt><dd>How many pulses land within one spot diameter along the line. Many papers call this the effective pulse number.</dd>
+            <dt>Fluence-equivalent pulse number</dt><dd>All the energy a point receives from the overlapping pulses, counted as a number of full-strength pulses at the beam center. It is smaller than the pulses per spot because the edge of a Gaussian spot is weak.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="d">Spot diameter (1/e²) <span class="sym">d = 2w₀</span></label>
+                    <div class="input-unit"><input id="d" name="d" value="30" inputmode="decimal" data-positive data-label="spot diameter"><select data-dim="length" data-units="µm,mm" data-default="µm"></select></div>
+                    <p class="hint">The 1/e² diameter at the work surface: from a beam profiler, the <a href="/tools/focused-spot/">focused-spot</a> calculator, or a crater-size fit in the <a href="/tools/ablation-depth/">ablation</a> tool.</p>
+                </div>
+                <div class="field">
+                    <label for="v">Scan speed <span class="sym">v</span></label>
+                    <div class="input-unit"><input id="v" name="v" value="1000" inputmode="decimal" data-positive data-label="scan speed"><select data-dim="speed" data-units="mm/s,m/s,mm/min,m/min,in/s" data-default="mm/s"></select></div>
+                    <p class="hint">The marking speed set in the scanner software.</p>
+                </div>
+                <div class="field">
+                    <label for="f">Repetition rate <span class="sym">f<sub>rep</sub></span></label>
+                    <div class="input-unit"><input id="f" name="f" value="100" inputmode="decimal" data-positive data-label="repetition rate"><select data-dim="frequency" data-units="Hz,kHz,MHz" data-default="kHz"></select></div>
+                    <p class="hint">Pulses per second, set on the laser or in the marking software (also called pulse frequency or PRF).</p>
+                </div>
+                <div class="field">
+                    <label for="h">Hatch spacing (line pitch) <span class="sym">h</span></label>
+                    <div class="input-unit"><input id="h" name="h" value="15" inputmode="decimal" data-positive data-label="hatch spacing"><select data-dim="length" data-units="µm,mm" data-default="µm"></select></div>
+                    <p class="hint">The spacing between neighboring lines when filling an area. For a single line, leave any value: only the area results use it.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="target">Target pulse overlap</label>
+                        <div class="input-unit"><input id="target" name="target" value="90" inputmode="decimal" data-optional data-label="target overlap"><span class="unit">%</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="area">Area to process</label>
+                        <div class="input-unit"><input id="area" name="area" value="1" inputmode="decimal" data-optional data-label="area"><select data-dim="area" data-units="mm²,cm²,m²,in²" data-default="cm²"></select></div>
+                    </div>
+                </div>
+                <p class="hint" style="font-size:.8rem;color:var(--muted);margin:0">Both optional. The target overlap gives the scan speed required. The area gives the hatch-fill time, excluding jumps and turnarounds.</p>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="ol-badge" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Pulse overlap<span class="sym">1 − Δx/d</span></span><output class="result-value" data-out="ol">—</output>
+                        <span class="result-note">Measured against the 1/e² diameter. Below about 7.4 times the ablation threshold the craters are narrower than that, so they need more overlap to join into a continuous line.</span></div>
+                    <div class="result"><span class="result-label">Pulse pitch<span class="sym">Δx = v/f</span></span><output class="result-value" data-out="dx">—</output></div>
+                    <div class="result"><span class="result-label">Line (hatch) overlap<span class="sym">1 − h/d</span></span><output class="result-value" data-out="lol">—</output></div>
+                    <div class="result"><span class="result-label">Pulses per spot diameter<span class="sym">d·f/v</span></span><output class="result-value" data-out="nps">—</output>
+                        <span class="result-note">The count many papers call the effective pulse number.</span></div>
+                    <div class="result"><span class="result-label">Fluence-equivalent pulses per point, single line<span class="sym">N<sub>eff,1D</sub></span></span><output class="result-value" data-out="n1">—</output>
+                        <span class="result-note">The fluence accumulated on the line center, divided by the peak fluence of one pulse.</span></div>
+                    <div class="result"><span class="result-label">Fluence-equivalent pulses per point, hatched area<span class="sym">N<sub>eff,2D</sub></span></span><output class="result-value" data-out="n2">—</output>
+                        <span class="result-note">The same for a filled area: the pulse energy per area of the pattern, E<sub>p</sub>/(Δx·h), divided by the peak fluence of one pulse.</span></div>
+                    <div class="result"><span class="result-label">Area coverage rate<span class="sym">v·h</span></span><output class="result-value" data-out="rate">—</output></div>
+                    <div class="result"><span class="result-label">Hatch-fill time for area</span><output class="result-value" data-out="time">—</output></div>
+                    <div class="result"><span class="result-label">Scan speed for target overlap</span><output class="result-value" data-out="vt">—</output></div>
+                    <div class="result" id="neff-note-row"><span class="result-note" id="neff-note"></span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="viz-h">
+        <div class="panel-head"><h2 id="viz-h">Spot layout (to scale)</h2></div>
+        <div class="panel-body">
+            <div id="spots"></div>
+            <div class="po-legend"><span style="--c:var(--c1)">Scan line 1</span><span style="--c:var(--c2)">Scan line 2 (offset by h)</span></div>
+        </div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>A pulsed laser moving at speed \(v\) and repetition rate \(f_\text{rep}\) places consecutive pulses a pitch \(\Delta x\) apart. Adjacent scan lines sit a hatch \(h\) apart:</p>
+        <div class="formula">\[ \Delta x = \frac{v}{f_\text{rep}}, \qquad \text{OL}_\text{pulse} = 1 - \frac{\Delta x}{d}, \qquad \text{OL}_\text{line} = 1 - \frac{h}{d}, \qquad N_\text{spot} = \frac{d}{\Delta x}. \]</div>
+        <p>Overlap is defined against the 1/e² diameter \(d = 2w_0\), as \((2w_0 - \Delta x)/2w_0\) (Račiukaitis et al., 2009). Negative overlap means there are gaps between spots. The scan speed for a target overlap is \(v = d\,f_\text{rep}\,(1 - \text{OL})\).</p>
+
+        <h2>Fluence-equivalent pulse number for a Gaussian beam</h2>
+        <p>“Pulses per spot” counts circles, but a Gaussian beam delivers most of its fluence near the center. Summing the Gaussian fluence of every pulse that passes a point on the scan line gives the accumulated dose in units of the peak fluence \(F_0\):</p>
+        <div class="formula">\[ \sum_n e^{-2(x - n\Delta x)^2/w_0^2} \;\approx\; \frac{1}{\Delta x}\int_{-\infty}^{\infty} e^{-2x^2/w_0^2}\,dx \;=\; \sqrt{\frac{\pi}{2}}\,\frac{w_0}{\Delta x} \equiv N_\text{eff,1D}. \]</div>
+        <p>For a hatched area the same integral runs in two dimensions: \(N_\text{eff,2D} = \dfrac{\pi}{2}\dfrac{w_0^2}{\Delta x\,h}\). Then \(N_\text{eff,2D}F_0 = E_p/(\Delta x\,h)\) exactly: the accumulated fluence is the pulse energy per unit area of the pattern. Summing the discrete pulses numerically confirms both expressions. When \(\Delta x \le w_0\), the point-to-point ripple in the line sum stays within about ±1.5&nbsp;%. With \(h \le w_0\) as well, the area sum stays within about ±3&nbsp;%. At larger pitch or hatch the dose varies from point to point and \(N_\text{eff}\) is only an average.</p>
+        <p>Papers count pulses per point in different ways. Many call the number of pulses within the 1/e² diameter, \(d/\Delta x\), the effective pulse number (Skoulas et al., 2017); the fluence-equivalent \(N_\text{eff,1D}\) here is \(\sqrt{\pi/2}/2 \approx 0.63\) times that count. An incubation law such as \(F_\text{th}(N) = F_\text{th}(1)N^{S-1}\) is fitted with one particular count, so use the same definition as the source of your \(S\). The accumulated fluence \(N_\text{eff}F_0\) is a useful dose metric for comparing scan strategies.</p>
+
+        <h2>Worked example</h2>
+        <p>A 30&nbsp;µm spot scanned at 1&nbsp;m/s with 100&nbsp;kHz pulses and a 15&nbsp;µm hatch:</p>
+        <div class="formula">\[ \Delta x = \frac{1000\ \text{mm/s}}{100\ \text{kHz}} = 10\ \mu\text{m}, \quad \text{OL} = 1 - \tfrac{10}{30} = 66.7\,\%, \quad N_\text{eff,1D} = 1.2533\times\tfrac{15}{10} = 1.88. \]</div>
+        <p>That is 3 pulses per spot diameter. The line overlap is 50&nbsp;%, so \(N_\text{eff,2D} = 2.36\). The coverage rate is 15&nbsp;mm²/s, which fills 1&nbsp;cm² in 6.7&nbsp;s before jump and acceleration overhead. Reaching 90&nbsp;% pulse overlap at the same repetition rate means slowing to 300&nbsp;mm/s.</p>
+
+        <h2>Choosing overlap in practice</h2>
+        <ul>
+            <li><strong>Craters must touch.</strong> Separate craters merge into a line only when the pitch is smaller than the ablated diameter \(D_\text{th} = w_0\sqrt{2\ln(F_0/F_\text{th})}\) (see the <a href="/tools/fluence/">fluence</a> tool). At \(F_0 = 2F_\text{th}\) that takes more than 41&nbsp;% overlap; at \(F_0 = e^2F_\text{th}\) any positive overlap will do.</li>
+            <li><strong>Continuous scribes and milled surfaces</strong> commonly use about 50–90&nbsp;% overlap, chosen by experiment for edge quality and a smooth floor. Surface structuring with picosecond pulses gave the lowest roughness at 50–75&nbsp;% (Neuenschwander et al., 2014), and trenches in alumina had a flat floor at about 83–89&nbsp;% by this page’s definition (Furmanski et al., 2007). The edge ripple period equals Δx.</li>
+            <li><strong>Very high overlap</strong> (&gt; 90–95&nbsp;%) raises the pulse count per point and, at high repetition rates, causes heat accumulation: below a critical scan speed, ablated metal turns from smooth and reflective to rough and dark (Bauer et al., 2015; Weber et al., 2014). Check the <a href="/tools/thermal-diffusion/">thermal diffusion</a> tool.</li>
+            <li><strong>Fast scanners spread the heat.</strong> Galvanometer scanners with a 100&nbsp;mm lens reach about 10&nbsp;m/s; polygon scanners reach about 100&nbsp;m/s, so a laser firing millions of pulses per second can keep a moderate overlap and build depth in many fast passes (Neuenschwander et al., 2014).</li>
+            <li><strong>Galvo acceleration</strong> raises the effective overlap at line ends unless the controller accelerates outside the marked region with the laser off (“skywriting”) or fires pulses by position rather than by time.</li>
+        </ul>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Constant scan speed and repetition rate, straight parallel lines, and one pulse per trigger (no burst mode).</li>
+            <li>Overlap is geometric, measured against the 1/e² diameter. Some groups define it against the ablated crater diameter instead, which depends on fluence, and Furmanski et al. use the relative fluence of the next pulse at the previous pulse’s center. Check the definition before copying an overlap from a paper.</li>
+            <li>\(N_\text{eff}\) assumes a TEM₀₀ Gaussian focal spot. For a top-hat beam, each point on the center of the scan line receives the full fluence from \(d/\Delta x\) pulses, so pulses per spot is already the effective count there.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>G. Račiukaitis, M. Brikas, P. Gečys, B. Voisiat, and M. Gedvilas, “Use of high repetition rate and high power lasers in microfabrication: How to keep the efficiency high?” <em>J. Laser Micro/Nanoeng.</em> <strong>4</strong>, 186–191 (2009), <a href="https://doi.org/10.2961/jlmn.2009.03.0008" target="_blank" rel="noopener">doi:10.2961/jlmn.2009.03.0008</a> (overlap defined against the 1/e² diameter; free to read).</li>
+            <li>E. Skoulas, A. Manousaki, C. Fotakis, and E. Stratakis, “Biomimetic surface structuring using cylindrical vector femtosecond laser beams,” <em>Sci. Rep.</em> <strong>7</strong>, 45114 (2017), <a href="https://doi.org/10.1038/srep45114" target="_blank" rel="noopener">doi:10.1038/srep45114</a> (the common effective pulse number, pulses per 1/e² diameter; open access).</li>
+            <li>J. Furmanski, A. M. Rubenchik, M. D. Shirk, and B. C. Stuart, “Deterministic processing of alumina with ultrashort laser pulses,” <em>J. Appl. Phys.</em> <strong>102</strong>, 073112 (2007), <a href="https://doi.org/10.1063/1.2794376" target="_blank" rel="noopener">doi:10.1063/1.2794376</a> (trench depth and floor flatness versus pulse overlap).</li>
+            <li>B. Neuenschwander, B. Jaeggi, M. Schmid, and G. Hennig, “Surface structuring with ultra-short laser pulses: Basics, limitations and needs for high throughput,” <em>Phys. Procedia</em> <strong>56</strong>, 1047–1058 (2014), <a href="https://doi.org/10.1016/j.phpro.2014.08.017" target="_blank" rel="noopener">doi:10.1016/j.phpro.2014.08.017</a> (overlap and scan speed at the optimum fluence, roughness versus overlap, scanner speeds; open access).</li>
+            <li>F. Bauer, A. Michalowski, T. Kiedrowski, and S. Nolte, “Heat accumulation in ultra-short pulsed scanning laser ablation of metals,” <em>Opt. Express</em> <strong>23</strong>, 1035 (2015), <a href="https://doi.org/10.1364/OE.23.001035" target="_blank" rel="noopener">doi:10.1364/OE.23.001035</a> (the critical scan speed for heat accumulation; open access).</li>
+            <li>R. Weber, T. Graf, P. Berger, V. Onuseit, M. Wiedenmann, C. Freitag, and A. Feuer, “Heat accumulation during pulsed laser materials processing,” <em>Opt. Express</em> <strong>22</strong>, 11312 (2014), <a href="https://doi.org/10.1364/OE.22.011312" target="_blank" rel="noopener">doi:10.1364/OE.22.011312</a> (why heat builds up at high repetition rates; open access).</li>
+            <li>Y. Jee, M. F. Becker, and R. M. Walser, “Laser-induced damage on single-crystal metal surfaces,” <em>J. Opt. Soc. Am. B</em> <strong>5</strong>, 648–659 (1988), <a href="https://doi.org/10.1364/JOSAB.5.000648" target="_blank" rel="noopener">doi:10.1364/JOSAB.5.000648</a> (the incubation law).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>R. Paschotta, “Laser ablation,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/kf6" target="_blank" rel="noopener">doi:10.61835/kf6</a> (scanning lines of pulses, and why heat builds up at high repetition rates).</li>
+            <li>R. Paschotta, “Laser scanners,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/e73" target="_blank" rel="noopener">doi:10.61835/e73</a> (how galvanometer and polygon scanners move the beam).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="fluence,ablation-depth,thermal-diffusion,f-theta-lens,pulse-energy,article:laser-ablation-process-windows"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const badge = document.getElementById('ol-badge');
+    const note = document.getElementById('neff-note');
+    const noteRow = document.getElementById('neff-note-row');
+    const NS = 'http://www.w3.org/2000/svg';
+    const len = x => fmt.si(x, 'm', 4);
+
+    function svgEl(tag, attrs, parent) {
+        const n = document.createElementNS(NS, tag);
+        for (const k in attrs) n.setAttribute(k, attrs[k]);
+        if (parent) parent.appendChild(n);
+        return n;
+    }
+
+    function drawSpots(d, dx, h) {
+        const box = document.getElementById('spots');
+        box.innerHTML = '';
+        const n = Math.max(5, Math.min(40, Math.ceil(4 * d / dx) + 1));
+        const wU = (n - 1) * dx + d, hU = h + d;
+        const W = 640, padX = 24, padTop = 34, padBot = 18, padR = 70;
+        const s = Math.min((W - padX - padR) / wU, 240 / hU);
+        const H = hU * s + padTop + padBot;
+        const ox = padX + ((W - padX - padR) - wU * s) / 2;
+        const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H.toFixed(1)}`, class: 'po-svg', role: 'img',
+            'aria-label': `Two scan lines of ${n} spots, pitch ${len(dx)}, hatch ${len(h)}` }, box);
+        const r = d / 2 * s;
+        [[0, 'var(--c1)'], [h, 'var(--c2)']].forEach(([off, c]) => {
+            const cy = padTop + (d / 2 + off) * s;
+            svgEl('line', { x1: ox, x2: ox + wU * s, y1: cy, y2: cy, class: 'po-axis' }, svg);
+            for (let i = 0; i < n; i++) {
+                svgEl('circle', { cx: (ox + (d / 2 + i * dx) * s).toFixed(2), cy: cy.toFixed(2), r: r.toFixed(2),
+                    fill: c, 'fill-opacity': 0.16, stroke: c, 'stroke-width': 1.2 }, svg);
+            }
+        });
+        // Δx dimension above line 1
+        const y0 = padTop - 12, xa = ox + d / 2 * s, xb = ox + (d / 2 + dx) * s;
+        svgEl('line', { x1: xa, x2: xb, y1: y0, y2: y0, class: 'po-dim' }, svg);
+        [xa, xb].forEach(x => svgEl('line', { x1: x, x2: x, y1: y0 - 4, y2: y0 + 4, class: 'po-dim' }, svg));
+        svgEl('text', { x: Math.max(xa, xb) + 6, y: y0 + 4 }, svg).textContent = 'Δx = ' + len(dx);
+        // h dimension to the right
+        const xr = ox + wU * s + 14, ya = padTop + d / 2 * s, yb = padTop + (d / 2 + h) * s;
+        svgEl('line', { x1: xr, x2: xr, y1: ya, y2: yb, class: 'po-dim' }, svg);
+        [ya, yb].forEach(y => svgEl('line', { x1: xr - 4, x2: xr + 4, y1: y, y2: y, class: 'po-dim' }, svg));
+        svgEl('text', { x: xr + 6, y: (ya + yb) / 2 + 4 }, svg).textContent = 'h';
+        svgEl('text', { x: ox, y: 14 }, svg).textContent = 'scan direction →';
+    }
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            const dx = v.v / v.f, w = v.d / 2;
+            const ol = 1 - dx / v.d, lol = 1 - v.h / v.d;
+            const n1 = Math.sqrt(Math.PI / 2) * w / dx;
+            const n2 = Math.PI / 2 * w * w / (dx * v.h);
+            const rate = v.v * v.h;                        // m²/s
+            if (isFinite(v.target) && !(v.target < 100)) throw Calc.fail('Target overlap must be below 100 %.', 'target');
+            if (isFinite(v.area) && !(v.area > 0)) throw Calc.fail('Area must be greater than zero.', 'area');
+
+            if (ol < 0) { badge.textContent = 'Gaps between pulses'; badge.className = 'badge badge-bad'; }
+            else if (ol < 0.5) { badge.textContent = 'Low overlap'; badge.className = 'badge badge-warn'; }
+            else if (ol <= 0.9) { badge.textContent = 'Typical overlap'; badge.className = 'badge badge-ok'; }
+            else { badge.textContent = 'High overlap'; badge.className = 'badge badge-warn'; }
+
+            const msgs = [];
+            if (dx > w) msgs.push('Pitch exceeds the beam radius, so N<sub>eff,1D</sub> is an average. The dose varies noticeably along the line.');
+            if (v.h > w) msgs.push('Hatch exceeds the beam radius, so N<sub>eff,2D</sub> is an average with stripes between lines.');
+            note.innerHTML = msgs.join(' ');   // fixed strings only
+            noteRow.hidden = !msgs.length;
+
+            const t = isFinite(v.area) ? v.area / rate : NaN;
+            const fmtTime = s => s >= 3600 ? fmt.num(s / 3600, 4) + ' h' : s >= 60 ? fmt.num(s / 60, 4) + ' min' : fmt.si(s, 's', 4);
+            const speed = s => s >= 0.1 ? fmt.num(s * 1000, 4) + ' mm/s  (' + fmt.num(s * 60, 4) + ' m/min)' : fmt.num(s * 1000, 4) + ' mm/s';
+            return {
+                ol: fmt.pct(ol, 4) + (ol < 0 ? '  (gap ' + len(dx - v.d) + ')' : ''),
+                dx: len(dx),
+                lol: fmt.pct(lol, 4) + (lol < 0 ? '  (gap ' + len(v.h - v.d) + ')' : ''),
+                nps: fmt.num(v.d / dx, 4),
+                n1: fmt.num(n1, 4),
+                n2: fmt.num(n2, 4),
+                rate: fmt.num(rate * 1e6, 4) + ' mm²/s  (' + fmt.num(rate * 1e4, 4) + ' cm²/s)',
+                time: isFinite(t) ? fmtTime(t) : null,
+                vt: isFinite(v.target) ? speed(v.d * v.f * (1 - v.target / 100)) : null
+            };
+        },
+        after(v) { drawSpots(v.d, v.v / v.f, v.h); }
+    });
+});
+</script>
+</body>
+</html>

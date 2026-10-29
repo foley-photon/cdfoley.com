@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laser Fluence Calculator: Peak &amp; Average Fluence, Irradiance (J/cm²)</title>
+<meta name="description" content="Calculate peak and average laser fluence (J/cm²) and irradiance or intensity (W/cm²) for Gaussian and top-hat beams, plus the ablated spot diameter.">
+<link rel="canonical" href="https://cdfoley.com/tools/fluence/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Fluence & Irradiance Calculator">
+<meta property="og:description" content="Calculate peak and average laser fluence (J/cm²) and irradiance or intensity (W/cm²) for Gaussian and top-hat beams, plus the ablated spot diameter.">
+<meta property="og:url" content="https://cdfoley.com/tools/fluence/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-fluence.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Laser Fluence &amp; Irradiance Calculator. Calculate peak and average laser fluence (J/cm²) and irradiance or intensity (W/cm²) for Gaussian and top-hat beams, plus the ablated spot diameter.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Fluence & Irradiance",
+   "url": "https://cdfoley.com/tools/fluence/",
+   "description": "Calculate peak and average laser fluence (J/cm²) and irradiance or intensity (W/cm²) for Gaussian and top-hat beams, plus the ablated spot diameter.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "fluence irradiance intensity energy density power density laser peak j/cm2 w/cm2",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Laser Processing",
+     "item": "https://cdfoley.com/tools/#process"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Fluence & Irradiance",
+     "item": "https://cdfoley.com/tools/fluence/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#process">Laser Processing</a></li><li aria-current="page">Fluence &amp; Irradiance</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Laser Fluence &amp; Irradiance Calculator</h1>
+        <p class="lede">Fluence (energy per unit area, in J/cm²) and irradiance (power per unit area, in W/cm²) decide what a laser pulse does to a surface: whether it marks it, removes material, or damages it. Enter the pulse energy and spot size to get the peak (on-axis) fluence and irradiance, and the average fluence, for Gaussian and top-hat beams. Add a threshold fluence to see how far above it you are and how wide the affected region is.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Fluence</dt><dd>Energy delivered per unit area of the surface, in J/cm². For a single pulse it decides whether the material is modified, removed, or damaged.</dd>
+            <dt>Irradiance</dt><dd>Power per unit area, in W/cm²; also called intensity. The value here is at the top of the pulse and the center of the beam.</dd>
+            <dt>Spot diameter (1/e²)</dt><dd>The usual way to state a laser spot size: the diameter at which the fluence has fallen to 13.5&nbsp;% (1/e²) of its central value. About 86.5&nbsp;% of a Gaussian beam’s energy falls inside it.</dd>
+            <dt>Gaussian and top-hat beams</dt><dd>A Gaussian beam is strongest at the center and fades smoothly outward, like a bell curve; many lasers focus to a near-Gaussian spot. A top-hat beam, made with beam-shaping optics, is uniform across the spot and drops sharply at its edge.</dd>
+            <dt>Peak fluence</dt><dd>The fluence at the center of the beam, where it is highest. For a Gaussian beam it is twice the pulse energy divided by the area of the 1/e² circle. Damage standards and crater-size (Liu) ablation measurements quote thresholds this way.</dd>
+            <dt>Average fluence</dt><dd>The pulse energy divided by the area of the 1/e² circle. A common shortcut; for a Gaussian beam it is exactly half the peak fluence.</dd>
+            <dt>Threshold fluence</dt><dd>The lowest fluence at which a material is modified or removed (the ablation threshold) or an optic is damaged (the damage threshold). It depends on the material, the wavelength, the pulse duration, and the number of pulses.</dd>
+            <dt>Effective area</dt><dd>The area that would hold the whole pulse energy if it were spread evenly at the peak fluence. For a Gaussian beam it is half the area of the 1/e² circle.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="emode">Energy input</label>
+                    <select id="emode" name="emode" class="input">
+                        <option value="e" selected>Pulse energy</option>
+                        <option value="p">Average power + repetition rate</option>
+                    </select>
+                </div>
+                <div class="field" data-show="e">
+                    <label for="ep">Pulse energy <span class="sym">E<sub>p</sub></span></label>
+                    <div class="input-unit"><input id="ep" name="ep" value="20" inputmode="decimal" data-optional><select data-dim="energy" data-units="pJ,nJ,µJ,mJ,J" data-default="µJ"></select></div>
+                    <p class="hint">The reading of a pulse-energy meter. If you know the average power and repetition rate instead, choose that option above.</p>
+                </div>
+                <div class="field-row" data-show="p" hidden>
+                    <div class="field">
+                        <label for="pavg">Average power</label>
+                        <div class="input-unit"><input id="pavg" name="pavg" value="2" inputmode="decimal" data-optional><select data-dim="power" data-units="mW,W,kW" data-default="W"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="frep">Repetition rate</label>
+                        <div class="input-unit"><input id="frep" name="frep" value="100" inputmode="decimal" data-optional><select data-dim="frequency" data-units="Hz,kHz,MHz" data-default="kHz"></select></div>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="profile">Spatial profile</label>
+                        <select id="profile" name="profile" class="input">
+                            <option value="gauss" selected>Gaussian (TEM₀₀)</option>
+                            <option value="tophat">Top-hat (flat-top)</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="d" id="d-label">Spot diameter (1/e²) <span class="sym">2w₀</span></label>
+                        <div class="input-unit"><input id="d" name="d" value="30" inputmode="decimal" data-positive data-label="spot diameter"><select data-dim="length" data-units="µm,mm" data-default="µm"></select></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The diameter at the work surface: from a beam profiler, the <a href="/tools/focused-spot/">focused-spot</a> calculator, or a crater-size fit in the <a href="/tools/ablation-depth/">ablation</a> tool. For a Gaussian spot quoted as a FWHM diameter, multiply by 1.699 to get the 1/e² diameter.</p>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="tau">Pulse duration (FWHM) <span class="sym">τ</span></label>
+                        <div class="input-unit"><input id="tau" name="tau" value="10" inputmode="decimal" data-positive data-label="pulse duration"><select data-dim="time" data-units="fs,ps,ns,µs,ms" data-default="ns"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="shape">Temporal shape</label>
+                        <select id="shape" name="shape" class="input">
+                            <option value="rect">Rectangular</option>
+                            <option value="gauss" selected>Gaussian</option>
+                            <option value="sech2">sech²</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The pulse duration (FWHM) and shape set only the peak power and irradiance; the fluence does not depend on them.</p>
+                <div class="field">
+                    <label for="fth">Threshold fluence (optional) <span class="sym">F<sub>th</sub></span></label>
+                    <div class="input-unit"><input id="fth" name="fth" value="1" inputmode="decimal" data-optional data-label="threshold fluence" placeholder="e.g. ablation threshold"><select data-dim="fluence" data-units="mJ/cm²,J/cm²" data-default="J/cm²"></select></div>
+                    <p class="hint">Enter it as a peak fluence, the convention of ISO&nbsp;21254 and of crater-size (Liu) measurements. If your source quotes an average fluence (E<sub>p</sub>/πw₀²), multiply it by 2. Use a threshold measured with the same number of pulses per spot; typical values are in the table below.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="th-badge" class="badge" hidden></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Peak fluence (on axis)<span class="sym">F₀</span></span><output class="result-value" data-out="f0">—</output></div>
+                    <div class="result"><span class="result-label">Average fluence (energy ÷ 1/e² area)<span class="sym">E<sub>p</sub>/πw₀²</span></span><output class="result-value" data-out="favg">—</output>
+                        <span class="result-note">Half the peak value. Compare it only with sources that also divide the energy by the 1/e² area.</span></div>
+                    <div class="result"><span class="result-label">Peak irradiance<span class="sym">I₀</span></span><output class="result-value" data-out="i0">—</output></div>
+                    <div class="result"><span class="result-label">Peak power<span class="sym">P<sub>peak</sub></span></span><output class="result-value" data-out="ppk">—</output></div>
+                    <div class="result"><span class="result-label">Pulse energy<span class="sym">E<sub>p</sub></span></span><output class="result-value" data-out="ep">—</output></div>
+                    <div class="result"><span class="result-label">Effective area<span class="sym">A<sub>eff</sub> = E<sub>p</sub>/F₀</span></span><output class="result-value" data-out="aeff">—</output></div>
+                    <div class="result"><span class="result-label">Energy inside the 1/e² diameter</span><output class="result-value" data-out="enc">—</output></div>
+                    <div class="result"><span class="result-label">Peak fluence ÷ threshold<span class="sym">F₀/F<sub>th</sub></span></span><output class="result-value" data-out="ratio">—</output>
+                        <span class="result-note">Below 1, no part of the spot reaches the threshold. Ablation removes the most material per joule near 7.4 (e²) times threshold with a Gaussian beam and near 2.7 (e) times with a top-hat; see the <a href="/tools/ablation-depth/">ablation</a> tool.</span></div>
+                    <div class="result"><span class="result-label">Diameter above threshold<span class="sym">D<sub>th</sub></span></span><output class="result-value" data-out="dth">—</output>
+                        <span class="result-note">For an ablation threshold, the expected crater diameter at the pulse count the threshold was measured for.</span></div>
+                    <div class="result"><span class="result-label">Pulse energy inside D<sub>th</sub></span><output class="result-value" data-out="eth">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="prof-h">
+        <div class="panel-head"><h2 id="prof-h">Radial fluence profile</h2></div>
+        <div class="panel-body"><div id="prof-plot"></div></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>A Gaussian beam with 1/e² radius \(w_0\) and pulse energy \(E_p\) has the fluence distribution</p>
+        <div class="formula">\[ F(r) = F_0\, e^{-2r^2/w_0^2}, \qquad F_0 = \frac{2E_p}{\pi w_0^2}. \]</div>
+        <p>The peak irradiance follows from the peak power, \(I_0 = 2P_\text{peak}/(\pi w_0^2)\), where \(P_\text{peak} = kE_p/\tau\) with \(k = 1\), 0.9394, or 0.8814 for rectangular, Gaussian, or sech² pulses (see <a href="/tools/pulse-energy/">pulse energy &amp; peak power</a>). For a top-hat beam of diameter \(d\), the fluence is uniform: \(F = E_p/(\pi d^2/4)\).</p>
+
+        <h2>Peak or average? The factor of two</h2>
+        <p>Two conventions are in common use, and they differ by exactly a factor of two for a Gaussian beam:</p>
+        <ul>
+            <li><strong>Peak (on-axis) fluence</strong> \(F_0 = 2E_p/(\pi w_0^2)\). This is the value at the center of the beam. Laser-damage standards use it: ISO&nbsp;21254 divides the pulse energy by an effective area \(A_\text{eff} = E_p/F_0\), which is \(\pi w_0^2/2\) for a Gaussian beam. Ablation thresholds from crater-size (Liu) fits, the usual method in ultrafast-ablation papers, are peak values too.</li>
+            <li><strong>Average fluence</strong> \(E_p/(\pi w_0^2)\): the energy divided by the area of the 1/e² circle. It is a common shortcut, but it equals \(F_0/2\), and only 86.5&nbsp;% of the energy actually falls inside that circle.</li>
+        </ul>
+        <p>Comparing an average fluence with a threshold quoted as a peak value understates your fluence by a factor of two. Your fluence-to-threshold ratio then looks half as large as it really is: an ablation process seems closer to threshold than it is, and an optic seems to have twice its real margin below the damage threshold. Published damage thresholds that used the average convention without saying so are a known source of this error. Before comparing a process window against literature or a vendor specification, check which convention each source uses.</p>
+
+        <h2>Threshold diameter</h2>
+        <p>Where \(F(r)\) exceeds a threshold \(F_\text{th}\), the material is modified or ablated. Setting \(F(r) = F_\text{th}\) gives</p>
+        <div class="formula">\[ D_\text{th} = w_0\sqrt{2\ln\!\left(\frac{F_0}{F_\text{th}}\right)}, \]</div>
+        <div class="formula">\[ \frac{E_\text{inside}}{E_p} = 1 - \frac{F_\text{th}}{F_0}. \]</div>
+        <p>The feature grows only slowly with fluence, because \(D_\text{th}^2\) is proportional to \(\ln(F_0/F_\text{th})\). Doubling the pulse energy at \(F_0/F_\text{th} = 5\) widens it by only about 20&nbsp;%. Fitting D² against ln E<sub>p</sub> is the Liu method for measuring \(w_0\) and \(F_\text{th}\), implemented in the <a href="/tools/ablation-depth/">ablation threshold &amp; depth</a> tool.</p>
+
+        <h2>Typical threshold fluences</h2>
+        <p>Ablation thresholds of three metals, measured with 10&nbsp;ps pulses at 1064&nbsp;nm as peak fluence from crater sizes, on sheet metal as received (Račiukaitis et al., 2009):</p>
+        <table>
+            <thead><tr><th>Material</th><th class="num">One pulse per spot (J/cm²)</th><th class="num">1000 pulses per spot (J/cm²)</th></tr></thead>
+            <tbody>
+                <tr><td>Stainless steel (AISI 304)</td><td class="num">0.5</td><td class="num">0.04</td></tr>
+                <tr><td>Aluminum</td><td class="num">0.85</td><td class="num">0.15</td></tr>
+                <tr><td>Copper</td><td class="num">1.73</td><td class="num">0.33</td></tr>
+            </tbody>
+        </table>
+        <p>Repeated pulses on the same spot lower the threshold (incubation), here by a factor of 5 to 13. Thresholds also depend on the surface finish, the wavelength, and the pulse duration, so treat these as starting points and measure your own material.</p>
+
+        <h2>Worked example</h2>
+        <p>A 20&nbsp;µJ, 10&nbsp;ns Gaussian pulse focused to a 30&nbsp;µm (1/e²) spot:</p>
+        <div class="formula">\[ F_0 = \frac{2 \times 20\ \mu\text{J}}{\pi\,(15\ \mu\text{m})^2} = 5.66\ \text{J/cm}^2, \]</div>
+        <div class="formula">\[ I_0 = \frac{0.9394\,F_0}{10\ \text{ns}} = 5.3\times10^{8}\ \text{W/cm}^2. \]</div>
+        <p>The average fluence \(E_p/(\pi w_0^2)\) is 2.83&nbsp;J/cm². With a 1&nbsp;J/cm² threshold, the modified diameter is 27.9&nbsp;µm, and 82&nbsp;% of the pulse energy lands inside it.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>The spot diameter is the 1/e² diameter at the work surface. Defocus increases it: see <a href="/tools/gaussian-beam/">Gaussian beam propagation</a>. For a Gaussian beam the 1/e² diameter equals the second-moment (D4σ) diameter of ISO&nbsp;11146-1. For a Gaussian spot measured as a FWHM diameter, multiply by 1.699 to get the 1/e² diameter.</li>
+            <li>Fluence is incident fluence. An opaque surface absorbs only the fraction 1 − R, where R is its reflectance. Computed from published optical constants, R for clean, polished metals at 1064&nbsp;nm runs from about 58&nbsp;% (chromium) and 63&nbsp;% (iron) through 78&nbsp;% (nickel) and 95&nbsp;% (aluminum) to 97–99.7&nbsp;% (copper, gold, silver). Roughness and contamination raise the absorption.</li>
+            <li>A real top-hat has soft edges, and a real Gaussian may have M² &gt; 1 or ellipticity. When accuracy matters, measure the beam widths (ISO&nbsp;11146-1) and, for shaped beams, the fluence distribution (ISO&nbsp;13694).</li>
+            <li>Pulses are separate in time. In average-power mode the calculator stops when the wings of neighboring pulses would add more than 1&nbsp;% to the peak irradiance: above τ·f<sub>rep</sub> ≈ 0.72 for Gaussian pulses and 0.53 for sech² (1 for rectangular).</li>
+            <li>At high irradiance, plasma shielding and nonlinear absorption change how much energy reaches the surface. Those effects are not modeled.</li>
+            <li>The threshold diameter applies to the pulse count the threshold was measured for. With overlapping pulses, incubation lowers the threshold, so enter \(F_\text{th}\) measured for the same number of pulses per spot (see <a href="/tools/ablation-depth/">ablation threshold &amp; depth</a>).</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>J. M. Liu, “Simple technique for measurements of pulsed Gaussian-beam spot sizes,” <em>Opt. Lett.</em> <strong>7</strong>, 196–198 (1982), <a href="https://doi.org/10.1364/OL.7.000196" target="_blank" rel="noopener">doi:10.1364/OL.7.000196</a> (the threshold diameter and the D² vs. ln E method).</li>
+            <li>ISO&nbsp;21254-1:2025, Lasers and laser-related equipment — Test methods for laser-induced damage threshold — Part 1: Definitions and general principles (damage thresholds as peak values, via the effective area; replaced the 2011 edition).</li>
+            <li>ISO&nbsp;11146-1:2021, Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios — Part 1: Stigmatic and simple astigmatic beams (measuring the spot diameter).</li>
+            <li>ISO&nbsp;13694:2026, Optics and photonics — Lasers and laser-related equipment — Test methods for laser beam irradiance (fluence) distribution, 4th ed., replacing ISO&nbsp;13694:2018 (measuring top-hat and other shaped profiles).</li>
+            <li>G. Račiukaitis, M. Brikas, P. Gečys, B. Voisiat, and M. Gedvilas, “Use of high repetition rate and high power lasers in microfabrication: How to keep the efficiency high?” <em>J. Laser Micro/Nanoeng.</em> <strong>4</strong>, 186–191 (2009), <a href="https://doi.org/10.2961/jlmn.2009.03.0008" target="_blank" rel="noopener">doi:10.2961/jlmn.2009.03.0008</a> (the threshold table; free to read).</li>
+            <li>P. B. Johnson and R. W. Christy, “Optical constants of the noble metals,” <em>Phys. Rev. B</em> <strong>6</strong>, 4370–4379 (1972), <a href="https://doi.org/10.1103/PhysRevB.6.4370" target="_blank" rel="noopener">doi:10.1103/PhysRevB.6.4370</a>; and “Optical constants of transition metals: Ti, V, Cr, Mn, Fe, Co, Ni, and Pd,” <em>Phys. Rev. B</em> <strong>9</strong>, 5056–5070 (1974), <a href="https://doi.org/10.1103/PhysRevB.9.5056" target="_blank" rel="noopener">doi:10.1103/PhysRevB.9.5056</a> (metal reflectance at 1064&nbsp;nm).</li>
+            <li>A. D. Rakić, A. B. Djurišić, J. M. Elazar, and M. L. Majewski, “Optical properties of metallic films for vertical-cavity optoelectronic devices,” <em>Appl. Opt.</em> <strong>37</strong>, 5271–5283 (1998), <a href="https://doi.org/10.1364/AO.37.005271" target="_blank" rel="noopener">doi:10.1364/AO.37.005271</a> (aluminum reflectance).</li>
+            <li>M. N. Polyanskiy, “Refractiveindex.info database of optical constants,” <em>Sci. Data</em> <strong>11</strong>, 94 (2024), <a href="https://doi.org/10.1038/s41597-023-02898-2" target="_blank" rel="noopener">doi:10.1038/s41597-023-02898-2</a> (the free database, at <a href="https://refractiveindex.info/" target="_blank" rel="noopener">refractiveindex.info</a>, that serves the optical constants above).</li>
+            <li>W. M. Steen and J. Mazumder, <em>Laser Material Processing</em>, 4th ed., Springer (2010), <a href="https://doi.org/10.1007/978-1-84996-062-5" target="_blank" rel="noopener">doi:10.1007/978-1-84996-062-5</a> (textbook background on laser–material interaction).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>R. Paschotta, “Fluence,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/j0u" target="_blank" rel="noopener">doi:10.61835/j0u</a> (what fluence is, and the peak fluence of a Gaussian beam).</li>
+            <li>R. Paschotta, “Laser-induced damage,” <em>RP Photonics Encyclopedia</em>, <a href="https://doi.org/10.61835/biw" target="_blank" rel="noopener">doi:10.61835/biw</a> (the ISO&nbsp;21254 effective area and the common factor-of-two error in damage thresholds).</li>
+            <li>Edmund Optics, “Understanding and Specifying LIDT of Laser Components,” application note, <a href="https://www.edmundoptics.com/knowledge-center/application-notes/lasers/understanding-and-specifying-lidt-of-laser-components/" target="_blank" rel="noopener">edmundoptics.com</a> (why a Gaussian beam’s peak is twice that of a flat-top beam, with worked examples).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="pulse-energy,focused-spot,ablation-depth,pulse-overlap,lidt,article:laser-ablation-process-windows"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, fromSI } = Calc;
+    const K_SHAPE = { rect: 1, gauss: 2 * Math.sqrt(Math.LN2 / Math.PI), sech2: Math.log(1 + Math.SQRT2) };
+    // normalized power envelope with FWHM 1, for the overlap of neighboring pulses
+    const SHAPE_FN = { gauss: x => Math.exp(-4 * Math.LN2 * x * x), sech2: x => Math.pow(Math.cosh(2 * K_SHAPE.sech2 * x), -2) };
+    const SHAPE_NAME = { rect: 'Rectangular', gauss: 'Gaussian', sech2: 'sech²' };
+    const badge = document.getElementById('th-badge');
+    const dLabel = document.getElementById('d-label');
+    const emodeSel = document.getElementById('emode'), profSel = document.getElementById('profile');
+    const plotBox = document.getElementById('prof-plot');
+    const fl = F => fmt.num(fromSI('fluence', 'J/cm²', F), 4) + ' J/cm²';
+    const irr = I => fmt.sci(I / 1e4, 3) + ' W/cm²';
+    const area = A => A < 1e-7 ? fmt.num(A * 1e12, 4) + ' µm²' : A < 1e-4 ? fmt.num(A * 1e6, 4) + ' mm²' : fmt.num(A * 1e4, 4) + ' cm²';
+    const setBadge = (text, cls) => { badge.textContent = text; badge.className = cls ? 'badge ' + cls : 'badge'; badge.hidden = !text; };
+
+    // Show the inputs for the energy mode and label the diameter for the profile.
+    // Also runs on each select change, so it still works while another input is invalid.
+    function syncUI() {
+        document.querySelectorAll('[data-show]').forEach(f => { f.hidden = f.dataset.show !== emodeSel.value; });
+        const gauss = profSel.value === 'gauss';
+        dLabel.firstChild.textContent = gauss ? 'Spot diameter (1/e²) ' : 'Top-hat diameter ';
+        dLabel.querySelector('.sym').textContent = gauss ? '2w₀' : 'd';
+    }
+
+    function need(x, name, label) {
+        if (!isFinite(x)) throw Calc.fail('Enter a value for ' + label + '.', name);
+        if (!(x > 0)) throw Calc.fail(label.charAt(0).toUpperCase() + label.slice(1) + ' must be greater than zero.', name);
+        return x;
+    }
+
+    // fraction of the peak that the wings of the neighboring pulses add, at duty cycle tau * f (0 for a rectangular pulse)
+    function wings(shape, duty) {
+        let sum = 0;
+        if (SHAPE_FN[shape]) for (let n = 1; n <= 20; n++) sum += 2 * SHAPE_FN[shape](n / duty);
+        return sum;
+    }
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            syncUI();
+            const gauss = v.profile === 'gauss';
+            const E = v.emode === 'e' ? need(v.ep, 'ep', 'pulse energy') : need(v.pavg, 'pavg', 'average power') / need(v.frep, 'frep', 'repetition rate');
+            if (v.emode === 'p') {
+                const duty = v.tau * v.frep;
+                if (duty >= 1) throw Calc.fail('Pulse duration × repetition rate is ' + fmt.num(duty, 3) + ' (≥ 1), so the pulses would overlap. Check the units.', 'tau');
+                const ov = wings(v.shape, duty);
+                if (ov > 0.01) throw Calc.fail('Pulse duration × repetition rate is ' + fmt.num(duty, 3) + ', so the wings of neighboring ' + SHAPE_NAME[v.shape] + ' pulses overlap and would add ' + fmt.num(ov * 100, 3) + ' % to the peak. This calculator assumes separate pulses. Check the units.', 'tau');
+            }
+            const w = v.d / 2;
+            const F0 = gauss ? 2 * E / (Math.PI * w * w) : E / (Math.PI * w * w);
+            const Ppk = K_SHAPE[v.shape] * E / v.tau;
+            const I0 = gauss ? 2 * Ppk / (Math.PI * w * w) : Ppk / (Math.PI * w * w);
+            const hasTh = isFinite(v.fth);
+            if (hasTh && !(v.fth > 0)) throw Calc.fail('Threshold fluence must be greater than zero.', 'fth');
+
+            let dth = null, eth = null, ratio = null;
+            if (hasTh) {
+                const r = F0 / v.fth;
+                ratio = fmt.num(r, 4) + ' ×';
+                if (r <= 1) { dth = 'below threshold'; eth = '0 %'; setBadge('Below threshold', 'badge-warn'); }
+                else {
+                    dth = gauss ? fmt.si(w * Math.sqrt(2 * Math.log(r)), 'm', 4) : fmt.si(v.d, 'm', 4);
+                    eth = gauss ? fmt.pct(1 - 1 / r, 4) : '100 %';
+                    setBadge('Above threshold', 'badge-ok');
+                }
+            } else setBadge('');
+
+            return {
+                f0: fl(F0),
+                favg: gauss ? fl(F0 / 2) : null,
+                i0: irr(I0),
+                ppk: fmt.si(Ppk, 'W', 4),
+                ep: fmt.si(E, 'J', 4),
+                aeff: area(E / F0),
+                enc: gauss ? fmt.pct(1 - Math.exp(-2), 4) : null,
+                ratio, dth, eth
+            };
+        },
+        onError() {
+            setBadge('');
+            // clear the stale chart, and stop plot.js's resize observer from redrawing it
+            plotBox.innerHTML = ''; clearTimeout(plotBox._plotT); plotBox._plot = null;
+        },
+        after(v) {
+            const gauss = v.profile === 'gauss';
+            const E = v.emode === 'e' ? v.ep : v.pavg / v.frep;
+            const w = v.d / 2;
+            const mm = v.d >= 1e-3, scale = mm ? 1e3 : 1e6, xu = mm ? 'mm' : 'µm';   // axis in mm for spots of 1 mm and up
+            const F0 = (gauss ? 2 : 1) * E / (Math.PI * w * w) / 1e4;   // J/cm²
+            const xs = Calc.math.linspace(-1, 1, 241).map(t => t * v.d);   // ±2w₀, where a Gaussian is down to 3×10⁻⁴ F₀; r = 0 exactly at the center
+            const ys = xs.map(r => gauss ? F0 * Math.exp(-2 * r * r / (w * w)) : (Math.abs(r) <= w ? F0 : 0));
+            const fth = isFinite(v.fth) ? v.fth / 1e4 : null;
+            // headroom keeps the line labels clear of the peak; a threshold up to 3F₀ stays in view
+            const ymax = 1.2 * Math.max(F0, fth && fth < 3 * F0 ? fth : 0);
+            const hl = [];
+            if (gauss) hl.push({ y: F0 / 2, label: fth && Math.abs(fth - F0 / 2) < 0.08 * ymax ? '' : 'average', color: 'var(--muted)' });
+            if (fth) hl.push({ y: fth, label: 'Fₜₕ', color: 'var(--c5)' });
+            const vl = [{ x: -w * scale, label: '', color: 'var(--border-strong)' }, { x: w * scale, label: gauss ? '1/e² radius' : 'edge', color: 'var(--border-strong)' }];
+            Plot.draw(plotBox, {
+                height: 260,
+                x: { label: 'Radial position r (' + xu + ')' },
+                y: { label: 'Fluence (J/cm²)', min: 0, max: ymax },
+                series: [{ type: 'line', x: xs.map(x => x * scale), y: ys, label: 'F(r)', color: 'var(--c1)', fill: true }],
+                hlines: hl, vlines: vl, includeLines: false,
+                hover: { format: (x, hits) => hits.length ? `r = ${fmt.num(hits[0].x, 4)} ${xu} · F = ${fmt.num(hits[0].y, 4)} J/cm²` : '' }
+            });
+        }
+    });
+    emodeSel.addEventListener('change', syncUI);
+    profSel.addEventListener('change', syncUI);
+    syncUI();
+});
+</script>
+</body>
+</html>

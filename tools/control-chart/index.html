@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control Chart Calculator: X-bar R, X-bar S &amp; I-MR Control Limits</title>
+<meta name="description" content="Paste data to get X-bar R, X-bar S, or I-MR control limits (UCL, LCL) with standard SPC constants, plotted charts, and Western Electric rule violations.">
+<link rel="canonical" href="https://cdfoley.com/tools/control-chart/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Control Chart Limits (X̄–R, X̄–S, I–MR)">
+<meta property="og:description" content="Paste data to get X-bar R, X-bar S, or I-MR control limits (UCL, LCL) with standard SPC constants, plotted charts, and Western Electric rule violations.">
+<meta property="og:url" content="https://cdfoley.com/tools/control-chart/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-control-chart.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Control Chart Calculator. Paste data to get X-bar R, X-bar S, or I-MR control limits (UCL, LCL) with standard SPC constants, plotted charts, and Western Electric rule violations.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>
+    .cc-sub { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 1.1rem 0 0.7rem; font-weight: 650; }
+    .cc-checks { display: grid; gap: 0.45rem; font-size: 0.9rem; color: var(--text-2); }
+    .cc-checks label { display: flex; gap: 0.55rem; align-items: baseline; cursor: pointer; }
+    .cc-checks input { accent-color: var(--accent); }
+    .cc-signals { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .cc-signals th, .cc-signals td { text-align: left; padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .cc-signals th { font-weight: 600; color: var(--text); background: var(--surface-2); }
+    .cc-signals td:first-child { font-weight: 600; color: var(--text); }
+    .cc-signals td.pts { font-family: var(--mono); font-size: 0.85rem; color: var(--danger); min-width: 5.5rem; }
+    .cc-ok { color: var(--ok); font-weight: 600; margin: 0; }
+    .cc-chart-title { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; font-weight: 650; }
+    /* rule numbers next to flagged points on the live charts (added after plot.js draws) */
+    .plot .cc-tag { fill: var(--c5); font-size: 11px; font-weight: 700; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+    .cc-plot-note { margin: 0.5rem 0 0; }
+    /* the zone bands on the live chart need a little more weight on a dark background */
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #loc-plot .area { opacity: 0.11 !important; } }
+    :root[data-theme="dark"] #loc-plot .area { opacity: 0.11 !important; }
+    /* run-rule zone diagrams: one small chart per rule, two per row on wide screens */
+    .cc-rules .cc-zgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.1rem 1.4rem; margin: 0; }
+    .cc-rules .cc-zcell { margin: 0; }
+    .cc-rules .cc-zcell p { font-size: 0.86rem; color: var(--text-2); margin: 0.35rem 0 0; line-height: 1.45; text-align: left; hyphens: manual; }
+    .cc-zfig { width: 100%; height: auto; display: block; font-family: var(--font); }
+    .cc-zfig .z2 { fill: var(--accent-soft); opacity: 0.55; }
+    .cc-zfig .z1 { fill: var(--accent-soft); }
+    .cc-zfig .lim { stroke: var(--c5); stroke-width: 1.4; stroke-dasharray: 5 4; }
+    .cc-zfig .cl { stroke: var(--text-2); stroke-width: 1.2; }
+    .cc-zfig .zl { fill: var(--muted); font-size: 12px; }
+    .cc-zfig .series { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+    .cc-zfig .pt { fill: var(--accent); stroke: var(--surface); stroke-width: 1.5; }
+    .cc-zfig .pt.hit { fill: var(--c5); }
+    .cc-zfig .ring { fill: none; stroke: var(--c5); stroke-width: 1.5; }
+    .cc-zfig .box { fill: none; stroke: var(--c2); stroke-width: 1.4; stroke-dasharray: 4 3; }
+</style>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Control Chart Limits",
+   "url": "https://cdfoley.com/tools/control-chart/",
+   "description": "Paste data to get X-bar R, X-bar S, or I-MR control limits (UCL, LCL) with standard SPC constants, plotted charts, and Western Electric rule violations.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "control chart spc xbar r s individuals moving range ucl lcl western electric nelson run rules zone trend arl average run length phase i phase ii shewhart xmr limits calculator x-bar i-mr",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Quality & Manufacturing",
+     "item": "https://cdfoley.com/tools/#quality"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Control Chart Limits",
+     "item": "https://cdfoley.com/tools/control-chart/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#quality">Quality &amp; Manufacturing</a></li><li aria-current="page">Control Chart Limits</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Control Chart Calculator</h1>
+        <p class="lede">A control chart answers one question: is a process stable, or has something changed? Paste measurements in time order to get the control limits, the band that routine variation stays inside, for an X̄–R, X̄–S, or individuals (I–MR) chart. The tool plots both charts and flags the points and patterns that signal a change, using the Western Electric run rules and a trend test.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Control chart</dt><dd>A plot of a measured quantity in time order, with a center line and an upper and a lower control limit. Points inside the limits with no unusual pattern are treated as routine variation.</dd>
+            <dt>Subgroup</dt><dd>A few measurements taken together under the same conditions, such as five consecutive parts every hour. The chart plots one average and one range (or standard deviation) per subgroup; 4 or 5 parts per subgroup is typical.</dd>
+            <dt>Control limits (UCL, LCL)</dt><dd>The upper and lower lines, set three standard deviations of the plotted value above and below the center line. They come from the process’s own variation, not from the drawing or the specification.</dd>
+            <dt>Range and moving range</dt><dd>Simple measures of spread. A range is the largest minus the smallest value in a subgroup; a moving range is the difference between two consecutive single values. Their averages (R̄ and MR̄) set how far apart the limits are.</dd>
+            <dt>Common and special causes</dt><dd>Common causes are the many small sources of variation that are always present. A special cause is something specific that changed, such as a worn tool, a new material lot, or a focus shift. Finding and removing special causes is what the chart is for.</dd>
+            <dt>Signal and run rule</dt><dd>A signal is a point beyond a control limit or a pattern that is unlikely by chance, such as eight points in a row above the center line (a run rule). It says “look for a cause”; it does not mean the parts are out of specification.</dd>
+            <dt>False alarm and average run length</dt><dd>A false alarm is a signal from a process that has not changed. The average run length (ARL) is the average number of points plotted before a signal: about 370 for a stable process when only the 3σ limits are used.</dd>
+            <dt>Phase I and Phase II</dt><dd>Phase I computes trial limits from past data and checks whether the process was stable. Phase II uses limits fixed from a stable period, or a known mean and σ, to judge new data.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="type">Chart type</label>
+                        <select class="input" id="type" name="type">
+                            <option value="xr" selected>X̄–R (mean and range)</option>
+                            <option value="xs">X̄–S (mean and std. dev.)</option>
+                            <option value="imr">I–MR (individuals)</option>
+                        </select>
+                        <p class="hint">X̄–R for subgroups of up to about 10 values, X̄–S for larger ones, and I–MR when each measurement stands alone (one value per batch, shift, or day).</p>
+                    </div>
+                    <div class="field" id="n-field">
+                        <label for="n">Subgroup size <span class="sym">n</span></label>
+                        <div class="input-unit"><input id="n" name="n" value="5" inputmode="numeric" data-text><span class="unit">2–25</span></div>
+                        <p class="hint">Measurements per subgroup, typically 4 or 5. Every subgroup must have the same size.</p>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="data">Measurements, in time order</label>
+                    <textarea class="input" id="data" name="data" rows="8" spellcheck="false">12.04 11.56 11.35 11.73 12.02
+11.99 12.32 11.87 11.96 11.96
+12.58 12.06 12.40 12.43 12.51
+11.92 12.47 11.57 12.42 12.20
+12.14 12.21 11.71 12.10 12.35
+11.93 12.36 12.26 11.96 12.02
+12.03 11.72 12.70 11.73 12.52
+11.92 11.98 12.24 11.82 11.97
+12.30 11.46 11.99 12.16 11.64
+11.86 12.38 12.53 11.85 12.22
+12.22 12.27 11.59 11.25 11.95
+12.24 12.18 12.19 11.49 11.51
+11.99 12.02 12.58 11.69 12.26
+11.81 12.60 11.74 12.31 12.24
+11.95 12.40 12.13 11.84 12.15
+11.92 12.03 12.04 12.19 11.85
+12.26 11.69 12.02 12.12 11.70
+12.14 12.54 11.91 12.80 12.09
+12.10 12.16 11.89 12.21 12.44
+12.64 12.24 12.88 12.46 12.11
+12.60 12.37 11.72 12.45 12.48
+12.85 12.32 12.10 12.27 11.68
+12.36 12.49 12.45 12.38 12.78
+12.82 12.54 12.03 12.23 12.62
+12.05 12.20 12.20 12.62 12.17</textarea>
+                    <p class="hint">Separate values with spaces, tabs, commas, or new lines, and use a period as the decimal mark. Consecutive blocks of n values form the subgroups, so a missing value would shift every later subgroup. Use at least 20–25 subgroups (or 50–100 single values). The example is an ablation depth in µm, 25 subgroups of 5, with a small upward shift starting around subgroup 18.</p>
+                </div>
+
+                <div class="cc-sub">Control limits</div>
+                <div class="field">
+                    <div class="seg" role="radiogroup" aria-label="Control limit basis">
+                        <input type="radio" id="lim-data" name="limits" value="data" checked><label for="lim-data">Estimate from data (Phase I)</label>
+                        <input type="radio" id="lim-std" name="limits" value="std"><label for="lim-std">Standard given (Phase II)</label>
+                    </div>
+                    <p class="hint">Phase I estimates the center line and σ from these data: use it first, on a run of past data. Phase II judges new data against a known mean and σ, usually from an earlier stable Phase I study.</p>
+                </div>
+                <div class="field-row" id="std-fields" hidden>
+                    <div class="field">
+                        <label for="mu0">Process mean <span class="sym">μ₀</span></label>
+                        <div class="input-unit"><input id="mu0" name="mu0" value="12.0" inputmode="decimal" data-text><span class="unit">units</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="s0">Process σ <span class="sym">σ₀</span></label>
+                        <div class="input-unit"><input id="s0" name="s0" value="0.30" inputmode="decimal" data-text><span class="unit">units</span></div>
+                        <p class="hint">The short-term standard deviation of single measurements, not of subgroup averages: for example R̄/d₂ from a stable Phase I study.</p>
+                    </div>
+                </div>
+
+                <div class="cc-sub">Run rules</div>
+                <div class="cc-checks">
+                    <label><input type="checkbox" name="zones" checked> Western Electric zone rules 2–4</label>
+                    <label><input type="checkbox" name="trend" checked> Trend: 6 points steadily rising or falling</label>
+                </div>
+                <p class="hint">Extra rules catch small shifts sooner but add false alarms. With known limits, a stable process gives a false alarm every 370 points on average with rule 1 alone, every 92 with rules 1–4, and every 78 with the trend rule too.</p>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" id="results" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="cc-badge" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Out-of-control signals</span><output class="result-value" data-out="signals">—</output>
+                        <span class="result-note">A signal means “look for a special cause,” not “adjust the process.” In Phase I, find the cause, delete those subgroups from the data, and recalculate.</span></div>
+                    <div class="result"><span class="result-label"><span class="lname">X̄</span> chart center line</span><output class="result-value" data-out="lcl0">—</output></div>
+                    <div class="result"><span class="result-label"><span class="lname">X̄</span> chart UCL · LCL</span><output class="result-value" data-out="llim">—</output></div>
+                    <div class="result"><span class="result-label"><span class="dname">R</span> chart center line</span><output class="result-value" data-out="dcl0">—</output></div>
+                    <div class="result"><span class="result-label"><span class="dname">R</span> chart UCL · LCL</span><output class="result-value" data-out="dlim">—</output></div>
+                    <div class="result"><span class="result-label" id="cc-sigma-label">Within-subgroup σ estimate</span><output class="result-value" data-out="sigma">—</output>
+                        <span class="result-note" data-out="sigma-note">—</span></div>
+                    <div class="result"><span class="result-label" id="cc-count-label">Subgroups · values used</span><output class="result-value" data-out="count">—</output>
+                        <span class="result-note" data-out="count-note">—</span></div>
+                    <div class="result"><span class="result-label">Constants</span><output class="result-value" data-out="consts">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="loc-h">
+        <div class="panel-head"><h2 id="loc-h"><span class="lname">X̄</span> chart</h2></div>
+        <div class="panel-body"><div id="loc-plot"></div>
+            <p class="hint cc-plot-note">Shaded bands: within 1σ and 2σ of the center line, the zones the run rules use (σ of the plotted value: σ/√n for subgroup means). Red points break a rule; where there is room, the label beside each gives the rule number (T = trend).</p></div>
+    </section>
+    <section class="panel" style="margin-top:1.2rem" aria-labelledby="disp-h">
+        <div class="panel-head"><h2 id="disp-h"><span class="dname">R</span> chart</h2></div>
+        <div class="panel-body"><div id="disp-plot"></div></div>
+    </section>
+    <section class="panel" style="margin-top:1.2rem" aria-labelledby="sig-h">
+        <div class="panel-head"><h2 id="sig-h">Rule violations</h2></div>
+        <div class="panel-body" id="signals-list"></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How the control limits are calculated</h2>
+        <p>A Shewhart chart puts its limits three standard deviations of the plotted statistic (three standard errors) either side of the center line. The standard deviation is estimated from variation <em>within</em> subgroups, so that shifts <em>between</em> subgroups show up as signals instead of widening the limits. From \(k\) subgroups of size \(n\), the tool takes the grand mean \(\bar{\bar x}\) (the mean of the subgroup means), the average range \(\bar R\) (the mean of the subgroup ranges, largest minus smallest value), and the average standard deviation \(\bar s\) (the mean of the subgroup standard deviations, each with the \(n-1\) divisor). From \(N\) individual values it takes their mean \(\bar x\) and the average \(\overline{MR}\) of the \(N-1\) moving ranges \(|x_i - x_{i-1}|\). The limits are:</p>
+        <div class="formula">\[ \begin{aligned} \bar X\text{–}R:\quad \mathrm{UCL}, \mathrm{LCL} &= \bar{\bar x} \pm A_2 \bar R \\ \mathrm{UCL}_R &= D_4 \bar R \\ \mathrm{LCL}_R &= D_3 \bar R \end{aligned} \]</div>
+        <div class="formula">\[ \begin{aligned} \bar X\text{–}S:\quad \mathrm{UCL}, \mathrm{LCL} &= \bar{\bar x} \pm A_3 \bar s \\ \mathrm{UCL}_S &= B_4 \bar s \\ \mathrm{LCL}_S &= B_3 \bar s \end{aligned} \]</div>
+        <div class="formula">\[ \begin{aligned} \text{I–MR}:\quad \mathrm{UCL}, \mathrm{LCL} &= \bar x \pm 3\frac{\overline{MR}}{1.128} \\ &= \bar x \pm 2.660\,\overline{MR} \\ \mathrm{UCL}_{MR} &= 3.267\,\overline{MR} \end{aligned} \]</div>
+        <p>The constants come from the distribution of the range and the standard deviation of \(n\) independent normal values. The mean range is \(d_2\sigma\), with \(d_2 = \int_{-\infty}^{\infty} \bigl[1 - \Phi(x)^n - \bigl(1-\Phi(x)\bigr)^n\bigr]\,dx\) for the standard normal distribution function \(\Phi\); the standard deviation of the range is \(d_3\sigma\); and the mean of \(s\) is \(c_4\sigma\), with \(c_4 = \sqrt{2/(n-1)}\,\Gamma(n/2)/\Gamma\bigl((n-1)/2\bigr)\). So \(\hat\sigma = \bar R/d_2 = \bar s/c_4\), \(A_2 = 3/(d_2\sqrt n)\), \(A_3 = 3/(c_4\sqrt n)\), \(D_3, D_4 = 1 \mp 3d_3/d_2\), and \(B_3, B_4 = 1 \mp 3\sqrt{1-c_4^2}/c_4\), with negative values set to zero. With a <strong>standard given</strong> (Phase II), the X̄ limits are \(\mu_0 \pm 3\sigma_0/\sqrt n\), the range chart runs from \(D_1\sigma_0\) to \(D_2\sigma_0\) around \(d_2\sigma_0\), with \(D_1, D_2 = d_2 \mp 3d_3\), and the S chart runs from \(B_5\sigma_0\) to \(B_6\sigma_0\) around \(c_4\sigma_0\), with \(B_5, B_6 = c_4 \mp 3\sqrt{1-c_4^2}\). A moving range is the range of two values, so the individuals chart uses the \(n = 2\) factors: \(3/d_2 = 3/1.128 = 2.660\), \(D_4 = 3.267\), and, with a standard given, limits \(\mu_0 \pm 3\sigma_0\) and \(D_2\sigma_0 = 3.686\,\sigma_0\).</p>
+        <p>Factors for common subgroup sizes, for limits estimated from the data (Phase I):</p>
+        <table>
+            <thead><tr><th class="num">n</th><th class="num">A₂</th><th class="num">D₃</th><th class="num">D₄</th><th class="num">d₂</th><th class="num">A₃</th><th class="num">B₃</th><th class="num">B₄</th><th class="num">c₄</th></tr></thead>
+            <tbody>
+                <tr><td class="num">2</td><td class="num">1.880</td><td class="num">0</td><td class="num">3.267</td><td class="num">1.128</td><td class="num">2.659</td><td class="num">0</td><td class="num">3.267</td><td class="num">0.7979</td></tr>
+                <tr><td class="num">3</td><td class="num">1.023</td><td class="num">0</td><td class="num">2.574</td><td class="num">1.693</td><td class="num">1.954</td><td class="num">0</td><td class="num">2.568</td><td class="num">0.8862</td></tr>
+                <tr><td class="num">4</td><td class="num">0.729</td><td class="num">0</td><td class="num">2.282</td><td class="num">2.059</td><td class="num">1.628</td><td class="num">0</td><td class="num">2.266</td><td class="num">0.9213</td></tr>
+                <tr><td class="num">5</td><td class="num">0.577</td><td class="num">0</td><td class="num">2.114</td><td class="num">2.326</td><td class="num">1.427</td><td class="num">0</td><td class="num">2.089</td><td class="num">0.9400</td></tr>
+                <tr><td class="num">6</td><td class="num">0.483</td><td class="num">0</td><td class="num">2.004</td><td class="num">2.534</td><td class="num">1.287</td><td class="num">0.030</td><td class="num">1.970</td><td class="num">0.9515</td></tr>
+                <tr><td class="num">8</td><td class="num">0.373</td><td class="num">0.136</td><td class="num">1.864</td><td class="num">2.847</td><td class="num">1.099</td><td class="num">0.185</td><td class="num">1.815</td><td class="num">0.9650</td></tr>
+                <tr><td class="num">10</td><td class="num">0.308</td><td class="num">0.223</td><td class="num">1.777</td><td class="num">3.078</td><td class="num">0.975</td><td class="num">0.284</td><td class="num">1.716</td><td class="num">0.9727</td></tr>
+            </tbody>
+        </table>
+        <p>And for a standard given (Phase II), with d₃:</p>
+        <table>
+            <thead><tr><th class="num">n</th><th class="num">d₃</th><th class="num">D₁</th><th class="num">D₂</th><th class="num">B₅</th><th class="num">B₆</th></tr></thead>
+            <tbody>
+                <tr><td class="num">2</td><td class="num">0.853</td><td class="num">0</td><td class="num">3.686</td><td class="num">0</td><td class="num">2.606</td></tr>
+                <tr><td class="num">3</td><td class="num">0.888</td><td class="num">0</td><td class="num">4.358</td><td class="num">0</td><td class="num">2.276</td></tr>
+                <tr><td class="num">4</td><td class="num">0.880</td><td class="num">0</td><td class="num">4.698</td><td class="num">0</td><td class="num">2.088</td></tr>
+                <tr><td class="num">5</td><td class="num">0.864</td><td class="num">0</td><td class="num">4.918</td><td class="num">0</td><td class="num">1.964</td></tr>
+                <tr><td class="num">6</td><td class="num">0.848</td><td class="num">0</td><td class="num">5.079</td><td class="num">0.029</td><td class="num">1.874</td></tr>
+                <tr><td class="num">8</td><td class="num">0.820</td><td class="num">0.388</td><td class="num">5.307</td><td class="num">0.179</td><td class="num">1.751</td></tr>
+                <tr><td class="num">10</td><td class="num">0.797</td><td class="num">0.686</td><td class="num">5.469</td><td class="num">0.276</td><td class="num">1.669</td></tr>
+            </tbody>
+        </table>
+        <p>The calculator holds the factors for n = 2–25. A₂, A₃, B₃, B₄, D₃, D₄, d₂, d₃, and c₄ are the published values (Montgomery, Appendix VI). Computed from the integrals above, every one agrees to within 0.001, but eight differ in the last digit, because the classic tables were partly computed from rounded values: D₄ for n = 3, for example, is printed as 2.574 against an exact 2.5746, and the NIST handbook prints 2.575. D₁, D₂, B₅, and B₆ are computed from the integrals and shown to three decimals.</p>
+        <p>The average moving range is the standard estimate of σ for individual values. When a few very large moving ranges inflate it, the median moving range \(\widetilde{MR}\) is a more robust alternative, with limits \(\bar x \pm 3.145\,\widetilde{MR}\). Do not use the standard deviation of all the values: any shift or drift in the data inflates it and widens the limits, which hides the very signals the chart looks for (Wheeler, “Individual charts done right and wrong”).</p>
+
+        <h2>Run rules</h2>
+        <p>Points beyond the control limits are not the only sign of a special cause. The zone rules of the Western Electric handbook catch smaller sustained shifts sooner. They divide each side of the center line into zones at 1σ and 2σ, where σ is the standard deviation of one plotted point (σ/√n for subgroup means). The tool checks these rules:</p>
+        <figure class="cc-rules">
+            <div class="cc-zgrid">
+                <div class="cc-zcell"><svg class="cc-zfig" viewBox="0 0 300 140" role="img" aria-label="Rule 1 example: seven points; the fifth lies above the upper 3σ control limit and is flagged."><rect class="z2" x="8" y="35.6" width="240" height="68.8"/><rect class="z1" x="8" y="52.8" width="240" height="34.4"/><line class="lim" x1="8" x2="248" y1="18.4" y2="18.4"/><line class="cl" x1="8" x2="248" y1="70" y2="70"/><line class="lim" x1="8" x2="248" y1="121.6" y2="121.6"/><text class="zl" x="254" y="22.6">+3σ</text><text class="zl" x="254" y="39.8">+2σ</text><text class="zl" x="254" y="57">+1σ</text><text class="zl" x="254" y="74.2">CL</text><text class="zl" x="254" y="91.4">−1σ</text><text class="zl" x="254" y="108.6">−2σ</text><text class="zl" x="254" y="125.8">−3σ</text><path class="series" d="M22,63.1L57.3,82L92.7,54.5L128,75.2L163.3,12.4L198.7,59.7L234,78.6"/><circle class="pt" cx="22" cy="63.1" r="3.6"/><circle class="pt" cx="57.3" cy="82" r="3.6"/><circle class="pt" cx="92.7" cy="54.5" r="3.6"/><circle class="pt" cx="128" cy="75.2" r="3.6"/><circle class="pt hit" cx="163.3" cy="12.4" r="3.6"/><circle class="pt" cx="198.7" cy="59.7" r="3.6"/><circle class="pt" cx="234" cy="78.6" r="3.6"/><circle class="ring" cx="163.3" cy="12.4" r="7.5"/></svg>
+                    <p><strong>Rule 1:</strong> one point beyond a 3σ control limit.</p></div>
+                <div class="cc-zcell"><svg class="cc-zfig" viewBox="0 0 300 140" role="img" aria-label="Rule 2 example: seven points; the third and fifth lie above +2σ with the fourth between them, so the fifth completes two of three beyond 2σ on the same side and is flagged."><rect class="z2" x="8" y="35.6" width="240" height="68.8"/><rect class="z1" x="8" y="52.8" width="240" height="34.4"/><line class="lim" x1="8" x2="248" y1="18.4" y2="18.4"/><line class="cl" x1="8" x2="248" y1="70" y2="70"/><line class="lim" x1="8" x2="248" y1="121.6" y2="121.6"/><text class="zl" x="254" y="22.6">+3σ</text><text class="zl" x="254" y="39.8">+2σ</text><text class="zl" x="254" y="57">+1σ</text><text class="zl" x="254" y="74.2">CL</text><text class="zl" x="254" y="91.4">−1σ</text><text class="zl" x="254" y="108.6">−2σ</text><text class="zl" x="254" y="125.8">−3σ</text><rect class="box" x="84.7" y="21.9" width="86.7" height="35.2" rx="5"/><path class="series" d="M22,64.8L57.3,80.3L92.7,30.4L128,51.1L163.3,27.9L198.7,63.1L234,75.2"/><circle class="pt" cx="22" cy="64.8" r="3.6"/><circle class="pt" cx="57.3" cy="80.3" r="3.6"/><circle class="pt hit" cx="92.7" cy="30.4" r="3.6"/><circle class="pt" cx="128" cy="51.1" r="3.6"/><circle class="pt hit" cx="163.3" cy="27.9" r="3.6"/><circle class="pt" cx="198.7" cy="63.1" r="3.6"/><circle class="pt" cx="234" cy="75.2" r="3.6"/><circle class="ring" cx="163.3" cy="27.9" r="7.5"/></svg>
+                    <p><strong>Rule 2:</strong> two of three consecutive points beyond 2σ on the same side. The third point can be anywhere.</p></div>
+                <div class="cc-zcell"><svg class="cc-zfig" viewBox="0 0 300 140" role="img" aria-label="Rule 3 example: seven points; four of points two to six lie above +1σ while the fourth dips below it, so the sixth completes four of five beyond 1σ on the same side and is flagged."><rect class="z2" x="8" y="35.6" width="240" height="68.8"/><rect class="z1" x="8" y="52.8" width="240" height="34.4"/><line class="lim" x1="8" x2="248" y1="18.4" y2="18.4"/><line class="cl" x1="8" x2="248" y1="70" y2="70"/><line class="lim" x1="8" x2="248" y1="121.6" y2="121.6"/><text class="zl" x="254" y="22.6">+3σ</text><text class="zl" x="254" y="39.8">+2σ</text><text class="zl" x="254" y="57">+1σ</text><text class="zl" x="254" y="74.2">CL</text><text class="zl" x="254" y="91.4">−1σ</text><text class="zl" x="254" y="108.6">−2σ</text><text class="zl" x="254" y="125.8">−3σ</text><rect class="box" x="49.3" y="33.9" width="157.3" height="32.6" rx="5"/><path class="series" d="M22,76.9L57.3,46.8L92.7,42.5L128,60.5L163.3,48.5L198.7,39.9L234,73.4"/><circle class="pt" cx="22" cy="76.9" r="3.6"/><circle class="pt hit" cx="57.3" cy="46.8" r="3.6"/><circle class="pt hit" cx="92.7" cy="42.5" r="3.6"/><circle class="pt" cx="128" cy="60.5" r="3.6"/><circle class="pt hit" cx="163.3" cy="48.5" r="3.6"/><circle class="pt hit" cx="198.7" cy="39.9" r="3.6"/><circle class="pt" cx="234" cy="73.4" r="3.6"/><circle class="ring" cx="198.7" cy="39.9" r="7.5"/></svg>
+                    <p><strong>Rule 3:</strong> four of five consecutive points beyond 1σ on the same side.</p></div>
+                <div class="cc-zcell"><svg class="cc-zfig" viewBox="0 0 300 140" role="img" aria-label="Rule 4 example: ten points; points two to nine all lie above the center line, so the ninth completes eight in a row on one side and is flagged."><rect class="z2" x="8" y="35.6" width="240" height="68.8"/><rect class="z1" x="8" y="52.8" width="240" height="34.4"/><line class="lim" x1="8" x2="248" y1="18.4" y2="18.4"/><line class="cl" x1="8" x2="248" y1="70" y2="70"/><line class="lim" x1="8" x2="248" y1="121.6" y2="121.6"/><text class="zl" x="254" y="22.6">+3σ</text><text class="zl" x="254" y="39.8">+2σ</text><text class="zl" x="254" y="57">+1σ</text><text class="zl" x="254" y="74.2">CL</text><text class="zl" x="254" y="91.4">−1σ</text><text class="zl" x="254" y="108.6">−2σ</text><text class="zl" x="254" y="125.8">−3σ</text><rect class="box" x="37.6" y="48.5" width="180.9" height="23.2" rx="5"/><path class="series" d="M22,80.3L45.6,62.3L69.1,54.5L92.7,65.7L116.2,58L139.8,64L163.3,56.2L186.9,61.4L210.4,64.8L234,76.9"/><circle class="pt" cx="22" cy="80.3" r="3.6"/><circle class="pt hit" cx="45.6" cy="62.3" r="3.6"/><circle class="pt hit" cx="69.1" cy="54.5" r="3.6"/><circle class="pt hit" cx="92.7" cy="65.7" r="3.6"/><circle class="pt hit" cx="116.2" cy="58" r="3.6"/><circle class="pt hit" cx="139.8" cy="64" r="3.6"/><circle class="pt hit" cx="163.3" cy="56.2" r="3.6"/><circle class="pt hit" cx="186.9" cy="61.4" r="3.6"/><circle class="pt hit" cx="210.4" cy="64.8" r="3.6"/><circle class="pt" cx="234" cy="76.9" r="3.6"/><circle class="ring" cx="210.4" cy="64.8" r="7.5"/></svg>
+                    <p><strong>Rule 4:</strong> eight consecutive points on the same side of the center line.</p></div>
+                <div class="cc-zcell"><svg class="cc-zfig" viewBox="0 0 300 140" role="img" aria-label="Trend example: seven points; points one to six each rise above the one before, so the sixth completes six points steadily increasing and is flagged."><rect class="z2" x="8" y="35.6" width="240" height="68.8"/><rect class="z1" x="8" y="52.8" width="240" height="34.4"/><line class="lim" x1="8" x2="248" y1="18.4" y2="18.4"/><line class="cl" x1="8" x2="248" y1="70" y2="70"/><line class="lim" x1="8" x2="248" y1="121.6" y2="121.6"/><text class="zl" x="254" y="22.6">+3σ</text><text class="zl" x="254" y="39.8">+2σ</text><text class="zl" x="254" y="57">+1σ</text><text class="zl" x="254" y="74.2">CL</text><text class="zl" x="254" y="91.4">−1σ</text><text class="zl" x="254" y="108.6">−2σ</text><text class="zl" x="254" y="125.8">−3σ</text><rect class="box" x="14" y="41.6" width="192.7" height="60.2" rx="5"/><path class="series" d="M22,95.8L57.3,87.2L92.7,77.7L128,67.4L163.3,58L198.7,47.6L234,61.4"/><circle class="pt hit" cx="22" cy="95.8" r="3.6"/><circle class="pt hit" cx="57.3" cy="87.2" r="3.6"/><circle class="pt hit" cx="92.7" cy="77.7" r="3.6"/><circle class="pt hit" cx="128" cy="67.4" r="3.6"/><circle class="pt hit" cx="163.3" cy="58" r="3.6"/><circle class="pt hit" cx="198.7" cy="47.6" r="3.6"/><circle class="pt" cx="234" cy="61.4" r="3.6"/><circle class="ring" cx="198.7" cy="47.6" r="7.5"/></svg>
+                    <p><strong>Trend:</strong> six consecutive points, each higher than the one before (or each lower).</p></div>
+            </div>
+            <figcaption>Each rule drawn on its zones: shaded within 1σ and 2σ of the center line (CL), dashed at the 3σ control limits. Red points form the pattern, the dashed box is the window the rule examines, and the ringed point completes the pattern. That point is the one the tool flags.</figcaption>
+        </figure>
+        <p>These are the Western Electric (1956) versions of rules 1–4, which count the points on each side of the center line separately, plus the six-point trend test from Nelson’s (1984) list of eight tests. A point beyond 3σ also counts as beyond 2σ and beyond 1σ, and a point exactly on the center line breaks a run. Nelson’s run test uses nine points in a row rather than eight, which raises the in-control ARL with rule 1 from 153 to 217 points. His list also flags 14 points in a row alternating up and down, 15 in a row within 1σ (stratification), and 8 in a row beyond 1σ on either side (a mixture), which the tool does not check.</p>
+        <p>The tool applies the selected rules to the X̄ or individuals chart, and only rule 1 to the range, S, and moving-range charts. Ranges and standard deviations of small subgroups have skewed distributions that the symmetric zones do not fit, and consecutive moving ranges share a value, so they are not independent: Wheeler and Stauffer advise against rules 2–4 on a moving-range chart.</p>
+
+        <h3>False alarms and how fast a shift is caught</h3>
+        <p>Every rule added makes the chart react sooner to a small shift, and more likely to signal when nothing has changed. The average run length (ARL), the average number of points plotted before the first signal, measures both. For normal data and known limits, the ARL of a stable process and after a step shift of the mean by 0.5σ, 1σ, or 2σ:</p>
+        <table>
+            <thead><tr><th>Rules</th><th class="num">Stable</th><th class="num">0.5σ</th><th class="num">1σ</th><th class="num">2σ</th></tr></thead>
+            <tbody>
+                <tr><td>1 only</td><td class="num">370</td><td class="num">155</td><td class="num">43.9</td><td class="num">6.30</td></tr>
+                <tr><td>1 and 4</td><td class="num">153</td><td class="num">44.3</td><td class="num">14.6</td><td class="num">4.89</td></tr>
+                <tr><td>1–4</td><td class="num">91.8</td><td class="num">27.3</td><td class="num">9.22</td><td class="num">3.13</td></tr>
+                <tr><td>1–4 and trend</td><td class="num">77.5</td><td class="num">26.3</td><td class="num">9.18</td><td class="num">3.13</td></tr>
+            </tbody>
+        </table>
+        <p>The shifts are in σ of one plotted point: on an X̄ chart of subgroups of 5, a 1σ shift is a change of 0.45 process σ. The first three rows are exact, by the Markov-chain method of Champ and Woodall (1987), who give 91.75 for rules 1–4; the trend row is simulated, to within ±0.1.</p>
+        <p>The range, S, and moving-range charts add false alarms of their own, because these statistics have long upper tails: with known σ, a point crosses the UCL about once every 220 subgroups on an R chart with n = 5, and once every 110 points on a moving-range chart. In Phase I, where the limits come from the same data, what matters is the chance of at least one false signal in the whole data set. With every rule on, a perfectly stable set of 25 subgroups of 5 shows at least one signal about one time in four (27&nbsp;% in a simulation that runs stable normal data through this tool), and a stable 100-point individuals series usually does (83&nbsp;%). Investigate signals; do not adjust the process for every one.</p>
+        <p>The trend rule earns its place least. Davis and Woodall (1988) found that it is of virtually no help in detecting a drift of the mean once the other run rules are in use, and Wheeler and Stauffer (2017) advise against it. In the table it adds about 18&nbsp;% more false alarms for no real gain, and for a drift of 0.1σ per point it shortens the ARL only from 12.1 to 12.0 points. Clear its box unless a trend is the failure you are watching for.</p>
+
+        <h2>Worked example</h2>
+        <p>The default data are 25 subgroups of 5 ablation-depth measurements. The grand mean is 12.138&nbsp;µm and \(\bar R = 0.7032\)&nbsp;µm, so the X̄ limits are \(12.138 \pm 0.577 \times 0.7032 = 11.732\) to \(12.544\)&nbsp;µm. The R-chart UCL is \(2.114 \times 0.7032 = 1.487\)&nbsp;µm, and the within-subgroup σ is \(0.7032/2.326 = 0.302\)&nbsp;µm.</p>
+        <p>No point crosses a control limit, but the zone rules catch four low means out of five (subgroups 8–12, rule 3). Late in the run they catch the upward shift: rule 2 at subgroup 24, rule 3 at 24, and rule 4 at 25. The realized shift was about 0.3&nbsp;µm, roughly 1 process σ. Because the Phase I grand mean includes the shifted subgroups, those subgroups sit only about 1.5σ of X̄ above the center line, and rule 1 alone would have missed the shift. In Phase I, find the cause, remove the affected subgroups, and recalculate the limits before using them for monitoring.</p>
+        <p>With a standard given instead (Phase II, μ₀ = 12.0&nbsp;µm and σ₀ = 0.30&nbsp;µm), the X̄ limits are \(12.0 \pm 3 \times 0.30/\sqrt 5\), 11.598 to 12.402&nbsp;µm, and the shift is unmistakable: rule 1 flags subgroups 20, 23, and 24, and the zone rules flag every subgroup from 20 to 25. The R chart runs from 0 to \(D_2\sigma_0 = 4.918 \times 0.30 = 1.475\)&nbsp;µm around \(d_2\sigma_0 = 0.698\)&nbsp;µm.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Rational subgroups.</strong> Measurements within a subgroup should be made close together under the same conditions, so within-subgroup variation reflects only common causes. Mixing machines, heads, or material lots within a subgroup inflates R̄, widens the limits, and hides real shifts.</li>
+            <li><strong>Equal subgroup sizes.</strong> Every subgroup must hold n values. The tool ignores an incomplete last subgroup; data with subgroups of different sizes need limits that change from subgroup to subgroup, which the tool does not compute.</li>
+            <li><strong>Independence.</strong> Strongly autocorrelated data, such as slow thermal drift or high-rate sensor streams, produce too many false alarms. Subsample the data, or chart the residuals of a time-series model (Montgomery, Section 10.4).</li>
+            <li><strong>Approximate normality.</strong> X̄ charts are robust to non-normal data because subgroup means are close to normal. An individuals chart of skewed data gives more false alarms on the long-tail side: for a chi-square distribution with 4 degrees of freedom, 1.4&nbsp;% of points fall above the upper 3σ limit, an ARL of about 71 instead of 370. Wheeler found that 3σ limits still cover more than 98&nbsp;% of every mound-shaped distribution he examined, so the chart still works, but check a histogram before reading much into points just beyond the limit on the long tail.</li>
+            <li><strong>Enough data.</strong> Limits from fewer than about 20–25 subgroups (or 50–100 individual values) are uncertain: treat them as trial limits and revise them as data accumulate. Even 25 subgroups of 5 leave the limits uncertain. In a simulation with rule 1 only, one Phase I study in ten gives limits with an in-control ARL below 130 points and one in ten above 850, against the nominal 370; with 100 subgroups the range narrows to about 220–570, and for 100 individual values it is about 120–1200. Jensen et al. review this effect of estimating the limits.</li>
+            <li><strong>Control limits are not specification limits.</strong> Control limits describe the process; specification limits describe the customer requirement. Use the <a href="/tools/process-capability/">capability calculator</a> to compare the two.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>ISO&nbsp;7870-2:2023, Control charts — Part 2: Shewhart control charts, 2nd ed., replacing ISO&nbsp;7870-2:2013 (the international standard guide to Shewhart charts, which also introduces warning limits and the analysis of patterns; general guidelines are in ISO&nbsp;7870-1:2019).</li>
+            <li>D. C. Montgomery, <em>Introduction to Statistical Quality Control</em>, 8th ed., Wiley (2019): Section 5.3 (Phase I and Phase II; the Western Electric and other sensitizing rules, p. 192), Chapter 6 (X̄–R, X̄–S, and individuals charts), Section 10.4 (autocorrelated data), and Appendix VI (factors for constructing variables control charts).</li>
+            <li>Western Electric Co., <em>Statistical Quality Control Handbook</em>, 1st ed. (1956) (the zone tests, rules 1–4).</li>
+            <li>L. S. Nelson, “The Shewhart control chart—tests for special causes,” <em>J. Qual. Technol.</em> <strong>16</strong>(4), 237–239 (1984), <a href="https://doi.org/10.1080/00224065.1984.11978921" target="_blank" rel="noopener">doi:10.1080/00224065.1984.11978921</a> (the eight tests, including the six-point trend test and the nine-point run).</li>
+            <li>C. W. Champ and W. H. Woodall, “Exact results for Shewhart control charts with supplementary runs rules,” <em>Technometrics</em> <strong>29</strong>(4), 393–399 (1987), <a href="https://doi.org/10.1080/00401706.1987.10488266" target="_blank" rel="noopener">doi:10.1080/00401706.1987.10488266</a> (the Markov-chain method for run-rule ARLs, and 91.75 for rules 1–4).</li>
+            <li>R. B. Davis and W. H. Woodall, “Performance of the control chart trend rule under linear shift,” <em>J. Qual. Technol.</em> <strong>20</strong>(4), 260–262 (1988), <a href="https://doi.org/10.1080/00224065.1988.11979118" target="_blank" rel="noopener">doi:10.1080/00224065.1988.11979118</a> (the trend rule adds little once the zone rules are in use).</li>
+            <li>W. A. Jensen, L. A. Jones-Farmer, C. W. Champ, and W. H. Woodall, “Effects of parameter estimation on control chart properties: A literature review,” <em>J. Qual. Technol.</em> <strong>38</strong>(4), 349–364 (2006), <a href="https://doi.org/10.1080/00224065.2006.11918623" target="_blank" rel="noopener">doi:10.1080/00224065.2006.11918623</a> (how limits estimated in Phase I change the chart’s false-alarm rate).</li>
+            <li>D. J. Wheeler and D. S. Chambers, <em>Understanding Statistical Process Control</em>, 3rd ed., SPC Press (2010) (XmR charts and the detection rules).</li>
+            <li>D. J. Wheeler and R. Stauffer, “When should we use extra detection rules?” <em>Quality Digest</em> (October 2017), <a href="https://www.spcpress.com/pdf/DJW322.Oct.17.Using%20Extra%20Detection%20Rules.pdf" target="_blank" rel="noopener">spcpress.com</a> (what each zone rule adds; no zone rules on the moving-range chart; against the trend rule).</li>
+            <li>D. J. Wheeler, “Individual charts done right and wrong,” <em>Quality Digest Daily</em> (2 February 2010), <a href="https://www.spcpress.com/pdf/DJW206.pdf" target="_blank" rel="noopener">spcpress.com</a> (limits from the average or the median moving range, never the global standard deviation).</li>
+            <li>D. J. Wheeler, “Are you sure we don’t need normally distributed data?” <em>Quality Digest Daily</em> (1 November 2010), <a href="https://www.spcpress.com/pdf/DJW220.pdf" target="_blank" rel="noopener">spcpress.com</a> (how much of a non-normal distribution 3σ limits cover; ARL 70.9 for a chi-square distribution with 4 degrees of freedom).</li>
+            <li>AIAG, <em>Statistical Process Control (SPC) Reference Manual</em>, 2nd ed. (2005); AIAG and VDA QMC published a joint <em>AIAG &amp; VDA SPC Manual</em>, 1st ed., in 2026 (automotive-industry practice).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>NIST/SEMATECH, “<a href="https://www.itl.nist.gov/div898/handbook/pmc/section3/pmc32.htm" target="_blank" rel="noopener">What are variables control charts?</a>,” <em>e-Handbook of Statistical Methods</em>, Section 6.3.2 (the Western Electric rules, and a false alarm every 371 points on average without them against 91.75 with them).</li>
+            <li>NIST/SEMATECH, “<a href="https://www.itl.nist.gov/div898/handbook/pmc/section3/pmc321.htm" target="_blank" rel="noopener">Shewhart X-bar and R and S control charts</a>” and “<a href="https://www.itl.nist.gov/div898/handbook/pmc/section3/pmc322.htm" target="_blank" rel="noopener">Individuals control charts</a>,” <em>e-Handbook of Statistical Methods</em>, Sections 6.3.2.1–6.3.2.2 (how the limits are computed, with a worked example).</li>
+            <li>D. J. Wheeler, “Contra two sigma,” <em>Quality Digest Daily</em> (1 May 2013), <a href="https://www.spcpress.com/pdf/DJW255.pdf" target="_blank" rel="noopener">spcpress.com</a> (why control charts use 3σ limits rather than 2σ, and the Western Electric rules as the better way to add sensitivity).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="process-capability,sigma-level,oee-takt,machine-vision-lens,article:spc-for-laser-processes"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const { mean, stdev } = Calc.math;
+
+    // Factors for variables control charts, n = 2…25: [A2, A3, c4, B3, B4, d2, d3, D3, D4, D1, D2, B5, B6].
+    // The first nine are the published values (Montgomery, Appendix VI). The Phase II factors D1, D2 = d2 ∓ 3d3 and
+    // B5, B6 = c4 ∓ 3√(1 − c4²) are the defining integrals to 6 decimals (shown rounded to 3): computed from the rounded d2, d3,
+    // c4 above they could be off by 2 in the third decimal (D2 = 3.687 instead of 3.686 for n = 2).
+    const F = {
+        2: [1.880, 2.659, 0.7979, 0, 3.267, 1.128, 0.853, 0, 3.267, 0, 3.685887, 0, 2.606315],
+        3: [1.023, 1.954, 0.8862, 0, 2.568, 1.693, 0.888, 0, 2.574, 0, 4.357673, 0, 2.275981],
+        4: [0.729, 1.628, 0.9213, 0, 2.266, 2.059, 0.880, 0, 2.282, 0, 4.698175, 0, 2.087749],
+        5: [0.577, 1.427, 0.9400, 0, 2.089, 2.326, 0.864, 0, 2.114, 0, 4.918175, 0, 1.963628],
+        6: [0.483, 1.287, 0.9515, 0.030, 1.970, 2.534, 0.848, 0, 2.004, 0, 5.078532, 0.028892, 1.874174],
+        7: [0.419, 1.182, 0.9594, 0.118, 1.882, 2.704, 0.833, 0.076, 1.924, 0.204741, 5.203973, 0.112903, 1.805834],
+        8: [0.373, 1.099, 0.9650, 0.185, 1.815, 2.847, 0.820, 0.136, 1.864, 0.387706, 5.306695, 0.178617, 1.751444],
+        9: [0.337, 1.032, 0.9693, 0.239, 1.761, 2.970, 0.808, 0.184, 1.816, 0.546524, 5.393529, 0.231794, 1.706827],
+        10: [0.308, 0.975, 0.9727, 0.284, 1.716, 3.078, 0.797, 0.223, 1.777, 0.686353, 5.468657, 0.275949, 1.669370],
+        11: [0.285, 0.927, 0.9754, 0.321, 1.679, 3.173, 0.787, 0.256, 1.744, 0.810929, 5.534817, 0.313361, 1.637340],
+        12: [0.266, 0.886, 0.9776, 0.354, 1.646, 3.258, 0.778, 0.283, 1.717, 0.923020, 5.593890, 0.345579, 1.609540],
+        13: [0.249, 0.850, 0.9794, 0.382, 1.618, 3.336, 0.770, 0.307, 1.693, 1.024732, 5.647229, 0.373698, 1.585113],
+        14: [0.235, 0.817, 0.9810, 0.406, 1.594, 3.407, 0.763, 0.328, 1.672, 1.117694, 5.695832, 0.398515, 1.563428],
+        15: [0.223, 0.789, 0.9823, 0.428, 1.572, 3.472, 0.756, 0.347, 1.653, 1.203193, 5.740461, 0.420627, 1.544005],
+        16: [0.212, 0.763, 0.9835, 0.448, 1.552, 3.532, 0.750, 0.363, 1.637, 1.282259, 5.781707, 0.440491, 1.526476],
+        17: [0.203, 0.739, 0.9845, 0.466, 1.534, 3.588, 0.744, 0.378, 1.622, 1.355729, 5.820039, 0.458461, 1.510552],
+        18: [0.194, 0.718, 0.9854, 0.482, 1.518, 3.640, 0.739, 0.391, 1.608, 1.424291, 5.855836, 0.474819, 1.496001],
+        19: [0.187, 0.698, 0.9862, 0.497, 1.503, 3.689, 0.734, 0.403, 1.597, 1.488519, 5.889408, 0.489792, 1.482636],
+        20: [0.180, 0.680, 0.9869, 0.510, 1.490, 3.735, 0.729, 0.415, 1.585, 1.548891, 5.921009, 0.503564, 1.470304],
+        21: [0.173, 0.663, 0.9876, 0.523, 1.477, 3.778, 0.724, 0.425, 1.575, 1.605816, 5.950856, 0.516287, 1.458879],
+        22: [0.167, 0.647, 0.9882, 0.534, 1.466, 3.819, 0.720, 0.434, 1.566, 1.659640, 5.979129, 0.528088, 1.448253],
+        23: [0.162, 0.633, 0.9887, 0.545, 1.455, 3.858, 0.716, 0.443, 1.557, 1.710663, 6.005984, 0.539071, 1.438338],
+        24: [0.157, 0.619, 0.9892, 0.555, 1.445, 3.895, 0.712, 0.451, 1.548, 1.759144, 6.031553, 0.549328, 1.429057],
+        25: [0.153, 0.606, 0.9896, 0.565, 1.435, 3.931, 0.708, 0.459, 1.541, 1.805307, 6.055952, 0.558935, 1.420346]
+    };
+    const K = n => { const r = F[n]; return { A2: r[0], A3: r[1], c4: r[2], B3: r[3], B4: r[4], d2: r[5], d3: r[6], D3: r[7], D4: r[8], D1: r[9], D2: r[10], B5: r[11], B6: r[12] }; };
+
+    const RULES = {
+        r1: 'Rule 1 — beyond a 3σ control limit',
+        r2: 'Rule 2 — 2 of 3 beyond 2σ, same side',
+        r3: 'Rule 3 — 4 of 5 beyond 1σ, same side',
+        r4: 'Rule 4 — 8 in a row on one side',
+        tr: 'Trend — 6 in a row rising or falling'
+    };
+
+    // returns { rule: [indices] } for a location chart with symmetric limits
+    function runRules(x, cl, ucl, lcl, opts) {
+        const hits = { r1: [], r2: [], r3: [], r4: [], tr: [] };
+        const s = (ucl - cl) / 3;
+        const z = x.map(v => (v - cl) / s);
+        x.forEach((v, i) => { if (v > ucl || v < lcl) hits.r1.push(i); });
+        if (opts.zones && s > 0) {
+            for (let i = 0; i < x.length; i++) {
+                for (const sg of [1, -1]) {
+                    if (z[i] * sg > 2 && z.slice(Math.max(0, i - 2), i + 1).filter(q => q * sg > 2).length >= 2) hits.r2.push(i);
+                    if (z[i] * sg > 1 && z.slice(Math.max(0, i - 4), i + 1).filter(q => q * sg > 1).length >= 4) hits.r3.push(i);
+                    if (i >= 7 && z.slice(i - 7, i + 1).every(q => q * sg > 0)) hits.r4.push(i);
+                }
+            }
+        }
+        if (opts.trend) {
+            for (let i = 5; i < x.length; i++) {
+                let up = true, dn = true;
+                for (let k = i - 4; k <= i; k++) { if (!(x[k] > x[k - 1])) up = false; if (!(x[k] < x[k - 1])) dn = false; }
+                if (up || dn) hits.tr.push(i);
+            }
+        }
+        return hits;
+    }
+
+    // Rule labels beside the flagged points, added to the SVG that plot.js draws. plot.js draws a chart again when
+    // its width changes, so an observer labels each new drawing too. tags: Map of point index → ['2', '3', …].
+    function tagPoints(id, tags) {
+        const el = document.getElementById(id);
+        el._ccTags = tags;
+        if (!el._ccObs) { el._ccObs = new MutationObserver(() => paintTags(el)); el._ccObs.observe(el, { childList: true }); }
+        paintTags(el);
+    }
+    function paintTags(el) {
+        const svg = el.querySelector('svg.plot'), tags = el._ccTags;
+        if (!svg || !tags || svg._ccTagged) return;
+        svg._ccTagged = true;
+        const dots = svg.querySelectorAll('g[clip-path] circle.marker');   // the data points, in order (not the hover dot)
+        if (dots.length < 2 || !tags.size) return;
+        // full labels ("2,3") where points are at least 26 px apart, the first rule only down to 9 px, none when closer
+        const gap = (+dots[dots.length - 1].getAttribute('cx') - +dots[0].getAttribute('cx')) / (dots.length - 1);
+        if (gap < 9) return;
+        const area = svg.querySelector('clipPath rect'), top = area ? +area.getAttribute('y') : 14;
+        // a label goes above its point, or below it, wherever it overlaps neither another label nor a limit label;
+        // when neither fits it is left out (the point is still red, and the table lists it)
+        const taken = [...svg.querySelectorAll('text.vlabel')].map(t => { try { return t.getBBox(); } catch (e) { return null; } }).filter(b => b && b.width);
+        const keys = [...tags.keys()].sort((p, q) => p - q).filter(i => dots[i]);
+        keys.forEach(i => { const c = dots[i]; c.setAttribute('r', 5); taken.push({ x: +c.getAttribute('cx') - 5, y: +c.getAttribute('cy') - 5, width: 10, height: 10 }); });
+        const clash = b => taken.some(q => b.x < q.x + q.width && q.x < b.x + b.width && b.y < q.y + q.height && q.y < b.y + b.height);
+        keys.forEach(i => {
+            const c = dots[i], x = +c.getAttribute('cx'), y = +c.getAttribute('cy');
+            const text = gap >= 26 ? tags.get(i).join(',') : tags.get(i)[0], w = 6.5 * text.length + 2;
+            const base = [y - 9, y + 18].find(b => b - 10 >= top - 2 && !clash({ x: x - w / 2, y: b - 10, width: w, height: 12 }));
+            if (base === undefined) return;
+            taken.push({ x: x - w / 2, y: base - 10, width: w, height: 12 });
+            const lab = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            lab.setAttribute('x', x.toFixed(1));
+            lab.setAttribute('y', base.toFixed(1));
+            lab.setAttribute('text-anchor', 'middle');
+            lab.setAttribute('class', 'cc-tag');
+            lab.textContent = text;
+            svg.appendChild(lab);
+        });
+    }
+
+    const stdBox = document.getElementById('std-fields');
+    const nField = document.getElementById('n-field');
+    const sigmaLabel = document.getElementById('cc-sigma-label');
+    const countLabel = document.getElementById('cc-count-label');
+    const badge = document.getElementById('cc-badge');
+    const list = document.getElementById('signals-list');
+    const kv = (k, x, d) => k + '\u00a0=\u00a0' + (x === 0 ? '0' : x.toFixed(d));
+    let last = null;
+
+    const isNum = t => isFinite(Calc.parseNum(t));
+
+    // Calc.parseList splits on commas and drops anything that is not a number. A split or dropped value
+    // would shift every later subgroup, so refuse such data instead of guessing. Text before the first
+    // number (a pasted column header) cannot shift anything and is ignored.
+    function checkData(text, ind) {
+        const shift = ind ? '' : '; skipping it would shift every later subgroup';
+        let m;
+        // "1.064,5" (period as thousands separator, decimal comma) would be split at the comma
+        if ((m = /(^|[\s;])([-+−]?\d{1,3}(?:\.\d{3})+,\d+)(?=,\s|[\s;]|$)/.exec(text))) throw Calc.fail('“' + m[2] + '” is ambiguous: use a period as the decimal mark and no thousands separators (1064.5, not 1.064,5).', 'data');
+        // "1,200, 1,300" or "12,500\t13,200": a comma followed by exactly three digits is a thousands separator, a decimal comma, or a separator between values
+        if ((m = /(^|[\s;,])([-+−]?\d{1,3}(?:,\d{3})+)(?=,\s|[\s;]|$)/.exec(text))) throw Calc.fail('“' + m[2] + '” is ambiguous: a thousands separator, a decimal comma, or separate values. Remove thousands separators (1200, not 1,200), use a period as the decimal mark (1.2, not 1,2), and separate values with spaces, tabs, or new lines.', 'data');
+        if (/(^|[\s;])[-+−]?\d+,\d+(?=[\s;]|$)/.test(text) && !/\d\.\d/.test(text) && !/,\s|\s,|\d,\d+,/.test(text)) throw Calc.fail('Use a period as the decimal mark (12.04, not 12,04) and no thousands separators. Separate values with spaces, tabs, commas, or new lines.', 'data');
+        if (/(^|[\s;])[-+−]?\d{1,3}(,\d{3})+\.\d+(?=,\s|[\s;]|$)/.test(text)) throw Calc.fail('Remove the thousands separators (1234.5, not 1,234.5). Commas separate values.', 'data');
+        const toks = text.split(/[\s,;]+/).filter(Boolean), bad = toks.slice(Math.max(0, toks.findIndex(isNum))).find(t => !isNum(t));
+        if (bad !== undefined) throw Calc.fail('“' + bad + '” is not a number. Delete it or enter the value' + shift + '.', 'data');
+        // a blank cell in a tab- or comma-separated paste (a blank column, or blanks after the last value, are harmless)
+        const rows = text.split(/\r?\n/).map(l => l.split(/[\t,;]/).map(c => c.trim())).filter(r => r.some(Boolean)), used = [];
+        rows.forEach(r => r.forEach((c, j) => { if (c) used[j] = true; }));
+        const cells = rows.flatMap(r => rows.length > 1 ? r.filter((c, j) => used[j]) : r), gap = cells.indexOf('', Math.max(0, cells.findIndex(isNum)));
+        if (gap !== -1 && cells.slice(gap).some(Boolean)) throw Calc.fail('The pasted data contain an empty cell. Fill it in or delete ' + (ind ? 'it' : 'that subgroup' + shift) + '.', 'data');
+    }
+
+    Calc.create({
+        form: '#calc',
+        outputs: '#results',
+        compute(v) {
+            const type = v.type, std = v.limits === 'std';
+            stdBox.hidden = !std;
+            nField.hidden = type === 'imr';
+            const ind = type === 'imr';
+            sigmaLabel.textContent = std ? 'Process σ₀ (given)' : ind ? 'Short-term σ estimate' : 'Within-subgroup σ estimate';
+            countLabel.textContent = ind ? 'Observations' : 'Subgroups · values used';
+            checkData(v.data, ind);
+            const data = Calc.parseList(v.data, 'data');
+            const n = ind ? 1 : Calc.parseNum(v.n);
+            if (!ind && (!Number.isInteger(n) || n < 2 || n > 25)) throw Calc.fail('Subgroup size must be a whole number from 2 to 25.', 'n');
+            let mu0, s0;
+            if (std) {
+                const given = (name, label) => {
+                    const raw = v[name].trim(), x = Calc.parseNum(raw);
+                    if (!isFinite(x)) throw Calc.fail(raw ? '“' + raw + '” is not a number (' + label + ').' : 'Enter the standard ' + label + '.', name);
+                    return x;
+                };
+                mu0 = given('mu0', 'process mean μ₀'); s0 = given('s0', 'process σ₀');
+                if (!(s0 > 0)) throw Calc.fail('The standard σ₀ must be greater than zero.', 's0');
+            }
+
+            const lname = ind ? 'Individuals' : 'X̄';
+            const dname = ind ? 'Moving range' : type === 'xs' ? 'S' : 'R';
+            document.querySelectorAll('.lname').forEach(e => { e.textContent = lname; });
+            document.querySelectorAll('.dname').forEach(e => { e.textContent = dname; });
+
+            let loc, disp, L, D, sigma, sigmaNote, consts, count, firstDisp = 1;
+            const notes = [];
+            if (ind) {
+                if (data.length < 3) throw Calc.fail('Paste at least 3 individual values (20 or more is recommended).', 'data');
+                loc = data.slice();
+                disp = [];
+                for (let i = 1; i < data.length; i++) disp.push(Math.abs(data[i] - data[i - 1]));
+                firstDisp = 2;
+                const mrBar = mean(disp);
+                if (std) {
+                    sigma = s0;
+                    L = { cl: mu0, ucl: mu0 + 3 * s0, lcl: mu0 - 3 * s0 };
+                    D = { cl: 1.128 * s0, ucl: K(2).D2 * s0, lcl: 0 };   // a moving range is the range of n = 2 values
+                } else {
+                    const xbar = mean(data);
+                    sigma = mrBar / 1.128;
+                    L = { cl: xbar, ucl: xbar + 3 * sigma, lcl: xbar - 3 * sigma };
+                    D = { cl: mrBar, ucl: 3.267 * mrBar, lcl: 0 };
+                }
+                sigmaNote = std ? 'σ₀ entered; MR̄ / d₂ from data = ' + fmt.num(mrBar / 1.128, 4) : 'MR̄ / d₂ = ' + fmt.num(mrBar, 4) + ' / 1.128';
+                consts = (std ? [kv('d₂', 1.128, 3), kv('D₂', K(2).D2, 3)] : [kv('E₂', 2.660, 3), kv('D₄', 3.267, 3)]).join(', ');
+                count = String(data.length);
+            } else {
+                const k = Math.floor(data.length / n);
+                if (k < 2) throw Calc.fail('Paste at least two complete subgroups of ' + n + ' values (20–25 subgroups is recommended).', 'data');
+                const c = K(n);
+                const subs = [];
+                for (let g = 0; g < k; g++) subs.push(data.slice(g * n, g * n + n));
+                loc = subs.map(mean);
+                disp = subs.map(s => type === 'xs' ? stdev(s) : Math.max(...s) - Math.min(...s));
+                const dBar = mean(disp), xbb = mean(loc);
+                if (std) {
+                    sigma = s0;
+                    L = { cl: mu0, ucl: mu0 + 3 * s0 / Math.sqrt(n), lcl: mu0 - 3 * s0 / Math.sqrt(n) };
+                    if (type === 'xs') {
+                        D = { cl: c.c4 * s0, ucl: c.B6 * s0, lcl: c.B5 * s0 };
+                        consts = [kv('c₄', c.c4, 4), kv('B₅', c.B5, 3), kv('B₆', c.B6, 3)].join(', ');
+                    } else {
+                        D = { cl: c.d2 * s0, ucl: c.D2 * s0, lcl: c.D1 * s0 };
+                        consts = [kv('d₂', c.d2, 3), kv('D₁', c.D1, 3), kv('D₂', c.D2, 3)].join(', ');
+                    }
+                    sigmaNote = 'σ₀ entered; ' + (type === 'xs' ? 's̄ / c₄' : 'R̄ / d₂') + ' from data = ' + fmt.num(dBar / (type === 'xs' ? c.c4 : c.d2), 4);
+                } else if (type === 'xs') {
+                    L = { cl: xbb, ucl: xbb + c.A3 * dBar, lcl: xbb - c.A3 * dBar };
+                    D = { cl: dBar, ucl: c.B4 * dBar, lcl: c.B3 * dBar };
+                    sigma = dBar / c.c4;
+                    sigmaNote = 's̄ / c₄ = ' + fmt.num(dBar, 4) + ' / ' + c.c4.toFixed(4);
+                    consts = [kv('A₃', c.A3, 3), kv('B₃', c.B3, 3), kv('B₄', c.B4, 3)].join(', ');
+                } else {
+                    L = { cl: xbb, ucl: xbb + c.A2 * dBar, lcl: xbb - c.A2 * dBar };
+                    D = { cl: dBar, ucl: c.D4 * dBar, lcl: c.D3 * dBar };
+                    sigma = dBar / c.d2;
+                    sigmaNote = 'R̄ / d₂ = ' + fmt.num(dBar, 4) + ' / ' + c.d2.toFixed(3);
+                    consts = [kv('A₂', c.A2, 3), kv('D₃', c.D3, 3), kv('D₄', c.D4, 3)].join(', ');
+                }
+                count = k + ' · ' + k * n;
+                const left = data.length - k * n;
+                if (left) notes.push('Last ' + left + ' value' + (left > 1 ? 's' : '') + ' ignored (incomplete subgroup).');
+                // lines that look like subgroups but do not hold n values are regrouped across line breaks
+                const lens = v.data.split(/\r?\n/).map(l => l.split(/[\s,;]+/).filter(isNum).length).filter(Boolean);
+                const body = lens.slice(0, -1);
+                if (body.length && body.every(m => m === body[0])) {
+                    if (body[0] !== n && body[0] >= 2 && body[0] <= 25) notes.push('Each line has ' + body[0] + ' values; set n = ' + body[0] + ' if each line is a subgroup.');
+                } else if (body.filter(m => m === n).length > body.length / 2) notes.push('Not every line has ' + n + ' values, so some subgroups span two lines. Check for a missing or extra value.');
+                if (type === 'xr' && n > 10) notes.push('For subgroups larger than about 10, an X̄–S chart uses the data more efficiently.');
+            }
+            if (!(L.ucl > L.cl)) throw Calc.fail(ind ? 'All values are identical, so the average moving range is zero and control limits cannot be estimated.' : 'The data show no variation within subgroups, so control limits cannot be estimated.', 'data');
+
+            const hits = runRules(loc, L.cl, L.ucl, L.lcl, { zones: v.zones, trend: v.trend });
+            const dispHits = [];
+            disp.forEach((d, i) => { if (d > D.ucl || d < D.lcl) dispHits.push(i); });
+            const flagged = new Set(Object.values(hits).flat());
+            const total = flagged.size + dispHits.length;
+
+            badge.hidden = false;
+            if (total === 0) { badge.textContent = 'In control'; badge.className = 'badge badge-ok'; }
+            else { badge.textContent = 'Signals present'; badge.className = 'badge badge-bad'; }
+
+            // Enough decimals to resolve a hundredth of the zone width even with a large offset (1064.00655 nm),
+            // and the same decimals for the center line and both limits.
+            const top = Math.max(Math.abs(L.ucl), Math.abs(L.lcl), Math.abs(L.cl)), zs = (L.ucl - L.cl) / 3;
+            const mag = Math.floor(Math.log10(top)), sigL = Math.min(15, Math.max(5, mag - Math.floor(Math.log10(zs)) + 3));
+            const dec = Math.max(0, Math.min(2 - Math.floor(Math.log10(zs)), 14 - mag));
+            const f = x => top >= 1e-3 && top < 1e15 ? x.toFixed(dec).replace(/^-(?=0\.?0*$)/, '').replace('-', '−') : fmt.num(x, sigL);
+            last = { loc, disp, L, D, hits, dispHits, flagged, ind, lname, dname, firstDisp, sigma, sigL, f };
+            return {
+                signals: total === 0 ? 'None' : total + ' point' + (total > 1 ? 's' : ''),
+                lcl0: f(L.cl),
+                llim: f(L.ucl) + ' · ' + f(L.lcl),
+                dcl0: fmt.num(D.cl, 4),
+                dlim: fmt.num(D.ucl, 4) + ' · ' + (D.lcl === 0 ? '0' : fmt.num(D.lcl, 4)),
+                sigma: fmt.num(sigma, 4),
+                'sigma-note': sigmaNote,
+                count,
+                'count-note': notes.join(' '),
+                consts
+            };
+        },
+        after() {
+            const s = last;
+            const xs = s.loc.map((_, i) => i + 1);
+            const xsD = s.disp.map((_, i) => i + s.firstDisp);
+            const xLabel = s.ind ? 'Observation' : 'Subgroup';
+            const intTicks = v => Number.isInteger(v) ? String(v) : '';
+            const sz = (s.L.ucl - s.L.cl) / 3;
+            const lim = (L, f) => [
+                { y: L.ucl, label: 'UCL ' + f(L.ucl), color: 'var(--c5)' },
+                { y: L.cl, label: 'CL ' + f(L.cl), color: 'var(--c3)' },
+                { y: L.lcl, label: L.lcl > 0 || L.lcl < 0 ? 'LCL ' + f(L.lcl) : '', color: 'var(--c5)' }
+            ];
+            const f4 = x => fmt.num(x, 4);
+            // the rules each flagged point breaks: '1'–'4' for the Western Electric rules, 'T' for the trend rule
+            const TAG = { r1: '1', r2: '2', r3: '3', r4: '4', tr: 'T' };
+            const tags = new Map(), dTags = new Map(s.dispHits.map(i => [i, ['1']]));
+            Object.keys(RULES).forEach(r => s.hits[r].forEach(i => tags.set(i, (tags.get(i) || []).concat(TAG[r]))));
+            const says = t => { const n = t.filter(q => q !== 'T'); return (n.length ? 'rule' + (n.length > 1 ? 's ' : ' ') + n.join(', ') : '') + (n.length && t.includes('T') ? ' and ' : '') + (t.includes('T') ? 'trend' : ''); };
+            const summary = (name, what, L, fv, tg, x0, count) => {
+                const pts = [...tg.keys()].sort((p, q) => p - q), more = pts.length - 12;
+                return name + ' of ' + count + ' ' + what + ': center line ' + fv(L.cl) + ', upper control limit ' + fv(L.ucl) + ', lower control limit ' + fv(L.lcl) + '. '
+                    + (pts.length ? 'Flagged ' + xLabel.toLowerCase() + 's: ' + pts.slice(0, 12).map(i => (i + x0) + ' (' + says(tg.get(i)) + ')').join(', ') + (more > 0 ? ', and ' + more + ' more' : '') + '.' : 'No points flagged.');
+            };
+            // zones within 1σ and 2σ of the center line, shaded; the inner band is covered twice, so it is darker
+            const band = k => ({ type: 'band', x: [0.5, xs.length + 0.5], y: [s.L.cl + k * sz, s.L.cl + k * sz], y0: [s.L.cl - k * sz, s.L.cl - k * sz], color: 'var(--accent)', opacity: 0.07 });
+            Plot.draw('#loc-plot', {
+                height: 280,
+                ariaLabel: summary(s.ind ? 'Individuals chart' : 'X-bar chart', s.ind ? 'individual values' : 'subgroup means', s.L, s.f, tags, 1, s.loc.length),
+                x: { label: xLabel, min: 0.5, max: xs.length + 0.5, format: intTicks },
+                y: { label: s.ind ? 'Individual value' : 'Subgroup mean (X̄)', format: v => String(parseFloat(v.toPrecision(s.sigL))).replace('-', '−') },
+                series: [band(2), band(1), { type: 'points', line: true, x: xs, y: s.loc, color: 'var(--c1)', label: s.lname, r: 3.5,
+                    colors: s.loc.map((_, i) => s.flagged.has(i) ? 'var(--c5)' : null) }],
+                hlines: lim(s.L, s.f),
+                hover: { format: (x, hits) => hits.length ? xLabel + ' ' + hits[0].x + ' · ' + s.lname + ' = ' + s.f(hits[0].y) + (tags.has(hits[0].i) ? ' · ' + says(tags.get(hits[0].i)) : '') : '' }
+            });
+            tagPoints('loc-plot', tags);
+            const dWhat = s.ind ? 'moving ranges' : s.dname === 'S' ? 'subgroup standard deviations' : 'subgroup ranges';
+            Plot.draw('#disp-plot', {
+                height: 240,
+                ariaLabel: summary(s.dname + ' chart', dWhat, s.D, f4, dTags, s.firstDisp, s.disp.length),
+                x: { label: xLabel, min: 0.5, max: xs.length + 0.5, format: intTicks },
+                y: { label: s.ind ? 'Moving range (MR)' : s.dname === 'S' ? 'Subgroup std. dev. (S)' : 'Subgroup range (R)', min: 0 },
+                series: [{ type: 'points', line: true, x: xsD, y: s.disp, color: 'var(--c4)', label: s.dname, r: 3.5,
+                    colors: s.disp.map((_, i) => s.dispHits.includes(i) ? 'var(--c5)' : null) }],
+                hlines: lim(s.D, f4),
+                hover: { format: (x, hits) => hits.length ? xLabel + ' ' + hits[0].x + ' · ' + s.dname + ' = ' + f4(hits[0].y) + (dTags.has(hits[0].i) ? ' · rule 1' : '') : '' }
+            });
+            tagPoints('disp-plot', dTags);
+
+            const rows = [];
+            Object.keys(RULES).forEach(r => {
+                if (s.hits[r].length) rows.push('<tr><td>' + RULES[r] + '</td><td>' + s.lname + '</td><td class="pts">' + s.hits[r].map(i => i + 1).join(', ') + '</td></tr>');
+            });
+            if (s.dispHits.length) rows.push('<tr><td>' + RULES.r1 + '</td><td>' + s.dname + '</td><td class="pts">' + s.dispHits.map(i => i + s.firstDisp).join(', ') + '</td></tr>');
+            list.innerHTML = rows.length
+                ? '<table class="cc-signals"><thead><tr><th>Rule</th><th>Chart</th><th>' + xLabel + 's</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>'
+                    + '<p class="hint">Each number is the ' + xLabel.toLowerCase() + ' that completes the pattern. Flagged points are red on the charts and, where there is room, labeled with the rule number (T = trend).</p>'
+                : '<p class="cc-ok">No rule violations. The process appears to be in statistical control for the rules selected.</p>';
+        },
+        onError() {
+            // no result: hide the badge and clear both charts instead of leaving the last good result on screen
+            list.innerHTML = '';
+            badge.hidden = true;
+            ['loc-plot', 'disp-plot'].forEach(id => { const el = document.getElementById(id); clearTimeout(el._plotT); el._ccTags = null; el.innerHTML = ''; el._plot = null; });
+        }
+    });
+});
+</script>
+</body>
+</html>

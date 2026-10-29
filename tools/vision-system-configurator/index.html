@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Machine Vision System Configurator: Camera, Lens, FOV &amp; Lighting</title>
+<meta name="description" content="Free machine vision configurator: enter field of view, working distance, and defect size to choose a camera sensor and lens, then check DOF, blur, and lighting.">
+<link rel="canonical" href="https://cdfoley.com/tools/vision-system-configurator/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Machine Vision System Configurator">
+<meta property="og:description" content="Free machine vision configurator: enter field of view, working distance, and defect size to choose a camera sensor and lens, then check DOF, blur, and lighting.">
+<meta property="og:url" content="https://cdfoley.com/tools/vision-system-configurator/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-vision-system-configurator.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Machine Vision System Configurator. Free machine vision configurator: enter field of view, working distance, and defect size to choose a camera sensor and lens, then check DOF, blur, and lighting.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/vision-data.js"></script>
+<style>
+    .cfg-sub { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .cfg-sub:first-of-type { margin-top: 0; padding-top: 0; border-top: 0; }
+    .check-line { display: flex; gap: 0.5rem; align-items: center; font-size: 0.9rem; color: var(--text-2); margin: 0.2rem 0 0.9rem; }
+    .viz-side svg, .viz-card svg { display: block; width: 100%; height: auto; }
+    .viz-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; margin-top: 0.9rem; }
+    @media (max-width: 560px) { .viz-grid { grid-template-columns: minmax(0, 1fr); } }
+    .viz-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.55rem 0.6rem 0.4rem; background: var(--surface); }
+    .viz-card h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 0 0 0.3rem; font-weight: 650; }
+    .viz-side { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.4rem; }
+    svg .lbl { fill: var(--text-2); font: 500 16px var(--font); }
+    svg .lbl-s { fill: var(--muted); font: 500 14px var(--font); }
+    svg .lbl-b { fill: var(--text); font: 650 16px var(--font); }
+    .viz-cap { font-size: 0.76rem; color: var(--muted); margin: 0.35rem 0 0; line-height: 1.35; text-align: center; }
+    svg .cam { fill: var(--surface-2); stroke: var(--border-strong); stroke-width: 1.2; }
+    svg .sensor { stroke: var(--c4); stroke-width: 3; }
+    svg .lens { fill: var(--c1); fill-opacity: 0.18; stroke: var(--c1); stroke-width: 1.2; }
+    svg .cone { fill: var(--c6); fill-opacity: 0.12; }
+    svg .ray { stroke: var(--c6); stroke-width: 1; fill: none; }
+    svg .axis { stroke: var(--muted); stroke-width: 0.8; stroke-dasharray: 4 4; }
+    svg .plane { stroke: var(--text-2); stroke-width: 1.4; }
+    svg .req { stroke: var(--c3); stroke-width: 4; stroke-linecap: round; }
+    svg .req.bad { stroke: var(--c5); }
+    svg .dof { fill: var(--c3); fill-opacity: 0.14; stroke: var(--c3); stroke-opacity: 0.5; stroke-width: 0.8; }
+    svg .depth { fill: none; stroke: var(--c2); stroke-width: 1.2; stroke-dasharray: 3 3; }
+    svg .dim { stroke: var(--muted); stroke-width: 0.9; fill: none; }
+    svg .part { fill: var(--c2); fill-opacity: 0.35; stroke: var(--c2); stroke-width: 1; }
+    svg .fov-act { fill: var(--c6); fill-opacity: 0.08; stroke: var(--c6); stroke-width: 1.4; }
+    svg .fov-req { fill: none; stroke: var(--c3); stroke-width: 1.6; stroke-dasharray: 5 4; }
+    svg .fov-req.bad { stroke: var(--c5); }
+    svg .gridl { stroke: var(--border-strong); stroke-width: 0.6; }
+    svg .px-hit { fill: var(--c1); fill-opacity: 0.28; }
+    svg .feat { fill: none; stroke: var(--c5); stroke-width: 2; }
+    svg .circ { fill: var(--surface-2); stroke: var(--c1); stroke-width: 1.4; stroke-dasharray: 4 3; }
+    svg .chip { fill: var(--c4); fill-opacity: 0.22; stroke: var(--c4); stroke-width: 1.4; }
+    .checks { list-style: none; padding: 0; margin: 0; }
+    .checks li { display: grid; grid-template-columns: 1.3rem minmax(0, 1fr); gap: 0.1rem 0.5rem; padding: 0.6rem 0; border-top: 1px solid var(--border); font-size: 0.9rem; color: var(--text-2); line-height: 1.45; }
+    .checks li:first-child { border-top: 0; padding-top: 0; }
+    .checks .ic { font-weight: 700; line-height: 1.45; }
+    .checks .ok .ic { color: var(--ok); }
+    .checks .warn .ic { color: var(--warn); }
+    .checks .bad .ic { color: var(--danger); }
+    .checks b { color: var(--text); font-weight: 600; }
+    .summary-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.45rem 1rem; margin: 0; font-size: 0.92rem; }
+    .summary-dl dt { color: var(--muted); font-weight: 600; }
+    .summary-dl dd { margin: 0; color: var(--text); }
+    .light-box p { margin: 0 0 0.6rem; font-size: 0.92rem; color: var(--text-2); }
+    .light-box p:last-child { margin-bottom: 0; }
+    .light-box b { color: var(--text); }
+    .fit-wrap { overflow-x: auto; }
+    table.fit { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 820px; }
+    table.fit th { text-align: left; font-weight: 650; color: var(--muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.5rem 0.55rem; border-bottom: 1px solid var(--border-strong); white-space: nowrap; }
+    table.fit td { padding: 0.45rem 0.55rem; border-bottom: 1px solid var(--border); color: var(--text-2); vertical-align: middle; }
+    table.fit td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+    table.fit th.num { text-align: right; }
+    table.fit td.nm b { color: var(--text); }
+    table.fit td.nm .sub { color: var(--muted); font-size: 0.78rem; display: block; }
+    table.fit td.nm .sub a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+    .st { font-size: 0.68rem; font-weight: 650; border-radius: 999px; padding: 0.05rem 0.4rem; margin-left: 0.1rem; white-space: nowrap; vertical-align: 1px; }
+    .st-a { background: var(--ok-soft); color: var(--ok); }
+    .st-eol { background: var(--danger-soft); color: var(--danger); }
+    .st-u { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+    .fit-filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0 0.8rem; }
+    .fit-filters .field { margin-bottom: 0.6rem; }
+    .fit-more { display: flex; flex-wrap: wrap; gap: 0.4rem 0.8rem; align-items: center; margin: 0.8rem 0 0; }
+    .fit-more .hint { margin: 0; }
+    table.fit tr.sel td { background: var(--accent-soft); }
+    table.fit tr.no td, table.fit tr.no td.nm b { color: var(--text-2); }
+    table.fit tr.no td.nm b { font-weight: 550; }
+    .fit-badge { font-size: 0.72rem; font-weight: 650; border-radius: 999px; padding: 0.1rem 0.5rem; white-space: nowrap; }
+    .fit-badge.ok { background: var(--ok-soft); color: var(--ok); }
+    .fit-badge.warn { background: var(--warn-soft); color: var(--warn); }
+    .fit-badge.bad { background: var(--danger-soft); color: var(--danger); }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Vision System Configurator",
+   "url": "https://cdfoley.com/tools/vision-system-configurator/",
+   "description": "Free machine vision configurator: enter field of view, working distance, and defect size to choose a camera sensor and lens, then check DOF, blur, and lighting.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "camera sensor lens configurator sony imx onsemi gpixel pregius working distance pixel size lighting interface gige usb3 coaxpress machine vision selection",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Vision, Imaging & Color",
+     "item": "https://cdfoley.com/tools/#vision"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Vision System Configurator",
+     "item": "https://cdfoley.com/tools/vision-system-configurator/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#vision">Vision, Imaging &amp; Color</a></li><li aria-current="page">Vision System Configurator</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Machine Vision System Configurator</h1>
+        <p class="lede">Describe the job: field of view, working distance, the smallest feature you need to see, and how fast the part moves. The configurator picks a standard lens for your sensor, draws the setup, and checks resolution, depth of field, motion blur, interface bandwidth, lens format, and lighting. The table at the bottom ranks <span data-vd-count>392</span> area-scan sensors from <span data-vd-makers>ten</span> makers for the same job, with filters and a link to each sensor’s source.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Field of view (FOV)</dt><dd>The width and height of the area one image must cover: the part, plus a margin for where it can land.</dd>
+            <dt>Working distance</dt><dd>How far the lens is from the part (the lens calculator calls this the object distance). The calculation measures it from the lens’s front principal plane, an optical reference point, so it differs somewhat from the working distance lens makers quote from the front of the lens barrel.</dd>
+            <dt>Smallest feature</dt><dd>The smallest defect or detail the system must find or measure, such as a scratch width, a particle, or the gap between two edges.</dd>
+            <dt>Pixels across the feature</dt><dd>How many pixels the smallest feature spans in the image. Two is the theoretical minimum; about 3 to 5 detect a feature reliably, and measuring it takes 10 or more.</dd>
+            <dt>Depth of field</dt><dd>The range of heights that stays acceptably sharp. It grows with a higher f-number (a smaller aperture) or a lower magnification.</dd>
+            <dt>Exposure or strobe time</dt><dd>How long the sensor collects light for each image. A short exposure, or a brief strobe flash, freezes a moving part.</dd>
+            <dt>Interface bandwidth</dt><dd>How many megabytes per second the camera’s connection to the computer (GigE, USB3, CoaXPress, Camera Link) can carry. It caps the frame rate of a large sensor.</dd>
+            <dt>Lens format</dt><dd>The largest sensor a lens is designed for, set by the diameter of the sharp image circle it projects. It must be at least the sensor diagonal, or the image corners go dark and soft.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="cfg" autocomplete="off">
+            <div class="panel-head"><h2>Your application</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="cfg">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+
+                <h3 class="cfg-sub">Part and field of view</h3>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="fovw">Field of view, width</label>
+                        <div class="input-unit"><input id="fovw" name="fovw" value="120" inputmode="decimal" data-positive data-label="field-of-view width"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="fovh">Field of view, height</label>
+                        <div class="input-unit"><input id="fovh" name="fovh" value="90" inputmode="decimal" data-positive data-label="field-of-view height"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The area one image must cover, along the sensor’s long side (width) and short side (height): the part plus a margin for where it can land.</p>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="wd">Working distance</label>
+                        <div class="input-unit"><input id="wd" name="wd" value="300" inputmode="decimal" data-positive data-label="working distance"><select data-dim="length" data-units="mm,cm,m,in" data-default="mm"></select></div>
+                        <p class="hint">Lens to part, measured from the lens’s front principal plane. The clearance in front of the lens barrel can differ by several millimeters or more; check the lens data.</p>
+                    </div>
+                    <div class="field">
+                        <label for="depth">Height variation to keep in focus</label>
+                        <div class="input-unit"><input id="depth" name="depth" value="2" inputmode="decimal" data-nonneg data-label="height variation"><select data-dim="length" data-units="µm,mm,cm,in" data-default="mm"></select></div>
+                        <p class="hint">Part height range plus positioning tolerance, centered on the working distance.</p>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="feat">Smallest feature or defect</label>
+                        <div class="input-unit"><input id="feat" name="feat" value="0.2" inputmode="decimal" data-positive data-label="smallest feature"><select data-dim="length" data-units="µm,mm,in,mil" data-default="mm"></select></div>
+                        <p class="hint">The smallest defect or detail you must find, such as a scratch width or a particle size.</p>
+                    </div>
+                    <div class="field">
+                        <label for="ppf">Pixels across it</label>
+                        <div class="input-unit"><input id="ppf" name="ppf" value="3" inputmode="decimal" data-positive data-label="pixels across the feature"><span class="unit">px</span></div>
+                        <p class="hint">2 is the sampling minimum; about 3–5 to detect reliably, 10 or more to measure.</p>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="app">What are you inspecting?</label>
+                    <select id="app" name="app" class="input">
+                        <option value="measure">Dimensional gauging (edges, holes, profiles)</option>
+                        <option value="flat" selected>Defects on flat, reflective surfaces</option>
+                        <option value="curved">Shiny or curved parts</option>
+                        <option value="print">Print, codes, and OCR</option>
+                        <option value="presence">Presence, assembly, and orientation</option>
+                        <option value="transparent">Transparent parts (glass, film, bottles)</option>
+                        <option value="color">Color sorting and color inspection</option>
+                    </select>
+                    <p class="hint">Sets the lighting suggestion. Gauging can add a perspective check, and color inspection a color check.</p>
+                </div>
+
+                <h3 class="cfg-sub">Motion and frame rate</h3>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="speed">Part speed</label>
+                        <div class="input-unit"><input id="speed" name="speed" value="100" inputmode="decimal" data-nonneg data-label="part speed"><select data-dim="speed" data-units="mm/s,m/s,m/min,in/s" data-default="mm/s"></select></div>
+                        <p class="hint">Speed during the exposure; 0 if the part is at rest when the image is taken.</p>
+                    </div>
+                    <div class="field">
+                        <label for="exp">Exposure or strobe time</label>
+                        <div class="input-unit"><input id="exp" name="exp" value="100" inputmode="decimal" data-positive data-label="exposure time"><select data-dim="time" data-units="µs,ms" data-default="µs"></select></div>
+                        <p class="hint">With a strobe in a shielded station, the flash length.</p>
+                    </div>
+                    <div class="field">
+                        <label for="fps">Frame rate needed</label>
+                        <div class="input-unit"><input id="fps" name="fps" value="10" inputmode="decimal" data-positive data-label="frame rate"><span class="unit">fps</span></div>
+                        <p class="hint">Images per second: the parts per second if each part gets one image.</p>
+                    </div>
+                </div>
+
+                <h3 class="cfg-sub">Camera</h3>
+                <div class="field">
+                    <label for="sensor">Sensor</label>
+                    <select id="sensor" name="sensor" class="input"></select>
+                    <p class="hint">Each array is the maker’s recommended recording size where one is stated (what most cameras output by default), otherwise the effective or active array; camera makers may crop further, so check the camera datasheet. The table below ranks every sensor for this job.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="iface">Interface</label>
+                        <select id="iface" name="iface" class="input"></select>
+                        <p class="hint">The camera’s connection. GigE and USB3 use standard computer ports; Camera Link and CoaXPress need a frame grabber card.</p>
+                    </div>
+                    <div class="field">
+                        <label for="pixfmt">Pixel format</label>
+                        <select id="pixfmt" name="pixfmt" class="input"></select>
+                        <p class="hint">Packed 10- and 12-bit formats keep finer gray levels but need 25&nbsp;% and 50&nbsp;% more bandwidth than 8-bit; RGB8 needs three times as much.</p>
+                    </div>
+                </div>
+
+                <h3 class="cfg-sub">Lens</h3>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="fmode">Focal length</label>
+                        <select id="fmode" name="fmode" class="input">
+                            <option value="auto" selected>Pick a standard lens for me</option>
+                            <option value="custom">I’ll enter one</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="f">Custom focal length</label>
+                        <div class="input-unit"><input id="f" name="f" value="25" inputmode="decimal" data-positive data-label="focal length"><select data-dim="length" data-units="mm" data-default="mm"></select></div>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="N">Aperture <span class="sym">f/#</span></label>
+                        <div class="input-unit"><input id="N" name="N" value="4" inputmode="decimal" data-positive data-label="f-number"><span class="unit">f/#</span></div>
+                        <p class="hint">Higher: more depth of field, less light, more diffraction blur.</p>
+                    </div>
+                    <div class="field">
+                        <label for="wl">Light wavelength</label>
+                        <div class="input-unit"><input id="wl" name="wl" value="525" inputmode="decimal" data-positive data-label="wavelength"><select data-dim="length" data-units="nm" data-default="nm"></select></div>
+                        <p class="hint">LED peaks: blue 470, green 525, red 625, near infrared 850. White: use 550.</p>
+                    </div>
+                    <div class="field">
+                        <label for="blur">Acceptable blur</label>
+                        <div class="input-unit"><input id="blur" name="blur" value="2" inputmode="decimal" data-positive data-label="acceptable blur"><span class="unit">px</span></div>
+                        <p class="hint">Defocus blur still counted as sharp. Use 1–2.</p>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel" id="cfg-viz" aria-labelledby="viz-h">
+            <div class="panel-head"><h2 id="viz-h">Your system</h2><output id="verdict" class="badge" data-out="verdict">—</output></div>
+            <div class="panel-body">
+                <div class="viz-side" data-out="side" role="img" aria-label="Side view of the camera, lens, field of view, and depth of field"></div>
+                <div class="viz-grid">
+                    <div class="viz-card"><h3>Field of view</h3><div data-out="fovsvg" role="img" aria-label="Field of view compared with the required area"></div><p class="viz-cap" data-out="fovcap"></p></div>
+                    <div class="viz-card"><h3>Pixels on the feature</h3><div data-out="pixsvg" role="img" aria-label="Smallest feature drawn on the pixel grid"></div><p class="viz-cap" data-out="pixcap"></p></div>
+                    <div class="viz-card"><h3>Sensor in lens circle</h3><div data-out="circsvg" role="img" aria-label="Sensor drawn inside the lens image circle"></div><p class="viz-cap" data-out="circcap"></p></div>
+                </div>
+                <h3 class="cfg-sub" style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--border)">Checks</h3>
+                <div data-out="checks"></div>
+            </div>
+        </section>
+    </div>
+
+    <div class="tool-layout" style="margin-top:1.5rem">
+        <section class="panel" id="cfg-res" aria-labelledby="res-h">
+            <div class="panel-head"><h2 id="res-h">Numbers</h2></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Lens</span><output class="result-value" data-out="lens">—</output></div>
+                    <div class="result"><span class="result-label">Field of view (H × V)</span><output class="result-value" data-out="fov">—</output></div>
+                    <div class="result"><span class="result-label">Magnification</span><output class="result-value" data-out="m">—</output></div>
+                    <div class="result"><span class="result-label">Pixel size on the part</span><output class="result-value" data-out="pobj">—</output></div>
+                    <div class="result"><span class="result-label">Pixels across smallest feature</span><output class="result-value" data-out="ppfout">—</output></div>
+                    <div class="result"><span class="result-label">Depth of field</span><output class="result-value" data-out="dof">—</output>
+                        <span class="result-note">Sharp from the near to the far distance shown; your height variation must fit inside, around the working distance.</span></div>
+                    <div class="result"><span class="result-label">Working f-number<span class="sym">N(1 + m)</span></span><output class="result-value" data-out="nw">—</output>
+                        <span class="result-note">The effective f-number at this magnification. It sets the diffraction blur and the image brightness.</span></div>
+                    <div class="result"><span class="result-label">Airy disk on the sensor</span><output class="result-value" data-out="airy">—</output></div>
+                    <div class="result"><span class="result-label">Diffraction MTF at Nyquist</span><output class="result-value" data-out="mtf">—</output>
+                        <span class="result-note">Contrast an ideal lens keeps on the finest pattern the pixels can record; real lenses keep less. About 10&nbsp;% is needed to detect detail, and 20&nbsp;% or more is a safer target.</span></div>
+                    <div class="result"><span class="result-label">Motion blur</span><output class="result-value" data-out="mblur">—</output></div>
+                    <div class="result"><span class="result-label">Data rate</span><output class="result-value" data-out="rate">—</output></div>
+                    <div class="result"><span class="result-label">Max frame rate on this interface</span><output class="result-value" data-out="maxfps">—</output>
+                        <span class="result-note">The bandwidth limit only. The sensor’s own maximum frame rate may be lower; see the camera datasheet.</span></div>
+                    <div class="result"><span class="result-label">Ideal focal length for this field</span><output class="result-value" data-out="fideal">—</output>
+                        <span class="result-note">The focal length that would exactly fill the field. Automatic mode picks the longest standard lens at or below it.</span></div>
+                </div>
+            </div>
+        </section>
+        <section class="panel" aria-labelledby="sum-h">
+            <div class="panel-head"><h2 id="sum-h">Configuration</h2><div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" id="copy-sum">Copy summary</button></div></div>
+            <div class="panel-body">
+                <div data-out="summary"></div>
+                <h3 class="cfg-sub" style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--border)">Lighting</h3>
+                <div class="light-box" data-out="light"></div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="fit-h">
+        <div class="panel-head"><h2 id="fit-h">Sensors that fit this job</h2><span class="badge" data-out="fitcount">—</span></div>
+        <div class="panel-body">
+            <div class="fit-filters">
+                <div class="field"><label for="ft-maker">Maker</label><select id="ft-maker" class="input"><option value="">All makers</option></select></div>
+                <div class="field"><label for="ft-shutter">Shutter</label><select id="ft-shutter" class="input">
+                    <option value="">Any shutter</option>
+                    <option value="still">All pixels at once (global shutter or interline CCD)</option>
+                    <option value="global">Global shutter (CMOS)</option>
+                    <option value="rolling">Rolling shutter</option>
+                    <option value="ccd-interline">Interline CCD</option>
+                    <option value="ccd-fullframe">Full-frame CCD</option>
+                </select></div>
+                <div class="field"><label for="ft-color">Mono or color</label><select id="ft-color" class="input">
+                    <option value="">Either</option>
+                    <option value="mono">Sold in mono</option>
+                    <option value="color">Sold in color</option>
+                </select></div>
+                <div class="field"><label for="ft-size">Lens format needed</label><select id="ft-size" class="input">
+                    <option value="">Any size</option>
+                    <option value="s">Up to 2/3″ (Ø 11 mm)</option>
+                    <option value="c">1″ to 1.2″ (C-mount)</option>
+                    <option value="m">4/3″ to APS-H</option>
+                    <option value="l">35 mm full frame and larger</option>
+                </select></div>
+                <div class="field"><label for="ft-sort">Sort</label><select id="ft-sort" class="input">
+                    <option value="fit">Best fit first</option>
+                    <option value="mp">Most pixels</option>
+                    <option value="pitch">Largest pixels</option>
+                    <option value="diag">Smallest sensor</option>
+                    <option value="fps">Fastest sensor</option>
+                    <option value="year">Newest</option>
+                </select></div>
+            </div>
+            <label class="check-line"><input type="checkbox" id="ft-eol"> Include discontinued (EOL) sensors</label>
+            <p class="hint" style="margin:0 0 .8rem">Each sensor gets the longest standard focal length that still covers your field at your working distance. Sensors that meet resolution, depth of field, frame rate, and bandwidth come first (“fits”), then those within 20&nbsp;% of your pixels-across target (“close”); the sort order applies within each group, and best fit means fewest pixels first. Max fps is the lower of the interface limit and the maker’s full-resolution figure. Click <b>Use</b> to load a sensor above.</p>
+            <div class="fit-wrap" data-out="table"></div>
+        </div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>The lens is a thin lens with its principal plane at the working distance \(s\) from the part. The sensor of width \(w\) and height \(h\) must see a field of at least \(W \times H\), so the magnification cannot exceed</p>
+        <div class="formula">\[ \begin{gathered} m_\text{max} = \min\!\left(\frac{w}{W}, \frac{h}{H}\right), \\[6pt] f_\text{ideal} = \frac{m_\text{max}\, s}{1 + m_\text{max}}. \end{gathered} \]</div>
+        <p>In automatic mode it picks the longest standard focal length at or below \(f_\text{ideal}\) (4, 5, 6, 8, 12, 16, 25, 35, 50, 75, or 100&nbsp;mm), so the field is always covered. The actual magnification is then \(m = f/(s - f)\), each pixel of pitch \(p\) covers \(p/m\) on the part, and the smallest feature spans \(d\,m/p\) pixels.</p>
+
+        <h2>Depth of field, diffraction, and motion</h2>
+        <p>Depth of field uses the exact thin-lens limits with the acceptable blur \(c\) (in pixels) and hyperfocal distance \(H = f^2/(Nc) + f\), the same model as the <a href="/tools/machine-vision-lens/">lens selection calculator</a>. The height check passes only when both ends of the range, \(s \pm \Delta z/2\), lie between the near and far limits; the far side of the depth of field is always the longer one. The Airy disk diameter at the sensor is \(2.44\,\lambda N(1+m)\), and the ideal-lens MTF at the sensor Nyquist frequency \(1/(2p)\) shows whether the optics or the pixels limit resolution.</p>
+        <p>Motion blur in pixels is the distance the part moves during the exposure divided by the pixel size on the part, \(v\,t_\text{exp}\,m/p\). Keep it under one pixel for measurement and under about two for detection. Rolling-shutter sensors also skew moving parts, because rows expose at different times.</p>
+
+        <h2>Bandwidth and lens format</h2>
+        <p>The data rate is pixels per frame × bytes per pixel × frame rate. Packed 10- and 12-bit pixel formats carry 1.25 and 1.5&nbsp;bytes per pixel. The interface limits are typical sustained image payloads, listed below. The sensor maker’s full-resolution frame rate is checked too, but a camera can be slower than its sensor, so check the camera datasheet as well.</p>
+        <table>
+            <thead><tr><th>Interface</th><th class="num">MB/s used</th><th>Plugs into</th></tr></thead>
+            <tbody>
+                <tr><td>GigE Vision</td><td class="num">115</td><td>Ethernet port</td></tr>
+                <tr><td>2.5/5/10 GigE</td><td class="num">290/580/1150</td><td>Ethernet port</td></tr>
+                <tr><td>USB3 Vision</td><td class="num">380</td><td>USB&nbsp;3 port</td></tr>
+                <tr><td>Camera Link Base/Full</td><td class="num">255/680</td><td>Frame grabber</td></tr>
+                <tr><td>CoaXPress CXP-6/CXP-12, per cable</td><td class="num">600/1200</td><td>Frame grabber</td></tr>
+            </tbody>
+        </table>
+        <p>The Ethernet figures follow JAI’s effective-throughput table for 1, 2.5, 5, and 10&nbsp;Gb/s links, rounded (Ethernet cables run up to 100&nbsp;m). USB3 Vision’s 5&nbsp;Gb/s link carries 500&nbsp;MB/s after 8b/10b coding, and A3 gives 350–400&nbsp;MB/s sustained (passive copper cables are specified to 3&nbsp;m, though 5&nbsp;m cables often work). Camera Link Base and Full are 2.04 and 5.44&nbsp;Gb/s at an 85&nbsp;MHz pixel clock, their maximum. CoaXPress runs 6.25&nbsp;Gb/s (CXP-6) or 12.5&nbsp;Gb/s (CXP-12) per cable, also 8b/10b coded, keeps at least 95&nbsp;% of the coded rate for image data, and can combine cables (four CXP-12 cables: about 4800&nbsp;MB/s). Real throughput also depends on the host computer, so leave some margin.</p>
+        <p>A lens must project an image circle at least as large as the sensor diagonal. Format names such as 2/3″ are a legacy of television camera tubes, not a dimension: a 2/3″ sensor is about 11&nbsp;mm across its diagonal, not 17&nbsp;mm. The configurator suggests the smallest standard lens format that covers the sensor and the usual mount for that format. C-mount covers sensors up to about 1.1″ (17.6&nbsp;mm diagonal), or 1.2″ (19.3&nbsp;mm) with lenses rated for it; larger sensors need TFL (M35), TFL-II (M48, designed for APS-H, about 35&nbsp;mm), M42, F-mount, M58, or M72 lenses. No standard format is listed above the 35&nbsp;mm full-frame circle (Ø 43.3&nbsp;mm): a larger sensor gets a warning to use custom or large-format optics whose image circle is at least the sensor diagonal. Format names that are not inch types (APS-C, APS-H, Super 35&nbsp;mm, 35&nbsp;mm full frame, medium format 645) are the makers’ own; the check always compares the computed diagonal with the lens circle.</p>
+
+        <h2>Lighting</h2>
+        <p>Lighting decides contrast, and contrast decides whether a feature that spans enough pixels is actually detectable. The suggestions follow standard practice: backlights for silhouettes and gauging, coaxial light for flat reflective parts, dome light for curved shiny parts, low-angle dark field for scratches and particles, and patterned backgrounds for transparent parts. The <a href="/learn/machine-vision-optics/">machine vision optics article</a> covers the geometry in more depth.</p>
+
+        <h2>Worked example</h2>
+        <p>The defaults: a 120 × 90&nbsp;mm field at a 300&nbsp;mm working distance, a 0.2&nbsp;mm smallest feature that should span 3&nbsp;px, and a 2/3″ Sony IMX250 (2448 × 2048 pixels of 3.45&nbsp;µm, an 8.446 × 7.066&nbsp;mm sensor).</p>
+        <ul>
+            <li>The width sets the limit: m<sub>max</sub> = 8.446/120 = 0.0704 (the height would allow 7.066/90 = 0.0785), so f<sub>ideal</sub> = 0.0704 × 300/1.0704 = 19.7&nbsp;mm, and automatic mode picks the 16&nbsp;mm lens.</li>
+            <li>Then m = 16/(300 − 16) = 0.0563, the field is 149.9 × 125.4&nbsp;mm, each pixel covers 61.2&nbsp;µm, and the 0.2&nbsp;mm feature spans 3.27&nbsp;px, above the target of 3.</li>
+            <li>At f/4 with an acceptable blur of 2&nbsp;px (6.9&nbsp;µm), the part stays in focus from 291.1 to 309.5&nbsp;mm, a depth of field of 18.4&nbsp;mm, which covers the 2&nbsp;mm height variation (299 to 301&nbsp;mm).</li>
+            <li>The working f-number is 4 × 1.0563 = 4.23, so the Airy disk at 525&nbsp;nm is 5.41&nbsp;µm (1.57&nbsp;px), and the ideal-lens MTF at Nyquist is 60&nbsp;%: the pixels, not the optics, limit the finest detail.</li>
+            <li>At 100&nbsp;mm/s, a 100&nbsp;µs exposure smears the part by 10&nbsp;µm, 0.16&nbsp;px. Mono8 at 10&nbsp;fps is 2448 × 2048 × 1&nbsp;byte × 10 = 50.1&nbsp;MB/s, well inside GigE’s 115&nbsp;MB/s, which allows up to 22.9&nbsp;fps.</li>
+            <li>The 11.0&nbsp;mm diagonal needs a lens rated for 2/3″ (Ø 11&nbsp;mm) or larger: a C-mount lens.</li>
+        </ul>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Thin-lens, paraxial model. Real lenses have separated principal planes and a minimum object distance, so confirm the working distance with the lens maker’s data or a test image.</li>
+            <li>Telecentric lenses do not follow \(m = f/(s - f)\). For gauging with height variation, the perspective check suggests when a telecentric lens is worth it.</li>
+            <li>In a color camera’s Bayer filter, green covers every other pixel and red and blue each cover every second row and column, so fine color detail is sampled at about half the monochrome pixel density in each direction. Use monochrome unless the decision depends on color.</li>
+            <li>Sensor data come from each maker’s datasheet, flyer, product page, or press release, or for a few older parts a distributor’s or camera maker’s copy (each linked in the table). Each array is the maker’s recommended recording size where one is stated (what most cameras output by default), otherwise the effective or active array; camera makers may crop further. The maximum frame rate is the maker’s full-resolution figure at the bit depth shown, an upper bound for any camera. “EOL” means the maker or an authorized distributor lists the part as discontinued, and “status unknown” means neither says either way. The year is the release year or the earliest dated maker document, so a part may be older.</li>
+            <li>Global-shutter sensors and interline CCDs expose every pixel at the same time. Rolling-shutter sensors expose row by row, so moving parts skew. Full-frame CCDs have no electronic shutter: the pixels keep collecting light while the image is read out, so they need a mechanical shutter or a strobe in the dark. Interline CCDs with frame readout read two interlaced fields one after the other and need the same for a full-resolution image.</li>
+            <li>Sensitivity and noise are not modeled. To compare cameras for dim scenes or short strobes, use their EMVA 1288 data: quantum efficiency (the share of photons that become signal), saturation capacity, and dynamic range.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>C. Steger, M. Ulrich, and C. Wiedemann, <em>Machine Vision Algorithms and Applications</em>, 2nd ed., Wiley-VCH (2018), ISBN 978-3-527-41365-2, secs. 2.1.5 (bright-field, dark-field, and back-light illumination), 2.2.2–2.2.4 (lens model, depth of field, telecentric lenses), 2.3.2–2.3.4 (rolling and global shutters, color cameras, sensor sizes), and 2.4.2–2.4.3 (Camera Link, CoaXPress, USB3 Vision, GigE Vision, and GenICam).</li>
+            <li>B. Jähne, <em>Digital Image Processing and Image Acquisition</em>, 7th ed., Springer (2026), <a href="https://doi.org/10.1007/978-3-032-04806-6" target="_blank" rel="noopener">doi:10.1007/978-3-032-04806-6</a>, secs. 3.4.4 (depth of field), 3.5.3 (the MTF of diffraction-limited optics), 4.4.5–4.4.6 (color sensors and digital camera interfaces), and 5.2.3 (the sampling theorem).</li>
+            <li>J. E. Greivenkamp, <em>Field Guide to Geometrical Optics</em>, SPIE Press (2004), <a href="https://doi.org/10.1117/3.547461" target="_blank" rel="noopener">doi:10.1117/3.547461</a> (f-number, depth of field, hyperfocal distance).</li>
+            <li>G. D. Boreman, <em>Modulation Transfer Function in Optical and Electro-Optical Systems</em>, SPIE Press (2001), <a href="https://doi.org/10.1117/3.419857" target="_blank" rel="noopener">doi:10.1117/3.419857</a>, secs. 1.5 (the diffraction MTF) and 2.2 (sampling and aliasing).</li>
+            <li>European Machine Vision Association, <em>EMVA Standard 1288: Standard for Characterization of Image Sensors and Cameras</em>, Release 4.0 Linear (16 June 2021), <a href="https://www.emva.org/wp-content/uploads/EMVA1288Linear_4.0Release.pdf" target="_blank" rel="noopener">emva.org</a>, secs. 2.1 and 2.7 (quantum efficiency, saturation capacity, and dynamic range); free.</li>
+            <li>Association for Advancing Automation (A3), GigE Vision 3.0 (2026), USB3 Vision 1.2, and Camera Link 2.1 standards, <a href="https://www.automate.org/vision/vision-standards" target="_blank" rel="noopener">automate.org/vision/vision-standards</a> (the camera interface standards; free to download for evaluation).</li>
+            <li>Japan Industrial Imaging Association, JIIA CXP-001-2021, <em>CoaXPress Standard</em>, version 2.1 (2021) (CXP-6 and CXP-12 links at 6.25 and 12.5&nbsp;Gb/s, with 8b/10b coding).</li>
+            <li>European Machine Vision Association, <em>GenICam Pixel Format Naming Convention (PFNC)</em>, version 2.4 (16 June 2021), <a href="https://www.emva.org/wp-content/uploads/GenICam_PFNC_2_4.pdf" target="_blank" rel="noopener">emva.org</a>, sec. 6.3 (packed formats: Mono10p and Mono12p carry 1.25 and 1.5&nbsp;bytes per pixel).</li>
+            <li>Japan Industrial Imaging Association, LE-004, <em>TFL Mount and TFL-II Mount Standards and Operational Regulations</em>, and JIIA’s comparison of machine vision lens mounts by image size, <a href="https://jiia.org/mv_dl/lens/" target="_blank" rel="noopener">jiia.org/mv_dl/lens</a>, in Japanese (the mount suggested for each lens format).</li>
+            <li>Edmund Optics, “TFL Lens: Maximum Optical Performance beyond 1.1″ Sensors,” white paper (2020), <a href="https://www.edmundoptics.com/ViewDocument/TFL-Lens.pdf" target="_blank" rel="noopener">PDF</a>, and “Lens Mounts,” <a href="https://www.edmundoptics.com/knowledge-center/application-notes/imaging/lens-mounts/" target="_blank" rel="noopener">edmundoptics.com</a> (1.1″, 17.6&nbsp;mm, as the practical limit of C-mount; the TFL mount for APS-C sensors, 27.9&nbsp;mm, and the TFL-II mount for APS-H, 35&nbsp;mm; the F-mount for 35&nbsp;mm, 43.3&nbsp;mm).</li>
+            <li>Sensor data: Sony Semiconductor Solutions, <a href="https://www.sony-semicon.com/en/products/is/industry/selector.html" target="_blank" rel="noopener">Product Selector for Industrial Image Sensors</a> and product flyers; onsemi, Gpixel, Teledyne e2v, ams OSRAM, Canon, OmniVision, SmartSens, STMicroelectronics, and Fairchild Imaging datasheets, product pages, and press releases, some through distributor copies or the Internet Archive (array, pixel pitch, optical format, shutter, frame rate, and status of every sensor in the list; the table links each sensor’s source; checked October 2026).</li>
+            <li>Interface throughput: JAI, “GigE Interface, a true versatile workhorse” (12 October 2020), <a href="https://news.jai.com/blog/gige-interface-a-true-versatile-workhorse" target="_blank" rel="noopener">news.jai.com</a> (effective throughput of 115, 287.5, 575, and 1150&nbsp;MB/s); A3, “What Is USB3 Vision?”, <a href="https://www.automate.org/vision/vision-standards/usb3-vision" target="_blank" rel="noopener">automate.org</a> (350–400&nbsp;MB/s sustained); Opto Engineering, “Camera Link,” <a href="https://www.opto-e.com/en/basics/camera-link" target="_blank" rel="noopener">opto-e.com</a> (255 and 680&nbsp;MB/s at 85&nbsp;MHz); A. Wilson, “CoaXPress gains support as bandwidth rises,” <em>Vision Systems Design</em> (14 February 2018), <a href="https://www.vision-systems.com/home/article/16739366/coaxpress-gains-support-as-bandwidth-rises" target="_blank" rel="noopener">vision-systems.com</a> (at least 95&nbsp;% of the coded CoaXPress rate carries image data).</li>
+            <li>Pixels across a feature: M. Henkart, “Spatial Resolution in Machine Vision,” Commonlands Optics (updated May 2026), <a href="https://commonlands.com/blogs/technical/spatial-resolution-machine-vision" target="_blank" rel="noopener">commonlands.com</a> (2&nbsp;pixels as the sampling floor, 3–5 for production inspection, 10 or more for measurement, all as starting heuristics).</li>
+            <li>Texas Instruments, “Light That Freezes Motion – Insight into a LED Lighting Control Design for Machine Vision,” technical article SSZT704 (May 2018), <a href="https://www.ti.com/lit/pdf/sszt704" target="_blank" rel="noopener">ti.com</a> (motion blur of at most one pixel, by shutter or strobe).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>NI, “Calculating Camera Sensor Resolution and Lens Focal Length” (updated 7 October 2020), <a href="https://www.ni.com/en/support/documentation/supplemental/18/calculating-camera-sensor-resolution-and-lens-focal-length.html" target="_blank" rel="noopener">ni.com</a> (from field of view and smallest feature to sensor resolution and focal length, step by step).</li>
+            <li>Edmund Optics, “Imaging Electronics 101: Understanding Camera Sensors for Machine Vision Applications,” <a href="https://www.edmundoptics.com/knowledge-center/application-notes/imaging/understanding-camera-sensors-for-machine-vision-applications/" target="_blank" rel="noopener">edmundoptics.com</a> (sensor format names, global and rolling shutters, color sensors).</li>
+            <li>D. Martin, “A Practical Guide to Machine Vision Lighting,” Advanced Illumination (February 2013), <a href="https://www.advancedillumination.com/wp-content/uploads/2018/10/A-Practical-Guide-to-Machine-Vision-Lighting-v.-4-Generic.pdf" target="_blank" rel="noopener">PDF</a> (back, dome, on-axis, and dark-field lighting, and choosing a light color for contrast).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="machine-vision-lens,motion-blur,optical-density,article:machine-vision-optics"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const V = window.VisionData;
+    const $ = id => document.getElementById(id);
+    const picker = V.attachPicker($('sensor'), { selected: 'imx250' });
+    const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+    document.querySelectorAll('[data-vd-count]').forEach(e => { e.textContent = V.sensors.length; });
+    document.querySelectorAll('[data-vd-makers]').forEach(e => { e.textContent = WORDS[V.makers.length] || V.makers.length; });
+    $('ft-maker').insertAdjacentHTML('beforeend', V.makers.map(m => '<option value="' + m + '">' + m + ' (' + V.sensors.filter(x => x.maker === m).length + ')</option>').join(''));
+    // a link from before the filters moved out of the form: "rank only global-shutter sensors" becomes the shutter filter
+    if (/(^#|&)cfg\.globalonly=1(&|$)/.test(location.hash)) $('ft-shutter').value = 'still';
+    // lens format each sensor needs (fixed data, so computed once) and the filter's size classes by format index
+    const FMT = new Map(V.sensors.map(x => { const lf = V.lensFormatFor(x.diag); return [x.id, { lf, idx: lf.custom ? 99 : V.lensFormats.indexOf(lf) }]; }));
+    const SIZE = { s: [0, 2], c: [3, 5], m: [6, 8], l: [9, 99] };
+    const TOP = 20;
+    let showAll = false;
+    $('iface').innerHTML = V.interfaces.map(i => '<option value="' + i.id + '"' + (i.id === 'gige' ? ' selected' : '') + '>' + i.name + ' · ~' + (i.mbps >= 1000 ? (i.mbps / 1000) + ' GB/s' : i.mbps + ' MB/s') + '</option>').join('');
+    $('pixfmt').innerHTML = V.pixelFormats.map(p => '<option value="' + p.id + '">' + p.name + '</option>').join('');
+    const fInput = $('f');
+    const syncF = () => { fInput.disabled = $('fmode').value !== 'custom'; };
+    $('fmode').addEventListener('change', syncF);
+
+    const L = (x, sig) => fmt.si(x, 'm', sig || 3, { max: 0 });
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const STD = V.focalLengths.map(x => x * 1e-3);
+    const pickF = (fideal, wd) => STD.filter(x => x <= fideal * (1 + 1e-9) && x < wd).pop();
+    const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+    const n1 = x => x.toFixed(1);
+
+    // Optics for one sensor; all lengths in metres
+    function optics(s, v, fForced) {
+        const p = s.pitch * 1e-6, sw = s.nx * p, sh = s.ny * p;
+        const mmax = Math.min(sw / v.fovw, sh / v.fovh);
+        const fideal = mmax * v.wd / (1 + mmax);
+        const f = fForced || pickF(fideal, v.wd) || null;
+        const r = { p, sw, sh, mmax, fideal, f };
+        if (!f || !(v.wd > f)) return r;
+        const m = f / (v.wd - f);
+        const c = v.blur * p, Hf = f * f / (v.N * c) + f;
+        const near = v.wd * (Hf - f) / (Hf + v.wd - 2 * f);
+        const far = v.wd < Hf ? v.wd * (Hf - f) / (Hf - v.wd) : Infinity;
+        Object.assign(r, { m, fovA: sw / m, fovB: sh / m, pobj: p / m, near, far, dof: far - near });
+        r.ppf = v.feat / r.pobj;
+        return r;
+    }
+
+    function sideSVG(o, v, s) {
+        const W = 640, H = 268, cy = 118;
+        const fmm = o.f * 1e3, lw = clamp(26 + 13 * Math.log2(Math.max(fmm, 4) / 4), 26, 92);
+        const x0l = 132, xl = x0l + lw;                         // lens front principal point
+        const tanA = (o.fovA / 2) / v.wd;
+        const Lmax = W - 118 - xl, Lx = Math.min(Lmax, 88 / Math.max(tanA, 1e-9));
+        const xo = xl + Lx, half = Lx * tanA, reqHalf = Lx * (v.fovw / 2) / v.wd;
+        const covered = o.fovA >= v.fovw * (1 - 1e-9) && o.fovB >= v.fovh * (1 - 1e-9);
+        const xN = xl + Lx * o.near / v.wd, xF = isFinite(o.far) ? Math.min(xl + Lx * o.far / v.wd, W - 8) : W - 8;
+        const dN = clamp(xN, xl + 4, xo - 1), dF = clamp(xF, xo + 1, W - 8);
+        const dep = Math.max(1.5, Lx * v.depth / v.wd);
+        const yDim = Math.min(cy + half + 26, H - 46);
+        let g = '';
+        g += '<rect class="cam" x="14" y="' + (cy - 36) + '" width="' + (x0l - 18) + '" height="72" rx="7"/>';
+        g += '<line class="sensor" x1="' + (x0l - 8) + '" y1="' + (cy - 22) + '" x2="' + (x0l - 8) + '" y2="' + (cy + 22) + '"/>';
+        g += '<text class="lbl-b" x="22" y="' + (cy - 6) + '">' + esc(s.name) + '</text>';
+        g += '<text class="lbl-s" x="22" y="' + (cy + 13) + '">' + n1(s.width) + ' × ' + n1(s.height) + ' mm</text>';
+        g += '<rect class="lens" x="' + (x0l - 4) + '" y="' + (cy - 26) + '" width="' + (lw + 4) + '" height="52" rx="4"/>';
+        g += '<text class="lbl" x="' + (x0l + lw / 2) + '" y="' + (cy - 33) + '" text-anchor="middle">' + Math.round(fmm * 10) / 10 + ' mm f/' + v.N + '</text>';
+        g += '<rect class="dof" x="' + dN + '" y="' + (cy - half - 10) + '" width="' + (dF - dN) + '" height="' + (2 * half + 20) + '"/>';
+        g += '<polygon class="cone" points="' + xl + ',' + cy + ' ' + xo + ',' + (cy - half) + ' ' + xo + ',' + (cy + half) + '"/>';
+        g += '<line class="ray" x1="' + xl + '" y1="' + cy + '" x2="' + xo + '" y2="' + (cy - half) + '"/><line class="ray" x1="' + xl + '" y1="' + cy + '" x2="' + xo + '" y2="' + (cy + half) + '"/>';
+        g += '<line class="axis" x1="' + xl + '" y1="' + cy + '" x2="' + xo + '" y2="' + cy + '"/>';
+        g += '<rect class="depth" x="' + (xo - dep / 2) + '" y="' + (cy - Math.min(reqHalf, half) - 4) + '" width="' + dep + '" height="' + (2 * Math.min(reqHalf, half) + 8) + '"/>';
+        g += '<line class="plane" x1="' + xo + '" y1="' + (cy - half - 6) + '" x2="' + xo + '" y2="' + (cy + half + 6) + '"/>';
+        g += '<line class="req' + (covered ? '' : ' bad') + '" x1="' + (xo + 6) + '" y1="' + (cy - reqHalf) + '" x2="' + (xo + 6) + '" y2="' + (cy + reqHalf) + '"/>';
+        const yFov = Math.min(cy - half + 20, cy - 10);          // a narrow cone must not stack the three labels on top of each other
+        g += '<text class="lbl" x="' + (xo + 14) + '" y="' + yFov + '">FOV ' + esc(L(o.fovA)) + '</text>';
+        g += '<text class="lbl" x="' + (xo + 14) + '" y="' + Math.max(cy + 4, yFov + 18) + '" style="fill:var(--c3)">need ' + esc(L(v.fovw)) + '</text>';
+        g += '<text class="lbl" x="' + ((dN + dF) / 2) + '" y="' + Math.min(cy - half - 15, yFov - 20) + '" text-anchor="middle" style="fill:var(--c3)">DOF ' + esc(isFinite(o.dof) ? L(o.dof) : '∞') + '</text>';
+        g += '<path class="dim" d="M' + xl + ' ' + (yDim - 5) + 'V' + (yDim + 5) + 'M' + xo + ' ' + (yDim - 5) + 'V' + (yDim + 5) + 'M' + xl + ' ' + yDim + 'H' + xo + '"/>';
+        g += '<text class="lbl" x="' + ((xl + xo) / 2) + '" y="' + (yDim + 16) + '" text-anchor="middle">working distance ' + esc(L(v.wd)) + '</text>';
+        g += '<text class="lbl-s" x="14" y="' + (H - 6) + '">Angles to scale. Green: depth of field. Orange: height range.</text>';
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '">' + g + '</svg>';
+    }
+
+    function fovSVG(o, v) {
+        const W = 300, H = 200, bw = 270, bh = 180;
+        const mw = Math.max(o.fovA, v.fovw), mh = Math.max(o.fovB, v.fovh);
+        const k = Math.min(bw / mw, bh / mh);
+        const aw = o.fovA * k, ah = o.fovB * k, rw = v.fovw * k, rh = v.fovh * k;
+        const cx = W / 2, cy = H / 2;
+        const covered = o.fovA >= v.fovw * (1 - 1e-9) && o.fovB >= v.fovh * (1 - 1e-9);
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '">' +
+            '<rect class="fov-act" x="' + (cx - aw / 2) + '" y="' + (cy - ah / 2) + '" width="' + aw + '" height="' + ah + '" rx="2"/>' +
+            '<rect class="fov-req' + (covered ? '' : ' bad') + '" x="' + (cx - rw / 2) + '" y="' + (cy - rh / 2) + '" width="' + rw + '" height="' + rh + '"/>' +
+            '</svg>';
+    }
+
+    function pixSVG(o) {
+        const S = 210, ppf = o.ppf;
+        const n = clamp(Math.ceil(ppf * 1.7) + 2, 6, 36), cell = (S - 10) / n, x0 = 5;
+        const ctr = x0 + (S - 10) / 2, r = ppf * cell / 2;
+        let g = '';
+        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+            const px = x0 + (i + 0.5) * cell, py = x0 + (j + 0.5) * cell;
+            if (Math.hypot(px - ctr, py - ctr) <= r) g += '<rect class="px-hit" x="' + (x0 + i * cell) + '" y="' + (x0 + j * cell) + '" width="' + cell + '" height="' + cell + '"/>';
+        }
+        let lines = '';
+        for (let i = 0; i <= n; i++) {
+            const t = x0 + i * cell;
+            lines += 'M' + t + ' ' + x0 + 'V' + (S - 5) + 'M' + x0 + ' ' + t + 'H' + (S - 5);
+        }
+        return '<svg viewBox="0 0 ' + S + ' ' + S + '">' + g + '<path class="gridl" d="' + lines + '"/>' +
+            '<circle class="feat" cx="' + ctr + '" cy="' + ctr + '" r="' + Math.min(r, S) + '"/></svg>';
+    }
+
+    function circSVG(s, lf) {
+        const circle = lf.custom ? s.diag : lf.circle;   // no standard format: draw the smallest circle that would cover it
+        const S = 210, D = Math.max(circle, s.diag), k = 186 / D, c = S / 2;
+        const w = s.width * k, h = s.height * k;
+        return '<svg viewBox="0 0 ' + S + ' ' + S + '">' +
+            '<circle class="circ" cx="' + c + '" cy="' + c + '" r="' + (circle * k / 2) + '"/>' +
+            '<rect class="chip" x="' + (c - w / 2) + '" y="' + (c - h / 2) + '" width="' + w + '" height="' + h + '"/></svg>';
+    }
+
+    const item = (cls, title, text) => '<li class="' + cls + '"><span class="ic">' + (cls === 'ok' ? '✓' : cls === 'warn' ? '!' : '✕') + '</span><span><b>' + title + '.</b> ' + text + '</span></li>';
+    let summaryText = '';
+
+    const calc = Calc.create({
+        id: 'cfg',
+        form: '#cfg',
+        outputs: 'main',
+        compute(v) {
+            syncF();
+            picker.refresh();   // the sensor line under the menu (Reset and links set the menu without a change event)
+            const s = V.sensorById(v.sensor) || V.sensorById('imx250');
+            const iface = V.interfaces.find(i => i.id === v.iface) || V.interfaces[0];
+            const pf = V.pixelFormats.find(p => p.id === v.pixfmt) || V.pixelFormats[0];
+            const light = V.lighting[v.app] || V.lighting.flat;
+            const custom = v.fmode === 'custom';
+            const o = optics(s, v, custom ? v.f : null);
+            if (!o.f) throw Calc.fail('This field needs a lens shorter than 4 mm at ' + L(v.wd) + '. Increase the working distance or use a smaller field.', 'wd');
+            if (!(v.wd > o.f)) throw Calc.fail('The working distance must be longer than the focal length.', 'wd');
+
+            const lf = V.lensFormatFor(s.diag);
+            const covered = o.fovA >= v.fovw * (1 - 1e-9) && o.fovB >= v.fovh * (1 - 1e-9);
+            const resOK = o.ppf >= v.ppf * (1 - 1e-9);
+            // the thin-lens depth of field is asymmetric about the working distance (the near side is always the shorter), so test both ends of WD ± depth/2
+            const dofOK = !(v.depth > 0) || (o.near <= v.wd - v.depth / 2 && o.far >= v.wd + v.depth / 2);
+            const Nw = v.N * (1 + o.m), airy = 2.44 * v.wl * Nw;
+            const ratio = 2 * o.p / (v.wl * Nw), nu = 1 / ratio;
+            const mtf = nu < 1 ? (2 / Math.PI) * (Math.acos(nu) - nu * Math.sqrt(1 - nu * nu)) : 0;
+            const blurPx = v.speed * v.exp / o.pobj;
+            const rate = s.nx * s.ny * pf.bpp * v.fps / 1e6;               // MB/s
+            const maxFps = iface.mbps * 1e6 / (s.nx * s.ny * pf.bpp);
+            const bwOK = rate <= iface.mbps;
+            const persp = (v.fovw / 2) * v.depth / v.wd / o.pobj;          // edge size shift over the height range, px
+
+            // checks
+            const ck = [];
+            ck.push(covered
+                ? item('ok', 'Field of view', 'Covers your ' + L(v.fovw) + ' × ' + L(v.fovh) + ' field with a ' + L(o.fovA) + ' × ' + L(o.fovB) + ' view.')
+                : item('bad', 'Field of view', 'Only ' + L(o.fovA) + ' × ' + L(o.fovB) + ' at this distance. Use a focal length of ' + L(o.fideal) + ' or shorter, or move the camera back.'));
+            ck.push(resOK
+                ? item('ok', 'Resolution', fmt.num(o.ppf, 3) + ' px across a ' + fmt.si(v.feat, 'm', 3) + ' feature (target ' + v.ppf + ').')
+                : item('bad', 'Resolution', 'Only ' + fmt.num(o.ppf, 3) + ' px across a ' + fmt.si(v.feat, 'm', 3) + ' feature (target ' + v.ppf + '). Use a sensor with more pixels or smaller pixels, a smaller field, or more cameras.'));
+            const farTxt = isFinite(o.far) ? L(o.far) : '∞';
+            if (v.depth > 0) ck.push(dofOK
+                ? item('ok', 'Depth of field', (isFinite(o.dof) ? L(o.dof) : 'Unlimited') + ' at f/' + v.N + ' (in focus from ' + L(o.near) + ' to ' + farTxt + ') covers the ' + L(v.depth) + ' height variation.')
+                : o.dof < v.depth
+                    ? item('bad', 'Depth of field', 'Only ' + L(o.dof) + ' at f/' + v.N + ' for a ' + L(v.depth) + ' height variation. Stop down, accept more blur, or reduce magnification.')
+                    : item('bad', 'Depth of field', L(o.dof) + ' at f/' + v.N + ', but it runs from ' + L(o.near) + ' to ' + farTxt + ', so the near end of the ' + L(v.depth) + ' height variation (' + L(v.wd - v.depth / 2) + ') is out of focus. Stop down, accept more blur, or reduce magnification.'));
+            ck.push(ratio >= 2
+                ? item('ok', 'Optics vs. pixels', 'Sensor-limited: the ideal lens keeps ' + fmt.pct(mtf, 2) + ' contrast at the pixel Nyquist frequency.')
+                : ratio >= 1
+                    ? item('warn', 'Optics vs. pixels', 'Balanced: only ' + fmt.pct(mtf, 2) + ' contrast at Nyquist even for a perfect lens. Open the aperture if depth of field allows.')
+                    : item('bad', 'Optics vs. pixels', 'Diffraction-limited at f/' + fmt.num(Nw, 3) + ' working: the blur spans ' + fmt.num(airy / o.p, 2) + ' px. Open the aperture or use larger pixels.'));
+            if (v.speed > 0) {
+                ck.push(blurPx <= 1
+                    ? item('ok', 'Motion blur', fmt.num(blurPx, 2) + ' px at ' + fmt.si(v.exp, 's', 3) + '.')
+                    : item(blurPx <= 2 ? 'warn' : 'bad', 'Motion blur', fmt.num(blurPx, 2) + ' px at ' + fmt.si(v.exp, 's', 3) + '. Keep exposure under ' + fmt.si(o.pobj / v.speed, 's', 2) + ' (use a strobe) for 1 px.'));
+                if (s.shutter === 'rolling') ck.push(item('warn', 'Shutter', s.name + ' is a rolling-shutter sensor, which skews moving parts. Use a global-shutter sensor or a short strobe in a dark enclosure.'));
+            }
+            // an interline CCD exposes every pixel together, like a global shutter, unless it reads two fields in turn
+            if (s.shutter === 'ccd-fullframe') ck.push(item('warn', 'Shutter', s.name + ' is a full-frame CCD: it has no electronic shutter, and its pixels keep collecting light while the image is read out. Use a mechanical shutter, or a strobe in a dark enclosure' + (v.speed > 0 ? ', which also freezes the motion.' : ', even for a part at rest.')));
+            else if (s.frameReadout) ck.push(item('warn', 'Shutter', s.name + ' is an interline CCD with frame readout: it reads a full frame as two interlaced fields, one after the other, so a full-resolution image needs a mechanical shutter or a strobe in a dark enclosure.'));
+            ck.push(bwOK
+                ? item('ok', 'Bandwidth', fmt.num(rate, 3) + ' MB/s of about ' + iface.mbps + ' MB/s on ' + iface.name + ', so up to ' + fmt.num(maxFps, 3) + ' fps.')
+                : item('bad', 'Bandwidth', fmt.num(rate, 3) + ' MB/s exceeds the roughly ' + iface.mbps + ' MB/s of ' + iface.name + ', which allows at most ' + fmt.num(maxFps, 3) + ' fps. Use a faster interface, a region of interest, or fewer bits per pixel.'));
+            if (s.fps && v.fps > s.fps * (1 + 1e-9)) ck.push(item('bad', 'Frame rate', s.name + ' reaches ' + fmt.num(s.fps, 4) + ' fps at full resolution' + (s.fpsBits ? ' (' + s.fpsBits + '-bit)' : '') + ' according to its maker, below the ' + v.fps + ' fps needed. Use a region of interest (fewer rows), a faster sensor, or more cameras.'));
+            const fp = V.formatPhrase(s), big = V.lensFormats[V.lensFormats.length - 1];
+            const nominal = !lf.custom && parseFloat(n1(s.diag)) > lf.circle;   // lensFormatFor used its tolerance and the displayed diagonal exceeds the nominal circle (the maker designates the sensor by this format)
+            ck.push(lf.custom
+                ? item('warn', 'Lens format', 'No standard machine vision lens format listed here covers this ' + n1(s.diag) + ' mm sensor diagonal' + (fp ? ' (the maker’s format: ' + fp + ')' : '') + '; the largest, ' + big.name + ', is Ø ' + big.circle + ' mm. Use custom or large-format optics whose stated image circle is at least ' + n1(s.diag) + ' mm, typically on an M72 or larger mount.')
+                : item('ok', 'Lens format', nominal
+                    ? 'Use a lens rated for ' + lf.name + ' (Ø ' + lf.circle + ' mm nominal; ' + lf.name + ' lenses cover this ' + n1(s.diag) + ' mm ' + (fp ? fp + ' ' : '') + 'sensor) or larger; ' + lf.mount + '.'
+                    : 'Use a lens rated for ' + lf.name + ' (Ø ' + lf.circle + ' mm) or larger to cover the ' + n1(s.diag) + ' mm sensor diagonal; ' + lf.mount + '.'));
+            if (v.app === 'measure' && v.depth > 0 && persp > 0.5) ck.push(item('warn', 'Perspective', 'A ' + L(v.depth) + ' height change shifts edges at the field edge by ' + fmt.num(persp, 2) + ' px. A telecentric lens removes this error.'));
+            if (v.app === 'color') ck.push(s.color === 'mono'
+                ? item('bad', 'Color', s.name + ' is sold only in monochrome. Pick a sensor that comes in a color version.')
+                : item('warn', 'Color', 'Pick the color version of the camera. Its Bayer filter samples red and blue on every second row and column, so fine color detail is resolved at about half the pixel density.'));
+            else if (s.color === 'color') ck.push(item('warn', 'Color filter', s.name + ' is sold only with a color (Bayer) filter, which samples red and blue on every second row and column; a monochrome sensor resolves finer detail.'));
+
+            const bad = ck.filter(x => x.indexOf('<li class="bad"') === 0).length;   // every ✕ check, including diffraction and motion blur
+            const verdict = $('verdict');
+            verdict.className = 'badge ' + (bad ? 'badge-bad' : (ck.some(x => x.indexOf('<li class="warn"') === 0) ? 'badge-warn' : 'badge-ok'));
+
+            const fLabel = Math.round(o.f * 1e4) / 10 + ' mm';
+            const limSig = clamp(Math.ceil(Math.log10(o.far / o.dof)) + 2, 4, 7) || 4;   // enough digits that a shallow depth of field still shows two distinct limits
+            const used = 100 * v.fovw * v.fovh / (o.fovA * o.fovB);
+            const lensFmt = lf.custom ? 'custom or large-format optics with an image circle of at least ' + n1(s.diag) + ' mm, ' + lf.mount : lf.name + ' or larger, ' + lf.mount;
+            summaryText = [
+                'Sensor: ' + s.maker + ' ' + s.name + ' (' + V.formatLabel(s) + ', ' + s.nx + ' × ' + s.ny + ', ' + s.pitch + ' µm, ' + V.shutterLabel(s) + ')',
+                'Lens: ' + fLabel + ', f/' + v.N + ', ' + lensFmt,
+                'Working distance: ' + L(v.wd) + ' → field ' + L(o.fovA) + ' × ' + L(o.fovB) + ', ' + fmt.si(o.pobj, 'm', 3) + '/px',
+                'Interface: ' + iface.name + ', ' + pf.name + ', ' + v.fps + ' fps (' + fmt.num(rate, 3) + ' MB/s)',
+                'Lighting: ' + light.light
+            ].join('\n');
+
+            // ranking table: filter, rank every match (cheap), then render the best TOP rows unless "show all" is on
+            const fm = $('ft-maker').value, fs = $('ft-shutter').value, fc = $('ft-color').value, fz = SIZE[$('ft-size').value], srt = $('ft-sort').value, eol = $('ft-eol').checked;
+            const rows = V.sensors.filter(x => (eol || x.status !== 'EOL') && (!fm || x.maker === fm) &&
+                (!fs || (fs === 'still' ? x.allAtOnce : x.shutter === fs)) && (!fc || x.color === 'both' || x.color === fc) &&
+                (!fz || (FMT.get(x.id).idx >= fz[0] && FMT.get(x.id).idx <= fz[1]))).map(x => {
+                const r = optics(x, v, null);
+                const mf = iface.mbps * 1e6 / (x.nx * x.ny * pf.bpp);
+                const sf = x.fps ? Math.min(mf, x.fps) : mf;   // the interface limit, or the maker's full-resolution figure if lower
+                const ok = r.f && r.ppf >= v.ppf * (1 - 1e-9) && (!(v.depth > 0) || (r.near <= v.wd - v.depth / 2 && r.far >= v.wd + v.depth / 2)) && sf >= v.fps;
+                const near = r.f && r.ppf >= 0.8 * v.ppf;
+                return { x, r, sf, ok, near, rank: ok ? 0 : near ? 1 : 2 };
+            });
+            const key = { mp: a => -a.x.mp, pitch: a => -a.x.pitch, diag: a => a.x.diag, fps: a => -(a.x.fps || 0), year: a => -(a.x.year || 0) }[srt];
+            rows.sort((a, b) => a.rank - b.rank || (key ? key(a) - key(b) : a.rank === 0 ? a.x.mp - b.x.mp : (b.r.ppf || 0) - (a.r.ppf || 0)));
+            const nFit = rows.filter(r => r.ok).length;
+            const shown = showAll ? rows : rows.slice(0, TOP);
+            const stBadge = x => x.status === 'active' ? '<span class="st st-a">active</span>' : x.status === 'EOL' ? '<span class="st st-eol">EOL</span>' : '<span class="st st-u">status unknown</span>';
+            const table = !rows.length ? '<p class="hint">No sensor passes these filters. Clear a filter to see more.</p>' :
+                '<table class="fit"><thead><tr><th>Sensor</th><th>Fit</th><th>Shutter</th><th class="num">Array</th><th class="num">Pixel</th><th class="num">Lens</th><th class="num">On part</th><th class="num">px on feature</th><th class="num">DOF</th><th class="num">Max fps</th><th>Lens format</th><th></th></tr></thead><tbody>' +
+                shown.map(({ x, r, sf, ok, near }) => {
+                    const lfx = FMT.get(x.id).lf;
+                    const badge = ok ? '<span class="fit-badge ok">fits</span>' : near ? '<span class="fit-badge warn">close</span>' : '<span class="fit-badge bad">no</span>';
+                    return '<tr class="' + (x.id === s.id ? 'sel ' : '') + (ok || near ? '' : 'no') + '">' +
+                        '<td class="nm"><b>' + esc(x.name) + '</b> ' + stBadge(x) + '<span class="sub">' + esc(x.maker + ' ' + x.family) + (x.year ? ' · ' + x.year : '') +
+                        ' · <a href="' + esc(x.src) + '" target="_blank" rel="noopener" aria-label="Source for ' + esc(x.name) + '">source</a></span></td>' +
+                        '<td>' + badge + '</td><td>' + esc(x.frameReadout ? 'CCD, frame readout' : V.shutters[x.shutter].short) + '</td>' +
+                        '<td class="num">' + x.nx + ' × ' + x.ny + '</td><td class="num">' + x.pitch + ' µm</td>' +
+                        '<td class="num">' + (r.f ? Math.round(r.f * 1e4) / 10 + ' mm' : '< 4 mm') + '</td>' +
+                        '<td class="num">' + (r.f ? esc(fmt.si(r.pobj, 'm', 3)) : '—') + '</td>' +
+                        '<td class="num">' + (r.f ? fmt.num(r.ppf, 3) : '—') + '</td>' +
+                        '<td class="num">' + (r.f ? (isFinite(r.dof) ? esc(L(r.dof, 2)) : '∞') : '—') + '</td>' +
+                        '<td class="num">' + fmt.num(sf, 3) + '</td>' +
+                        '<td>' + esc(lfx.custom ? 'custom, Ø ≥ ' + n1(x.diag) + ' mm' : lfx.name) + '</td>' +
+                        '<td><button type="button" class="btn btn-ghost btn-sm" data-use="' + x.id + '" aria-label="Use ' + esc(x.name) + '">Use</button></td></tr>';
+                }).join('') + '</tbody></table>' +
+                (rows.length > TOP ? '<p class="fit-more"><button type="button" class="btn btn-ghost btn-sm" data-fit-all aria-expanded="' + showAll + '">' +
+                    (showAll ? 'Show the best ' + TOP : 'Show all ' + rows.length) + '</button><span class="hint">' +
+                    (showAll ? 'All ' + rows.length + ' sensors shown.' : 'Showing the best ' + TOP + ' of ' + rows.length + '.') + '</span></p>' : '');
+
+            return {
+                verdict: bad ? bad + (bad > 1 ? ' problems' : ' problem') : (verdict.className.indexOf('warn') >= 0 ? 'Works, with notes' : 'Works'),
+                side: { html: sideSVG(o, v, s) },
+                fovsvg: { html: fovSVG(o, v) },
+                pixsvg: { html: pixSVG(o) },
+                circsvg: { html: circSVG(s, lf) },
+                fovcap: L(o.fovA) + ' × ' + L(o.fovB) + (covered ? ' · ' + (used < 0.5 ? '< 1' : Math.round(used)) + '% used' : ' · too small'),
+                pixcap: fmt.num(o.ppf, 2) + ' px across · 1 px = ' + fmt.si(o.pobj, 'm', 3),
+                circcap: (lf.custom ? 'no standard format: needs Ø ≥ ' + n1(s.diag) + ' mm' : lf.name + ' lens, Ø ' + lf.circle + ' mm' + (nominal ? ' nominal' : '')) + ' · sensor Ø ' + n1(s.diag) + ' mm',
+                checks: { html: '<ul class="checks">' + ck.join('') + '</ul>' },
+                lens: fLabel + ' · f/' + v.N + (custom ? '' : ' (standard)'),
+                fov: L(o.fovA, 4) + ' × ' + L(o.fovB, 4),
+                m: fmt.num(o.m, 4) + '×',
+                pobj: fmt.si(o.pobj, 'm', 4) + '/px',
+                ppfout: fmt.num(o.ppf, 3) + ' px',
+                dof: isFinite(o.dof) ? L(o.dof) + '  (' + L(o.near, limSig) + ' to ' + L(o.far, limSig) + ')' : '∞',
+                nw: 'f/' + fmt.num(Nw, 3),
+                airy: fmt.si(airy, 'm', 3) + '  (' + fmt.num(airy / o.p, 3) + ' px)',
+                mtf: fmt.pct(mtf, 2),
+                mblur: v.speed > 0 ? fmt.num(blurPx, 3) + ' px  (' + fmt.si(v.speed * v.exp, 'm', 3) + ')' : 'stationary part',
+                rate: fmt.num(rate, 4) + ' MB/s',
+                maxfps: fmt.num(maxFps, 4) + ' fps',
+                fideal: L(o.fideal, 4),
+                summary: { html: '<dl class="summary-dl">' +
+                    '<dt>Sensor</dt><dd>' + esc(s.maker + ' ' + s.name) + ' · ' + esc(V.formatLabel(s)) + ' · ' + s.nx + ' × ' + s.ny + ' · ' + s.pitch + ' µm · ' + esc(V.shutterLabel(s)) + '</dd>' +
+                    '<dt>Lens</dt><dd>' + fLabel + ', f/' + v.N + ', ' + (lf.custom ? 'custom or large-format optics with an image circle of at least ' + n1(s.diag) + ' mm' : esc(lf.name) + (/format/i.test(lf.name) ? '' : ' format') + ' or larger') + ', ' + esc(lf.mount) + '</dd>' +
+                    '<dt>Setup</dt><dd>' + esc(L(v.wd)) + ' working distance, ' + esc(L(o.fovA)) + ' × ' + esc(L(o.fovB)) + ' field, ' + esc(fmt.si(o.pobj, 'm', 3)) + ' per pixel</dd>' +
+                    '<dt>Interface</dt><dd>' + esc(iface.name) + ', ' + esc(pf.name) + ', ' + v.fps + ' fps (' + fmt.num(rate, 3) + ' MB/s)</dd>' +
+                    '<dt>Exposure</dt><dd>' + esc(fmt.si(v.exp, 's', 3)) + (v.speed > 0 ? ' (' + fmt.num(blurPx, 2) + ' px of motion blur)' : '') + '</dd></dl>' },
+                light: { html: '<p><b>' + esc(light.label) + '.</b> ' + esc(light.light) + '</p><p>' + esc(light.color) + '</p>' },
+                fitcount: nFit + ' of ' + rows.length + ' fit',
+                table: { html: table }
+            };
+        }
+    });
+
+    document.querySelector('[data-out="table"]').addEventListener('click', e => {
+        if (e.target.closest('[data-fit-all]')) {
+            showAll = !showAll;
+            calc.run();
+            const nb = document.querySelector('[data-fit-all]');
+            if (nb) nb.focus();   // the table was redrawn: keep keyboard focus on the toggle
+            return;
+        }
+        const b = e.target.closest('[data-use]');
+        if (!b) return;
+        picker.choose(b.dataset.use);
+        $('cfg-viz').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    // the table filters are not calculator inputs (not in share links): redraw on change
+    ['ft-maker', 'ft-shutter', 'ft-color', 'ft-size', 'ft-sort', 'ft-eol'].forEach(i => $(i).addEventListener('change', () => calc.run()));
+    $('copy-sum').addEventListener('click', e => {
+        Calc.copyText(summaryText).then(ok => { if (!ok) return; e.target.textContent = 'Copied'; setTimeout(() => { e.target.textContent = 'Copy summary'; }, 1100); });
+    });
+});
+</script>
+</body>
+</html>

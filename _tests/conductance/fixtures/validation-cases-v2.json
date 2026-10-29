@@ -1,0 +1,855 @@
+{
+ "meta": {
+  "alpha_definition": "transmission probability referred to the inlet (first-named) opening; C = alpha * A_in * vbar/4",
+  "this_work": "TPMC/integral-equation results computed 2026-10-11 in E:/Temp/cdfoley-work/research/conductance (numpy TPMC, N=1e6-2e6, sigma = sqrt(a(1-a)/N); JS mesh TPMC for cross-checks)",
+  "sources": {
+   "matuda": "https://doi.org/10.3131/jvsj2.58.311",
+   "livesey": "https://www.wiley-vch.de/en/areas-interest/engineering/foundations-of-vacuum-science-and-technology-978-0-471-17593-3",
+   "nasa2330": "https://ntrs.nasa.gov/citations/19640011357",
+   "jpcrd": "https://srd.nist.gov/jpcrdreprint/1.556019.pdf",
+   "cas2006": "https://doi.org/10.5170/CERN-2007-003",
+   "leybold": "https://archive.org/details/FundamentalsOfVacuumTechnology/page/n15",
+   "santeler86": "https://doi.org/10.1116/1.573923"
+  }
+ },
+ "orifice_thin": {
+  "alpha": 1.0,
+  "C_air20C_L_per_s_per_cm2": 11.57,
+  "source": "https://archive.org/details/FundamentalsOfVacuumTechnology/page/n15 (eq. 1.30: 11.6 A)"
+ },
+ "tube_exact_m_eq_L_over_D": {
+  "1": 0.514230535,
+  "2": 0.356572732,
+  "5": 0.190942432,
+  "10": 0.109320714,
+  "20": 0.059450419,
+  "50": 0.025276364,
+  "100": 0.012944758,
+  "500": 0.002647618,
+  "source": "https://doi.org/10.3131/jvsj2.58.311 Table 1, I.E. column"
+ },
+ "tube_this_work_L_over_R": {
+  "0.05": 0.9756122,
+  "0.1": 0.9523989,
+  "0.2": 0.909215,
+  "0.4": 0.8340807,
+  "0.5": 0.8012714,
+  "0.8": 0.7177851,
+  "1": 0.6719839,
+  "1.5": 0.5814815,
+  "2": 0.5142305,
+  "3": 0.4200554,
+  "4": 0.3565727,
+  "5": 0.3105253,
+  "6": 0.2754388,
+  "8": 0.2252631,
+  "10": 0.1909424,
+  "15": 0.1388114,
+  "20": 0.1093207,
+  "30": 0.0769378,
+  "40": 0.0594504,
+  "50": 0.0484765,
+  "60": 0.0409393,
+  "80": 0.0312473,
+  "100": 0.0252764,
+  "200": 0.0129448
+ },
+ "slot_L_over_h": {
+  "jpcrd_table29_eq5.8": {
+   "0.1": 0.9525,
+   "0.2": 0.9096,
+   "0.4": 0.8362,
+   "0.5": 0.8047,
+   "1": 0.6844,
+   "2": 0.5421,
+   "4": 0.3992,
+   "5": 0.3565,
+   "10": 0.2408
+  },
+  "this_work_IE": {
+   "0.1": 0.952452,
+   "0.25": 0.889771,
+   "0.5": 0.804724,
+   "1": 0.684381,
+   "2": 0.542058,
+   "4": 0.399162,
+   "5": 0.356409,
+   "8": 0.274767,
+   "10": 0.240557,
+   "20": 0.153888,
+   "50": 0.08003
+  },
+  "source": "https://srd.nist.gov/jpcrdreprint/1.556019.pdf"
+ },
+ "rect_santeler_boeckmann_via_livesey_table2_6": {
+  "(b/a=1,l/a=1)": 0.5363,
+  "(1,2)": 0.378,
+  "(1,10)": 0.1195,
+  "(1,20)": 0.0655,
+  "(2,1)": 0.6026,
+  "(2,10)": 0.1537,
+  "(4,2)": 0.4893,
+  "(4,10)": 0.1843,
+  "(8,1)": 0.6631,
+  "(8,10)": 0.2078,
+  "(24,10)": 0.2287,
+  "(1,0.1)": 0.9131,
+  "source": "https://www.wiley-vch.de/en/areas-interest/engineering/foundations-of-vacuum-science-and-technology-978-0-471-17593-3 (ch. 2, Table 2.6, from Santeler & Boeckmann 1991)"
+ },
+ "rect_cole_via_livesey_table2_7": {
+  "(1,1)": 0.53619,
+  "(1,4)": 0.24233,
+  "(1,10)": 0.1193,
+  "(1,100)": 0.01438,
+  "(10,1)": 0.66722,
+  "(10,10)": 0.2128,
+  "(100,10)": 0.2372,
+  "(100,100)": 0.0438
+ },
+ "annulus_berman_via_livesey_table2_9_Ri_over_Ro_l_over_gap": {
+  "(0.5,2)": 0.5295,
+  "(0.5,10)": 0.2081,
+  "(0.75,2)": 0.5365,
+  "(0.75,10)": 0.22,
+  "(0.9,5)": 0.3507,
+  "(0.9,10)": 0.2304,
+  "(0.25,4)": 0.3661,
+  "(0.25,8)": 0.2339
+ },
+ "cone_nasa_tnd2330_table1a_beta_deg_L_over_R1": {
+  "(10,1)": 0.792,
+  "(10,4)": 0.638,
+  "(10,16)": 0.573,
+  "(20,2)": 0.834,
+  "(30,4)": 0.91,
+  "(45,1)": 0.979,
+  "(5,1)": 0.73,
+  "(5,16)": 0.359,
+  "(-5,1)": 0.606,
+  "(-10,4)": 0.045,
+  "(-5,8)": 0.044,
+  "(-60,0.5)": 0.022,
+  "source": "https://ntrs.nasa.gov/citations/19640011357",
+  "note": "diverging values agree with TPMC within ~1% except long, slightly diverging cones; converging values with small exits deviate up to +35% and violate reciprocity"
+ },
+ "cone_this_work": {
+  "cone beta=20 L/R1=2": {
+   "alpha": 0.837679,
+   "sigma": 0.0003687450243176171
+  },
+  "cone beta=45 L/R1=1": {
+   "alpha": 0.979419,
+   "sigma": 0.00014197683768488422
+  },
+  "cone beta=5 L/R1=16": {
+   "alpha": 0.380229,
+   "sigma": 0.00048544300134928305
+  },
+  "cone beta=5 L/R1=1": {
+   "alpha": 0.736043,
+   "sigma": 0.00044077624953143743
+  },
+  "cone beta=30 L/R1=16": {
+   "alpha": 0.906224,
+   "sigma": 0.0002915168294009798
+  },
+  "cone beta=60 L/R1=4": {
+   "alpha": 0.995628,
+   "sigma": 6.59764019631265e-05
+  },
+  "cone beta=-30 L/R1=1": {
+   "alpha": 0.162842,
+   "sigma": 0.00036922145527582765
+  },
+  "cone beta=-5 L/R1=1": {
+   "alpha": 0.600271,
+   "sigma": 0.0004898425528259055
+  },
+  "cone beta=-5 L/R1=8": {
+   "alpha": 0.032269,
+   "sigma": 0.0001767136430471626
+  },
+  "cone beta=-20 L/R1=1": {
+   "alpha": 0.343436,
+   "sigma": 0.0004748554663305457
+  },
+  "cone beta=-45 L/R1=0.5": {
+   "alpha": 0.244427,
+   "sigma": 0.0004297469507407819
+  },
+  "cone beta=-60 L/R1=0.5": {
+   "alpha": 0.017674,
+   "sigma": 0.000131763537156529
+  }
+ },
+ "cone_this_work_js_mesh": {
+  "(5,16)": [
+   0.37951,
+   0.00031
+  ],
+  "(10,16)": [
+   0.56736,
+   0.00032
+  ],
+  "(-5,8)": [
+   0.03253,
+   0.00011
+  ],
+  "(20,2)": [
+   0.8373,
+   0.00024
+  ]
+ },
+ "tpmc_reference_cases_this_work": {
+  "slot L/h=0.25": {
+   "alpha": 0.88974,
+   "sigma": 0.00022,
+   "wall_hits_per_particle": 0.25,
+   "N": 2000000
+  },
+  "slot L/h=0.5": {
+   "alpha": 0.80525,
+   "sigma": 0.00028,
+   "wall_hits_per_particle": 0.499,
+   "N": 2000000
+  },
+  "slot L/h=1": {
+   "alpha": 0.68478,
+   "sigma": 0.00033,
+   "wall_hits_per_particle": 1.0,
+   "N": 2000000
+  },
+  "slot L/h=2": {
+   "alpha": 0.54193,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 2.0,
+   "N": 2000000
+  },
+  "slot L/h=4": {
+   "alpha": 0.39877,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 3.998,
+   "N": 2000000
+  },
+  "slot L/h=8": {
+   "alpha": 0.275,
+   "sigma": 0.00032,
+   "wall_hits_per_particle": 8.01,
+   "N": 2000000
+  },
+  "slot L/h=10": {
+   "alpha": 0.24056,
+   "sigma": 0.0003,
+   "wall_hits_per_particle": 10.008,
+   "N": 2000000
+  },
+  "cone beta=10 L/R1=1": {
+   "alpha": 0.7902,
+   "sigma": 0.00029,
+   "wall_hits_per_particle": 0.814,
+   "N": 2000000
+  },
+  "cone beta=10 L/R1=4": {
+   "alpha": 0.63489,
+   "sigma": 0.00034,
+   "wall_hits_per_particle": 2.85,
+   "N": 2000000
+  },
+  "cone beta=10 L/R1=16": {
+   "alpha": 0.5677,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 7.706,
+   "N": 2000000
+  },
+  "cone beta=30 L/R1=4": {
+   "alpha": 0.90938,
+   "sigma": 0.0002,
+   "wall_hits_per_particle": 1.253,
+   "N": 2000000
+  },
+  "cone beta=-5 L/R1=4": {
+   "alpha": 0.19188,
+   "sigma": 0.00028,
+   "wall_hits_per_particle": 4.496,
+   "N": 2000000
+  },
+  "cone beta=-10 L/R1=1": {
+   "alpha": 0.52049,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 1.186,
+   "N": 2000000
+  },
+  "cone beta=-10 L/R1=2": {
+   "alpha": 0.27629,
+   "sigma": 0.00032,
+   "wall_hits_per_particle": 2.384,
+   "N": 2000000
+  },
+  "cone beta=-10 L/R1=4": {
+   "alpha": 0.04941,
+   "sigma": 0.00015,
+   "wall_hits_per_particle": 4.653,
+   "N": 2000000
+  },
+  "cone beta=-20 L/R1=2": {
+   "alpha": 0.05969,
+   "sigma": 0.00017,
+   "wall_hits_per_particle": 2.502,
+   "N": 2000000
+  },
+  "rect b/a=1 L/a=0.1": {
+   "alpha": 0.9132,
+   "sigma": 0.0002,
+   "wall_hits_per_particle": 0.2,
+   "N": 2000000
+  },
+  "rect b/a=1 L/a=0.5": {
+   "alpha": 0.6897,
+   "sigma": 0.00033,
+   "wall_hits_per_particle": 1.0,
+   "N": 2000000
+  },
+  "rect b/a=1 L/a=1": {
+   "alpha": 0.53622,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 1.999,
+   "N": 2000000
+  },
+  "rect b/a=1 L/a=2": {
+   "alpha": 0.37739,
+   "sigma": 0.00034,
+   "wall_hits_per_particle": 4.001,
+   "N": 2000000
+  },
+  "rect b/a=1 L/a=5": {
+   "alpha": 0.20637,
+   "sigma": 0.00029,
+   "wall_hits_per_particle": 9.99,
+   "N": 2000000
+  },
+  "rect b/a=1 L/a=10": {
+   "alpha": 0.11996,
+   "sigma": 0.00023,
+   "wall_hits_per_particle": 20.011,
+   "N": 2000000
+  },
+  "rect b/a=1 L/a=20": {
+   "alpha": 0.06564,
+   "sigma": 0.00018,
+   "wall_hits_per_particle": 39.999,
+   "N": 2000000
+  },
+  "rect b/a=2 L/a=0.1": {
+   "alpha": 0.93252,
+   "sigma": 0.00018,
+   "wall_hits_per_particle": 0.15,
+   "N": 2000000
+  },
+  "rect b/a=2 L/a=0.5": {
+   "alpha": 0.74412,
+   "sigma": 0.00031,
+   "wall_hits_per_particle": 0.751,
+   "N": 2000000
+  },
+  "rect b/a=2 L/a=1": {
+   "alpha": 0.6023,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 1.502,
+   "N": 2000000
+  },
+  "rect b/a=2 L/a=2": {
+   "alpha": 0.44338,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 3.0,
+   "N": 2000000
+  },
+  "rect b/a=2 L/a=5": {
+   "alpha": 0.25626,
+   "sigma": 0.00031,
+   "wall_hits_per_particle": 7.501,
+   "N": 2000000
+  },
+  "rect b/a=2 L/a=10": {
+   "alpha": 0.15394,
+   "sigma": 0.00026,
+   "wall_hits_per_particle": 15.024,
+   "N": 2000000
+  },
+  "rect b/a=2 L/a=20": {
+   "alpha": 0.08642,
+   "sigma": 0.0002,
+   "wall_hits_per_particle": 30.07,
+   "N": 2000000
+  },
+  "rect b/a=4 L/a=0.1": {
+   "alpha": 0.94232,
+   "sigma": 0.00016,
+   "wall_hits_per_particle": 0.125,
+   "N": 2000000
+  },
+  "rect b/a=4 L/a=0.5": {
+   "alpha": 0.77446,
+   "sigma": 0.0003,
+   "wall_hits_per_particle": 0.624,
+   "N": 2000000
+  },
+  "rect b/a=4 L/a=1": {
+   "alpha": 0.64175,
+   "sigma": 0.00034,
+   "wall_hits_per_particle": 1.249,
+   "N": 2000000
+  },
+  "rect b/a=4 L/a=2": {
+   "alpha": 0.4883,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 2.503,
+   "N": 2000000
+  },
+  "rect b/a=4 L/a=5": {
+   "alpha": 0.2973,
+   "sigma": 0.00032,
+   "wall_hits_per_particle": 6.252,
+   "N": 2000000
+  },
+  "rect b/a=4 L/a=10": {
+   "alpha": 0.18422,
+   "sigma": 0.00027,
+   "wall_hits_per_particle": 12.508,
+   "N": 2000000
+  },
+  "rect b/a=4 L/a=20": {
+   "alpha": 0.10668,
+   "sigma": 0.00022,
+   "wall_hits_per_particle": 25.006,
+   "N": 2000000
+  },
+  "rect b/a=8 L/a=0.1": {
+   "alpha": 0.94742,
+   "sigma": 0.00016,
+   "wall_hits_per_particle": 0.112,
+   "N": 2000000
+  },
+  "rect b/a=8 L/a=0.5": {
+   "alpha": 0.78946,
+   "sigma": 0.00029,
+   "wall_hits_per_particle": 0.562,
+   "N": 2000000
+  },
+  "rect b/a=8 L/a=1": {
+   "alpha": 0.66312,
+   "sigma": 0.00033,
+   "wall_hits_per_particle": 1.125,
+   "N": 2000000
+  },
+  "rect b/a=8 L/a=2": {
+   "alpha": 0.51501,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 2.251,
+   "N": 2000000
+  },
+  "rect b/a=8 L/a=5": {
+   "alpha": 0.32454,
+   "sigma": 0.00033,
+   "wall_hits_per_particle": 5.626,
+   "N": 2000000
+  },
+  "rect b/a=8 L/a=10": {
+   "alpha": 0.20772,
+   "sigma": 0.00029,
+   "wall_hits_per_particle": 11.237,
+   "N": 2000000
+  },
+  "rect b/a=8 L/a=20": {
+   "alpha": 0.12355,
+   "sigma": 0.00023,
+   "wall_hits_per_particle": 22.5,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.25 L/gap=0.5": {
+   "alpha": 0.8028,
+   "sigma": 0.00028,
+   "wall_hits_per_particle": 0.499,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.25 L/gap=1": {
+   "alpha": 0.67551,
+   "sigma": 0.00033,
+   "wall_hits_per_particle": 1.002,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.25 L/gap=2": {
+   "alpha": 0.52187,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 2.0,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.25 L/gap=5": {
+   "alpha": 0.31974,
+   "sigma": 0.00033,
+   "wall_hits_per_particle": 5.001,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.25 L/gap=10": {
+   "alpha": 0.19878,
+   "sigma": 0.00028,
+   "wall_hits_per_particle": 10.004,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.5 L/gap=0.5": {
+   "alpha": 0.80369,
+   "sigma": 0.00028,
+   "wall_hits_per_particle": 0.5,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.5 L/gap=1": {
+   "alpha": 0.67963,
+   "sigma": 0.00033,
+   "wall_hits_per_particle": 1.0,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.5 L/gap=2": {
+   "alpha": 0.52877,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 1.999,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.5 L/gap=5": {
+   "alpha": 0.33018,
+   "sigma": 0.00033,
+   "wall_hits_per_particle": 5.001,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.5 L/gap=10": {
+   "alpha": 0.20765,
+   "sigma": 0.00029,
+   "wall_hits_per_particle": 9.993,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.75 L/gap=0.5": {
+   "alpha": 0.80402,
+   "sigma": 0.00028,
+   "wall_hits_per_particle": 0.5,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.75 L/gap=1": {
+   "alpha": 0.6819,
+   "sigma": 0.00033,
+   "wall_hits_per_particle": 1.0,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.75 L/gap=2": {
+   "alpha": 0.53676,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 1.999,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.75 L/gap=5": {
+   "alpha": 0.34169,
+   "sigma": 0.00034,
+   "wall_hits_per_particle": 5.001,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.75 L/gap=10": {
+   "alpha": 0.22035,
+   "sigma": 0.00029,
+   "wall_hits_per_particle": 10.014,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.9 L/gap=0.5": {
+   "alpha": 0.8048,
+   "sigma": 0.00028,
+   "wall_hits_per_particle": 0.5,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.9 L/gap=1": {
+   "alpha": 0.68362,
+   "sigma": 0.00033,
+   "wall_hits_per_particle": 1.001,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.9 L/gap=2": {
+   "alpha": 0.5399,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 2.002,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.9 L/gap=5": {
+   "alpha": 0.35117,
+   "sigma": 0.00034,
+   "wall_hits_per_particle": 4.999,
+   "N": 2000000
+  },
+  "annulus Ri/Ro=0.9 L/gap=10": {
+   "alpha": 0.23045,
+   "sigma": 0.0003,
+   "wall_hits_per_particle": 9.991,
+   "N": 2000000
+  },
+  "elbow90 R=1 A=B=1": {
+   "alpha": 0.54176,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 2.001,
+   "N": 2000000
+  },
+  "elbow90 R=1 A=B=2": {
+   "alpha": 0.35147,
+   "sigma": 0.00034,
+   "wall_hits_per_particle": 4.003,
+   "N": 2000000
+  },
+  "elbow90 R=1 A=B=5": {
+   "alpha": 0.18207,
+   "sigma": 0.00027,
+   "wall_hits_per_particle": 9.999,
+   "N": 2000000
+  },
+  "elbow90 R=1 A=B=10": {
+   "alpha": 0.10449,
+   "sigma": 0.00022,
+   "wall_hits_per_particle": 20.006,
+   "N": 2000000
+  },
+  "orifice r=0.5 + tube R=1 L=8": {
+   "alpha": 0.54546,
+   "sigma": 0.00035,
+   "wall_hits_per_particle": 20.697,
+   "N": 2000000
+  },
+  "orifice r=0.5 + tube R=1 L=2": {
+   "alpha": 0.82988,
+   "sigma": 0.00027,
+   "wall_hits_per_particle": 3.61,
+   "N": 2000000
+  },
+  "contraction R2L4 -> R1L4": {
+   "alpha": 0.08445,
+   "sigma": 0.0002,
+   "wall_hits_per_particle": 5.368,
+   "N": 2000000
+  },
+  "expansion R1L4 -> R2L4": {
+   "alpha": 0.33916,
+   "sigma": 0.00033,
+   "wall_hits_per_particle": 5.512,
+   "N": 2000000
+  },
+  "tube R1 L1 | plate r0.5 | tube R1 L1": {
+   "alpha": 0.21433,
+   "sigma": 0.00029,
+   "wall_hits_per_particle": 2.75,
+   "N": 2000000
+  },
+  "tube R1 L5 | plate r0.5 | tube R1 L5": {
+   "alpha": 0.12314,
+   "sigma": 0.00023,
+   "wall_hits_per_particle": 10.735,
+   "N": 2000000
+  }
+ },
+ "elbow90_asym_this_work": {
+  "A=2,B=5": [
+   0.239884,
+   0.0004270124899156932
+  ],
+  "A=5,B=2": [
+   0.239335,
+   0.00042667758058632514
+  ]
+ },
+ "series_examples": {
+  "livesey_pump_S300_tube_d100_l200": {
+   "C_a_air_L_s": 908,
+   "alpha_tube": 0.357,
+   "S_n_oatley": 188,
+   "S_n_naive": 155,
+   "S_n_tpmc_this_work": [
+    188.0,
+    0.3
+   ],
+   "source": "https://www.wiley-vch.de/en/areas-interest/engineering/foundations-of-vacuum-science-and-technology-978-0-471-17593-3 p.100"
+  },
+  "livesey_haefer_15_25_20mm_l_over_d_2": {
+   "alpha_haefer": 0.214,
+   "C_haefer_air_L_s": 4.38,
+   "alpha_tpmc_this_work": [
+    0.22678,
+    0.0003
+   ],
+   "C_tpmc_air_L_s": 4.649
+  },
+  "livesey_haefer_20_25_15mm": {
+   "alpha_haefer": 0.121,
+   "alpha_tpmc_this_work": [
+    0.12735,
+    0.00024
+   ],
+   "C_tpmc_air_L_s": 4.641
+  },
+  "livesey_haefer_15_20_25mm": {
+   "alpha_haefer": 0.224,
+   "alpha_tpmc_this_work": [
+    0.23928,
+    0.0003
+   ],
+   "C_tpmc_air_L_s": 4.905
+  }
+ },
+ "profile_tube_L_over_R_20": {
+  "z_over_L": [
+   0.025,
+   0.125,
+   0.275,
+   0.525,
+   0.775,
+   0.975
+  ],
+  "clausing_q": [
+   0.9273,
+   0.832,
+   0.6973,
+   0.4782,
+   0.2583,
+   0.0727
+  ],
+  "tpmc": [
+   0.9275,
+   0.8325,
+   0.6968,
+   0.4786,
+   0.2586,
+   0.0726
+  ]
+ },
+ "faceting_ngon_tube_this_work": {
+  "L/R=10": {
+   "n=8": -13.63,
+   "n=16": -3.51,
+   "n=32": -0.98,
+   "n=64": -0.31,
+   "n=128": -0.18
+  },
+  "L/R=2": {
+   "n=8": -12.3,
+   "n=16": -3.12,
+   "n=32": -0.9,
+   "n=64": -0.21,
+   "n=128": -0.13
+  },
+  "unit": "percent error in conductance vs round tube"
+ },
+ "wrong_cosine_sampler_this_work_percent_error": {
+  "theta=asin(u)": {
+   "L/R=1": 14.4,
+   "L/R=2": 23.6,
+   "L/R=10": 54.5
+  },
+  "isotropic cos(theta)=u": {
+   "L/R=1": -15.4,
+   "L/R=2": -15.8,
+   "L/R=10": -7.4
+  }
+ },
+ "transitional": {
+  "sharipov_GP_long_tube": {
+   "0.001": 1.5008,
+   "0.01": 1.48,
+   "0.02": 1.4636,
+   "0.05": 1.4339,
+   "0.1": 1.4101,
+   "0.2": 1.3911,
+   "0.5": 1.4011,
+   "1.0": 1.4758,
+   "1.4": 1.555,
+   "2.0": 1.6799,
+   "5.0": 2.3666,
+   "10.0": 3.5749,
+   "20.0": 6.0492,
+   "50.0": 13.495,
+   "source": "https://doi.org/10.5170/CERN-2007-003 Table 1; also https://srd.nist.gov/jpcrdreprint/1.556019.pdf Table 7",
+   "free_molecular": 1.5045,
+   "hydrodynamic": "delta/4 + 1.018"
+  },
+  "knudsen_formula_vs_sharipov_percent": {
+   "0.01": 1.2,
+   "0.1": 3.2,
+   "0.5": 3.3,
+   "1": 3.8,
+   "2": 4.3,
+   "5": 4.8,
+   "10": 4.0,
+   "50": 1.4
+  },
+  "simple_sum_Cvisc_plus_Cmol_vs_sharipov_percent": {
+   "0.01": 1.8,
+   "0.1": 8.5,
+   "0.5": 16.3,
+   "1": 18.9,
+   "2": 19.3,
+   "5": 16.4,
+   "10": 12.0,
+   "50": 3.8
+  },
+  "orifice_into_vacuum_fujimoto_usami_W": {
+   "0.1": 1.0067,
+   "0.5": 1.0588,
+   "1": 1.1241,
+   "2": 1.2215,
+   "5": 1.3644,
+   "10": 1.446,
+   "valid": "delta < 11",
+   "source": "https://srd.nist.gov/jpcrdreprint/1.556019.pdf eq. 4.14"
+  },
+  "orifice_hydrodynamic_liepmann_W": {
+   "Ar": 1.476,
+   "N2": 1.414,
+   "CO2": 1.388,
+   "discharge_A": {
+    "Ar": 0.812,
+    "N2": 0.824,
+    "CO2": 0.83
+   },
+   "source": "https://srd.nist.gov/jpcrdreprint/1.556019.pdf Table 28"
+  },
+  "orifice_small_dp_borisov": "G = 1 + 0.342*delta (delta < 50); Stokes 0.376*delta (delta > 50)",
+  "orifice_near_fm_sharipov": {
+   "formula": "W = (1 - p1/p0)(1 + A*delta), delta < 1",
+   "A": {
+    "0": 0.13,
+    "0.1": 0.15,
+    "0.5": 0.23,
+    "0.9": 0.31
+   },
+   "source": "https://doi.org/10.5170/CERN-2007-003"
+  },
+  "leybold_air_orifice": {
+   "molecular": "11.6 A L/s",
+   "r<=0.528": "20 A/(1-r) L/s",
+   "r<=0.03": "20 A L/s",
+   "r>=0.528": "76.6 r^0.712 sqrt(1-r^0.288)/(1-r) A L/s",
+   "source": "https://archive.org/details/FundamentalsOfVacuumTechnology/page/n15"
+  },
+  "short_tube_hydrodynamic": "G_P = (delta/4) L/(L + 3*pi/8) (lengths in units of radius), small pressure drop; https://srd.nist.gov/jpcrdreprint/1.556019.pdf eq. 5.16"
+ },
+ "viscous": {
+  "poiseuille_air20C": "C = 135 d^4 pbar / l L/s (d,l cm; pbar mbar); first principles with eta=18.1 uPa s gives 135.6",
+  "square_duct": "Q = 0.035144 a^4 dp/(mu L)",
+  "rect_series": "Q = (w h^3 dp/(12 mu L)) [1 - (192 h/(pi^5 w)) sum_{n odd} tanh(n pi w/(2h))/n^5]",
+  "annulus": "Q = (pi R2^4 dp/(8 mu L)) [1 - k^4 - (1-k^2)^2/ln(1/k)], k = R1/R2"
+ },
+ "performance_this_work": {
+  "cpu": "AMD Ryzen 5 3600 (6C/12T), Node 24.11 (V8)",
+  "analytic_tube_casts_per_s_1thread": 9000000.0,
+  "mesh_25856_tris_casts_per_s_1thread": 440000.0,
+  "mesh_5248_tris_casts_per_s_1thread": 560000.0,
+  "mesh_12_workers_casts_per_s": [
+   2500000.0,
+   4800000.0
+  ],
+  "three_mesh_bvh_raycastFirst_SAH_rays_per_s": 370000.0,
+  "three_mesh_bvh_tpmc_casts_per_s": 260000.0,
+  "leaks_per_million_casts": [
+   0,
+   0.6
+  ]
+ }
+}
