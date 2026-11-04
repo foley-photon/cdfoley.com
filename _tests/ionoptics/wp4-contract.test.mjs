@@ -180,7 +180,7 @@ test('the Einzel preset with the real platform: solve, run, describe, read out (
     const jobs = createJobs(store, null, null, { mobile: false, autoSolveDelayMs: 0, previewDelayMs: 0 });
     try {
         const e = jobs.estimate();
-        assert.equal(e.nodes, 801 * 65);
+        assert.equal(e.nodes, 881 * 65);
         assert.equal(e.bases, 2);
         const finished = () => { const r = store.get().run; return r.status === 'done' && r.result && !r.live; };
         for (let k = 0; k < 3000 && !finished(); k++) await new Promise((r) => setTimeout(r, 10));
@@ -212,6 +212,6 @@ test('the Einzel preset with the real platform: solve, run, describe, read out (
         assert.equal(inside.phi, 850);
         assert.equal(SB.readoutAt(st, 500, 0, 0).inside, false);
         const mt = TB.methodsText(st);
-        for (const part of ['801 × 65 nodes', 'Shortley–Weller', '2 basis fields', 'multigrid', 'Dormand–Prince', 'relativistic']) assert.ok(mt.includes(part), part);
+        for (const part of ['881 × 65 nodes', 'Shortley–Weller', '2 basis fields', 'multigrid', 'Dormand–Prince', 'relativistic']) assert.ok(mt.includes(part), part);
     }
 });

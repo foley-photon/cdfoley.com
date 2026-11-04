@@ -226,7 +226,7 @@ export function setPrefs(partial) {
 // ---------------------------------------------------------------- links and files
 
 /**
- * Share link of the project (location without hash + '#p=…'): { url, chars, tooLong } (prints as the URL).
+ * Share link of the project (origin and path of the location, without query or hash, + '#p=…'): { url, chars, tooLong } (prints as the URL).
  * tooLong (more than SHARE_WARN_CHARS characters): warn and offer a file instead.
  * @param {object} project
  * @returns {Promise<{ url: string, chars: number, tooLong: boolean }>}
@@ -236,7 +236,8 @@ export async function shareLink(project) {
     let base = '';
     try {
         const loc = env.location();
-        if (loc) base = loc.origin && loc.origin !== 'null' ? loc.origin + (loc.pathname || '') + (loc.search || '') : String(loc.href || '').split('#')[0];
+        // origin and path only: a query string (?debug, tracking parameters) does not travel with the link
+        if (loc) base = loc.origin && loc.origin !== 'null' ? loc.origin + (loc.pathname || '') : String(loc.href || '').split('#')[0].split('?')[0];
     } catch (e) { base = ''; }
     const url = base + '#' + frag;
     const out = { url, chars: url.length, tooLong: url.length > SHARE_WARN_CHARS };

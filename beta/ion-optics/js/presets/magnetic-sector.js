@@ -60,7 +60,7 @@ export default Object.freeze({
     domainType: 'planar2d',
     tags: ['magnetic'],
     blurb: 'A 90° sector magnet focuses a ±1° fan and separates m/z 99, 100 and 101 by 1 mm.',
-    tryThis: 'Change the field strength in the Fields tab and watch the image move; add more masses to the source.',
+    tryThis: 'Change the field strength in the Magnets & ideal fields tab and watch the image move; add more masses to the source.',
     build,
     expect: Object.freeze([
         { id: 'image100', label: 'Image of m/z 100 (mean landing y)', metric: 'planeCoord', plane: 'det', coord: 'y', select: { species: 'm/z 100' },

@@ -409,7 +409,9 @@ test('summaries say why energy conservation was not checked; the surface height 
     const n = 2, S0 = new Float64Array(n * L.S_STRIDE);
     for (let i = 0; i < n; i++) { S0[i * L.S_STRIDE + L.S_DE_END] = NaN; S0[i * L.S_STRIDE + L.S_STATUS] = L.STATUS.TMAX; }
     const res = { n, summary: S0, crossings: new Float64Array(0), nCross: 0 };
-    assert.equal(summarize(res, { tracer: { spaceCharge: { enabled: true } } }).energy.notChecked, 'plugins');
+    assert.equal(summarize(res, { tracer: { drag: { type: 'stokes', mobility: 1 } } }).energy.notChecked, 'plugins');
+    // space charge is checked net of the pair-force work (0.2.2), so it is no reason by itself
+    assert.equal(summarize(res, { tracer: { spaceCharge: { enabled: true } } }).energy.notChecked, 'outside');
     assert.equal(summarize(res, { tracer: {} }).energy.notChecked, 'outside');
     S0[L.S_FLAGS] = L.FLAG.TD_FIELDS;
     assert.equal(summarize(res, { tracer: {} }).energy.notChecked, 'time');

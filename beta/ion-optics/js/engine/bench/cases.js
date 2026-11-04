@@ -1,7 +1,7 @@
 /* ==========================================================================
    Ion optics engine: bench/cases.js
-   The validation suite (specification §5 and the round-2 plan §2): 55 gates,
-   7 informational cases and 2 planned ones, one registry for Node and the
+   The validation suite (specification §5 and the round-2 plan §2): 56 gates,
+   6 informational cases and 2 planned ones, one registry for Node and the
    in-browser Benchmarks panel. Every case builds its own project (never a preset, so a preset
    edit cannot move a gate) and runs it through the real pipeline:
    resolve → geometry → raster → solve → field → model → trace → analysis.
@@ -347,7 +347,7 @@ CASES.K1 = {
 };
 
 function k2Project() {
-    const masses = [['1.00782503207 u', 1.00782503207], ['28 u', 28], ['100 u', 100], ['1000 u', 1000]];
+    const masses = [['1.00782503223 u', 1.00782503223], ['28 u', 28], ['100 u', 100], ['1000 u', 1000]];   // ¹H atom, AME2020
     return proj('K2 1 m drift at 1000 eV', 'planar2d', {
         cell: 0.5, x: [0, 10], y: [-5, 5], beyond: { xmax: 'drift' },
         sources: [source('b1', { name: 'Four masses', species: masses.map(([l, m]) => sp(l, m)), position: pt(0, 0), direction: dir(1, 0), energy: mono(1000), count: 4 })],
@@ -359,13 +359,13 @@ CASES.K2 = {
     project: () => k2Project(),
     run() {
         const { resolved, solved, result } = runAll(k2Project());
-        const v = T('K2').values, keys = ['m1', 'm28', 'm100', 'm1000'], labels = ['1.00782503207 u', '28 u', '100 u', '1000 u'];
+        const v = T('K2').values, keys = ['m1', 'm28', 'm100', 'm1000'], labels = ['1.00782503223 u', '28 u', '100 u', '1000 u'];
         const S = result.summary;
         const checks = keys.map((k, sIdx) => {
             const o = rowsWhere(result, (SS, oo) => SS[oo + S_SPECIES] === sIdx)[0];
             return check(`Drift time, ${labels[sIdx]}`, o === undefined ? NaN : S[o + S_TOF], v[k], 'digits', null, 'µs');
         });
-        [1.00782503207, 28, 100, 1000].forEach((m, sIdx) => {
+        [1.00782503223, 28, 100, 1000].forEach((m, sIdx) => {
             const o = rowsWhere(result, (SS, oo) => SS[oo + S_SPECIES] === sIdx)[0];
             checks.push(exactCheck('K2', `Drift time, ${labels[sIdx]}`, o === undefined ? NaN : S[o + S_TOF], exact.driftTime(1000, 1000, m), 'µs'));
         });
@@ -529,7 +529,7 @@ CASES.K6 = {
                 const X = [A.x + s1 * A.vx, A.y + s1 * A.vy];
                 lp = (X[0] - s.Pe[0]) * s.t[0] + (X[1] - s.Pe[1]) * s.t[1];
             }
-            checks.push(check(`Image distance l′, φ = ${phi}°`, lp, Number(v[key]), 'rel', 2e-4, 'mm'));
+            checks.push(check(`Image distance l′, φ = ${phi}°`, lp, Number(v[key]), 'rel', 3e-6, 'mm'));
             checks.push(check(`Accepted steps across a magnet edge, φ = ${phi}°`, result.stats.regionViolations || 0, 0, 'abs', 0, ''));
             details[`phi${phi}`] = { edgeSplits: result.stats.edgeSplits, steps: result.stats.steps };
             progress(ctx, 0.5, `K6 φ = ${phi}°`);
@@ -1020,7 +1020,7 @@ CASES.T3 = {
         const { result } = runAll(t3Project());
         const S = result.summary, t = [0, 1, 2].map((i) => S[i * S_STRIDE + S_TOF]);
         const d = (t[2] - t[0]) / (2e-3 * t[1]);
-        return { checks: [check('∂lnT/∂lns at s₀ (space focus)', d, 0, 'abs', 1e-4, '')], details: { tof: t } };
+        return { checks: [check('∂lnT/∂lns at s₀ (space focus)', d, 0, 'abs', 1e-6, '')], details: { tof: t } };
     },
 };
 
@@ -1041,7 +1041,7 @@ CASES.T4 = {
         const { result } = runAll(t4Project());
         const S = result.summary, t = [0, 1, 2].map((i) => S[i * S_STRIDE + S_TOF]);
         const d = (t[2] - t[0]) / (2e-3 * t[1]);
-        return { checks: [check('∂lnT/∂lnK at L = 4·d_pen (energy focus)', d, 0, 'abs', 1e-4, '')], details: { tof: t, status: [0, 1, 2].map((i) => STATUS_NAMES[S[i * S_STRIDE + S_STATUS]]) } };
+        return { checks: [check('∂lnT/∂lnK at L = 4·d_pen (energy focus)', d, 0, 'abs', 1e-6, '')], details: { tof: t, status: [0, 1, 2].map((i) => STATUS_NAMES[S[i * S_STRIDE + S_STATUS]]) } };
     },
 };
 
@@ -1138,7 +1138,7 @@ CASES.T7 = {
         const full = level === 'full';
         return {
             checks: [
-                check('Focus angle of the ±1 mrad rays', ang, 180 / Math.SQRT2, 'abs', full ? 0.002 : 0.003, '°'),
+                check('Focus angle of the ±1 mrad rays', ang, 180 / Math.SQRT2, 'abs', full ? 3e-4 : 5e-4, '°'),
                 check('Central ray: max |r − r₀| over 127°', dr, 0, 'abs', full ? 3e-4 : 1e-3, 'mm'),
             ],
             details: { cell: resolved.domain.h, steps: result.summary[S_STRIDE + S_STEPS] },
@@ -1590,7 +1590,7 @@ CASES.L4 = {
     project: (level) => l3Project(level, 5),
     async run(level) {
         const { out } = await l3Lens(level);
-        const checks = out.map(({ ratio, lp }) => check(`V2/V1 = ${ratio}: |f1/f2|·√(V2/V1) − 1`, lp.identity, 0, 'abs', ratio >= 100 ? 4e-4 : (level === 'full' ? 1e-4 : 2e-4), ''));
+        const checks = out.map(({ ratio, lp }) => check(`V2/V1 = ${ratio}: |f1/f2|·√(V2/V1) − 1`, lp.identity, 0, 'abs', ratio >= 100 ? 1.5e-4 : (level === 'full' ? 2.5e-5 : 1.2e-4), ''));
         return { checks, details: { identity: Object.fromEntries(out.map(({ ratio, lp }) => [ratio, lp.identity])) } };
     },
 };
@@ -1617,13 +1617,14 @@ CASES.L5 = {
 
 function l6Project(level, AD, ratio = 10) {
     const R = level === 'full' ? 32 : 16, h = 1 / R, xa = AD;   // A = AD·D, D = 2 → x = ±A/2 = ±AD
+    // x ∈ [−32, 32] R: at V2/V1 = 90 halving the length to ±16 R shortens f2 by 1.6%
     return proj(`L6 Two-aperture lens, A/D ${AD}, V2/V1 = ${ratio}`, 'cyl2d', {
-        cell: h, x: [-16, 16], y: [0, 10],
-        edges: { xmin: ED('gnd'), xmax: ED('A2'), ymax: profile([seg(-16, -xa, 'gnd'), ramp(-xa, xa, 'gnd', 'A2'), seg(xa, 16, 'A2')]) },
+        cell: h, x: [-32, 32], y: [0, 10],
+        edges: { xmin: ED('gnd'), xmax: ED('A2'), ymax: profile([seg(-32, -xa, 'gnd'), ramp(-xa, xa, 'gnd', 'A2'), seg(xa, 32, 'A2')]) },
         electrodes: [el('A2', vForRatio(ratio), { name: 'Aperture 2' })],
         shapes: [{ type: 'polyline', electrode: 'gnd', points: [[-xa, 1], [-xa, 10]] }, { type: 'polyline', electrode: 'A2', points: [[xa, 1], [xa, 10]] }],
-        lens: lensOf(-16, 16, h, 'right'),
-        notes: 'Equal zero-thickness apertures of diameter D = 2 mm; ramp closure at r = 5D.',
+        lens: lensOf(-32, 32, h, 'right'),
+        notes: 'Equal zero-thickness apertures of diameter D = 2 mm; ramp closure at r = 5D (10 mm); domain x ∈ [−32, 32] mm.',
     });
 }
 CASES.L6 = {
@@ -1634,11 +1635,11 @@ CASES.L6 = {
             const { out } = await lensVariants(l6Project(level, AD, 10), (r) => l6Project(level, AD, r), ratios, 'right');
             for (const { ratio, lp } of out) {
                 const r = ref[AD === 1 ? '1' : '0.5'][ratio];
-                checks.push(check(`A/D ${AD}, V2/V1 = ${ratio}: f2/D`, lp.f2, r, 'bracket', [1.025 * r, 1.065 * r], 'D', { deviation: lp.f2 / r - 1 }));
+                checks.push(check(`A/D ${AD}, V2/V1 = ${ratio}: f2/D`, lp.f2, r, 'bracket', [1.025 * r, 1.08 * r], 'D', { deviation: lp.f2 / r - 1 }));
             }
             progress(ctx, AD === 1 ? 1 : 0.5, `L6 A/D ${AD}`);
         }
-        return { checks, details: { note: 'Informational: our zero-thickness model runs +3 to +6% above the table; the difference grows with resolution (a model difference, not an error).' } };
+        return { checks, details: { note: 'Informational: the zero-thickness model runs above the table. An independent finite-difference solver reproduces the offset for this geometry to 0.03%, so it belongs to the model; what differs from the tabulated model is not identified (possibly how Harting & Read define the aperture thickness).' } };
     },
 };
 
@@ -1651,7 +1652,7 @@ function l7Project() {
         sources: [source('b1', { name: 'Paraxial rays', species: [sp('m 100', 100)], position: { type: 'list', points: [[-9.8, 0.05, 0], [-9.8, 0.1, 0], [-9.8, 0.2, 0]] }, direction: dir(1, 0), energy: mono(1000), count: 3 })],
         planes: [plane('before', 'x', -5, { name: 'Before' }), plane('after', 'x', 5, { name: 'After' }), plane('det', 'x', 9.8, { terminate: true, side: 'forward', name: 'End' })],
         tracer: tracer({ rtol: 1e-10 }),
-        notes: '1 mm hole in a grounded plate; field-free on the left, 50 V/mm accelerating on the right; 1000 eV ions.',
+        notes: 'Hole of radius 1 mm in a grounded plate; field-free on the left, 50 V/mm accelerating on the right; 1000 eV ions.',
     });
 }
 CASES.L7 = {
@@ -1675,7 +1676,11 @@ CASES.L7 = {
             for (let i = 0; i < n; i++) { suu += (u[i] - mu) ** 2; suf += (u[i] - mu) * (fs[i] - mf); }
             f0 = mf - (suu > 0 ? suf / suu : 0) * mu;
         }
-        return { checks: [check('Thin-lens focal length 4V/(E2 − E1)', f0, 80, 'rel', 0.1, 'mm')], details: { heights: ys, f: fs } };
+        const v = T('L7').values;
+        return {
+            checks: [check('Focal length between x = ±5 mm vs the exact aperture potential (81.62 mm)', f0, v.f, 'rel', 2e-3, 'mm')],
+            details: { heights: ys, f: fs, thinLens: { f: v.thinLens, deviation: f0 / v.thinLens - 1, note: 'For information: the first-order thin-lens value 4V/(E2 − E1) = 80 mm; the +2% is its next-order term.' } },
+        };
     },
 };
 
@@ -1706,12 +1711,11 @@ function maxRadialDeviation(result, i, r0) {
     return dr;
 }
 
-// ---- K3d: ICR cell, 2000 u at 1 eV in 3 T and 6 T (study B7)
+// ---- K3d: ICR cell, 2000 u at 1 eV in 3 T and 6 T
 const k3dSetup = (B) => gyroProject(`K3d ICR cell, 2000 u, 1 eV, ${B} T`, { mass: 2000, charge: 1, ke: 1, B, relativistic: false });
 CASES.K3d = {
     project: () => k3dSetup(3).project,
     run(level, ctx) {
-        const v = T('K3d').values;
         const runs = [3, 6].map((B) => {
             const s = k3dSetup(B), g = gyroFit(s), cy = cyclotron(2000, 1, B, 1, false), cr = crossings(g.result, 0);
             let yMax = 0;
@@ -1722,7 +1726,6 @@ CASES.K3d = {
         const [a, b] = runs;
         return {
             checks: [
-                check('Cyclotron frequency at 3 T vs the published 23.03417 kHz', a.fkHz, v.f3, 'rel', 1e-6, 'kHz'),
                 check('Cyclotron frequency at 3 T, f = qB/(2πm)', a.fkHz, 1000 * a.cy.freqMHz, 'rel', 1e-9, 'kHz'),
                 check('Radius at 3 T, r = mv/(qB)', a.r, a.cy.radiusMM, 'rel', 1e-7, 'mm'),
                 check('Frequency ratio 6 T : 3 T', b.fkHz / a.fkHz, 2, 'rel', 1e-9, ''),
@@ -1734,7 +1737,7 @@ CASES.K3d = {
     },
 };
 
-// ---- K6b: hard-edge sector at r = 25 mm, 90°, object 25 mm before the edge (study B10; Liebl eqs. 3.7–3.8)
+// ---- K6b: hard-edge sector at r = 25 mm, 90°, object 25 mm before the edge (Liebl eqs. 3.7–3.8)
 function k6bSetup(phiDeg = 90, r = 25) {
     const l = r / Math.tan(phiDeg / 2 * DEG), mrad = 0.5e-3 / DEG;
     const ph = phiDeg * DEG, Pe = [r * Math.cos(ph), r * Math.sin(ph)], t = [-Math.sin(ph), Math.cos(ph)], n = [Math.cos(ph), Math.sin(ph)];
@@ -1776,7 +1779,7 @@ CASES.K6b = {
     },
 };
 
-// ---- S11: tilted plates (study B15): a linear potential reproduced with sub-grid cuts
+// ---- S11: tilted plates: a linear potential reproduced with sub-grid cuts
 const S11_SLOPE = 0.05, S11_GAP = 20;
 function s11Project(level, boundary = 'subgrid') {
     const s = S11_SLOPE, dy = S11_GAP / Math.cos(Math.atan(s));
@@ -1819,12 +1822,12 @@ CASES.S11 = {
                 check('Sub-grid cuts: max |φ − exact| at the free nodes between the plates', sub.nodal, 0, 'abs', 1e-9, 'V'),
                 check('Sub-grid cuts: max |φ − exact| along the mid-plane (interpolated)', sub.mid, 0, 'abs', 1e-9, 'V'),
             ],
-            details: { subgrid: sub, staircase: { nodal: st.nodal, mid: st.mid, note: 'For information: a few 1e-3 V near the plates and about 1e-4 V at mid-gap, as in the concept study.' } },
+            details: { subgrid: sub, staircase: { nodal: st.nodal, mid: st.mid, note: 'For information: a few 1e-3 V near the plates and about 1e-4 V at mid-gap.' } },
         };
     },
 };
 
-// ---- S12: mesh sweep on the Einzel lens (study B14): waist position at cell 0.5, 0.25, 0.125 (0.0625) mm
+// ---- S12: mesh sweep on the Einzel lens: waist position at cell 0.5, 0.25, 0.125 (0.0625) mm
 function s12Project(h) {
     return proj(`S12 Einzel lens, mesh sweep, cell ${h} mm`, 'cyl2d', {
         cell: h, x: [-60, 140], y: [0, 16], beyond: { xmax: 'drift' },
@@ -1861,7 +1864,7 @@ CASES.S12 = {
     },
 };
 
-// ---- T8b: Kepler-orbit family in the spherical capacitor (study B15; Zouros et al. 2007)
+// ---- T8b: Kepler-orbit family in the spherical capacitor (Zouros et al. 2007)
 const T8B_RADII = [82, 85, 90, 100, 110, 115, 118];
 function t8bProject(level, radii = T8B_RADII, relativistic = false) {
     const p = s2Project(level);
@@ -1905,7 +1908,7 @@ CASES.T8b = {
     },
 };
 
-// ---- T16: spherical test surface (study B3): plane kind 'sphere', inside the grid and in the analytic drift
+// ---- T16: spherical test surface: plane kind 'sphere', inside the grid and in the analytic drift
 function t16Project(part = 'a') {
     const ke = 100 * 4 / (2 * K_ACC);   // 100 u at exactly 2 mm/µs
     const drift = part === 'b', ext = drift ? 3 : 12;
@@ -1944,7 +1947,7 @@ CASES.T16 = {
     },
 };
 
-// ---- T18: pseudopotential well depth of the Paul trap (study B6; Dehmelt 1967, March 1997)
+// ---- T18: pseudopotential well depth of the Paul trap (Dehmelt 1967, March 1997)
 const T18_V = 500, T18_F = 1.0, T18_R0SQ = 49.985, T18_Z0SQ = 25;
 const t18qz = (m) => 8 * K_ACC * T18_V / (m * (T18_R0SQ + 2 * T18_Z0SQ) * (2 * Math.PI * T18_F) ** 2);
 const t18Dz = (m) => t18qz(m) * T18_V / 8;   // eV for a singly charged ion; D̄_r = D̄_z/2
@@ -2010,7 +2013,7 @@ CASES.T18 = {
     },
 };
 
-// ---- T20: orbits in a logarithmic field (study B17; Kingdon 1923)
+// ---- T20: orbits in a logarithmic field (Kingdon 1923)
 const T20_K = 3492.34, T20_A = 4, T20_B = 20, T20_KE = T20_K / 2, T20_KE3 = T20_KE - 800;
 function t20Project(level) {
     const Va = T20_K * Math.log(T20_B / T20_A);
@@ -2056,7 +2059,7 @@ CASES.T20 = {
     },
 };
 
-// ---- L8: Newton's rule and spherical aberration of the two-tube lens (study B1; Heddle ch. 1)
+// ---- L8: Newton's rule and spherical aberration of the two-tube lens (Heddle ch. 1)
 const L8_HEIGHTS = [1e-4, 0.01, 0.05, 0.1, 0.2, 0.4], L8_XO = -80, L8_D = 20;
 function l8Project(level) {
     const h = level === 'full' ? 0.125 : 0.25;
@@ -2143,7 +2146,7 @@ CASES.L9 = {
     },
 };
 
-// ---- D1: mobility-limited drag (study B18; Mason & McDaniel 1988)
+// ---- D1: mobility-limited drag (Mason & McDaniel 1988)
 const D1_K = 2, D1_M = 100, D1_E = 24, D1_KMOB = 1e-4 * D1_K, D1_TAU = D1_KMOB * D1_M / K_ACC;
 function d1Project(which = 'field') {
     const drag = (gasVelocity) => ({ type: 'stokes', mobility: D1_K, gasVelocity });
@@ -2184,7 +2187,7 @@ CASES.D1 = {
     },
 };
 
-// ---- D2: ion-mobility drift cell (study B20; Gillig et al. 2000)
+// ---- D2: ion-mobility drift cell (Mason & McDaniel 1988; K₀ 4.31 assumed, attributed to Gillig et al. 2000, to be confirmed)
 const D2_K0 = 4.31, D2_K = D2_K0 * (760 / 1) * (298 / 273.15), D2_M = 720, D2_E = 5, D2_KMOB = 1e-4 * D2_K, D2_TAU = D2_KMOB * D2_M / K_ACC;
 function d2Project(tMax = 60) {
     return proj(`D2 Ion-mobility drift cell (${tMax} µs)`, 'planar2d', {
@@ -2218,7 +2221,7 @@ CASES.D2 = {
     },
 };
 
-// ---- I1 (informational): octupole ion guide with round rods (study B5; Gerlich 1992)
+// ---- I1 (informational): octupole ion guide with round rods (Gerlich 1992)
 const I1_R0 = 4, I1_ROD = 0.355 * I1_R0, I1_RC = I1_R0 + I1_ROD;
 function i1Project() {
     return proj('I1 Octupole ion guide, round rods', 'planar2d', {
@@ -2254,7 +2257,7 @@ CASES.I1 = {
                 check('Octupole coefficient A4 (Fourier projection on r = 0.5 r₀)', c5.A4, 1, 'abs', 0.02, ''),
                 check('Twelve-pole admixture |A12/A4| (projection on r = 0.8 r₀)', Math.abs(c8.A12overA4), 0, 'abs', 0.02, ''),
             ],
-            details: { ...gridInfo(resolved, solved), at05r0: c5, at08r0: c8, note: 'Informational; the study\'s q₄ = 3.59 and η = 0.38 need its unstated V and m.' },
+            details: { ...gridInfo(resolved, solved), at05r0: c5, at08r0: c8, note: 'Informational.' },
         };
     },
 };
@@ -2298,7 +2301,7 @@ CASES.S13 = {
         const phi0 = phiEx(0);
         for (const r of [0, 5, 7.5, 12.5, 15, 17.5]) for (const th of [10, 45, 80]) {
             S.model.E(0, r * Math.cos(th * DEG), r * Math.sin(th * DEG), 0, e4);
-            checks.push(check(`Sphere: V(r = ${r} mm, polar ${th}°)`, e4[3], phiEx(r * 1e-3), 'abs', (full ? 1e-3 : 2e-3) * phi0, 'V'));
+            checks.push(check(`Sphere: V(r = ${r} mm, polar ${th}°)`, e4[3], phiEx(r * 1e-3), 'abs', (full ? 4e-4 : 2e-3) * phi0, 'V'));
             if (r > 0) checks.push(check(`Sphere: |E(r = ${r} mm, polar ${th}°)|`, Math.hypot(e4[0], e4[1], e4[2]), eEx(r * 1e-3), 'rel', full ? 1e-3 : (r > 10 ? 3e-3 : 2e-3), 'V/mm'));
         }
         progress(ctx, 0.6, 'S13 box');
@@ -2340,7 +2343,7 @@ CASES.P4 = {
             ],
             details: {
                 coax: { cell: s1.resolved.domain.h, C: Array.from(cm1.C), unit: cm1.unit, irregularFaces: part1.faces.irregular, asymmetry: cm1.asymmetry },
-                spheres: { cell: s2.resolved.domain.h, C: Array.from(cm2.C), unit: cm2.unit, irregularFaces: part2.faces.irregular, chargeC: Q, studyChargeC: 2.2253e-8 },
+                spheres: { cell: s2.resolved.domain.h, C: Array.from(cm2.C), unit: cm2.unit, irregularFaces: part2.faces.irregular, chargeC: Q },
             },
         };
     },
@@ -2381,11 +2384,10 @@ CASES.T17 = {
         const lost = vars.map((vv) => lostCount(traceP(vv.resolved, vv.field, {})));
         return {
             checks: [
-                check('Denison rods (1.1468 r₀, cage 3.54 r₀): quadrupole coefficient a₂ on r = 0.5 r₀', den.a2, v.a2, 'abs', 6e-3, ''),
-                check('Denison rods: a₂ vs the cell-converged value of this engine (r₀/100 cells)', den.a2, v.a2Converged, 'abs', 5e-4, ''),
+                check('Denison rods (1.1468 r₀, cage 3.54 r₀): quadrupole coefficient a₂ on r = 0.5 r₀ vs the independent charge-simulation value', den.a2, v.a2Denison, 'abs', 1e-4, ''),
                 check('Denison rods: 12-pole admixture |a₆/a₂|', Math.abs(den.a6overA2), 0, 'abs', 3e-3, ''),
                 check('Denison rods: odd and sine coefficients (fourfold symmetry)', den.odd, 0, 'abs', 1e-9, ''),
-                check('Dayton rods (1.148 r₀, no cage): quadrupole coefficient a₂', day.a2, v.a2, 'abs', 6e-3, ''),
+                check('Dayton rods (1.148 r₀, no cage): quadrupole coefficient a₂ vs the independent charge-simulation value', day.a2, v.a2Dayton, 'abs', 1e-4, ''),
                 check('Dayton rods: 12-pole admixture |a₆/a₂|', Math.abs(day.a6overA2), 0, 'abs', 3e-3, ''),
                 check('Stability edge: ions at nominal q = 0.99 q* beyond 0.9 r₀ or lost (of 16)', lost[0], 0, 'bracket', [0, 0], ''),
                 check('Stability edge: ions at nominal q = 1.01 q* lost (of 16)', lost[1], 16, 'bracket', [16, 16], ''),
@@ -2395,7 +2397,7 @@ CASES.T17 = {
     },
 };
 
-// ---- T19: induced charge and current (Shockley 1938; Ramo 1939), the study's B8
+// ---- T19: induced charge and current (Shockley 1938; Ramo 1939)
 const T19_B = -4.7688984e-3, T19_KE = 2;
 function t19Project() {
     const Tp = 1 / cyclotron(ME_U, -1, Math.abs(T19_B), T19_KE, false).freqMHz;
@@ -2414,7 +2416,6 @@ function t19Project() {
 CASES.T19 = {
     project: t19Project,
     run() {
-        const v = T('T19').values;
         const { resolved, solved, result } = runAll(t19Project());
         const cy = cyclotron(ME_U, -1, Math.abs(T19_B), T19_KE, false), vel = speedFromKE(T19_KE, ME_U, false);
         const ev = FA.weightingPotentials(solved, resolved, [1]), c = ev.channelOf(1);
@@ -2439,19 +2440,16 @@ CASES.T19 = {
             checks: [
                 check('Orbit radius (Kåsa fit of the markers)', fit.r, '1.000', 'digits', null, 'mm'),
                 check('Orbit radius vs r = mv/(qB)', fit.r, cy.radiusMM, 'rel', 1e-7, 'mm'),
-                check('Speed of the 2 eV electron vs the published 838.76201 mm/µs', vel, v.v, 'rel', 1e-5, 'mm/µs'),
                 check('Induced charge on A at y = 4: smallest of the crossings vs 0.6 e', qMin, qRef, 'rel', 1e-9, 'C'),
                 check('Induced charge on A at y = 4: largest of the crossings vs 0.6 e', qMax, qRef, 'rel', 1e-9, 'C'),
-                check('Induced charge vs the published 9.61306401e-20 C', qMax, v.Q, 'rel', 1e-5, 'C'),
                 check('Peak induced current q·v·E_w: smallest of the crossings', iMin, iRef, 'rel', 1e-8, 'A'),
                 check('Peak induced current q·v·E_w: largest of the crossings', iMax, iRef, 'rel', 1e-8, 'A'),
-                check('Peak induced current vs the published 1.3438459e-11 A', iMax, v.i, 'rel', 1e-5, 'A'),
                 check('Two electrons 180° apart: total induced charge constant, (max − min)/mean', (qhi - qlo) / qMean, 0, 'abs', 1e-6, ''),
                 check('Two electrons 180° apart: total induced current / one electron\'s peak', iTot / iRef, 0, 'abs', 1e-5, ''),
                 check('Spectrum of one electron\'s induced charge peaks at the cyclotron frequency', spec.peak.freq, cy.freqMHz, 'rel', 1e-6, 'MHz'),
             ],
             details: { crossingsAtY4: n, markers: mk.x.length, period: 1 / cy.freqMHz, center: [fit.cx, fit.cy], totalChargeMeanC: qMean, markerSamples: ind.total.n, steps: result.stats.steps,
-                note: 'References from CODATA 2022 constants; the study\'s printed values use older constants (4.5e-6 higher speed and current).' },
+                note: 'References are closed forms with CODATA 2022 constants: speed 838.76576 mm/µs, charge 0.6 e, current q·v·E_w.' },
         };
     },
 };
@@ -2476,13 +2474,13 @@ CASES.I3 = {
         const odd = Math.max(...[1, 3, 5, 7].map((n) => Math.abs(m.c[n])));
         return {
             checks: [
-                check('Quadrupole coefficient c₂ (normalized to r₀) vs the study\'s −1.001', m.c[2], v.C2, 'abs', 3e-3, ''),
+                check('Quadrupole coefficient c₂ (normalized to r₀) vs the reference −1.001', m.c[2], v.C2, 'abs', 3e-3, ''),
                 check('Monopole c₀ vs the ideal 0.5', m.c[0], 0.5, 'abs', 5e-3, ''),
                 check('Odd coefficients (mirror symmetry)', odd, 0, 'abs', 1e-6, ''),
             ],
             details: { ...gridInfo(resolved, solved), r0: I3_R0, R: 4, c: Array.from(m.c), residual: m.residual,
-                study: { C0: 0.49969, C2: -1.00113, C4: 1.05e-3, C6: 1.24e-3, stretched: { C4: -1.52e-2, C6: -6.9e-3 } },
-                note: 'Informational: our electrodes follow the hyperbolae to 15 mm, so c₄ and c₆ are 1e-5 and 1e-6 against the study\'s 1e-3 for its (unstated) truncation; compare with Casey\'s run 5.' },
+                reference: { C0: 0.49969, C2: -1.00113, C4: 1.05e-3, C6: 1.24e-3, stretched: { C4: -1.52e-2, C6: -6.9e-3 } },
+                note: 'Informational: our electrodes follow the hyperbolae to 15 mm, so c₄ and c₆ are 1e-5 and 1e-6 against the reference 1e-3 for a truncation that is not stated.' },
         };
     },
 };
@@ -2516,7 +2514,7 @@ CASES.P2 = {
     },
 };
 
-// ---------------------------------------------------------------- I2 (info): B12 space-charge beam spread, 1 eV electrons, R₀ 3 mm, tan θ 0.3, 3.47e-13 C over 0.1 µs
+// ---------------------------------------------------------------- I2 (info): space-charge beam spread, 1 eV electrons, R₀ 3 mm, tan θ 0.3, 3.47e-13 C over 0.1 µs
 function i2Project(level) {
     const N = level === 'full' ? 1000 : 250, eps = level === 'full' ? 0.1 : 0.25, Qtot = 3.47e-13, R0 = 3, F = R0 / 0.3;
     const rows = [];
@@ -2593,15 +2591,15 @@ function B(id, group, title, kind, description, levels, timeoutMs = 60000) {
     return Object.freeze({ id, group, title, kind, description, reference: Object.freeze(ref(id)), levels: Object.freeze(levels), timeoutMs });
 }
 
-/** The 64 validation cases: 55 gates (K 11, S 13, T 21, L 6, D 2, P 2), 7 informational (L5–L7, I1–I4), 2 planned (P1, P3). */
+/** The 64 validation cases: 56 gates (K 11, S 13, T 21, L 7, D 2, P 2), 6 informational (L5, L6, I1–I4), 2 planned (P1, P3). */
 export const BENCHMARKS = Object.freeze([
     B('K1', 'K', 'Uniform-field transit', 'gate', 'Planar capacitor x ∈ [0, 10] mm, cell 0.5, 1000 V; 100 u, +1 e from rest and with 10 eV along the field; detector at x = 10; nonrelativistic.', lv('cell 0.5 mm', 'half a unit in the last digit')),
     B('K2', 'K', '1 m drift at 1000 eV', 'gate', 'Grounded box, field-free drift beyond the domain to a detector at x = 1000 mm; four masses; nonrelativistic.', lv('cell 0.5 mm', 'half a unit in the last digit')),
     B('K3', 'K', 'Gyration radius and frequency', 'gate', 'Uniform B; Kåsa circle fit to markers every T/256 and the period from an all-crossings plane: (a) 100 u, 1 keV, 0.5 T; (b) electron, 100 eV, 1 mT, nonrelativistic; (c) the same, relativistic; Boris at 128 steps per gyration on (a).', lv('DP45 rtol 1e-11', 'digits; Boris 2.5e-4 and 1e-6 on the discrete circle')),
-    B('K3d', 'K', 'ICR cell: cyclotron frequency and radius', 'gate', 'Uniform 3 T, 2000 u at 1 eV, nonrelativistic: period from the x = 0 crossings and radius from a Kåsa fit of markers every T/256; at 6 T the frequency doubles and the radius halves; the crossings land on the plane.', lv('DP45 rtol 1e-11, cell 0.5 mm', 'rel 1e-6 (printed value), 1e-9 (closed form); landing 1e-8 mm')),
+    B('K3d', 'K', 'ICR cell: cyclotron frequency and radius', 'gate', 'Uniform 3 T, 2000 u at 1 eV, nonrelativistic: period from the x = 0 crossings and radius from a Kåsa fit of markers every T/256; at 6 T the frequency doubles and the radius halves; the crossings land on the plane.', lv('DP45 rtol 1e-11, cell 0.5 mm', 'rel 1e-9 (closed form); landing 1e-8 mm')),
     B('K4', 'K', 'Gyration sense', 'gate', 'B = +z, start at the origin along +x; ion and electron; Dormand–Prince and Boris; the center must be at (0, −r) for the ion and (0, +r) for the electron.', lv('—', 'exact sign')),
     B('K5', 'K', '180° homogeneous-field focus', 'gate', '0.5 T, 100 u, 1 keV, rays at 0 and ±1 mrad, rtol 1e-11; focus angle from the radial separation of the ±1 mrad rays on planes about the center of the central orbit.', lv('—', '±0.005°')),
-    B('K6', 'K', 'Hard-edge sector imaging', 'gate', 'Annular sector r 50–150 mm, B = −0.455286 T ẑ, φ = 90° and 60°, object at r/tan(φ/2), ±0.5 mrad; image distance from the intersection of the exit asymptotes; no accepted step may change the region signature.', lv('—', 'rel 2e-4; 0 violations')),
+    B('K6', 'K', 'Hard-edge sector imaging', 'gate', 'Annular sector r 50–150 mm, B = −0.455286 T ẑ, φ = 90° and 60°, object at r/tan(φ/2), ±0.5 mrad; image distance from the intersection of the exit asymptotes; no accepted step may change the region signature.', lv('—', 'rel 3e-6; 0 violations')),
     B('K6b', 'K', 'Sector imaging at r = 25 mm', 'gate', 'Hard-edged 90° sector r 12.5–37.5 mm, B = −1.821144 T ẑ, object 25 mm before the entrance edge, ±0.5 mrad: image 25 mm after the exit edge (l = l′ = r/tan 45°) and Barber\'s rule; no accepted step crosses the magnet edge.', lv('cell 0.5 mm', 'rel 2e-4; 1e-3°; 0 violations')),
     B('K7', 'K', 'RF uniform field', 'gate', 'Capacitor x ∈ [−10, 200] mm, cell 1; plate 21000 V cos(Ωt − 90°) at 1 MHz (E = 100 sin Ωt V/mm); at rest at x = 0; position at 0.5 µs; nonrelativistic.', lv('cell 1 mm', 'half a unit in the last digit')),
     B('K8', 'K', 'Pulse breakpoints', 'gate', 'Same capacitor; trapezoidal pulse 2100 V (t0 0.2, rise 0.1, width 10, fall 0.1 µs); 100 u; position at 1.0 µs; rtol 1e-12; steps land on the pulse corners.', lv('cell 1 mm', 'rel 1e-9')),
@@ -2618,14 +2616,14 @@ export const BENCHMARKS = Object.freeze([
     B('S10', 'S', 'Shortley–Weller order on spheres', 'gate', 'Concentric spheres with the inner radius resolved by 20, 40 (80) cells; maximum error between the spheres; staircase order shown for information.', lv('a = 20, 40 cells', 'p ∈ [1.8, 2.3]', 'a = 20, 40, 80 cells', 'p ∈ [1.8, 2.3]')),
     B('S11', 'S', 'Tilted plates: sub-grid cuts vs staircase', 'gate', 'Two plates at slope 0.05 (2.86°), 20 mm apart at 0 and 0.1 V, closed by exact linear ramps on the side edges: the potential is linear in the distance from the plates. Largest error at the free nodes and along the mid-plane with Shortley–Weller cuts; the staircase error is reported for information.', lv('cell 1 mm', '≤ 1e-9 V', 'cell 0.5 mm', '≤ 1e-9 V')),
     B('S12', 'S', 'Mesh sweep: waist of the Einzel lens', 'gate', 'The Einzel preset geometry (D 20 mm, 0.1 D gaps, center tube 850 V, 21 rays at 1000 eV) solved at cell 0.5, 0.25, 0.125 (and 0.0625) mm: observed order of the waist position ≥ 1.2 and monotone convergence toward the Richardson extrapolation with the observed order.', lv('cells 0.5, 0.25, 0.125 mm', 'order ∈ [1.2, 2.5]; bracket', 'cells 0.5 … 0.0625 mm', 'order ∈ [1.2, 2.5]; bracket'), 120000),
-    B('S13', 'S', 'Poisson term: charged sphere and sinusoidal box', 'gate', 'Uniformly charged sphere (a = 10 mm, ρ₀ = 1 µC/m³) inside a grounded sphere (R = 20 mm), cylindrical, mirrored at x = 0: potential at r 0–17.5 mm (polar 10°, 45°, 80°) and |E| against the closed form; ρ₀ sin(πx/L) sin(πy/L) in a grounded 32 mm box against the separable solution. The step density is sampled at the cell centers (first order at the surface), hence 40 and 80 cells per radius.', lv('a = 40 cells; box 64 cells', 'ΔV 2e-3 φ(0); |E| rel 3e-3; box 1e-3 φ_max', 'a = 80 cells; box 128 cells', 'ΔV 1e-3 φ(0); |E| rel 1e-3; box 2.5e-4 φ_max')),
+    B('S13', 'S', 'Poisson term: charged sphere and sinusoidal box', 'gate', 'Uniformly charged sphere (a = 10 mm, ρ₀ = 1 µC/m³) inside a grounded sphere (R = 20 mm), cylindrical, mirrored at x = 0: potential at r 0–17.5 mm (polar 10°, 45°, 80°) and |E| against the closed form; ρ₀ sin(πx/L) sin(πy/L) in a grounded 32 mm box against the separable solution. The step density is sampled at the cell centers (first order at the surface), hence 40 and 80 cells per radius.', lv('a = 40 cells; box 64 cells', 'ΔV 2e-3 φ(0); |E| rel 3e-3; box 1e-3 φ_max', 'a = 80 cells; box 128 cells', 'ΔV 4e-4 φ(0); |E| rel 1e-3; box 2.5e-4 φ_max')),
     B('T1', 'T', 'Mirror through a node-aligned mesh', 'gate', 'Parallel-plate mirror entered through a mesh on a node row (cell 0.25 mm), +1000 V back plate 20 mm away, 1000 eV at 30°/45°/60°; range from the return crossing of y = 0, depth from the apex.', lv('cell 0.25 mm', 'half a unit in the last digit')),
     B('T2', 'T', 'Exit-mesh energy', 'gate', '600 V repeller edge, 6 mm gap to a mesh (a) on a node column, (b) zero-thickness between nodes; from rest 5 mm before the mesh; kinetic energy 15 mm after it.', lv('cells 0.25 and 0.28 mm', 'rel 1e-6')),
-    B('T3', 'T', 'Wiley–McLaren space focus', 'gate', '100 V/mm source field, mesh exit, s₀ = 5 mm (1 ± 1e-3), detector 2s₀ after the mesh, rtol 1e-12: ∂lnT/∂lns at s₀.', lv('cell 0.25 mm', '≤ 1e-4')),
-    B('T4', 'T', 'Reflectron energy focus', 'gate', 'Drift 0–100 mm, mesh at 100 mm, uniform mirror 100–300 mm from ramp edges and a 4000 V back plate (d_pen 50 mm, L 200 mm); KE 1000(1 ± 1e-3) eV: ∂lnT/∂lnK.', lv('cell 0.5 mm', '≤ 1e-4')),
+    B('T3', 'T', 'Wiley–McLaren space focus', 'gate', '100 V/mm source field, mesh exit, s₀ = 5 mm (1 ± 1e-3), detector 2s₀ after the mesh, rtol 1e-12: ∂lnT/∂lns at s₀.', lv('cell 0.25 mm', '≤ 1e-6')),
+    B('T4', 'T', 'Reflectron energy focus', 'gate', 'Drift 0–100 mm, mesh at 100 mm, uniform mirror 100–300 mm from ramp edges and a 4000 V back plate (d_pen 50 mm, L 200 mm); KE 1000(1 ± 1e-3) eV: ∂lnT/∂lnK.', lv('cell 0.5 mm', '≤ 1e-6')),
     B('T5', 'T', 'Energy conservation', 'gate', 'Zero-gap einzel lens (A/D 0.5, ratio 9), R = 40 cells; meridional rays r₀ = 0.05–0.5R and two skew rays; endpoint energy error and accumulated work error.', lv('R/40', '≤ 2e-6 of KE')),
     B('T6', 'T', 'Time reversal', 'gate', 'Same lens, rtol 1e-12; each ray reversed at the exit plane and traced back to the start plane.', lv('R/40', '≤ 1e-6·R')),
-    B('T7', 'T', '127° cylindrical analyzer', 'gate', 'S1 field; q −1, 1 u, 72.1348 eV on r₀ = 15 mm, nonrelativistic, rtol 1e-11; focus of the ±1 mrad rays on radial planes; radius of the central ray over 127°.', lv('S1 cell 0.2 mm', '±0.003°; |Δr| ≤ 1e-3 mm', 'S1 cell 0.1 mm', '±0.002°; |Δr| ≤ 3e-4 mm')),
+    B('T7', 'T', '127° cylindrical analyzer', 'gate', 'S1 field; q −1, 1 u, 72.1348 eV on r₀ = 15 mm, nonrelativistic, rtol 1e-11; focus of the ±1 mrad rays on radial planes; radius of the central ray over 127°.', lv('S1 cell 0.2 mm', '±5e-4°; |Δr| ≤ 1e-3 mm', 'S1 cell 0.1 mm', '±3e-4°; |Δr| ≤ 3e-4 mm')),
     B('T8', 'T', '180° spherical analyzer', 'gate', 'S2 field; q −1, 1 u, 1000 eV on r₀ = 100 mm from (0, 100) along +x; focus of the ±1 mrad rays; radius of the central ray over 180°.', lv('S2 cell 1 mm', '±0.03°; |Δr| ≤ 4e-3 mm', 'S2 cell 0.5 mm', '±0.008°; |Δr| ≤ 1e-3 mm')),
     B('T8b', 'T', 'Kepler orbits in the spherical capacitor', 'gate', 'S2 field; electrons launched tangentially at r₀ 82, 85, 90, 100, 110, 115, 118 mm with 10⁵/r₀ eV, nonrelativistic: constant radius over 180° (every step recorded); the relativistic orbit at r₀ 100 dips inward by the closed-form 0.196 mm.', lv('S2 cell 1 mm', '|Δr| ≤ 8e-3 mm (82 and 118: 1e-2)', 'S2 cell 0.5 mm', '|Δr| ≤ 2e-3 mm (82 and 118: 2.5e-3)')),
     B('T9', 'T', 'Secular frequency, solved quadrupole', 'gate', 'Quarter domain [0, 14]² with mirrors, hyperbolic quadric rods r₀ = 4 mm; RF only at 1.1 MHz; 100 u at rest at x = y = 0.1r₀; markers once per period for 400 periods; β from the stroboscopic recurrence against the Floquet β(q·A₂), A₂ fitted on the solved axis potential; q = 0.2, 0.5, 0.8.', lv('cell 0.1 mm', 'rel 1e-5', 'cell 0.05 mm', 'rel 1e-5'), 120000),
@@ -2636,24 +2634,24 @@ export const BENCHMARKS = Object.freeze([
     B('T14', 'T', 'Determinism', 'gate', 'Velocity-map-imaging lens (360 particles) traced in one chunk and in chunks of 1, 7 and 64 particles, merged in index order: the summary and crossing rows must be bit-for-bit identical.', lv('cell 0.5 mm', 'bitwise', 'cell 0.25 mm', 'bitwise'), 120000),
     B('T15', 'T', 'Hit precision', 'gate', '(a) ray onto a plate inclined at 30°: hit point against the analytic intersection; (b) 0.2-cell plate at 45°, 100 random rays; (c) zero-thickness line, 10⁴ random rays: every hit found.', lv('cell 0.5 mm', '(a) ≤ 1e-8 mm; (b), (c) 0 misses'), 120000),
     B('T16', 'T', 'Spherical test surface', 'gate', 'Field-free cylindrical domain; 50 rays of 100 u at 2 mm/µs in a 60° cone from the origin cross a sphere of radius 10.5 mm at 5.25 µs: (a) inside the grid, (b) in the analytic drift beyond a small grid.', lv('cell 0.5 mm', 'rel 1e-9; |r − R| ≤ 1e-9 mm')),
-    B('T17', 'T', 'Round-rod quadrupole: multipoles and stability edge', 'gate', 'Rods of 1.1468 r₀ in a cage of 3.54 r₀ (Denison 1971) and 1.148 r₀ without a cage (Dayton et al. 1954), quarter with mirrors: Fourier coefficients of the ±1 V potential on r = 0.5 r₀ (a₂ within 1 ± 6e-3 and equal to this engine\'s cell-converged 1.00287 ± 5e-4; |a₆/a₂| ≤ 3e-3; no odd or sine terms); in the caged field 16 ions from 0.01 r₀ stay below 0.9 r₀ for 200 cycles at nominal q = 0.99 q* and are all lost at 1.01 q*.', lv('cell r₀/25', 'a₂ ± 6e-3 and ± 5e-4; |a₆/a₂| ≤ 3e-3; bracket', 'cell r₀/50 (edge: r₀/25)', 'a₂ ± 6e-3 and ± 5e-4; |a₆/a₂| ≤ 3e-3; bracket'), 120000),
+    B('T17', 'T', 'Round-rod quadrupole: multipoles and stability edge', 'gate', 'Rods of 1.1468 r₀ in a cage of 3.54 r₀ (Denison 1971) and 1.148 r₀ without a cage (Dayton et al. 1954), quarter with mirrors: Fourier coefficients of the ±1 V potential on r = 0.5 r₀ (a₂ against the independent charge-simulation values 1.0028664 (Denison) and 1.0029450 (Dayton) ± 1e-4; |a₆/a₂| ≤ 3e-3; no odd or sine terms); in the caged field 16 ions from 0.01 r₀ stay below 0.9 r₀ for 200 cycles at nominal q = 0.99 q* and are all lost at 1.01 q*.', lv('cell r₀/25', 'a₂ ± 1e-4; |a₆/a₂| ≤ 3e-3; bracket', 'cell r₀/50 (edge: r₀/25)', 'a₂ ± 1e-4; |a₆/a₂| ≤ 3e-3; bracket'), 120000),
     B('T18', 'T', 'Paul trap: pseudopotential well depth', 'gate', 'P9 trap; ions from the center along z and r with energies around D̄_z = q_z V/8 and D̄_r = D̄_z/2 over 8–16 RF phases: the adiabatic ion (m 3000, q_z 0.033) escapes between 0.85 and 1.05 D̄ in both directions with a threshold ratio of 2; at q_z 0.33 trapped at 0.4 D̄ and lost at 1.3 D̄; at q_z 0.815 trapped at 0.05 D̄_z and 0.3 D̄_r, lost at 1.3 D̄.', lv('cell 0.1 mm, 8 and 16 phases', 'bracket', 'cell 0.1 mm, 16 and 32 phases', 'bracket'), 180000),
-    B('T19', 'T', 'Induced charge and current (Shockley–Ramo)', 'gate', 'Plates at y = 0 (electrode A) and y = 10 mm (ground); a 2 eV electron from (0, 5) along +x circles (r = 1.000 mm) in −4.7688984 mT ẑ: on the crossings of y = 4 (Float64 rows) the induced charge −q·φ_A is 0.6 e and the current q·v·E_w is 1.34385e-11 A, against CODATA 2022 closed forms (rel 1e-9 / 1e-8) and the published figures (rel 1e-5); two electrons 180° apart give a constant total charge and no net current (from time markers); the charge spectrum peaks at the cyclotron frequency.', lv('cell 0.25 mm, markers T/64, 32 periods', 'rel 1e-9 (charge), 1e-8 (current), 1e-5 (published); 1e-6 constancy'), 120000),
+    B('T19', 'T', 'Induced charge and current (Shockley–Ramo)', 'gate', 'Plates at y = 0 (electrode A) and y = 10 mm (ground); a 2 eV electron from (0, 5) along +x circles (r = 1.000 mm) in −4.7688984 mT ẑ: on the crossings of y = 4 (Float64 rows) the induced charge −q·φ_A is 0.6 e and the current q·v·E_w is 1.34385e-11 A, against CODATA 2022 closed forms (rel 1e-9 / 1e-8); two electrons 180° apart give a constant total charge and no net current (from time markers); the charge spectrum peaks at the cyclotron frequency.', lv('cell 0.25 mm, markers T/64, 32 periods', 'rel 1e-9 (charge), 1e-8 (current); 1e-6 constancy'), 120000),
     B('T20', 'T', 'Orbits in a logarithmic field', 'gate', 'Coaxial field with k = 3492.34 V (inner 4 mm, outer 20 mm, planar quarter with mirrors); q −1, 1 u ions tangential at 10 and 15 mm with k/2 = 1746.17 eV stay circular over 720°; one at 10 mm with 800 eV less stays bound and swings between the closed-form inner apsis 5.7071 mm and 10 mm.', lv('cell 0.2 mm', '|Δr| ≤ 1.5e-3 mm; apsis 2e-3 mm', 'cell 0.1 mm', '|Δr| ≤ 4e-4 mm; apsis 5e-4 mm')),
     B('L1', 'L', 'Two-tube lens, zero gap', 'gate', 'S3-type geometry; lens tool (rays at 0.02–0.08D, T² + T⁴ fits) against the exact paraxial values for ratios 2, 5, 10, 20.', lv('R = 32 cells', 'rel 1e-3; identity 3e-4', 'R = 64 cells', 'rel 3e-4; identity 5e-5'), 120000),
     B('L2', 'L', 'Einzel lens, zero gap, A/D 0.5', 'gate', 'Three-segment wall profile; focal length f/D against the exact paraxial values for ratios −0.5, 0, 0.8, 2, 9.', lv('R = 40 cells', 'rel 6e-4', 'R = 80 cells', 'rel 2e-4'), 120000),
     B('L3', 'L', 'Two-tube lens, 0.1D gap, NBS geometry', 'gate', 'S4 geometry; F1, F2, f1, f2 for ratios 2, 5, 10, 20, 40, 100 against DiChio, Natali & Kuyatt (1974), Table I.', lv('R = 40 cells', 'max(0.35%·|ref|, 0.003 D)', 'R = 80 cells', 'max(0.35%·|ref|, 0.003 D)'), 180000),
-    B('L4', 'L', 'Lagrange–Helmholtz identity', 'gate', '|f1/f2|·√(V2/V1) − 1 on the L3 rays.', lv('R = 40 cells', '2e-4 (ratio 100: 4e-4)', 'R = 80 cells', '1e-4 (ratio 100: 4e-4)'), 180000),
+    B('L4', 'L', 'Lagrange–Helmholtz identity', 'gate', '|f1/f2|·√(V2/V1) − 1 on the L3 rays.', lv('R = 40 cells', '1.2e-4 (ratio 100: 1.5e-4)', 'R = 80 cells', '2.5e-5 (ratio 100: 1.5e-4)'), 180000),
     B('L5', 'L', 'Einzel lens vs Adams & Read (1972)', 'info', 'Assumed geometry A/D 0.5, G/D 0.1 with linear-ramp gaps; f/D for ratios −0.5, 0, 0.8, 2, 9.', lv('R = 40 cells', 'band ±2%'), 120000),
-    B('L6', 'L', 'Two-aperture lens vs Harting & Read (1976)', 'info', 'Zero-thickness apertures with a ramp closure at 5D; A/D 0.5 and 1.0; ratios 0.5, 2, 10, 40, 90; f2/D.', lv('R = 16 cells', 'band +2.5% to +6.5%', 'R = 32 cells', 'band +2.5% to +6.5%'), 240000),
-    B('L7', 'L', 'Davisson–Calbick aperture', 'info', '1 mm hole between a field-free region and a 50 V/mm accelerating field at 1000 eV: thin-lens focal length 4V/(E2 − E1) = 80 mm.', lv('cell 0.05 mm', 'band ±10%'), 120000),
+    B('L6', 'L', 'Two-aperture lens vs Harting & Read (1976)', 'info', 'Zero-thickness apertures with a ramp closure at r = 5D (10 mm), domain x ∈ [−32, 32] mm; A/D 0.5 and 1.0; ratios 0.5, 2, 10, 40, 90; f2/D.', lv('R = 16 cells', 'band +2.5% to +8%', 'R = 32 cells', 'band +2.5% to +8%'), 240000),
+    B('L7', 'L', 'Davisson–Calbick aperture', 'gate', 'Hole of radius 1 mm between a field-free region and a 50 V/mm accelerating field at 1000 eV: focal length from the ray slopes between x = ±5 mm against 81.62 mm from the exact axial potential of the hole (the first-order thin-lens value 4V/(E2 − E1) = 80 mm is shown for information).', lv('cell 0.05 mm', 'rel 2e-3'), 120000),
     B('L8', 'L', 'Newton\'s rule and spherical aberration', 'gate', 'Two-tube preset lens (D 20 mm, 0.1 D gap, V2/V1 = 5, 1000 eV Ar⁺): cardinal elements from the lens tool; rays from an axial object at x = −80 mm aimed at 1e-4, 0.01, 0.05, 0.1, 0.2, 0.4 D cross the axis in the drift beyond the grid; pq/(f1 f2) → 1 paraxially and the image moves inward as h².', lv('cell 0.25 mm', '2e-4 at 1e-4 D; 2e-3 at 0.01 D; h² ratio ∈ [3.6, 4.3]', 'cell 0.125 mm', '2e-4 at 1e-4 D; 2e-3 at 0.01 D; h² ratio ∈ [3.6, 4.3]'), 120000),
     B('L9', 'L', 'Weak-lens formula for the einzel lens', 'gate', 'Einzel lens A/D 0.5, G/D 0.1 at V2/V1 = 1.05 and 1.10: the lens tool\'s f against the Picht weak-lens integral 1/f = (3/16)∫(φ′/φ)² dz on the zero-gap Bessel-series potential (the gaps lengthen f by about 1.1%) and on the solved axial potential.', lv('R = 40 cells', 'rel 2.5% / 3.5% (series); 1.5e-3 / 2e-3 (solved)', 'R = 80 cells', 'rel 2.5% / 3.5% (series); 1.5e-3 / 2e-3 (solved)'), 120000),
     B('D1', 'D', 'Mobility drag: terminal velocity and relaxation', 'gate', '100 u with K = 2 cm²/(V s) in 24 V/mm from rest: terminal velocity KE = 4.8e-3 mm/µs after 50τ and relaxation distance v_t·τ = (m/q)EK² ≈ 1e-6 mm; with E = 0 and a gas moving at 100 mm/µs the ion reaches v_gas(1 − e⁻⁵) after 5τ and the gas speed after 20τ.', lv('cell 0.5 mm', 'rel 1e-6 (5τ: 1e-8)')),
-    B('D2', 'D', 'Ion-mobility drift cell', 'gate', 'm/z 720 with K₀ 4.31 cm²/(V s) at 1 torr and 298 K (K = 3574) in a uniform 5 V/mm cell: damping constant q/(mK) = 0.375 µs⁻¹ from the velocity after 2 µs and drift velocity KE = 1.787 mm/µs after 60 µs.', lv('cell 1 mm', 'half a unit in the last digit; closed form rel 1e-6 and 1e-8')),
+    B('D2', 'D', 'Ion-mobility drift cell', 'gate', 'm/z 720 with an assumed K₀ of 4.31 cm²/(V s) at 1 torr and 298 K (K = 3574) in a uniform 5 V/mm cell: damping constant q/(mK) = 0.375 µs⁻¹ from the velocity after 2 µs and drift velocity KE = 1.787 mm/µs after 60 µs.', lv('cell 1 mm', 'half a unit in the last digit; closed form rel 1e-6 and 1e-8')),
     B('I1', 'I', 'Octupole ion guide (round rods)', 'info', 'Eight rods of radius 0.355 r₀ (r₀ 4 mm) at ±1 V, planar quarter with mirrors, cell r₀/40: potential on r = 0.5 r₀ against V(x⁴ + y⁴ − 6x²y²)/r₀⁴ and the Fourier coefficients A4 and A12/A4.', lv('cell 0.1 mm', 'band ±1% of V(r/r₀)⁴; A4 ± 2%; |A12/A4| ≤ 2%')),
     B('I2', 'I', 'Space-charge beam spread (onset estimator)', 'info', 'Converging 1 eV electron beam, R₀ 3 mm, tan θ 0.3, 3.47e-13 C born over 0.1 µs (the perveance-limited current 38.6 µA·KE^1.5·tan²θ): minimum envelope radius √2·r_rms along x against the laminar envelope value R₀ exp(−tan²θ/2K) = 1.275 mm (plan: 1.28 ± 25 %). Quick: 250 macro-particles, ε 0.25 mm; full: 1000, ε 0.1 mm.', lv('250 particles, ε 0.25 mm', 'band 0.96–1.60 mm', '1000 particles, ε 0.1 mm', 'band 0.96–1.60 mm'), 180000),
-    B('I3', 'I', 'Trap multipoles (Legendre coefficients)', 'info', 'The P9 hyperbolic trap (r₀ 7.07, z₀ 5 mm, surfaces to 15 mm) with the ring at 1 V, cell 0.075 mm: Legendre coefficients on a sphere of radius 4 mm about the center, normalized to r₀; c₂ against the study\'s −1.001 (band ±0.3%), c₀ against 0.5, odd coefficients ≤ 1e-6; c₄ and c₆ reported against the published 1.05e-3 and 1.24e-3 (the study\'s truncation is not stated).', lv('cell 0.075 mm (r₀ ≈ 94 cells)', 'band ±3e-3 (c₂), ±5e-3 (c₀); odd ≤ 1e-6')),
+    B('I3', 'I', 'Trap multipoles (Legendre coefficients)', 'info', 'The P9 hyperbolic trap (r₀ 7.07, z₀ 5 mm, surfaces to 15 mm) with the ring at 1 V, cell 0.075 mm: Legendre coefficients on a sphere of radius 4 mm about the center, normalized to r₀; c₂ against the reference −1.001 (band ±0.3%), c₀ against 0.5, odd coefficients ≤ 1e-6; c₄ and c₆ reported against the published 1.05e-3 and 1.24e-3 (the truncation behind them is not stated).', lv('cell 0.075 mm (r₀ ≈ 94 cells)', 'band ±3e-3 (c₂), ±5e-3 (c₀); odd ≤ 1e-6')),
     B('I4', 'I', 'Hard-sphere mean free path', 'info', '2000 ions of 200 u (15 Å) at 24 eV in He (2 Å) at 4 mTorr, 275 K, traced over two mean free paths: Σpath/Σcollisions against 1/(nσ) = 3.14 mm and the kinetic-theory value v/(nσ⟨g⟩) = 3.06 mm.', lv('cell 1 mm', 'rel 5 %')),
     B('P1', 'P', 'Child–Langmuir diode', 'planned', '738.06 A/m² for 1000 V across 10 mm (electrons). Needs a Poisson (space-charge) solver.', lv('—', '—')),
     B('P2', 'P', 'Two protons from rest (space charge)', 'gate', 'Two protons released from rest 1 µm apart in a field-free box, traced with the direct pair force (tracer.spaceCharge, ε = 1e-7 mm, accuracy fine): the asymptotic energy per proton is k e²/(2 d) = 0.719982 meV; energy conservation and symmetry.', lv('cell 1 mm, pair step 0.005', 'half a unit in the last digit; rel 1e-6')),

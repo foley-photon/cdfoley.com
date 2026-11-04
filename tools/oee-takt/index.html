@@ -415,8 +415,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const oee = A * P * Q;
             const theo = v.planned / v.ict;
             const badge = document.getElementById('oee-badge');
+            const shownOee = Calc.roundSig(oee * 100, 3) / 100;   // judge the value as displayed, so an OEE shown as 85 % never reads "Below"
             if (P > 1) { badge.textContent = 'Performance above 100 %'; badge.className = 'badge badge-warn'; }   // the OEE is not a valid score to rate
-            else if (oee >= 0.85) { badge.textContent = '≥ Nakajima’s 85 % ideal'; badge.className = 'badge badge-ok'; }
+            else if (shownOee >= 0.85) { badge.textContent = '≥ Nakajima’s 85 % ideal'; badge.className = 'badge badge-ok'; }
             else { badge.textContent = 'Below Nakajima’s 85 % ideal'; badge.className = 'badge'; }
             lastOee = { planned: v.planned, run, net: v.total * v.ict, fp: v.good * v.ict, A, P, Q, oee };
             return {

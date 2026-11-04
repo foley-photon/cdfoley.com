@@ -23,6 +23,18 @@ export function variableOptions(project) {
 }
 
 /**
+ * Default variable of a tuning row (pure, for tests): the first voltage- or energy-type parameter, else the first electrode voltage,
+ * else the first variable. A voltage needs no new field solve per evaluation, a geometry parameter does.
+ * @returns {number} index into variableOptions(project)
+ */
+export function tuneDefaultIndex(project) {
+    const vars = variableOptions(project || {}), params = (project && project.params) || [];
+    let index = vars.findIndex((v) => v.kind === 'param' && params.some((p) => p.name === v.id && (p.dim === 'voltage' || p.dim === 'energy')));
+    if (index < 0) index = vars.findIndex((v) => v.kind === 'electrode');
+    return Math.max(0, index);
+}
+
+/**
  * Default scan settings for a project (pure, for tests): the project's analysis.scan when it has one; else the first parameter
  * with a slider (else an electrode voltage, else any parameter) against spot rms at the image plane (analysis.waist.plane),
  * the TOF resolving power when a detector sees two or more species, or the transmission.
@@ -188,9 +200,10 @@ export function mount(el, ctx) {
             }, () => stop);
             scanRes.runKey = runKeyNow();
             if (scanRes.best) {
-                status.textContent = `Best: ${v.label} = ${fmtNum(scanRes.best.value)} (${mdef.label} ${fmtNum(scanRes.best.metric)}).${stop ? ' Stopped.' : ''}`;
+                // the best of the sampled values only; the optimum between grid points can be better (Tune refines it)
+                status.textContent = `Best sampled point: ${v.label} = ${fmtNum(scanRes.best.value)} (${mdef.label} ${fmtNum(scanRes.best.metric)}).${stop ? ' Stopped.' : ''}`;
                 applyBtn.disabled = false;
-                scanBlock.update({ plot: linePlot({ series: [{ label: mdef.label, x: xs, y: ys, type: 'points', line: true }], xLabel: v.label, yLabel: mdef.label, vlines: [{ x: scanRes.best.value, label: 'best' }] }) });
+                scanBlock.update({ plot: linePlot({ series: [{ label: mdef.label, x: xs, y: ys, type: 'points', line: true }], xLabel: v.label, yLabel: mdef.label, vlines: [{ x: scanRes.best.value, label: 'best sampled' }] }) });
             } else status.textContent = 'No finite metric values (check the plane and the metric).';
             if (ctx.ui.announce) ctx.ui.announce(status.textContent);
         } catch (e) { status.textContent = `The scan failed: ${e && e.message ? e.message : e}`; }
@@ -263,7 +276,7 @@ export function mount(el, ctx) {
     });
 
     refresh();
-    if (!tuneRows.children.length && vars.length) addTuneRow(0);
+    if (!tuneRows.children.length && vars.length) addTuneRow(Math.min(tuneDefaultIndex(ctx.store.get().project), vars.length - 1));
     return {
         update(evt) { if (!busy && evt && ['show', 'project', 'resolved'].includes(evt.type)) refresh(); },
         destroy() { stop = true; if (scanBlock) scanBlock.destroy(); if (tuneBlock) tuneBlock.destroy(); },

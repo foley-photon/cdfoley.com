@@ -16,8 +16,8 @@ import { einzel } from './fixtures/wp3/projects.mjs';
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
-test('engine version 0.2.1 (round 2 fixes), and the help page shows it', async () => {
-    assert.equal(ENGINE_VERSION, '0.2.1');
+test('engine version 0.2.2 (review fixes), and the help page shows it', async () => {
+    assert.equal(ENGINE_VERSION, '0.2.2');
     const { readFileSync } = await import('node:fs');
     const html = readFileSync(new URL('../../beta/ion-optics/help/index.html', import.meta.url), 'utf8');
     assert.ok(html.includes(`<span data-engine-version>${ENGINE_VERSION}</span>`));

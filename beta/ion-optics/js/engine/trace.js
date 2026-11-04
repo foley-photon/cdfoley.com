@@ -424,6 +424,7 @@ function createTracer(model, o, nTotal) {
     let pid = 0, pSrc = 0, pSpec = 0, pMass = 1, pQ = 0, kqm = 0, pT0 = 0, tEnd = 0, ke0 = 0, w1eV = 1, w1eV2 = 1, absQM = 0;
     let steps = 0, flags = 0, nCrossP = 0;
     let meshCount = 0, meshRows = 0, insideMesh = false, drifting = false;
+    let meshCarry = false;   // a mesh was passed within 1e-7 cell of the step end: the next step skips its first 1e-6 cell
     let nearS = false, nextMarkK = 0, invTau = 0;
     let outRow = 0;
     let firstStep = true, endInside = true;
@@ -737,7 +738,11 @@ function createTracer(model, o, nTotal) {
         const M = nSamp;
         let skipT = insideMesh;
         let m = 1, tauA = 0, ax = SX[0], ay = SY[0], az = SZ[0];
-        if (firstStep && stepLen > 0) {   // emission from a surface: the birth test covers the first 1e-6 cell
+        const carry = meshCarry;
+        meshCarry = false;
+        // emission from a surface: the birth test covers the first 1e-6 cell; after a mesh passed at the previous step's
+        // end the start lies on that mesh, which must not roll its transmission again
+        if ((firstStep || carry) && stepLen > 0) {
             tauA = Math.min(1, 1e-6 * h / stepLen);
             pathPos(tauA); ax = Q[QX]; ay = Q[QY]; az = Q[QZ];
             while (m <= M && ST[m] <= tauA) m++;
@@ -793,7 +798,14 @@ function createTracer(model, o, nTotal) {
                 if (!pass) return;
                 const dTau = stepLen > 0 ? Math.max(1e-12, 1e-7 * h / stepLen) : 1e-12;
                 const tauR = tauHit + dTau;
-                if (tauR >= 1 || ++guard > 200) return;
+                if (tauR >= 1) {
+                    // passed at the step end: the next step starts on the mesh (or inside a thick one)
+                    meshCarry = true;
+                    const ow = model.ownerAt(YN[0], YN[1], YN[2]);
+                    if (ow >= 0 && ow < nElec && transp[ow] === 1) insideMesh = true;
+                    return;
+                }
+                if (++guard > 200) return;
                 pathPos(tauR);
                 ax = Q[QX]; ay = Q[QY]; az = Q[QZ]; tauA = tauR;
                 const ow = model.ownerAt(ax, ay, az);
@@ -924,7 +936,7 @@ function createTracer(model, o, nTotal) {
             makeSamples(M);
             V[V_HLIM] = hitLimit;
             hitScan();
-        }
+        } else meshCarry = false;
         nearS = nearE;
         if (nP > 0) { V[V_PLIM] = planeLimit; V[V_REACH] = 1.25 * Math.max(stepLen, speedBound * dtS) + 1e-12; planeScan(); }
         if (nEv === 0) return -1;
@@ -1512,7 +1524,7 @@ function createTracer(model, o, nTotal) {
         pT0 = P[b + P_T0]; ke0 = P[b + P_KE];
         Y[0] = P[b + P_X]; Y[1] = P[b + P_Y]; Y[2] = P[b + P_Z]; Y[3] = P[b + P_WX]; Y[4] = P[b + P_WY]; Y[5] = P[b + P_WZ];
         V[V_T] = pT0; tEnd = pT0 + tMax; steps = 0; V[V_PATH] = 0; V[V_TBAND] = 0; flags = (rel ? FLAG.RELATIVISTIC : 0) | (td ? FLAG.TD_FIELDS : 0);
-        V[V_E0] = NaN; V[V_DEMAX] = 0; V[V_WORK] = 0; nCrossP = 0; meshCount = 0; meshRows = 0; insideMesh = false; drifting = false; V[V_DRIFT] = 0;
+        V[V_E0] = NaN; V[V_DEMAX] = 0; V[V_WORK] = 0; nCrossP = 0; meshCount = 0; meshRows = 0; insideMesh = false; meshCarry = false; drifting = false; V[V_DRIFT] = 0;
         nextMarkK = 0; firstStep = true; nearS = false;
         for (let i = 0; i < nP; i++) pCount[i] = 0;
         tn = 0; V[V_MINSEG] = minSeg0; V[V_LT] = NaN; V[V_LDX] = 0; V[V_LDY] = 0; V[V_LDZ] = 0;
@@ -1618,6 +1630,8 @@ export function mergeResults(parts) {
     const offsets = anyTraj ? new Uint32Array(n + 1) : null, pts = anyTraj ? new Float32Array(4 * np) : null;
     const markers = anyMarkers ? new Float32Array(nm) : null;
     const stats = { steps: 0, rejects: 0, evals: 0, ms: 0, edgeSplits: 0, regionViolations: 0, crossDropped: 0, collisions: 0 };
+    const warnings = [];
+    let beta2 = -1;   // coulomb.js: time-averaged mean β² (the largest of the batches)
     let ip = 0, ic = 0, it = 0, im = 0;
     for (const r of list) {
         summary.set(r.summary.subarray(0, r.n * S_STRIDE), ip * S_STRIDE);
@@ -1633,9 +1647,15 @@ export function mergeResults(parts) {
         if (anyMarkers && r.markers) { markers.set(r.markers, im); im += r.markers.length; }
         for (const k of Object.keys(stats)) if (r.stats && typeof r.stats[k] === 'number') stats[k] += r.stats[k];
         if (r.stats && r.stats.lockstep) stats.lockstep = true;   // a space-charge batch (coulomb.js): steps are common steps
+        if (r.stats && typeof r.stats.beta2 === 'number') beta2 = Math.max(beta2, r.stats.beta2);
+        // result warnings (coulomb.js W_SC_MAGNETIC), once per code
+        for (const w of Array.isArray(r.warnings) ? r.warnings : []) if (w && !warnings.some((x) => x.code === w.code)) warnings.push(w);
         ip += r.n; ic += r.nCross;
     }
-    return { n, i0: list.length ? list[0].i0 : 0, summary, crossings, nCross: nc, traj: anyTraj ? { offsets, pts } : null, markers, stats };
+    const out = { n, i0: list.length ? list[0].i0 : 0, summary, crossings, nCross: nc, traj: anyTraj ? { offsets, pts } : null, markers, stats };
+    if (beta2 >= 0) stats.beta2 = beta2;
+    if (warnings.length) out.warnings = warnings;
+    return out;
 }
 
 /**

@@ -1,5 +1,5 @@
 // WP5 validation suite in Node (spec 5.4, 7.6 acceptance 4 and 6; round-2 plan §2.3): the registry is complete
-// (55 gates, 7 info, 2 planned; every case with a reference URL, tolerances for both levels, a timeout and a setup
+// (56 gates, 6 info, 2 planned; every case with a reference URL, tolerances for both levels, a timeout and a setup
 // that validates); every gate runs as its own test at the level from IONOPTICS_LEVEL (quick by default); info cases
 // print; planned cases are skipped; a final table prints ID, value, reference, deviation, tolerance and status.
 import test, { after } from 'node:test';
@@ -11,17 +11,17 @@ import { validate } from '../../beta/ion-optics/js/engine/schema.js';
 const LEVEL = process.env.IONOPTICS_LEVEL === 'full' ? 'full' : 'quick';
 const results = [];
 
-test('registry: 55 gates (K 11, S 13, T 21, L 6, D 2, P 2), 7 info, 2 planned; references, levels, timeouts, valid setups', () => {
+test('registry: 56 gates (K 11, S 13, T 21, L 7, D 2, P 2), 6 info, 2 planned; references, levels, timeouts, valid setups', () => {
     const ids = BENCHMARKS.map((b) => b.id);
     assert.equal(new Set(ids).size, ids.length, 'unique ids');
     assert.equal(BENCHMARKS.length, 64);
     const gates = BENCHMARKS.filter((b) => b.kind === 'gate');
-    assert.equal(gates.length, 55);
-    for (const [g, n] of [['K', 11], ['S', 13], ['T', 21], ['L', 6], ['D', 2], ['I', 0], ['P', 2]]) assert.equal(gates.filter((b) => b.group === g).length, n, `group ${g}`);
-    assert.deepEqual(BENCHMARKS.filter((b) => b.kind === 'info').map((b) => b.id), ['L5', 'L6', 'L7', 'I1', 'I2', 'I3', 'I4']);
+    assert.equal(gates.length, 56);
+    for (const [g, n] of [['K', 11], ['S', 13], ['T', 21], ['L', 7], ['D', 2], ['I', 0], ['P', 2]]) assert.equal(gates.filter((b) => b.group === g).length, n, `group ${g}`);
+    assert.deepEqual(BENCHMARKS.filter((b) => b.kind === 'info').map((b) => b.id), ['L5', 'L6', 'I1', 'I2', 'I3', 'I4']);
     assert.deepEqual(BENCHMARKS.filter((b) => b.kind === 'planned').map((b) => b.id), ['P1', 'P3']);
     // the round-2 gates of the improvement plan (§2.3), including the four promoted on the field-analysis helpers, are all gates
-    for (const id of ['K3d', 'K6b', 'T8b', 'T16', 'T17', 'T18', 'T19', 'T20', 'S11', 'S12', 'S13', 'L8', 'L9', 'D1', 'D2', 'P2', 'P4']) assert.equal(BENCHMARKS.find((b) => b.id === id).kind, 'gate', `${id} is a gate`);
+    for (const id of ['L7', 'K3d', 'K6b', 'T8b', 'T16', 'T17', 'T18', 'T19', 'T20', 'S11', 'S12', 'S13', 'L8', 'L9', 'D1', 'D2', 'P2', 'P4']) assert.equal(BENCHMARKS.find((b) => b.id === id).kind, 'gate', `${id} is a gate`);
     // every group of the registry is a known group in a fixed order
     assert.deepEqual([...new Set(BENCHMARKS.map((b) => b.group))], ['K', 'S', 'T', 'L', 'D', 'I', 'P']);
     for (const b of BENCHMARKS) {

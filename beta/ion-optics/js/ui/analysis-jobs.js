@@ -55,6 +55,39 @@ export function runOverview(result, resolved, { solveStats = null } = {}) {
     return { summary: sum, planes, solver: solveStats || null };
 }
 
+/**
+ * True when a beam waist (engine beamWaist, or the waist of a pin's metrics) belongs to several species whose own waists
+ * lie further apart than the rms radius there (pure, for tests): the particle-weighted mean position is then where no
+ * species has its waist, so the Summary, the canvas description and Compare list the species waists instead of one.
+ */
+export function waistSplit(w) {
+    if (!w || !w.ok || !Array.isArray(w.groups) || w.groups.length < 2) return false;
+    const pos = w.groups.map((g) => g.position).filter(isNum);
+    const spread = isNum(w.spread) ? w.spread : (pos.length ? Math.max(...pos) - Math.min(...pos) : 0);
+    return spread > w.rms;
+}
+
+/**
+ * Mean time of flight per species at a plane (first crossing per particle; grouped by species label as in the TOF tab).
+ * @returns {{ label: string, n: number, mean: number }[]}
+ */
+export function tofBySpecies(result, resolved, k) {
+    const smp = planeSample(result, resolved, k);
+    const S = result.summary, sidx = new Map();
+    for (let i = 0; i < result.n; i++) sidx.set(S[i * S_STRIDE + S_ID], i * S_STRIDE);
+    const sources = (resolved && resolved.sources) || [], groups = new Map();
+    for (let i = 0; i < smp.ids.length; i++) {
+        const o = sidx.get(smp.ids[i]);
+        if (o === undefined) continue;
+        const src = sources[S[o + S_SRC]], sp = src && src.species ? src.species[S[o + S_SPECIES]] : null;
+        const key = sp ? `${sp.label}` : `species ${S[o + S_SPECIES]}`;
+        const g = groups.get(key) || { label: key, n: 0, sum: 0 };
+        g.n++; g.sum += smp.tof[i];
+        groups.set(key, g);
+    }
+    return [...groups.values()].map((g) => ({ label: g.label, n: g.n, mean: g.sum / g.n }));
+}
+
 /** Index of the plane whose waist the project asks for (analysis.waist.plane) or the first plane with crossings. */
 export function waistPlane(resolved, overview) {
     const id = resolved && resolved.analysis && resolved.analysis.waist && resolved.analysis.waist.plane;
@@ -615,7 +648,7 @@ export function pinMetrics(result, resolved, model = null) {
     for (const [k, c] of statusList(s)) byStatus[k] = c;
     return {
         launched: s.launched, traced: s.traced, byStatus, transmission: s.transmission.overall,
-        waist: bw ? { ok: !!bw.ok, reason: bw.reason || null, axis: bw.axis, name: bw.name, position: bw.position, rms: bw.rms, rmsAtPlane: bw.rmsAtPlane,
+        waist: bw ? { ok: !!bw.ok, reason: bw.reason || null, axis: bw.axis, name: bw.name, position: bw.position, rms: bw.rms, rmsAtPlane: bw.rmsAtPlane, spread: bw.spread,
             groups: (bw.groups || []).map((g) => ({ label: g.label, n: g.n, position: g.position, rms: g.rms })) } : null,
         planes, energy: { maxEnd: s.energy.maxEnd, medianEnd: s.energy.medianEnd, maxEndRel: s.energy.maxEndRel },
         trajectories: !!(result && result.traj && result.traj.pts && result.traj.pts.length),
@@ -727,8 +760,18 @@ export function compareTable(pins, metricsOf = (p) => p.metrics) {
     const add = (key, label, get) => { if (!defs.some((d) => d.key === key)) defs.push({ key, label, get }); };
     add('launched', 'Particles launched', (m) => num(m.launched));
     add('transmission', 'Transmission (all detectors)', (m) => num(m.transmission));
-    add('waist:pos', 'Waist position (mm)', (m) => (m.waist && m.waist.ok ? num(m.waist.position) : NaN));
-    add('waist:rms', 'rms radius at the waist (mm)', (m) => (m.waist && m.waist.ok ? num(m.waist.rms) : NaN));
+    // one waist only when the species focus together; otherwise one row per species waist
+    const single = (m) => m.waist && m.waist.ok && !waistSplit(m.waist);
+    add('waist:pos', 'Waist position (mm)', (m) => (single(m) ? num(m.waist.position) : NaN));
+    add('waist:rms', 'rms radius at the waist (mm)', (m) => (single(m) ? num(m.waist.rms) : NaN));
+    for (const m of ms) {
+        if (!waistSplit(m.waist)) continue;
+        for (const g of m.waist.groups) {
+            const sel = (f) => (mm) => { if (!waistSplit(mm.waist)) return NaN; const q = mm.waist.groups.find((x) => x.label === g.label); return q ? num(f(q)) : NaN; };
+            add(`waist:${g.label}:pos`, `Waist position, ${g.label} (mm)`, sel((q) => q.position));
+            add(`waist:${g.label}:rms`, `rms radius at the waist, ${g.label} (mm)`, sel((q) => q.rms));
+        }
+    }
     const planeOf = (m, id) => ((m && m.planes) || []).find((p) => p.id === id);
     const pv = (id, f) => (m) => { const r = planeOf(m, id); return r ? num(f(r)) : NaN; };
     const tv = (id, f) => (m) => { const r = planeOf(m, id); return r && r.tof ? num(f(r.tof)) : NaN; };

@@ -365,8 +365,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const nu = 1 / ratio;
             const mtf = nu < 1 ? (2 / Math.PI) * (Math.acos(nu) - nu * Math.sqrt(1 - nu * nu)) : 0;
 
-            if (ratio >= 2) { limit.textContent = 'Sensor-limited'; limit.className = 'badge badge-ok'; }
-            else if (ratio >= 1) { limit.textContent = 'Balanced optics and pixels'; limit.className = 'badge badge-ok'; }
+            const rShown = Calc.roundSig(ratio, 3);   // judge the ratio as displayed, so a ratio shown as 2 is never called balanced
+            if (rShown >= 2) { limit.textContent = 'Sensor-limited'; limit.className = 'badge badge-ok'; }
+            else if (rShown >= 1) { limit.textContent = 'Balanced optics and pixels'; limit.className = 'badge badge-ok'; }
             else { limit.textContent = 'Diffraction-limited'; limit.className = 'badge badge-warn'; }
             // enough digits that the last one is at most a tenth of the depth of field, so the two limits differ in print
             // (at 1:1 with a 100 mm lens the depth is 77 µm at 200 mm, which four digits round away)
@@ -381,11 +382,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 sensor: len(sw, 4) + ' × ' + len(sh, 4),
                 pobj: fmt.si(pobj, 'm', 4) + '/px',
                 // when the optics limit resolution, report the Airy blur projected onto the part as well
-                defect: fmt.si(v.ppd * pobj, 'm', 3) + (ratio < 1 ? '  (optical blur on part ' + fmt.si(airy / m, 'm', 3) + ')' : ''),
+                defect: fmt.si(v.ppd * pobj, 'm', 3) + (rShown < 1 ? '  (optical blur on part ' + fmt.si(airy / m, 'm', 3) + ')' : ''),
                 dof: isFinite(dof) ? len(dof, 3) : '∞',
                 nw: 'f/' + fmt.num(Nw, 3),
                 airy: fmt.si(airy, 'm', 3) + '  (' + fmt.num(airy / v.pitch, 3) + ' px)',
-                ratio: fmt.num(ratio, 3) + (ratio >= 2 ? '  sensor-limited' : ratio >= 1 ? '  balanced' : '  diffraction-limited'),
+                ratio: fmt.num(ratio, 3) + (rShown >= 2 ? '  sensor-limited' : rShown >= 1 ? '  balanced' : '  diffraction-limited'),
                 mtf: fmt.pct(mtf, 2),
                 ext: len(m * v.f, 3)
             };

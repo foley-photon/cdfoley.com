@@ -13,7 +13,7 @@ export const SHORTCUTS = Object.freeze([
     ['S', 'Solve the fields'], ['R', 'Run all particles'], ['L', 'Live preview on or off'], ['Esc', 'Cancel the current drawing, or stop a solve, a run or a live preview'],
     ['V', 'Select and edit tool'], ['H', 'Pan tool (or hold Space, or drag with the middle button)'], ['B', 'Box tool'], ['T', 'Tube tool'], ['C', 'Circle tool'],
     ['P', 'Polygon tool (Enter or double-click closes)'], ['M', 'Measure tool'], ['Shift+P', 'Probe line for the Profile tab'],
-    ['Delete', 'Delete the selection (or the grabbed polygon vertex)'], ['Ctrl+Z', 'Undo'], ['Ctrl+Y or Ctrl+Shift+Z', 'Redo'], ['Ctrl+D', 'Duplicate the selection'],
+    ['Delete or Backspace', 'Delete the selection (or the grabbed polygon vertex)'], ['Ctrl+Z', 'Undo'], ['Ctrl+Y or Ctrl+Shift+Z', 'Redo'], ['Ctrl+D', 'Duplicate the selection'],
     ['Arrows', 'Move the selection one cell (Shift ×10, Alt ×0.1)'], ['[ and ]', 'Move the selected shape earlier or later in the painting order'],
     ['0', 'Fit the domain in view'], ['+ and −', 'Zoom in and out'], ['Ctrl+S', 'Save the project to a file'], ['?', 'Show this list'],
 ]);

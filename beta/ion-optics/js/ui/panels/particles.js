@@ -97,7 +97,8 @@ export function mountParticles(host, ctx, app) {
             if (!row) return;
             row.en.checked = s.enabled !== false;
             row.title.textContent = s.name || s.id;
-            row.sw.style.background = s.color && s.color !== 'auto' ? s.color : ctx.view.sourceColor(null, k);
+            // only #rrggbb reaches CSS: a crafted link could otherwise load url(...) from another host
+            row.sw.style.background = typeof s.color === 'string' && /^#[0-9a-f]{6}$/i.test(s.color) ? s.color : ctx.view.sourceColor(null, k);
             const rs = r && r.sources ? r.sources.find((x) => x.id === s.id) : null;
             row.sub.textContent = s.enabled === false ? 'Disabled' : sourceSummary(rs);
             row.li.classList.toggle('io-selected', sel.kind === 'source' && (sel.ids || []).includes(s.id));

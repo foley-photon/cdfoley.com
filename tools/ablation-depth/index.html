@@ -424,11 +424,12 @@ document.addEventListener('DOMContentLoaded', () => {
     Calc.create({
         form: '#abl', id: 'abl', outputs: '#abl-out',
         compute(v) {
-            const fthN = v.fth * Math.pow(v.n, v.s - 1);
+            // A fractional N is rounded to whole pulses, and every pulse-N result uses the rounded count.
+            const nTot = Math.max(1, Math.round(v.n));
+            const fthN = v.fth * Math.pow(nTot, v.s - 1);
             const r1 = v.f0 / v.fth, rN = v.f0 / fthN, l1 = Math.log(r1);
             // Total on-axis depth: pulse k removes δ·ln(F₀/F_th(k)) once F₀ > F_th(k). Summed in closed form over the
-            // whole pulses k0…nTot, where k0 is the first pulse above its threshold (a fractional N is rounded).
-            const nTot = Math.max(1, Math.round(v.n));
+            // whole pulses k0…nTot, where k0 is the first pulse above its threshold.
             const k0 = l1 > 0 ? 1 : v.s < 1 ? Math.floor(Math.exp(-l1 / (1 - v.s))) + 1 : Infinity;
             const tot = k0 > nTot ? 0 : v.delta * ((nTot - k0 + 1) * l1 + (1 - v.s) * (lnFact(nTot) - lnFact(k0 - 1)));
             const rounded = nTot !== v.n ? 'N rounded to ' + nTot : '';
@@ -447,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
             else { ablBadge.textContent = 'Well above optimum'; ablBadge.className = 'badge badge-warn'; }
 
             return {
-                ln: above ? fmt.si(v.delta * a, 'm', 4) : '0 (below threshold)',
+                ln: above ? fmt.si(v.delta * a, 'm', 4) + (rounded ? ' (' + rounded + ')' : '') : '0 (below threshold' + (rounded ? ', ' + rounded : '') + ')',
                 l1: r1 > 1 ? fmt.si(v.delta * l1, 'm', 4) : '0 (below threshold)',
                 ltot: tot > 0 ? fmt.si(tot, 'm', 4) + (rounded ? ' (' + rounded + ')' : '') : '0 (below threshold' + (rounded ? ', ' + rounded : '') + ')',
                 fthn: fl(fthN, v.$unit.fth),
@@ -461,7 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         },
         after(v) {
-            const fthN = v.fth * Math.pow(v.n, v.s - 1);
+            const fthN = v.fth * Math.pow(Math.max(1, Math.round(v.n)), v.s - 1);
             const rN = v.f0 / fthN;
             const xMax = Math.max(100, 2 * rN);
             const xs = Calc.math.logspace(1, xMax, 200);

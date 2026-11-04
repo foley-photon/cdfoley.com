@@ -5,9 +5,12 @@
    Grammar (spec §2.2.3), parsed by recursive descent into a tree of closures
    (no eval, no Function):
      expr   := term (('+'|'-') term)*
-     term   := factor (('*'|'/') factor)*
-     factor := unary ('^' factor)?            right-associative
-     unary  := ('+'|'-') unary | atom         so -2^2 = (-2)^2 = 4, 2^-1 = 0.5
+     term   := unary (('*'|'/') unary)*
+     unary  := ('+'|'-') unary | power
+     power  := atom ('^' unary)?              right-associative
+   Conventional precedence: '^' binds tighter than a leading sign, so
+   -2^2 = -(2^2) = -4 and exp(-r^2) decays; a sign after '^' belongs to the
+   exponent, so 2^-1 = 0.5 and 2^-2^-1 = 2^(-(2^-1)).
      atom   := number | name | name '(' args ')' | '(' expr ')'
    Functions: sqrt abs sin cos tan (degrees), asin acos atan atan2 (return
    degrees), exp ln log10 min max pow floor ceil round hypot; constant pi.
@@ -197,18 +200,13 @@ function parseTokens(toks, src) {
         }
     }
     function term() {
-        let left = factor();
+        let left = unary();
         for (;;) {
             const t = peek();
             if (t.t !== '*' && t.t !== '/') return left;
             p++;
-            left = binary(t.t, left, factor());
+            left = binary(t.t, left, unary());
         }
-    }
-    function factor() {
-        const base = unary();
-        if (peek().t === '^') { p++; return binary('^', base, factor()); }
-        return base;
     }
     function unary() {
         const t = peek();
@@ -220,7 +218,12 @@ function parseTokens(toks, src) {
             const fa = a.f;
             return F((v) => -fa(v));
         }
-        return atom();
+        return power();
+    }
+    function power() {
+        const base = atom();
+        if (peek().t === '^') { p++; return binary('^', base, unary()); }
+        return base;
     }
     function atom() {
         const t = peek();

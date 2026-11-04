@@ -21,21 +21,26 @@ function failsAt(src, column, re = null) {
 test('precedence and associativity', () => {
     const cases = [
         ['1+2*3', 7], ['(1+2)*3', 9], ['2*3^2', 18], ['2^3^2', 512], ['(2^3)^2', 64], ['10-4-3', 3], ['12/3/2', 2],
-        ['2+3*4^2/8-1', 7], ['1-2*-3', 7], ['8/-2^2', 2], ['2^-1', 0.5], ['2^-2^-1', 2 ** -(2 ** -1)], ['1.5e3+2.5E-1', 1500.25],
+        ['2+3*4^2/8-1', 7], ['1-2*-3', 7], ['8/-2^2', -2], ['2^-1', 0.5], ['2^-2^-1', 2 ** -(2 ** -1)], ['1.5e3+2.5E-1', 1500.25],
         ['.5+.25', 0.75], ['3*(4+(5-2)*2)', 30],
     ];
     for (const [s, v] of cases) assert.equal(ev(s), v, s);
 });
 
-test('unary minus and plus (factor := unary (^ factor)?, so -2^2 = (-2)^2)', () => {
-    assert.equal(ev('-2^2'), 4);
+test('unary minus and plus (unary := sign unary | power, so -2^2 = -(2^2))', () => {
+    assert.equal(ev('-2^2'), -4);
+    assert.equal(ev('(-2)^2'), 4);
     assert.equal(ev('-(2^2)'), -4);
     assert.equal(ev('0-2^2'), -4);
     assert.equal(ev('--3'), 3);
+    assert.equal(ev('--2^2'), 4);
     assert.equal(ev('+-+3'), -3);
     assert.equal(ev('-a', { a: 5 }), -5);
-    assert.equal(ev('-a^2', { a: 3 }), 9);
+    assert.equal(ev('-a^2', { a: 3 }), -9);
     assert.equal(ev('2*-a', { a: 3 }), -6);
+    assert.equal(ev('2^-a', { a: 3 }), 0.125);
+    assert.equal(ev('-2^-1'), -0.5);
+    assert.equal(ev('exp(-r^2/4)', { r: 2 }), Math.exp(-1));
 });
 
 test('trigonometry in degrees, exact at multiples of 30° and 45°', () => {

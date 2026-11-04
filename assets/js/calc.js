@@ -155,7 +155,7 @@
             if (typeof x !== 'number' || isNaN(x)) return '—';
             if (!isFinite(x)) return x > 0 ? '∞' : '−∞';
             if (x === 0) return '0';
-            var a = Math.abs(x);
+            var a = Math.abs(roundSig(x, sig));   // decide on the rounded value: 99999.5 → 1 × 10⁵, not "100000"
             var out = (a >= 1e-3 && a < 1e5) ? plainDecimal(x, sig) : fmt.sci(x, sig);
             return out.replace(/^-/, '−');
         },

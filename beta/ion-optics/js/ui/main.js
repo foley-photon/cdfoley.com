@@ -42,7 +42,8 @@ export const RAIL_TABS = Object.freeze([
     { id: 'shapes', title: 'Shapes', icon: 'shapes', mount: mountShapes },
     { id: 'params', title: 'Params', icon: 'params', mount: mountParams },
     { id: 'particles', title: 'Particles', icon: 'particles', mount: mountParticles },
-    { id: 'fields', title: 'Fields', icon: 'magnet', mount: mountFields },
+    // magnets and ideal analytic fields (field analysis lives in the Charges & multipoles and Profile tabs); `label` is the short rail label
+    { id: 'fields', title: 'Magnets & ideal fields', label: 'Magnets', icon: 'magnet', mount: mountFields },
     { id: 'recording', title: 'Recording', icon: 'recording', mount: mountRecording },
     { id: 'domain', title: 'Domain', icon: 'domain', mount: mountDomain },
 ]);
@@ -517,7 +518,9 @@ function createApp(ctx, platform, log) {
                 TMAX: ['reached the time limit', 'reached the time limit'], DRIFT_END: ['drifted out', 'drifted out'], NUM_ERROR: ['numerical error', 'numerical errors'],
                 BORN_INSIDE: ['started inside an electrode', 'started inside electrodes'], CANCELLED: ['cancelled', 'cancelled'], STEPS: ['hit the step limit', 'hit the step limit'] };
             for (const k of keys) if (bs[k]) parts.push(`${cnt(bs[k])} ${words[k][bs[k] === 1 ? 0 : 1]}`);
-            if (sum.launched && sum.transmission) parts.push(`transmission ${(100 * sum.transmission.overall).toFixed(sum.transmission.overall === 1 || sum.transmission.overall === 0 ? 0 : 1)}%`);
+            // transmission only when the project has a detector (a terminating plane), as in the canvas description
+            const det = (((res.resolvedSnapshot || st.resolved || st.lastResolved || {}).recording || {}).planes || []).some((p) => p.terminate);
+            if (det && sum.launched && sum.transmission) parts.push(`transmission ${(100 * sum.transmission.overall).toFixed(sum.transmission.overall === 1 || sum.transmission.overall === 0 ? 0 : 1)}%`);
             return `Run ${st.run.status === 'partial' ? 'stopped' : 'finished'}: ${parts.join(', ')}.`;
         },
         banner(text, { kind = 'info', action = null } = {}) {
@@ -635,7 +638,7 @@ function mountRail(ctx, app) {
     RAIL_TABS.forEach((t, i) => {
         const id = 'io-railtab-' + t.id;
         const b = h('button', { type: 'button', role: 'tab', id, class: 'io-railtab', 'aria-selected': 'false', 'aria-controls': 'io-railpanel-' + t.id, tabindex: '-1', title: t.title, dataset: { guide: 'rail:' + t.id, tab: t.id } },
-            icon(t.icon, 20), h('span', { class: 'io-railtab-label', text: t.title }), h('span', { class: 'io-badge-dot', hidden: true }));
+            icon(t.icon, 20), h('span', { class: 'io-railtab-label', text: t.label || t.title }), h('span', { class: 'io-badge-dot', hidden: true }));
         const p = h('section', { role: 'tabpanel', id: 'io-railpanel-' + t.id, class: 'io-railpanel', 'aria-labelledby': id, hidden: true, tabindex: '-1' },
             h('h2', { class: 'io-panel-title', text: t.title }));
         tabsEl.appendChild(b); panelsEl.appendChild(p);

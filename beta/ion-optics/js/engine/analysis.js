@@ -61,8 +61,9 @@ function axisCol(a) {
  * energy.maxEndRel is relative to max(KE at the start, KE at the end, |q|·(largest − smallest electrode voltage)); warned counts
  * the flagged particles that did not end on an electrode (warnedHit those that did), warnedBand those among them whose error
  * comes from the field in cells cut by electrodes (time spent there, integrator work error under 1% of the energy error).
- * energy.notChecked says why no particle has an energy error (null when some do): 'plugins' (drag, gas collisions or
- * space charge change the energy), 'time' (time-dependent fields), 'outside' (every particle ended outside the grid).
+ * energy.notChecked says why no particle has an energy error (null when some do): 'plugins' (drag or gas collisions
+ * change the energy; space charge is checked net of the pair-force work), 'time' (time-dependent fields), 'outside'
+ * (every particle ended outside the grid).
  */
 export function summarize(result, resolved = null) {
     const n = result ? result.n : 0;
@@ -172,7 +173,7 @@ export function summarize(result, resolved = null) {
         const gasOn = !!(tr.gas && tr.gas.enabled !== false && tr.gas.pressure > 0);
         let td = false;
         for (let i = 0; i < n && !td; i++) if ((S[i * S_STRIDE + S_FLAGS] & FLAG.TD_FIELDS) !== 0) td = true;
-        notChecked = tr.spaceCharge || tr.drag || gasOn ? 'plugins' : (td ? 'time' : 'outside');
+        notChecked = tr.drag || gasOn ? 'plugins' : (td ? 'time' : 'outside');
     }
     const bySpecies = [...spMap.values()].sort((a, b) => a.source - b.source || a.species - b.species);
     for (const r of bySpecies) r.transmission = r.launched > 0 ? r.detected / r.launched : 0;

@@ -95,7 +95,8 @@ test('presets raise no geometry warnings (shorts, thin or buried shapes, clipped
 test('the default project is the Einzel lens of §2.2.1', () => {
     const p = presetById('einzel').build();
     assert.deepEqual(p.params.map((q) => [q.name, q.value]), [['D', 20], ['Vc', 850]]);
-    assert.deepEqual([p.domain.cell, p.domain.x, p.domain.y], [0.25, [-60, 140], [0, 16]]);
+    // x from −80 mm (was −60): the Lens tab's ray start then lies 25 mm before the outer tube, so the field there is negligible at Vc = −8000 V too
+    assert.deepEqual([p.domain.cell, p.domain.x, p.domain.y], [0.25, [-80, 140], [0, 16]]);
     assert.deepEqual(p.electrodes.map((e) => [e.id, e.v]), [['gnd', undefined], ['outer', 0], ['centre', 'Vc']]);
     assert.deepEqual(p.shapes.map((s) => [s.x0, s.x1, s.rIn, s.rOut]), [[-55, '-0.3*D', 'D/2', 'D/2+1'], ['-0.2*D', '0.2*D', 'D/2', 'D/2+1'], ['0.3*D', 55, 'D/2', 'D/2+1']]);
     assert.equal(p.sources[0].count, 21);

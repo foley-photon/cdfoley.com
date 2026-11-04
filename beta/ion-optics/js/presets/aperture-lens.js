@@ -2,10 +2,10 @@
    Ion optics presets: aperture-lens.js
    P3 Two-aperture lens (spec §4.14): two zero-thickness apertures of
    diameter D = 10 mm, 5 mm apart (A/D 0.5), closed by a linear potential
-   ramp at r = 5 D. Aperture 2 at −9000 V accelerates 1000 eV ions tenfold
+   ramp at r = 2.5 D (25 mm). Aperture 2 at −9000 V accelerates 1000 eV ions tenfold
    (V2/V1 = 10). Two- and three-aperture lenses are tabulated by Harting &
    Read, Electrostatic Lenses (1976); with zero-thickness apertures and this
-   ramp closure our model runs 3 to 6 % above their f2/D (benchmark L6,
+   ramp closure our model runs 3.5 to 7 % above their f2/D (benchmark L6,
    informational), so the expectation records our own value.
    ========================================================================== */
 import { newProject } from '../engine/schema.js';
@@ -18,8 +18,8 @@ function build() {
             + 'aperture 2 at -9000 V, so 1000 eV ions leave with 10000 eV (V2/V1 = 10). The outer wall at r = 25 mm carries a linear '
             + 'potential ramp between the two voltages, an ideal closure of the lens.\n'
             + 'A parallel beam 2 mm wide comes to a focus to the right of the lens. The Lens tab gives f2/D near 3.35; the tables of '
-            + 'Harting and Read (1976) give 3.20. This zero-thickness model with a ramp closure runs 3 to 6 % above their values, a model '
-            + 'difference that does not shrink on finer grids (informational benchmark L6).',
+            + 'Harting and Read (1976) give 3.20. This zero-thickness model with a ramp closure runs 3.5 to 7 % above their values; an '
+            + 'independent solver reproduces the offset, whose cause in the tabulated model is not identified (informational benchmark L6).',
     };
     p.params = [];
     p.domain = {
