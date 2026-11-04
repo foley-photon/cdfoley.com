@@ -637,6 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const dofOK = !(v.depth > 0) || (o.near <= v.wd - v.depth / 2 && o.far >= v.wd + v.depth / 2);
             const Nw = v.N * (1 + o.m), airy = 2.44 * v.wl * Nw;
             const ratio = 2 * o.p / (v.wl * Nw), nu = 1 / ratio;
+            const rShown = Calc.roundSig(ratio, 3);   // the verdict follows the 3-digit ratio the lens calculator shows
             const mtf = nu < 1 ? (2 / Math.PI) * (Math.acos(nu) - nu * Math.sqrt(1 - nu * nu)) : 0;
             const blurPx = v.speed * v.exp / o.pobj;
             const rate = s.nx * s.ny * pf.bpp * v.fps / 1e6;               // MB/s
@@ -658,9 +659,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 : o.dof < v.depth
                     ? item('bad', 'Depth of field', 'Only ' + L(o.dof) + ' at f/' + v.N + ' for a ' + L(v.depth) + ' height variation. Stop down, accept more blur, or reduce magnification.')
                     : item('bad', 'Depth of field', L(o.dof) + ' at f/' + v.N + ', but it runs from ' + L(o.near) + ' to ' + farTxt + ', so the near end of the ' + L(v.depth) + ' height variation (' + L(v.wd - v.depth / 2) + ') is out of focus. Stop down, accept more blur, or reduce magnification.'));
-            ck.push(ratio >= 2
+            ck.push(rShown >= 2
                 ? item('ok', 'Optics vs. pixels', 'Sensor-limited: the ideal lens keeps ' + fmt.pct(mtf, 2) + ' contrast at the pixel Nyquist frequency.')
-                : ratio >= 1
+                : rShown >= 1
                     ? item('warn', 'Optics vs. pixels', 'Balanced: only ' + fmt.pct(mtf, 2) + ' contrast at Nyquist even for a perfect lens. Open the aperture if depth of field allows.')
                     : item('bad', 'Optics vs. pixels', 'Diffraction-limited at f/' + fmt.num(Nw, 3) + ' working: the blur spans ' + fmt.num(airy / o.p, 2) + ' px. Open the aperture or use larger pixels.'));
             if (v.speed > 0) {

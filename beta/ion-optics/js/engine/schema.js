@@ -715,10 +715,14 @@ class Pass {
         seen.add(v);
         return v;
     }
-    color(obj, key, base, allowAuto) {
+    /** A #rrggbb color (or 'auto' when allowed); an invalid value warns and gives def when one is passed (else it is kept). */
+    color(obj, key, base, allowAuto, def) {
         const v = isObj(obj) ? obj[key] : undefined;
         if (v === undefined || v === null) return v;
-        if (typeof v !== 'string' || !(COLOR_RE.test(v) || (allowAuto && v === 'auto'))) this.warn(`${base}.${key}`, 'W_COLOR', `"${key}" should be ${allowAuto ? '"auto" or ' : ''}a #rrggbb color.`);
+        if (typeof v !== 'string' || !(COLOR_RE.test(v) || (allowAuto && v === 'auto'))) {
+            this.warn(`${base}.${key}`, 'W_COLOR', `"${key}" should be ${allowAuto ? '"auto" or ' : ''}a #rrggbb color${def !== undefined ? `; ${JSON.stringify(def)} is used` : ''}.`);
+            return def !== undefined ? def : v;
+        }
         return v;
     }
 }
@@ -1333,7 +1337,8 @@ function resolveSource(pass, s, i, ctx = {}) {
     const r = { ...s };
     r.enabled = pass.bool(s, 'enabled', base, true);
     pass.str(s, 'name', base, { def: '', max: 200 });
-    pass.color(s, 'color', base, true);
+    // an invalid color becomes 'auto': it reaches CSS (the swatches), so only #rrggbb passes
+    if (isObj(s) && s.color !== undefined && s.color !== null) r.color = pass.color(s, 'color', base, true, 'auto');
     r.type = pass.enumv(s, 'type', base, ENUMS.sourceType, 'sampled');
     r.weight = pass.num(s, 'weight', base, { def: 1, gt: 0 });
     if (r.type === 'rows') return resolveRowsSource(pass, s, r, base, ctx);
@@ -1707,7 +1712,8 @@ function runPass(project, { mobile = false } = {}) {
     pass.warnings.push(...early.warnings);
     resolveParamsMeta(pass, params);
     const out = { format: p.format, version: p.version };
-    for (const k of Object.keys(p)) if (!HAS.call(out, k)) out[k] = p[k];   // unknown keys kept
+    // unknown keys kept (never __proto__, constructor or prototype: assigning __proto__ would set the prototype)
+    for (const k of Object.keys(p)) if (!HAS.call(out, k) && k !== '__proto__' && k !== 'constructor' && k !== 'prototype') out[k] = p[k];
     out.paramValues = { ...pv.values };
     out.params = params.map((q) => (isObj(q) ? { ...q, value: typeof q.name === 'string' && HAS.call(pv.values, q.name) ? pv.values[q.name] : NaN } : q));
     out.meta = resolveMeta(pass, p.meta);

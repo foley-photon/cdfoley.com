@@ -29,12 +29,16 @@ export function runStats(result, resolved, analysis) {
 /**
  * The meaningful beam waist of a run ({ axis, position, rms, … }) or null: the engine's beamWaist rule, shared with the
  * Summary tab (field-free straight path to the plane, inside the domain or a drift region, not a parallel beam).
+ * `split` is true when species focus at different places (their waists further apart than the rms radius, the rule of
+ * analysis-jobs.js waistSplit): the mean position is then no waist of any species, so only the species waists are told.
  */
 export function waistOf(result, resolved, analysis, model = null) {
     if (!result || !resolved || !analysis || typeof analysis.beamWaist !== 'function' || !ArrayBuffer.isView(result.summary)) return null;
     try {
         const w = analysis.beamWaist(result, resolved, model);
-        return w && w.ok ? w : null;
+        if (!w || !w.ok) return null;
+        const split = Array.isArray(w.groups) && w.groups.length > 1 && w.spread > w.rms;
+        return { ...w, split };
     } catch (e) { return null; }
 }
 
@@ -50,7 +54,8 @@ export function canvasLabel(state, analysis) {
         parts.push(`${res.n} trajector${res.n === 1 ? 'y' : 'ies'}${state.run.live ? ' (live preview)' : ''}`);
         const rr = res.resolvedSnapshot || r;
         const w = waistOf(res, rr, analysis, state.field && state.field.model);
-        if (w) parts.push(`waist at ${w.axis} = ${formatPretty(w.position, 'length', 3)}`);
+        if (w && w.split) parts.push('species waists at different positions');
+        else if (w) parts.push(`waist at ${w.axis} = ${formatPretty(w.position, 'length', 3)}`);
         const s = runStats(res, rr, analysis);
         const detectors = ((rr.recording && rr.recording.planes) || []).some((p) => p.terminate);
         if (s && s.launched) {
@@ -66,6 +71,8 @@ export function canvasLabel(state, analysis) {
 }
 
 function pct(f) { return `${(100 * f).toFixed(f === 0 || f === 1 ? 0 : 1)}%`; }
+/** A length in mm (the unit every panel uses for the cell size), four significant digits. */
+function mm(v) { return Number.isFinite(v) ? `${String(parseFloat(v.toPrecision(4))).replace(/^-/, '−')} mm` : '—'; }
 
 /** Full scene description (the "Describe scene" button). */
 export function describeScene(state, analysis) {
@@ -74,7 +81,7 @@ export function describeScene(state, analysis) {
     if (!r) return 'The project has errors, so the scene cannot be described. Fix the fields marked in red.';
     const d = r.domain;
     const out = [];
-    out.push(`${(p.meta && p.meta.name) || 'Untitled project'}: a ${d.type === 'cyl2d' ? 'cylindrically symmetric domain (revolved about the x axis)' : 'planar domain'} from x = ${formatPretty(d.x[0], 'length', 5)} to ${formatPretty(d.x[1], 'length', 5)} and ${d.type === 'cyl2d' ? 'r' : 'y'} = ${formatPretty(d.y[0], 'length', 5)} to ${formatPretty(d.y[1], 'length', 5)}, cell ${formatPretty(d.h, 'length', 4)} (${d.nx} by ${d.ny} nodes).`);
+    out.push(`${(p.meta && p.meta.name) || 'Untitled project'}: a ${d.type === 'cyl2d' ? 'cylindrically symmetric domain (revolved about the x axis)' : 'planar domain'} from x = ${formatPretty(d.x[0], 'length', 5)} to ${formatPretty(d.x[1], 'length', 5)} and ${d.type === 'cyl2d' ? 'r' : 'y'} = ${formatPretty(d.y[0], 'length', 5)} to ${formatPretty(d.y[1], 'length', 5)}, cell ${mm(d.h)} (${d.nx} by ${d.ny} nodes).`);
     const sym = [];
     if (d.mirror && d.mirror.x) sym.push('a mirror plane at x = 0');
     if (d.mirror && d.mirror.y && d.type !== 'cyl2d') sym.push('a mirror plane at y = 0');
@@ -116,7 +123,8 @@ export function describeScene(state, analysis) {
             if (s.energy && Number.isFinite(s.energy.maxEndRel)) out.push(`Largest relative energy error ${s.energy.maxEndRel.toExponential(1)}.`);
         }
         const w = waistOf(res, res.resolvedSnapshot || r, analysis, state.field && state.field.model);
-        if (w) out.push(`The beam waist is at ${w.axis} = ${formatPretty(w.position, 'length', 4)} with rms radius ${formatPretty(w.rms, 'length', 3)}.`);
+        if (w && w.split) out.push(`The species focus at different positions: ${w.groups.map((g) => `${g.label} at ${w.axis} = ${formatPretty(g.position, 'length', 4)} (rms radius ${formatPretty(g.rms, 'length', 3)})`).join('; ')}.`);
+        else if (w) out.push(`The beam waist is at ${w.axis} = ${formatPretty(w.position, 'length', 4)} with rms radius ${formatPretty(w.rms, 'length', 3)}.`);
         if (state.run.status === 'stale') out.push('These results are stale: the model changed after the run.');
     } else out.push('No particles have been run yet.');
     return out.join(' ');

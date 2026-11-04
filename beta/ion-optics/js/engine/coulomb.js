@@ -11,15 +11,32 @@
    multiplies the partner charge once per pair; opts.factorBySource scales F
    per source of the partner, for subsets that carry a whole run's charge).
    The pair time scale √((r² + ε²)^{3/2} / (K_C F |q_i q_j| (1/m_i + 1/m_j)))
-   limits the common step. Interactions are electrostatic (quasistatic, no
-   retardation) and the particles do not change the electrode charges:
+   limits the common step, and so does the gyration in a magnetic field
+   (32 steps per turn at the largest |B|, as trace.js caps RK45: fixed-step
+   RK4 damps a rotation by about (ωΔt)⁶/144 per step). Interactions are
+   electrostatic (quasistatic, no retardation, no magnetic pair force) and
+   the particles do not change the electrode charges:
    superposed pair forces are an estimator of the onset of space-charge
    effects (Reiser, Theory and Design of Charged Particle Beams, 2nd ed.
    (2008), ch. 4), not a self-consistent solution; near a
-   space-charge-limited emitter they are order-of-magnitude only.
+   space-charge-limited emitter they are order-of-magnitude only. For a
+   co-moving beam the omitted magnetic attraction cancels a fraction β² of
+   the repulsion (net transverse force E/γ², Reiser ch. 4), so the result
+   carries warning W_SC_MAGNETIC when the time-averaged mean β² of the
+   particles exceeds 0.01.
+   Energy check (static fields, no drag or gas): KE + qφ minus the work of
+   the pair forces (RK4 quadrature of the stage powers) is conserved by each
+   particle; its change is S_DE_END (at the last full step end; a particle
+   that ends inside a step reports the value at that step's start) and its
+   largest excursion S_DE_MAX, flagged as in trace.js. S_WORK sums
+   |ΔKE − W| over the steps, W the work of all forces.
    Events are located on the straight chord of each step (linear in time):
    planes (with the same side, extent, limits and radius filters as
-   trace.js), electrode hits and meshes, domain exits. Time markers lie on
+   trace.js), electrode hits and meshes, domain exits. A mesh rolls its
+   transmission once per crossing: a particle inside a thick mesh skips
+   transparent electrodes until it leaves, and the chord after a pass (or
+   after birth) skips its first 1e-6 cell, which starts on that surface,
+   as trace.js does. Time markers lie on
    the cubic Hermite path of each step (end positions and velocities).
    Stored trajectories are thinned like trace.js: when a particle's buffer
    is full every other point is dropped (both ends kept) and the minimum
@@ -46,6 +63,9 @@ import {
 const INV_C2 = 1 / (C_MMUS * C_MMUS);
 const UC2 = C_MMUS * C_MMUS / K_ACC;
 const MESH_A = 0x7f4a7c15;
+const TWO_PI = 2 * Math.PI;
+/** Mean β² above which a space-charge result warns that the magnetic pair force is left out (about 2.6 keV electrons). */
+export const BETA2_WARN = 0.01;
 /** Largest bunch the direct summation accepts (O(N²) per step). */
 export const MAX_PARTICLES = 2000;
 /** Default softening ε (mm) when none is given. */
@@ -70,7 +90,9 @@ const posNum = (v, d) => (typeof v === 'number' && v > 0 && Number.isFinite(v) ?
  *   pairStep: the common step is at most pairStep × the smallest pair time scale (default 0.01);
  *   record.markersDt: time markers every markersDt µs from each particle's birth (as trace.js).
  * @param {{ shouldStop?: () => boolean, onProgress?: (p: { done: number, total: number }) => void, progressEveryMs?: number }} [hooks]
- * @returns {object} TraceResult (same layout as traceParticles; S_DE_END/S_DE_MAX are NaN, S_WORK 0)
+ * @returns {object} TraceResult (same layout as traceParticles; S_DE_END/S_DE_MAX net of the pair-force work, NaN
+ *   with time-dependent fields, drag or gas; stats.beta2 the time-averaged mean β²; `warnings` lists W_SC_MAGNETIC
+ *   when that exceeds BETA2_WARN)
  */
 export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
     const t0ms = performance.now();
@@ -99,7 +121,9 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
     const onProgress = hooks && typeof hooks.onProgress === 'function' ? hooks.onProgress : null;
     const progressEvery = hooks && hooks.progressEveryMs > 0 ? hooks.progressEveryMs : 100;
     const hasB = !!model.hasB, hitsOn = !!model.hasGeometry;
+    const bMax = hasB && model.bMax > 0 ? model.bMax : 0;
     const transp = model.transparent || new Uint8Array(0), transm = model.transmission || new Float64Array(0);
+    const isMesh = (e) => e >= 0 && e < transp.length && transp[e] === 1;
     // plug-ins
     const drag = opts.drag && opts.drag.type === 'stokes' && opts.drag.mobility > 0 ? opts.drag : null;
     const KMOB = drag ? 1e-4 * drag.mobility : 0;
@@ -107,13 +131,25 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
     const gasOpt = opts.gas && opts.gas.enabled !== false && opts.gas.pressure > 0 && opts.gas.temperature > 0 && opts.gas.mass > 0 && opts.gas.diameter > 0 ? opts.gas : null;
     const gasModel = gasOpt ? createGasModel(gasOpt) : null;
     const gasOn = gasModel !== null;
+    // energy check as trace.js: static fields and no drag or gas
+    const td = !!model.timeDependent;
+    const eCheckOn = !td && !drag && !gasOn, energyCheck = opts.energyCheck !== false;
+    const eThr = model.interp === 'linear' ? 1e-4 : 1e-6, vSpan = model.vSpan > 0 ? model.vSpan : 0;
 
     // state
     const X = new Float64Array(3 * n), W = new Float64Array(3 * n), M = new Float64Array(n), invM = new Float64Array(n), Qc = new Float64Array(n), T0 = new Float64Array(n);
     const X0 = new Float64Array(3 * n), W0 = new Float64Array(3 * n), XT = new Float64Array(3 * n), WT = new Float64Array(3 * n);
     const KX = [0, 1, 2, 3].map(() => new Float64Array(3 * n)), KW = [0, 1, 2, 3].map(() => new Float64Array(3 * n));
+    const KF = [0, 1, 2, 3].map(() => new Float64Array(3 * n));   // the field (and drag) part of KW; KW − KF is the pair part
     const active = new Uint8Array(n), done = new Uint8Array(n);
     const steps = new Float64Array(n), path = new Float64Array(n), drift = new Float64Array(n), ncross = new Float64Array(n), meshCount = new Int32Array(n);
+    // mesh state: inside a transparent electrode (its volume is skipped), and skip the first 1e-6 cell of the next chord
+    const inMesh = new Uint8Array(n), skipStart = new Uint8Array(n);
+    // energy: start value KE + qφ (NaN: not checked), pair-force work, error at the last full step end, its largest
+    // excursion, Σ|ΔKE − W|, time in BOUNDARY cells, per-particle flags, the cell type at the step start (1: BOUNDARY)
+    const E0 = new Float64Array(n).fill(NaN), WP = new Float64Array(n), ELast = new Float64Array(n).fill(NaN), DEMAX = new Float64Array(n);
+    const WORK = new Float64Array(n), TBAND = new Float64Array(n), pFlags = new Int32Array(n), whereS = new Int8Array(n);
+    let b2Sum = 0, b2Time = 0;   // time-weighted β² over the active particles
     const invTau = new Float64Array(n);
     const gasSp = gasOn ? new Array(n).fill(null) : null, gasRng = gasOn ? new Array(n).fill(null) : null;
     const gasBudget = gasOn ? new Float64Array(n) : null, gasNu = gasOn ? new Float64Array(n) : null;
@@ -187,8 +223,14 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
         summary[o + S_ID] = particles[b + P_ID]; summary[o + S_STATUS] = status; summary[o + S_WHERE] = where; summary[o + S_T] = t;
         summary[o + S_X] = x; summary[o + S_Y] = y; summary[o + S_Z] = z; summary[o + S_VX] = wx / g; summary[o + S_VY] = wy / g; summary[o + S_VZ] = wz / g;
         summary[o + S_KE] = keOf(i, wx, wy, wz); summary[o + S_TOF] = t - T0[i]; summary[o + S_STEPS] = steps[i]; summary[o + S_PATH] = path[i];
-        summary[o + S_DE_END] = NaN; summary[o + S_DE_MAX] = NaN; summary[o + S_WORK] = 0; summary[o + S_NCROSS] = ncross[i]; summary[o + S_TBAND] = 0;
-        summary[o + S_FLAGS] = (rel ? FLAG.RELATIVISTIC : 0) | (model.timeDependent ? FLAG.TD_FIELDS : 0);
+        let flags = pFlags[i] | (rel ? FLAG.RELATIVISTIC : 0) | (td ? FLAG.TD_FIELDS : 0);
+        const checked = E0[i] === E0[i] && status !== STATUS.BORN_INSIDE && status !== STATUS.NUM_ERROR && status !== STATUS.CANCELLED;
+        const dEnd = checked ? ELast[i] : NaN;
+        // the scale of trace.js plus the end KE, which carries the energy the pair forces gave (particles from rest)
+        const eScale = Math.max(particles[b + P_KE], summary[o + S_KE], Math.abs(Qc[i]) * vSpan);
+        if (energyCheck && dEnd === dEnd && Math.abs(dEnd) > eThr * eScale) flags |= FLAG.ENERGY_WARN;
+        summary[o + S_DE_END] = dEnd; summary[o + S_DE_MAX] = E0[i] === E0[i] ? DEMAX[i] : NaN; summary[o + S_WORK] = WORK[i]; summary[o + S_NCROSS] = ncross[i]; summary[o + S_TBAND] = TBAND[i];
+        summary[o + S_FLAGS] = flags;
         summary[o + S_SRC] = particles[b + P_SRC]; summary[o + S_SPECIES] = particles[b + P_SPECIES]; summary[o + S_KE0] = particles[b + P_KE]; summary[o + S_T0] = T0[i];
         point(i, x, y, z, t, true);
         active[i] = 0; done[i] = 1; nDone++;
@@ -226,20 +268,22 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
             default: return x - p.at;
         }
     }
-    /** Accelerations (dw/dt) at state (xs, ws) and time t into kw; dx/dt into kx. Coulomb over active particles. */
-    function accel(t, xs, ws, kx, kw) {
+    /** Accelerations (dw/dt) at state (xs, ws) and time t into kw (its field and drag part into kf); dx/dt into kx; the cell types into wh (or null). Coulomb over active particles. */
+    function accel(t, xs, ws, kx, kw, kf, wh) {
         for (let i = 0; i < n; i++) {
             if (!active[i]) continue;
             const o = 3 * i, g = gamma(ws[o], ws[o + 1], ws[o + 2]);
             const vx = ws[o] / g, vy = ws[o + 1] / g, vz = ws[o + 2] / g;
             kx[o] = vx; kx[o + 1] = vy; kx[o + 2] = vz;
             PT[0] = t; PT[1] = xs[o]; PT[2] = xs[o + 1]; PT[3] = xs[o + 2];
-            Ev(PT, ef, -1, false); evals++;
+            const where = Ev(PT, ef, -1, false); evals++;
+            if (wh !== null) wh[i] = where;
             let fx = ef[0], fy = ef[1], fz = ef[2];
             if (hasB) { Bv(PT, bf, -1); fx += vy * bf[2] - vz * bf[1]; fy += vz * bf[0] - vx * bf[2]; fz += vx * bf[1] - vy * bf[0]; }
             const k = K_ACC * Qc[i] * invM[i];
             kw[o] = k * fx; kw[o + 1] = k * fy; kw[o + 2] = k * fz;
             if (invTau[i] > 0) { kw[o] -= (vx - gasV[0]) * invTau[i]; kw[o + 1] -= (vy - gasV[1]) * invTau[i]; kw[o + 2] -= (vz - gasV[2]) * invTau[i]; }
+            kf[o] = kw[o]; kf[o + 1] = kw[o + 1]; kf[o + 2] = kw[o + 2];
         }
         if (QF !== null) { pairsBySource(xs, kw); return; }
         for (let i = 0; i < n; i++) {
@@ -297,8 +341,11 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
         if (hitsOn) {
             const g = gamma(W[o], W[o + 1], W[o + 2]), sp = Math.hypot(W[o], W[o + 1], W[o + 2]) / g, s = sp > 0 ? 1e-6 * h / sp : 0;
             const own = model.ownerAt(X[o] + s * W[o] / g, X[o + 1] + s * W[o + 1] / g, X[o + 2] + s * W[o + 2] / g);
-            if (own >= 0 && !(own < transp.length && transp[own] === 1)) { finish(i, STATUS.BORN_INSIDE, own, T0[i], X[o], X[o + 1], X[o + 2], W[o], W[o + 1], W[o + 2]); return; }
+            if (own >= 0 && !isMesh(own)) { finish(i, STATUS.BORN_INSIDE, own, T0[i], X[o], X[o + 1], X[o + 2], W[o], W[o + 1], W[o + 2]); return; }
+            if (own >= 0) inMesh[i] = 1;
+            skipStart[i] = 1;   // emission from a surface: the birth test covers the first 1e-6 cell
         }
+        if (eCheckOn) E0[i] = keOf(i, W[o], W[o + 1], W[o + 2]) + Qc[i] * model.potential(T0[i], X[o], X[o + 1], X[o + 2]);
         active[i] = 1;
     }
     for (let i = 0; i < n; i++) if (T0[i] <= T) activate(i);
@@ -323,7 +370,7 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
         }
         // first stage gives the accelerations and the pair time scale for the step cap
         pairMax = 0;
-        accel(T, X, W, KX[0], KW[0]);
+        accel(T, X, W, KX[0], KW[0], KF[0], whereS);
         let dt = Infinity;
         for (let i = 0; i < n; i++) {
             if (!active[i]) continue;
@@ -333,6 +380,11 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
             const den = Math.max(v, Math.sqrt(2 * s * a));
             if (den > 0 && s / den < dt) dt = s / den;
             if (invTau[i] > 0 && 0.1 / invTau[i] < dt) dt = 0.1 / invTau[i];   // drag: a tenth of the relaxation time (fixed-step RK4)
+            if (bMax > 0 && Qc[i] !== 0) {
+                // gyration: 32 steps per turn at the largest |B| (trace.js gyroCap)
+                const tg = TWO_PI * gamma(W[o], W[o + 1], W[o + 2]) / (K_ACC * Math.abs(Qc[i] * invM[i]) * bMax) / 32;
+                if (tg < dt) dt = tg;
+            }
             if (gasOn) {
                 const nu = gasModel.rate(gasSp[i], KX[0][o], KX[0][o + 1], KX[0][o + 2]);
                 gasNu[i] = nu;
@@ -353,7 +405,7 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
         for (let s = 1; s < 4; s++) {
             const f = s === 3 ? dt : hdt, kx = KX[s - 1], kw = KW[s - 1];
             for (let i = 0; i < n; i++) if (active[i]) for (let c = 3 * i; c < 3 * i + 3; c++) { XT[c] = X0[c] + f * kx[c]; WT[c] = W0[c] + f * kw[c]; }
-            accel(T + f, XT, WT, KX[s], KW[s]);
+            accel(T + f, XT, WT, KX[s], KW[s], KF[s], null);
         }
         for (let i = 0; i < n; i++) {
             if (!active[i]) continue;
@@ -371,6 +423,11 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
             steps[i]++;
             const ax = X0[o], ay = X0[o + 1], az = X0[o + 2], bx = X[o], by = X[o + 1], bz = X[o + 2];
             if (!(bx === bx && by === by && bz === bz && W[o] === W[o])) { finish(i, STATUS.NUM_ERROR, -1, T1, ax, ay, az, W0[o], W0[o + 1], W0[o + 2]); continue; }
+            if (Qc[i] !== 0) {
+                // β² at the step start, weighted by the step (the pair forces act between charged particles)
+                const u2 = (W0[o] * W0[o] + W0[o + 1] * W0[o + 1] + W0[o + 2] * W0[o + 2]) * INV_C2;
+                b2Sum += (rel ? u2 / (1 + u2) : u2) * dt; b2Time += dt;
+            }
             nEv = 0;
             // exit
             const inS = model.inside(ax, ay, az), inE = model.inside(bx, by, bz);
@@ -381,18 +438,27 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
                 const key = typeof model.beyondKey === 'function' ? model.beyondKey(code) : 'xmax';
                 if (beyond[key] !== 'drift') addEv(hi, EV_EXIT, code, 0, 0);
             }
-            // electrode hits and meshes on the chord
+            // electrode hits and meshes on the chord: inside a mesh transparent electrodes are skipped; after a pass the
+            // search goes on just past it, so a mesh rolls its transmission once per crossing (as trace.js)
+            let passed = false;
             if (hitsOn && inS && (model.near(ax, ay, az) || model.near(bx, by, bz))) {
-                const r = model.firstHit(ax, ay, az, bx, by, bz, false);
-                if (r !== null) {
-                    const e = r.electrode;
-                    if (e >= 0 && e < transp.length && transp[e] === 1) {
-                        meshCount[i]++;
-                        const pass = uniform01(seed, MESH_A, particles[i * P_STRIDE + P_ID], meshCount[i]) < transm[e];
-                        addEv(r.u, pass ? EV_MESH : EV_ABSORB, e, 0, meshCount[i]);
-                    } else addEv(r.u, EV_HIT, e, 0, 0);
+                const cx = bx - ax, cy = by - ay, cz = bz - az, L = Math.sqrt(cx * cx + cy * cy + cz * cz);
+                let uA = skipStart[i] === 1 ? (L > 0 ? Math.min(1, 1e-6 * h / L) : 1) : 0, skipT = inMesh[i] === 1;
+                for (let guard = 0; uA < 1 && guard < 200; guard++) {
+                    const r = model.firstHit(ax + uA * cx, ay + uA * cy, az + uA * cz, bx, by, bz, skipT);
+                    if (r === null) break;
+                    const e = r.electrode, u = uA + Math.min(1, Math.max(0, r.u)) * (1 - uA);
+                    if (!isMesh(e)) { addEv(u, EV_HIT, e, 0, 0); break; }
+                    meshCount[i]++;
+                    const pass = uniform01(seed, MESH_A, particles[i * P_STRIDE + P_ID], meshCount[i]) < transm[e];
+                    addEv(u, pass ? EV_MESH : EV_ABSORB, e, 0, meshCount[i]);
+                    if (!pass) break;
+                    passed = true;
+                    uA = u + (L > 0 ? 1e-7 * h / L : 1);
+                    if (uA < 1) skipT = isMesh(model.ownerAt(ax + uA * cx, ay + uA * cy, az + uA * cz));
                 }
             }
+            skipStart[i] = passed ? 1 : 0;
             // planes
             for (let pi = 0; pi < nP; pi++) {
                 const p = planes[pi], ga = planeG(p, ax, ay, az), gb = planeG(p, bx, by, bz);
@@ -432,6 +498,24 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
                 finish(i, STATUS.EXIT, idx, te, QQ[0], QQ[1], QQ[2], QQ[3], QQ[4], QQ[5]); ended = true; break;
             }
             if (ended) continue;
+            // inside a mesh after this step? (set after a pass, cleared once the chord end is free)
+            if (hitsOn && (passed || inMesh[i] === 1)) inMesh[i] = isMesh(model.ownerAt(bx, by, bz)) ? 1 : 0;
+            // work of all forces and of the pair forces along the step (RK4 quadrature of the stage powers)
+            let pAll = 0, pPair = 0;
+            for (let s = 0; s < 4; s++) {
+                const kx = KX[s], kw = KW[s], kf = KF[s], cw = s === 0 || s === 3 ? 1 : 2;
+                for (let c = o; c < o + 3; c++) { pAll += cw * kw[c] * kx[c]; pPair += cw * (kw[c] - kf[c]) * kx[c]; }
+            }
+            const wScale = dt / 6 * M[i] / K_ACC;
+            const keS = keOf(i, W0[o], W0[o + 1], W0[o + 2]), keE = keOf(i, W[o], W[o + 1], W[o + 2]);
+            WORK[i] += Math.abs(keE - keS - wScale * pAll);
+            WP[i] += wScale * pPair;
+            if (E0[i] === E0[i]) {
+                const el = inE ? keE + Qc[i] * model.potential(T1, bx, by, bz) - E0[i] - WP[i] : NaN;
+                ELast[i] = el;
+                if (el === el && Math.abs(el) > DEMAX[i]) DEMAX[i] = Math.abs(el);
+            }
+            if (whereS[i] === 1) { TBAND[i] += dt; pFlags[i] |= FLAG.ENTERED_BOUNDARY; }
             const dl = Math.hypot(bx - ax, by - ay, bz - az);
             path[i] += dl;
             if (!inE) { drift[i] += dl; if (drift[i] >= maxDrift) { finish(i, STATUS.DRIFT_END, EDGE.DRIFT_LIMIT, T1, bx, by, bz, W[o], W[o + 1], W[o + 2]); continue; } }
@@ -476,10 +560,24 @@ export function traceCoulomb(model, particles, opts = {}, hooks = {}) {
         markers = new Float32Array(tot);
         for (let i = 0, o = 0; i < n; i++) { markers.set(marks[i], o); o += marks[i].length; }
     }
+    const beta2 = b2Time > 0 ? b2Sum / b2Time : 0;
     const res = { n, i0: typeof opts.i0 === 'number' ? opts.i0 : (n > 0 ? particles[P_ID] : 0), summary, crossings, nCross: cross.length, traj: trajOut, markers,
-        stats: { steps: totalSteps, rejects: 0, evals, ms: performance.now() - t0ms, edgeSplits: 0, regionViolations: 0, crossDropped: 0, collisions: nColl, lockstep: true } };
+        stats: { steps: totalSteps, rejects: 0, evals, ms: performance.now() - t0ms, edgeSplits: 0, regionViolations: 0, crossDropped: 0, collisions: nColl, lockstep: true, beta2 } };
+    const warning = magneticWarning(beta2);
+    if (warning) res.warnings = [warning];
     if (cancelled) res.cancelled = true;
     return res;
+}
+
+/**
+ * The warning of a space-charge run whose time-averaged mean β² exceeds BETA2_WARN: the pair forces are electrostatic,
+ * so the transverse space charge of a co-moving beam is overestimated by γ² (Reiser (2008), ch. 4). Null below it.
+ * @param {number} beta2 @returns {{ code: string, message: string }|null}
+ */
+export function magneticWarning(beta2) {
+    if (!(beta2 > BETA2_WARN)) return null;
+    const g2 = beta2 < 1 ? 1 / (1 - beta2) : Infinity;
+    return { code: 'W_SC_MAGNETIC', message: `Space charge: the particles move at a mean β² of ${beta2.toPrecision(2)} (above ${BETA2_WARN}). The pair forces are electrostatic only: the magnetic attraction between co-moving particles, which cancels a fraction β² of their repulsion, is left out, so the transverse space-charge force is overestimated by up to γ² ≈ ${g2.toPrecision(3)}.` };
 }
 
 /** Electrostatic interaction energy (eV) of a set of point charges with softening ε (mm): Σ_{i<j} q_i q_j e²/(4π ε0 √(r² + ε²)). */

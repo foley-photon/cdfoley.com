@@ -600,7 +600,8 @@ export function createJobs(store, pool, persist = null, opts = {}) {
                     bases.set(m.k, m.phi);
                     stats.push({ ...m.stats, k: m.k });
                     done++;
-                    if (useCache) { try { Promise.resolve(cache.put(geomKey, m.k, m.phi, { nodes: r.domain.N })).catch(() => {}); } catch (e) { /* best effort */ } }
+                    // only a converged basis is cached: a reuse loads no stats, so "not converged" would be lost
+                    if (useCache && m.stats && m.stats.converged !== false) { try { Promise.resolve(cache.put(geomKey, m.k, m.phi, { nodes: r.domain.N })).catch(() => {}); } catch (e) { /* best effort */ } }
                 }
             };
             const exec = (electrodes, wantRaster) => () => pool.exec({ type: 'solve', geomKey, resolved: r, electrodes, wantRaster }, { group, priority: 1, onMessage });
@@ -850,6 +851,8 @@ export function createJobs(store, pool, persist = null, opts = {}) {
             resolvedSnapshot: r, wallMs: now() - t0, workers: W };
         if (superseded) return result;   // a newer run owns the state and its events
         store.setRun({ status: partial ? 'partial' : 'done', progress: null, result, summary, live: false, runKey: c.keys.runKey, epoch: myEpoch, partial, error: null });
+        // engine warnings of the run itself (W_SC_MAGNETIC: the space-charge pair forces leave out the magnetic attraction)
+        for (const w of Array.isArray(result.warnings) ? result.warnings : []) if (w && w.message) emit('log', { level: 'warn', message: w.message, code: w.code });
         emit('run:done', result);
         emit('ran', result);
         return result;

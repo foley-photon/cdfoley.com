@@ -14,7 +14,7 @@
    store (state.runs, 'runs' events) and in local storage by the same rules
    as the autosave (every storage call wrapped; the app works without it).
    ========================================================================== */
-import { makePin, pinMetrics, nextPinColor, readPins, writePins, compareTable, compareCsv, metricsDiffer, MAX_PINS, PIN_COLORS } from '../analysis-jobs.js';
+import { makePin, pinMetrics, nextPinColor, readPins, writePins, compareTable, compareCsv, metricsDiffer, waistSplit, MAX_PINS, PIN_COLORS } from '../analysis-jobs.js';
 import { fmtNum, dataTable, download, themeColors, onThemeChange } from '../plots.js';
 
 export const meta = { id: 'compare', title: 'Compare', order: 80 };
@@ -62,8 +62,10 @@ export function pinSummary(m) {
     if (!m) return '';
     const parts = [`${isNum(m.launched) ? m.launched.toLocaleString('en-US') : '?'} particle${m.launched === 1 ? '' : 's'}`];
     if (isNum(m.transmission)) parts.push(`transmission ${(100 * m.transmission).toFixed(m.transmission === 1 || m.transmission === 0 ? 0 : 1)}%`);
-    if (m.waist && m.waist.ok) parts.push(`waist at ${m.waist.axis} ≈ ${fmtNum(m.waist.position, 4)} mm, rms ${fmtNum(m.waist.rms, 3)} mm`);
+    if (m.waist && m.waist.ok && !waistSplit(m.waist)) parts.push(`waist at ${m.waist.axis} ≈ ${fmtNum(m.waist.position, 4)} mm, rms ${fmtNum(m.waist.rms, 3)} mm`);
     else {
+        // species that focus at different places have no common waist: their own waists are in the table
+        if (waistSplit(m.waist)) parts.push('species waists at different positions');
         const p = (m.planes || []).find((q) => q.crossings > 0 && isNum(q.spotRms));
         if (p) parts.push(`${p.name || p.id}: rms spot ${fmtNum(p.spotRms, 4)} mm`);
     }
@@ -268,7 +270,7 @@ export function mount(el, ctx) {
                 c.restore();
             }
             const w = r.metrics && r.metrics.waist;
-            if (w && w.ok && isNum(w.position) && (w.axis === 'x' || w.axis === 'y')) {
+            if (w && w.ok && !waistSplit(w) && isNum(w.position) && (w.axis === 'x' || w.axis === 'y')) {
                 const rms = isNum(w.rms) ? Math.abs(w.rms) : 0;
                 const a = w.axis === 'x' ? xf.toScreen(w.position, rms) : xf.toScreen(rms, w.position);
                 const b = w.axis === 'x' ? xf.toScreen(w.position, -rms) : xf.toScreen(-rms, w.position);

@@ -25,16 +25,16 @@ function build() {
         notes: 'Two cylindrical sector electrodes (faces at r = 40 and 60 mm, 127.28 degrees) bend ions of the pass energy Ep around the '
             + 'central radius r0 = 50 mm. The voltages follow V(r) = 2 Ep ln(r/r0) per unit charge: -44.63 V inside and +36.46 V outside for Ep = 100 eV. '
             + 'A sector of 127.28 degrees (180/sqrt(2)) refocuses rays that leave a point at slightly different angles.\n'
-            + 'Ions of m/z 100 start 2 mm before the entrance in a fan of ±2 degrees at 99, 100 and 101 eV. Grounded shields with 2 mm slits '
+            + 'Ions of m/z 100 start 2 mm before the entrance in a fan of ±2.5 degrees at 99, 100 and 101 eV. Grounded shields with 2 mm slits '
             + 'stand 4 degrees before and after the sectors. The weaker field at the entrance edge moves the orbits up to about 1 mm outward, '
-            + 'so the 101 eV rays launched at 0, +1 and +2 degrees strike the exit shield just outside the slit. '
+            + 'so the 101 eV rays launched at 0, +1.25 and +2.5 degrees strike the exit shield just outside the slit. '
             + 'The detector lies on the 140 degree ray. Change Ep to select another energy.\n'
-            + 'Rays that pass close to the slit edges cross grid cells cut by the shields, where the field is only first-order accurate; the Summary tab '
-            + 'flags several of them with energy errors between 1e-5 and 5e-4 of their energy. A smaller cell reduces this.',
+            + 'Rays that strike a shield cross grid cells cut by it, where the field is only first-order accurate, so the Summary tab notes that those three hits '
+            + 'exceeded the energy tolerance. With the 0.25 mm cell and the ±2.5 degree fan no detected ray passes that close to a slit edge; at 0.5 mm several were flagged.',
     };
     p.params = [{ name: 'Ep', value: 100, dim: 'energy', note: 'pass energy of the central orbit (eV per unit charge)', slider: { min: 50, max: 150, step: 0.5 } }];
     p.domain = {
-        type: 'planar2d', cell: 0.5, x: [-70, 70], y: [-30, 70],
+        type: 'planar2d', cell: 0.25, x: [-60, 70], y: [-30, 70],
         edges: { xmin: { bc: 'dirichlet', electrode: 'gnd' }, xmax: { bc: 'dirichlet', electrode: 'gnd' }, ymin: { bc: 'dirichlet', electrode: 'gnd' }, ymax: { bc: 'dirichlet', electrode: 'gnd' } },
         mirror: { x: false, y: false }, beyond: { xmin: 'stop', xmax: 'stop', ymin: 'stop', ymax: 'stop' },
     };
@@ -54,9 +54,9 @@ function build() {
     p.magnets = [];
     p.idealFields = [];
     p.sources = [{
-        id: 'b1', name: 'Fan ±2°, 99–101 eV', enabled: true, color: 'auto', count: 15, sampling: 'grid', seed: 1,
+        id: 'b1', name: 'Fan ±2.5°, 99–101 eV', enabled: true, color: 'auto', count: 15, sampling: 'grid', seed: 1,
         species: [{ label: 'm/z 100', mass: 100, charge: 1, fraction: 1 }],
-        position: { type: 'point', p: [50, -2, 0] }, direction: { type: 'fan', axis: [0, 1, 0], normal: [0, 0, 1], from: -2, to: 2, n: 5 },
+        position: { type: 'point', p: [50, -2, 0] }, direction: { type: 'fan', axis: [0, 1, 0], normal: [0, 0, 1], from: -2.5, to: 2.5, n: 5 },
         energy: { type: 'list', values: [99, 100, 101] }, time: { type: 'fixed', t: 0 },
     }];
     const det = ray(140, 40, 60);
@@ -82,11 +82,11 @@ export default Object.freeze({
         { id: 'field', label: '|E| at mid-sector on r₀ (22.20, 44.80)', metric: 'fieldMagnitude', at: [22.20, 44.80], target: 4.000, tol: 0.01, unit: 'V/mm', check: 4.0000, measured: 4.000064,
             note: 'At the entrance edge (50, 0) it is only 1.71 V/mm.' },
         { id: 'orbit', label: '100 eV central ray radius from 10° to 117°', metric: 'radiusRange', select: { energy: 100, dir: 'center' }, center: [0, 0], angles: [10, 117],
-            min: 49.5, max: 52.0, unit: 'mm', check: [50.13, 51.22], measured: [50.10228, 51.09296], note: 'The weaker entrance fringe field starts a small radial oscillation.' },
-        { id: 'focus', label: 'Crossing of the ±2° rays (100 eV)', metric: 'fanCrossing', select: [{ energy: 100, dir: 'min' }, { energy: 100, dir: 'max' }], center: [0, 0], angles: [30, 139],
-            target: 120.5, tol: 2.5, unit: '°', check: 120.47, measured: 121.0007, note: 'Sharp-edge estimate 124° for an object 2 mm before the field.' },
+            min: 49.5, max: 52.0, unit: 'mm', check: [50.13, 51.22], measured: [50.10388, 51.10533], note: 'The weaker entrance fringe field starts a small radial oscillation.' },
+        { id: 'focus', label: 'Crossing of the ±2.5° rays (100 eV)', metric: 'fanCrossing', select: [{ energy: 100, dir: 'min' }, { energy: 100, dir: 'max' }], center: [0, 0], angles: [30, 139],
+            target: 120.5, tol: 2.5, unit: '°', check: 120.47, measured: 120.9584, note: 'Sharp-edge estimate 125° for an object 2 mm before the field.' },
         { id: 'dispersion', label: 'Energy dispersion at the detector (99 → 100 eV central rays)', metric: 'dispersion', plane: 'det', coord: 'r', center: [0, 0],
-            a: { energy: 99, dir: 'center' }, b: { energy: 100, dir: 'center' }, target: 0.52, tol: 0.05, unit: 'mm per 1 %', check: 0.517, measured: 0.5225973,
+            a: { energy: 99, dir: 'center' }, b: { energy: 100, dir: 'center' }, target: 0.52, tol: 0.05, unit: 'mm per 1 %', check: 0.517, measured: 0.5225049,
             note: 'Ideal 0.50 at the exit face. The 101 eV central ray hits the exit shield (slit r 49–51 mm), so the 99 and 100 eV rays are used.' },
     ]),
     guide: null,

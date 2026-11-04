@@ -5,7 +5,7 @@
    solver path and timings; warnings; "Copy Methods text"; "Accuracy check"
    (§3.11(2)) with its report.
    ========================================================================== */
-import { runOverview, methodsText, accuracyCheck, statusList } from '../analysis-jobs.js';
+import { runOverview, methodsText, accuracyCheck, statusList, waistSplit, tofBySpecies } from '../analysis-jobs.js';
 import { beamWaist } from '../../engine/analysis.js';
 import { fmtNum, dataTable, csvText, download } from '../plots.js';
 
@@ -24,13 +24,12 @@ export function projectIdentity(state) {
 
 /**
  * Why the energy diagnostics are off for a run whose summary has no end-energy errors (pure, for tests): the physics
- * plug-ins (energy is not conserved with drag, gas collisions or space charge), time-dependent fields, or particles
- * that ended outside the grid.
+ * plug-ins (energy is not conserved with drag or gas collisions; space-charge runs are checked, with the pair-force work
+ * counted), time-dependent fields, or particles that ended outside the grid.
  */
 export function energyUncheckedReason(resolved) {
     const tr = (resolved && resolved.tracer) || {};
-    const plug = [tr.drag ? 'Stokes drag' : null, tr.gas && tr.gas.enabled !== false ? 'gas collisions' : null,
-        tr.spaceCharge && tr.spaceCharge.enabled !== false ? 'space charge' : null].filter(Boolean);
+    const plug = [tr.drag ? 'Stokes drag' : null, tr.gas && tr.gas.enabled !== false ? 'gas collisions' : null].filter(Boolean);
     if (plug.length) return `Not checked: energy is not conserved with ${plug.length === 1 ? plug[0] : `${plug.slice(0, -1).join(', ')} and ${plug[plug.length - 1]}`} (a physics plug-in is on).`;
     const td = (resolved && resolved.channelCount > 0) || ((resolved && resolved.idealFields) || []).some((f) => f && f.V && f.freq > 0);
     if (td) return 'Not checked: the fields are time-dependent, so the kinetic plus potential energy changes along the flight.';
@@ -75,6 +74,26 @@ export function startsOutside(resolved) {
         else out.push(`Source "${name}": ${bad === pts.length && bad > 1 ? 'all' : bad.toLocaleString('en-US')} of its ${pts.length.toLocaleString('en-US')} start position${pts.length === 1 ? '' : 's'} ${bad === 1 ? 'lies' : 'lie'} outside the domain (x ${fmtNum(x0)} to ${fmtNum(x1)} mm, ${cyl ? 'r' : 'y'} ${fmtNum(y0)} to ${fmtNum(y1)} mm); ${bad === 1 ? 'that particle leaves' : 'those particles leave'} it at once.`);
     }
     return out;
+}
+
+/**
+ * A value to `digits` significant figures keeping trailing zeros (32.000, not 32), with the typographic minus; exponent
+ * notation as fmtNum outside 1e-3 … 1e6 (pure, for tests).
+ */
+export function sigFig(v, digits = 5) {
+    if (typeof v !== 'number' || !Number.isFinite(v) || v === 0) return fmtNum(v, digits);
+    const a = Math.abs(v);
+    if (a < 1e-3 || a >= 1e6) return fmtNum(v, digits);
+    const s = v.toPrecision(digits);
+    return /e/.test(s) ? fmtNum(v, digits) : s.replace(/^-/, '−');
+}
+
+/** Why no waist is shown, as a sentence for the Waist card (the engine's reason, `ok` false). */
+export function noWaistText(reason) {
+    const r = String(reason || '');
+    const why = r === 'outside the domain' ? 'the waist would lie outside the domain, where particles do not drift on' : r;
+    const lens = /field between the plane and the waist/.test(r) ? ' The Lens tab gives the asymptotic focus.' : '';
+    return `No waist reported: ${why}.${lens}`;
 }
 
 const STATUS_WORDS = { DETECTED: 'detected', HIT: 'hit an electrode', EXIT: 'left the domain', TMAX: 'reached the time limit', STEPS: 'reached the step limit', ABSORBED: 'absorbed by a mesh',
@@ -142,6 +161,8 @@ export function mount(el, ctx) {
         head.appendChild(h('p', { class: 'io-results-tag' }, h('span', { class: 'badge', text: tag }),
             h('span', { text: ` ${s.launched.toLocaleString('en-US')} particle${s.launched === 1 ? '' : 's'}${timeText}` })));
         if (res.partialNote) head.appendChild(h('p', { class: 'io-note', text: res.partialNote }));
+        // the live preview traces the first particles of each source only; the counts, spots and waist are of that subset
+        if (run.live && resolved && resolved.particleCount > s.launched) head.appendChild(h('p', { class: 'io-note', text: `Live preview: the first particles of each source (${s.launched.toLocaleString('en-US')} of ${resolved.particleCount.toLocaleString('en-US')}); press Run for all of them.` }));
         // launched + status
         const stBox = h('div', { class: 'io-badges' });
         for (const [name, c] of statusList(s)) stBox.appendChild(h('span', { class: `badge ${STATUS_BADGE[name] || ''}`, text: `${c.toLocaleString('en-US')} ${STATUS_WORDS[name] || name.toLowerCase()}` }));
@@ -168,27 +189,36 @@ export function mount(el, ctx) {
         const pl = ov.planes.filter((p) => p.crossings > 0);
         if (pl.length) {
             const c = card('Planes');
-            for (const p of pl) c.appendChild(line(p.name, `${p.crossings} crossing${p.crossings === 1 ? '' : 's'} · rms spot ${fmtNum(p.spotRms, 4)} mm · mean TOF ${fmtNum(p.meanTof, 5)} µs`));
+            for (const p of pl) {
+                // several species: the mean of each (a mean over ions and electrons together describes neither)
+                const sp = tofBySpecies(res, resolved, p.index);
+                const tof = sp.length > 1 ? `mean TOF ${sp.map((g) => `${g.label} ${sigFig(g.mean)}`).join(', ')} µs` : `mean TOF ${sigFig(p.meanTof)} µs`;
+                c.appendChild(line(p.name, `${p.crossings} crossing${p.crossings === 1 ? '' : 's'} · rms spot ${fmtNum(p.spotRms, 4)} mm · ${tof}`));
+            }
             cards.appendChild(c);
         }
         // waist
         // one rule with the canvas label: only a waist on a field-free straight continuation, inside the domain or a drift region;
         // a beam dispersed into separate species spots has no single waist (the label omits it) but each species' image is listed
+        // species whose waists lie further apart than the rms radius have no common waist: only their own waists are shown
         const bw = beamWaist(res, resolved, st.field && st.field.model);
         const multi = bw && bw.groups && bw.groups.length > 1;
-        if (bw && bw.ok) {
+        if (bw && bw.ok && !waistSplit(bw)) {
             const wc = card('Waist', h('p', { class: 'io-big', text: `Waist at ${bw.axis} ≈ ${fmtNum(bw.position, 4)} mm` }),
                 line(multi ? 'rms radius there (within each species)' : 'rms radius there', `${fmtNum(bw.rms, 3)} mm`), line('from rays at', bw.name));
-            if (multi && bw.spread > bw.rms) {
-                for (const g of bw.groups) wc.appendChild(line(g.label, `${bw.axis} ≈ ${fmtNum(g.position, 4)} mm, rms ${fmtNum(g.rms, 3)} mm (${g.n} rays)`));
-                wc.appendChild(h('p', { class: 'io-note', text: 'The position above is the particle-weighted mean of the species waists.' }));
-            }
+            cards.appendChild(wc);
+        } else if (bw && bw.ok) {
+            const wc = card('Waist', h('p', { class: 'io-big', text: 'Species waists at different positions' }), line('from rays at', bw.name));
+            for (const g of bw.groups) wc.appendChild(line(g.label, `${bw.axis} ≈ ${fmtNum(g.position, 4)} mm, rms ${fmtNum(g.rms, 3)} mm (${g.n} rays)`));
+            wc.appendChild(h('p', { class: 'io-note', text: 'The species focus at different places, so no single waist is given; each line is the waist of one species.' }));
             cards.appendChild(wc);
         } else if (bw && bw.dispersed && multi) {
             const wc = card('Waist', h('p', { class: 'io-big', text: 'No single waist: the species land in separate spots' }), line('from rays at', bw.name));
             for (const g of bw.groups) wc.appendChild(line(g.label, `${bw.axis} ≈ ${fmtNum(g.position, 4)} mm, rms ${fmtNum(g.rms, 3)} mm (${g.n} rays)`));
             wc.appendChild(h('p', { class: 'io-note', text: 'The beam is dispersed by species, so the pooled rms size has no meaningful minimum; the positions above are the waist (image) of each species.' }));
             cards.appendChild(wc);
+        } else if (bw && !bw.ok && bw.reason) {
+            cards.appendChild(card('Waist', h('p', { class: 'io-note', text: noWaistText(bw.reason) }), line('from rays at', bw.name)));
         }
         // energy
         const en = s.energy;
@@ -212,6 +242,7 @@ export function mount(el, ctx) {
         const sol = st.solution;
         for (const w of (sol && sol.warnings) || []) ws.push(w.message || String(w));
         for (const w of (st.issues && st.issues.warnings) || []) ws.push(w.message || String(w));
+        for (const w of (res && res.warnings) || []) ws.push(w.message || String(w));   // run warnings (W_SC_MAGNETIC)
         if (en.warned) ws.push('Energy diagnostics flagged some particles (see Energy conservation).');
         for (const w of startsOutside(resolved)) ws.push(w);
         if (res.stats && res.stats.crossDropped > 0) {

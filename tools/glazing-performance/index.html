@@ -305,7 +305,7 @@
 
         <h2>Generic glass and low-e coatings</h2>
         <p>Generic panes use a soda-lime glass model: a refractive index near 1.52 and an absorption spectrum set by iron (Rubin, 1985). Ferrous iron (Fe²⁺) absorbs in a broad band centered near 1050&nbsp;nm whose tail reaches into the red. That band cuts near-infrared transmission and gives clear glass its blue-green tint, plainest at the edge. Ferric iron (Fe³⁺) absorbs mainly in the ultraviolet (Shelby, 2015). Low-iron glass has less iron, more of it ferric. For 6&nbsp;mm clear float, the model gives 89&nbsp;% visible and 80&nbsp;% solar transmittance, against 88&nbsp;% and 77&nbsp;% for LBNL’s generic 5.7&nbsp;mm clear glass. For 6&nbsp;mm low-iron glass it gives 91&nbsp;% and 90&nbsp;%, against 91&nbsp;% and 89&nbsp;% for the 5&nbsp;mm low-iron glass of the EnergyPlus dataset.</p>
-        <p>The four generic coatings stand for the main low-e families: a pyrolytic (hard-coat) doped tin oxide with an emissivity of 0.15, and sputtered single-, double-, and triple-silver stacks with emissivities of 0.04, 0.025, and 0.015. These, like all emissivities on this page, are hemispherical values as NFRC&nbsp;301 defines them; a European “corrected emissivity” (EN&nbsp;12898) runs 3–4&nbsp;% lower for low-e coatings, and the <a href="/tools/low-e-sheet-resistance/">low-e coating calculator</a> gives both from a sheet resistance. LBNL’s documentation gives about 0.15 as typical of hard coats (0.1 or less for newer ones), 0.04 of sputtered coatings, and 0.02 for the best available. More silver layers make a steeper rise in near-infrared reflectance, so less solar heat passes for the same daylight. The emissivity of the coated surface sets the radiation across the gap. Real products vary, so use measured spectra for a specific product.</p>
+        <p>The four generic coatings stand for the main low-e families: a pyrolytic (hard-coat) doped tin oxide with an emissivity of 0.15, and sputtered single-, double-, and triple-silver stacks with emissivities of 0.04, 0.025, and 0.015. These, like all emissivities on this page, are hemispherical values as NFRC&nbsp;301 defines them; a European “corrected emissivity” (EN&nbsp;12898) runs 3–5&nbsp;% lower for low-e coatings, and the <a href="/tools/low-e-sheet-resistance/">low-e coating calculator</a> gives both from a sheet resistance. LBNL’s documentation gives about 0.15 as typical of hard coats (0.1 or less for newer ones), 0.04 of sputtered coatings, and 0.02 for the best available. More silver layers make a steeper rise in near-infrared reflectance, so less solar heat passes for the same daylight. The emissivity of the coated surface sets the radiation across the gap. Real products vary, so use measured spectra for a specific product.</p>
         <div class="callout"><p><strong>Surface numbering.</strong> Surfaces are numbered from the outside: a double unit has surfaces #1 (outdoor face) to #4 (indoor face). Moving a coating from #2 to #3 leaves the U-factor unchanged but raises SHGC, because the sunlight the coating absorbs then heats the inner pane, whose heat flows mostly indoors. For the default double-silver unit, SHGC is 0.37 with the coating on #2 and 0.42 on #3. So #3 is the usual choice where solar gain is welcome, and #2 where it is not.</p></div>
 
         <h2>Typical values</h2>
@@ -345,7 +345,7 @@
             <li><strong>Generic layers.</strong> They stand for product families, not products: the glass is within about 3 points of typical solar transmittance, and the coatings show what each family can do. For product selection or code compliance, use measured spectra or NFRC-certified ratings.</li>
             <li><strong>Imported spectra.</strong> Data are resampled to the 5&nbsp;nm grid by linear interpolation, as NFRC&nbsp;300 specifies, and the first and last values are held outside the measured range. The emissivities come from the file header and must be hemispherical values (NFRC&nbsp;301), as IGDB files give them; LBNL WINDOW can recompute them from far-infrared data in the file, which can shift U slightly. For color, CIE&nbsp;15 recommends higher-order interpolation of data coarser than 5&nbsp;nm, so a* and b* from such data can be off by a few tenths.</li>
             <li><strong>Geometry and optics.</strong> Layers are specular (non-scattering) and the light arrives at normal incidence, as NFRC rates SHGC and VT. Laminated interlayers, frits, films, and shades are not modeled. The glazing is vertical; tilt changes the convection. Gas fills are ideal mixtures at atmospheric pressure, and the panes stay flat, although real units bow with temperature and pressure (LBNL WINDOW can model that).</li>
-            <li><strong>Gap convection.</strong> Wright’s correlation was fitted to cavities more than 40 times taller than wide, with Ra up to 10⁶. In shorter glazings the ElSherbiny term takes over.</li>
+            <li><strong>Gap convection.</strong> Wright’s correlation was fitted to cavities more than 40 times taller than wide, with Ra up to 10⁶. In shorter glazings the ElSherbiny term takes over. The calculator flags a gap whose winter Ra passes 10⁶: behind a low-e coating that happens at about 60&nbsp;mm for air or argon, 40&nbsp;mm for krypton, and 28&nbsp;mm for xenon.</li>
             <li><strong>Dew point.</strong> The condensation note uses the Magnus formula for 21&nbsp;°C room air, \(T_d = b\gamma/(a - \gamma)\) with \(\gamma = \ln(\mathrm{RH}) + aT/(b + T)\), \(a = 17.62\), and \(b = 243.12\)&nbsp;°C. Here it is within 0.02&nbsp;°C of the IAPWS saturation curve.</li>
             <li><strong>Validation.</strong> With the same layers, the results match LBNL’s Windows-CalcEngine (pyWinCalc 3.3.1) for 27 glazing systems and five LBNL product files: U within 0.01&nbsp;%, SHGC and solar and visible transmittance within 0.001, and surface temperatures within 0.003&nbsp;K.</li>
         </ul>
@@ -446,6 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 '<div class="field" data-vac="' + i + '"><label for="g' + i + 'ps">Pillar spacing</label><div class="input-unit"><input id="g' + i + 'ps" name="g' + i + 'ps" value="25" inputmode="decimal" data-positive data-label="pillar spacing"><select data-dim="length" data-units="mm" data-default="mm"></select></div></div>' +
                 '<div class="field" data-vac="' + i + '"><label for="g' + i + 'pd">Pillar diameter</label><div class="input-unit"><input id="g' + i + 'pd" name="g' + i + 'pd" value="0.5" inputmode="decimal" data-positive data-label="pillar diameter"><select data-dim="length" data-units="mm" data-default="mm"></select></div></div>' +
                 '</div>' +
+                '<p class="hint" data-gapwarn="' + i + '" style="margin:-.2rem 0 .8rem" hidden></p>' +
                 (i === 1 ? '<p class="hint" data-gas="' + i + '" style="margin:-.2rem 0 .8rem">Gas fills are 90&nbsp;% gas and 10&nbsp;% air. Under NFRC winter conditions U is lowest for gaps of about 12&nbsp;mm with air or argon, 8&nbsp;mm with krypton, and 6&nbsp;mm with xenon.</p>' +
                     '<p class="hint" data-vac="' + i + '" style="margin:-.2rem 0 .8rem">Square grid, typically 0.25–1&nbsp;mm pillars 2–5&nbsp;cm apart. Pillar conduction grows as diameter/spacing²: fewer, thinner pillars insulate better but stress the glass more.</p>' : '') +
                 '</div>';
@@ -550,6 +551,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const pct = x => fmt.num(100 * x, 3) + ' %';
     let last = null;
 
+    // Rayleigh number of a gas gap at its converged winter temperatures, Ra ≈ A·d³·ΔT·(271.75 K/T_m)^4.75 with d in mm:
+    // A and the exponent fit the engine's gas data (ISO 15099 mixtures) to within 2 % from 255 to 285 K
+    const RA_A = { air: 0.149, argon: 0.175, krypton: 0.549, xenon: 1.447 };
+    function gapWarning(gap, T1, T2) {
+        const d = gap.width * 1000, Tm = (T1 + T2) / 2;
+        const ra = RA_A[gap.fill] * d * d * d * Math.abs(T1 - T2) * Math.pow(271.75 / Tm, 4.75);
+        if (ra > 1e6) return 'Ra ≈ ' + fmt.sci(ra, 2) + ' in winter, above the 10⁶ that Wright’s gap correlation was fitted to, so the convection in this gap and the U-factor are extrapolated.';
+        if (d < 3) return 'Unusually thin for a gas-filled gap: the gas only conducts, and U rises steeply as the gap closes.';
+        return '';
+    }
+
     const calc = Calc.create({
         id: 'glz',
         form: '#glz',
@@ -595,6 +607,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const r = E.evaluate(layers, gaps, v.H, { solar: S891.solarE891 });
             last = r;
+            for (let k = 0; k < 2; k++) {
+                const el = document.querySelector('[data-gapwarn="' + (k + 1) + '"]');
+                el.textContent = k < gaps.length && gaps[k].fill !== 'vacuum' ? gapWarning(gaps[k], r.winter.temps[2 * k + 1], r.winter.temps[2 * k + 2]) : '';
+                el.hidden = !el.textContent;
+            }
             lastX = [np, layers, gaps, r.winter.temps, coat];
             const Uip = r.U / 5.678263;
             const Tin = r.winter.temps[2 * np - 1] - 273.15;
@@ -625,6 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
         onError() {                             // no valid result: remove the spectra left from the last one (a resize must not redraw them)
             last = null;
             lastX = null;
+            document.querySelectorAll('[data-gapwarn]').forEach(el => { el.hidden = true; });
             if (window.Plot) Plot.clear('#glz-plot');
         },
         after() { drawPlot(); }

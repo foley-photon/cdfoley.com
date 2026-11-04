@@ -397,10 +397,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const cautions = [];
             if (lam < 10 * v.d) cautions.push('λ is under 10 molecular diameters (a dense gas), so these dilute-gas results lose accuracy.');
             const r = viscRatio(v);
-            if (r !== null && Math.abs(r - 1) > 0.05)
+            if (r !== null && Math.abs(r - 1) > 0.05) {
+                const knC = lam * r / v.D;   // Kn and regime with the corrected λ, which can differ from the badge near a boundary
                 cautions.push('The listed diameter belongs to 15\u00a0°C. At this temperature the viscosity of ' + (v.gas === 'air' ? 'dry air' : GASES[v.gas].label) +
-                    ' gives λ ≈ ' + fmtLam(lam * r, 3) + ', ' + fmt.num(r, 3) + ' times the value above (see Assumptions and limits).');
-            else if (r === null && (v.T < 200 || v.T > 400))
+                    ' gives λ ≈ ' + fmtLam(lam * r, 3) + ', ' + fmt.num(r, 3) + ' times the value above, so Kn ≈ ' + fmt.num(knC, 3) +
+                    ' (' + regimeOf(knC)[0].toLowerCase() + '; see Assumptions and limits).');
+            } else if (r === null && (v.T < 200 || v.T > 400))
                 cautions.push('T is outside 200–400\u00a0K, where a fixed diameter can put λ off by more than 10\u00a0% (see Assumptions and limits).');
             lamNote.textContent = cautions.join(' ');
             lamNote.hidden = !cautions.length;

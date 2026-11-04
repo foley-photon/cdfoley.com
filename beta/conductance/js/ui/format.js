@@ -67,12 +67,12 @@ export function fromSI(dim, unit, x, T = 293.15) {
 }
 
 const SUP = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
-// Calc.fmt.num rules, used when Calc is missing: plain for 1e-3 <= |x| < 1e5, else "1.234 × 10⁻⁵"; minus sign U+2212
+// Calc.fmt.num rules, used when Calc is missing: plain for 1e-3 <= |x| < 1e5 after rounding to sig figures, else "1.234 × 10⁻⁵"; minus sign U+2212
 function numFallback(x, sig) {
     if (x === null || x === undefined || Number.isNaN(x)) return '—';
     if (!Number.isFinite(x)) return x > 0 ? '∞' : '−∞';
     if (x === 0) return '0';
-    const a = Math.abs(x), trim = (s) => (s.includes('.') ? s.replace(/\.?0+$/, '') : s);
+    const a = Math.abs(Number(x.toPrecision(sig))), trim = (s) => (s.includes('.') ? s.replace(/\.?0+$/, '') : s);
     const plain = (v) => {
         const r = Number(v.toPrecision(sig)), mag = Math.floor(Math.log10(Math.abs(r)));
         return trim(r.toFixed(Math.min(Math.max(0, sig - 1 - mag), 20)));

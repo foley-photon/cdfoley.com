@@ -41,12 +41,12 @@ function build() {
             + 'The base plane cuts off the ideal field of the spheres. Try correcting it: widen the slit (the Void shape) to r = 80-120 mm, then '
             + 'add four corrector rings as later shapes (x from -2 to -1 mm; r 81-88, 89-96, 104-111 and 112-119 mm), each on its own electrode '
             + 'at 2*Ep*(100/rmid-1), that is +36.69, +16.22, -13.95 and -26.84 V: the spread of the ±1 degree fan drops from about 1.4 mm to 0.5 mm.\n'
-            + 'The two outermost rays pass close to the slit edges, through grid cells cut by the base plate, where the field is only first-order '
-            + 'accurate; the Summary tab flags them with energy errors of 1e-4 to 2e-4 of their energy.',
+            + 'The cell is 0.4 mm, which puts the slit edges between grid nodes: at 0.5 mm the two outermost rays, which pass close to the slit edges '
+            + 'through grid cells cut by the base plate (where the field is only first-order accurate), were flagged with energy errors of 1e-4 to 2e-4 of their energy.',
     };
     p.params = [{ name: 'Ep', value: 100, dim: 'energy', note: 'pass energy of the central orbit (eV per unit charge)', slider: { min: 50, max: 150, step: 0.5 } }];
     p.domain = {
-        type: 'cyl2d', cell: 0.5, x: [-6, 130], y: [0, 130],
+        type: 'cyl2d', cell: 0.4, x: [-6, 130], y: [0, 130],
         edges: { xmin: { bc: 'dirichlet', electrode: 'gnd' }, xmax: { bc: 'dirichlet', electrode: 'gnd' }, ymin: { bc: 'axis' }, ymax: { bc: 'dirichlet', electrode: 'gnd' } },
         mirror: { x: false, y: false }, beyond: { xmin: 'stop', xmax: 'stop', ymin: 'stop', ymax: 'stop' },
     };
@@ -89,14 +89,14 @@ export default Object.freeze({
     build,
     expect: Object.freeze([
         { id: 'landing', label: 'Landing point of the 100 eV central ray', metric: 'planeCoord', plane: 'det', coord: 'y', select: { energy: 100, dir: 'center' },
-            target: 100.0, tol: 0.5, unit: 'mm', check: 100.07, measured: 100.0562 },
+            target: 100.0, tol: 0.5, unit: 'mm', check: 100.07, measured: 100.0637 },
         { id: 'dispersion', label: 'Energy dispersion (99 → 101 eV central rays, per 1 % of the 100 eV pass energy)', metric: 'dispersion', plane: 'det', coord: 'y',
-            a: { energy: 99, dir: 'center' }, b: { energy: 101, dir: 'center' }, eRef: 100, target: 2.0, tol: 0.1, unit: 'mm per 1 %', check: 2.02, measured: 2.019736 },
+            a: { energy: 99, dir: 'center' }, b: { energy: 101, dir: 'center' }, eRef: 100, target: 2.0, tol: 0.1, unit: 'mm per 1 %', check: 2.02, measured: 2.01978 },
         { id: 'spread', label: 'Spread of the ±1° fan at 100 eV', metric: 'planeSpread', plane: 'det', coord: 'y', select: { energy: 100 },
-            max: 2.0, unit: 'mm', check: 1.38, measured: 1.373887, note: 'Dominated by the uncorrected fringe field at the base plane.' },
+            max: 2.0, unit: 'mm', check: 1.38, measured: 1.372251, note: 'Dominated by the uncorrected fringe field at the base plane.' },
         { id: 'passed', label: 'Rays through the exit slit (of 15)', metric: 'detectedCount', plane: 'det', min: 13, check: null, measured: 15 },
         { id: 'corrected', label: 'Spread of the ±1° fan at 100 eV with the four corrector rings of the notes', metric: 'planeSpread', plane: 'det', coord: 'y',
-            select: { energy: 100 }, set: CORRECTORS, target: 0.5, tol: 0.1, unit: 'mm', check: 0.504, measured: 0.5064561,
+            select: { energy: 100 }, set: CORRECTORS, target: 0.5, tol: 0.1, unit: 'mm', check: 0.504, measured: 0.4985978,
             note: 'Slit void widened to r 80–120 mm, rings at r 81–88, 89–96, 104–111 and 112–119 mm. Without the gaps the rings would touch the grounded plate.' },
     ]),
     guide: null,

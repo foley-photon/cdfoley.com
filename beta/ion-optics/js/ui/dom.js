@@ -201,10 +201,17 @@ export function downloadText(text, filename, type = 'text/plain') {
     downloadBlob(new Blob([text], { type: type + ';charset=utf-8' }), filename);
 }
 
-/** Copies text to the clipboard; resolves true on success. */
-export async function copyText(text) {
+/** How long the asynchronous clipboard may take before the copy counts as failed (some browsers leave the call pending). */
+export const COPY_TIMEOUT_MS = 1500;
+/** Copies text to the clipboard; resolves true on success, false on failure or when the clipboard does not answer in time. */
+export async function copyText(text, { timeoutMs = COPY_TIMEOUT_MS } = {}) {
     try {
-        if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(text); return true; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            let timer = null;
+            const late = new Promise((resolve) => { timer = setTimeout(() => resolve('timeout'), timeoutMs); });
+            const r = await Promise.race([navigator.clipboard.writeText(text).then(() => 'ok'), late]).finally(() => clearTimeout(timer));
+            if (r === 'ok') return true;
+        }
     } catch (e) { /* fall back below */ }
     try {
         const ta = h('textarea', { style: 'position:fixed;left:-9999px;top:0', 'aria-hidden': 'true' });

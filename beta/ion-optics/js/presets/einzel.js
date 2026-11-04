@@ -29,7 +29,7 @@ function build() {
         { name: 'Vc', value: 850, dim: 'voltage', slider: { min: -10000, max: 1000, step: 5 } },
     ];
     p.domain = {
-        type: 'cyl2d', cell: 0.25, x: [-60, 140], y: [0, 16],
+        type: 'cyl2d', cell: 0.25, x: [-80, 140], y: [0, 16],
         edges: { xmin: { bc: 'dirichlet', electrode: 'gnd' }, xmax: { bc: 'dirichlet', electrode: 'gnd' }, ymin: { bc: 'axis' }, ymax: { bc: 'dirichlet', electrode: 'gnd' } },
         mirror: { x: false, y: false }, beyond: { xmin: 'stop', xmax: 'drift', ymin: 'stop', ymax: 'stop' },
     };
@@ -74,11 +74,11 @@ export default Object.freeze({
     build,
     expect: Object.freeze([
         { id: 'transmission', label: 'All 21 rays reach the image plane', metric: 'transmission', plane: 'p1', min: 1, check: 1, measured: 1 },
-        { id: 'waist', label: 'Waist (minimum rms size) position', metric: 'waist', plane: 'p1', target: 78.9, tol: 2, unit: 'mm', check: 78.91, measured: 78.91445 },
-        { id: 'focus', label: 'Near-axis focus (two innermost rays)', metric: 'axisCrossing', plane: 'p1', target: 91.7, tol: 1.5, unit: 'mm', check: 91.65, measured: 91.6495,
+        { id: 'waist', label: 'Waist (minimum rms size) position', metric: 'waist', plane: 'p1', target: 78.9, tol: 2, unit: 'mm', check: 78.91, measured: 78.91456 },
+        { id: 'focus', label: 'Near-axis focus (two innermost rays)', metric: 'axisCrossing', plane: 'p1', target: 91.7, tol: 1.5, unit: 'mm', check: 91.65, measured: 91.64968,
             note: 'The zero-gap model gives 89.5 mm.' },
         { id: 'energy', label: 'Largest endpoint energy error |ΔE|/E', metric: 'energyError', max: 1e-6, check: null, measured: 3.4311e-09 },
-        { id: 'waist-accel', label: 'Waist with Vc = −8000 V (ratio 9)', metric: 'waist', plane: 'p1', set: { params: { Vc: -8000 } }, target: 21.5, tol: 1.5, unit: 'mm', check: 21.45, measured: 21.45277 },
+        { id: 'waist-accel', label: 'Waist with Vc = −8000 V (ratio 9)', metric: 'waist', plane: 'p1', set: { params: { Vc: -8000 } }, target: 21.5, tol: 1.5, unit: 'mm', check: 21.45, measured: 21.45265 },
     ]),
     guide: Object.freeze({
         id: 'einzel-tour',

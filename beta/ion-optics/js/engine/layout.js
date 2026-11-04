@@ -16,7 +16,7 @@ export const P_STRIDE = 16, P_ID = 0, P_SRC = 1, P_SPECIES = 2, P_MASS = 3, P_CH
 // Summary rows, one per particle (Float64Array).
 export const S_STRIDE = 24, S_ID = 0, S_STATUS = 1, S_WHERE = 2, S_T = 3, S_X = 4, S_Y = 5, S_Z = 6, S_VX = 7, S_VY = 8, S_VZ = 9,
     S_KE = 10, S_TOF = 11, S_STEPS = 12, S_PATH = 13,
-    S_DE_END = 14,   // eV, (KE + qφ)end − (KE + qφ)start; NaN if time-dependent or outside
+    S_DE_END = 14,   // eV, (KE + qφ)end − (KE + qφ)start (minus the pair-force work with space charge); NaN if time-dependent or outside
     S_DE_MAX = 15,   // eV, max |(KE + qφ) − start| over step ends (static fields)
     S_WORK = 16,     // eV, Σ|ΔKE − W| over steps, W = work done by E along the step
     S_NCROSS = 17, S_TBAND = 18 /* µs in BOUNDARY cells */, S_FLAGS = 19,
