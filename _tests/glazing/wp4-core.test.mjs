@@ -323,8 +323,9 @@ const PAGE = read('beta/glazing/index.html');
 
 test('hygiene: beta page head, notice, no indexing tags, local links exist', () => {
     assert.ok(PAGE.includes('<meta name="robots" content="noindex, nofollow">'));
-    assert.ok(PAGE.includes('<strong>Beta: not yet validated by the author.</strong>'));
-    for (const bad of ['rel="canonical"', 'og:', 'twitter:', 'application/ld+json', 'data-section']) assert.ok(!PAGE.includes(bad), bad);
+    assert.ok(PAGE.includes('<strong>Beta, in review.</strong>'));
+    assert.ok(PAGE.includes('<body data-section="beta">'));
+    for (const bad of ['rel="canonical"', 'og:', 'twitter:', 'application/ld+json']) assert.ok(!PAGE.includes(bad), bad);
     assert.ok(PAGE.includes('<title>Glazing Performance Calculator (Open-Data Beta) | Casey D. Foley, PhD</title>'));
     const locals = [...PAGE.matchAll(/(?:src|href)="([^"#]+)"/g)].map(m => m[1]).filter(u => !/^(https?:)?\/\//.test(u) && !u.startsWith('mailto:'));
     assert.ok(locals.length > 15);
@@ -354,8 +355,11 @@ test('hygiene: beta page head, notice, no indexing tags, local links exist', () 
     assert.ok(read('beta/glazing/glazing-beta.js').includes("'glz-beta-imports'"));
 });
 
-test('hygiene: no live page, registry or sitemap links to /beta/', () => {
-    const files = ['sitemap.xml', 'assets/js/site.js', 'index.html', '404.html'];
+// Since 2026-11 the Beta nav tab, the home page and the tools hub link to /beta/ on purpose; the beta pages stay
+// noindex and out of the sitemap and every JSON-LD block.
+test('hygiene: /beta/ stays out of the sitemap and structured data', () => {
+    assert.ok(!/\/beta\//.test(read('sitemap.xml')), 'sitemap.xml lists /beta/');
+    const files = ['index.html', '404.html', 'resume/index.html', 'publications/index.html'];
     for (const dir of ['tools', 'learn', 'formulas', 'games']) {
         const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true }).forEach(e => {
             const p = d + '/' + e.name;
@@ -366,7 +370,8 @@ test('hygiene: no live page, registry or sitemap links to /beta/', () => {
     assert.ok(files.length > 20);
     for (const f of files) {
         if (!fs.existsSync(path.join(ROOT, f))) continue;
-        assert.ok(!/["'(]\/beta\/|cdfoley\.com\/beta\//.test(read(f)), f + ' links to /beta/');
+        const ld = [...read(f).matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]).join(' ');
+        assert.ok(!/\/beta\//.test(ld), f + ' JSON-LD mentions /beta/');
     }
 });
 
