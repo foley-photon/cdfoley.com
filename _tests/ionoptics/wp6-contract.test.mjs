@@ -236,7 +236,7 @@ test('the help page meets the page contract', () => {
     assert.match(html, /<script src="\/assets\/js\/site\.js"><\/script>/);
     assert.match(html, /<body data-section="beta">/);
     const text = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    assert.match(text, / Beta: not yet validated by the author\. /, 'the beta notice');
+    assert.match(text, / Beta, in review\. /, 'the beta notice');
     assert.ok(text.includes('Independent software written from the open literature. Not affiliated with any commercial ion-optics package.'), 'the independence line');
     // the name appears only in <title>; the visible name comes from PRODUCT_NAME
     assert.equal(html.split(PRODUCT_NAME).length - 1, 1, 'product name only in <title>');

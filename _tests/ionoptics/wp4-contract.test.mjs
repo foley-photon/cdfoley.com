@@ -36,11 +36,11 @@ test('page shell (§4.1, H6, H8)', () => {
     const html = readFileSync(ROOT + 'index.html', 'utf8');
     assert.match(html, /<title>Ion Optics Workbench \(beta\)<\/title>/);
     assert.match(html, /<meta name="robots" content="noindex, nofollow">/);
-    assert.match(html, /<meta name="description" content="[^"]*Not yet validated by the author\.">/);
+    assert.match(html, /<meta name="description" content="[^"]*Beta: benchmark review in progress\.">/);
     assert.ok(!/rel="canonical"|property="og:|application\/ld\+json/.test(html), 'no canonical, OG or JSON-LD');
     assert.match(html, /<body data-section="beta">/);
     assert.match(html, /<a class="skip-link" href="#io-canvas">/);
-    assert.match(html, /<p class="io-beta callout callout-warn" role="note"><strong>Beta: not yet validated by the author\.<\/strong>/);
+    assert.match(html, /<p class="io-beta callout callout-warn" role="note"><strong>Beta, in review\.<\/strong>/);
     assert.match(html, /href="help\/#validation"/);
     assert.match(html, /Independent software written from the open literature\. Not affiliated with any commercial ion-optics package\./);
     assert.ok(html.indexOf('/assets/css/site.css') < html.indexOf('css/app.css') && html.indexOf('css/app.css') < html.indexOf('css/results.css') && html.indexOf('css/results.css') < html.indexOf('css/presets.css'));

@@ -88,7 +88,7 @@ test('page rules (H1, H4, H5, H13, §4.1)', () => {
     const html = read('index.html');
     assert.ok(html.includes('<meta name="robots" content="noindex, nofollow">'));
     for (const bad of ['rel="canonical"', 'og:', 'application/ld+json', 'data-out=']) assert.ok(!html.includes(bad), bad);
-    assert.ok(html.includes('<strong>Beta: not yet validated by the author.</strong>'));
+    assert.ok(html.includes('<strong>Beta, in review.</strong>'));
     assert.ok(html.includes('href="mailto:foley.photon@gmail.com"'));
     assert.ok(html.includes('<body data-section="beta">'));
     assert.ok(html.indexOf('type="importmap"') < html.indexOf('rel="modulepreload"'));
