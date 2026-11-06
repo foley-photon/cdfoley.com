@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thermochemistry Lab (beta) | Casey D. Foley, PhD</title>
+<meta name="description" content="Beta: ATcT reaction enthalpies, bond energies, photolysis thresholds with excited products, electron attachment, correlated uncertainties and energy diagrams.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="./thermochem.css">
+<script src="/assets/js/site.js"></script>
+<link rel="modulepreload" href="./js/engine.js">
+<link rel="preload" href="./data/atct-tn1.228.json" as="fetch" type="application/json" crossorigin>
+<link rel="modulepreload" href="./js/diagram.js">
+</head>
+<body data-section="beta">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/beta/">Beta tools</a></li><li aria-current="page">Thermochemistry Lab</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <span class="eyebrow">Beta</span>
+        <h1>Thermochemistry Lab <span class="badge badge-warn">BETA</span></h1>
+        <p class="lede">Bond energies, reaction enthalpies and photodissociation thresholds from Argonne's Active Thermochemical Tables (ATcT). Type a species or a reaction; the tool balances it, converts units, finds every fragmentation channel up to a photon or electron energy, including products in excited electronic states, and draws an energy diagram.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>ΔfH°</dt><dd>Enthalpy of formation: the energy to make one mole of a species from its elements in their standard states.</dd>
+            <dt>D₀ and D₂₉₈</dt><dd>Bond dissociation energy at 0 K (from the lowest quantum state) and bond dissociation enthalpy at 298.15 K.</dd>
+            <dt>Threshold</dt><dd>The longest wavelength whose photon carries enough energy to break the bond, assuming cold molecules and no barrier.</dd>
+            <dt>IE and AE</dt><dd>Ionization energy (molecule to its cation) and appearance energy (molecule to a fragment ion, a neutral and an electron).</dd>
+            <dt>Uncertainty</dt><dd>ATcT quotes 95 % limits. Their values are correlated, so a simple sum of squares can be too large or too small; ATcT's covariances fix that.</dd>
+            <dt>Excited products</dt><dd>Fragments formed in an electronically excited state, such as O(¹D) or OH(A); the threshold rises by the excitation energy.</dd>
+            <dt>DEA</dt><dd>Dissociative electron attachment: a molecule captures a free electron and falls apart into a negative ion and a neutral.</dd>
+            <dt>Thermochemical Network</dt><dd>ATcT solves thousands of measurements and calculations together; each release has a version number (here TN 1.228).</dd>
+        </dl></details>
+    </header>
+
+    <div class="callout callout-warn" role="note">
+        <p><strong>Beta, in review.</strong> The Self-test tab recomputes bond, ionization, excited-product and electron-attachment energies and compares them with reference values, mostly the measurements ATcT itself uses; treat other results as provisional.
+ Found a wrong number? Email <a href="mailto:foley.photon@gmail.com">foley.photon@gmail.com</a>.</p>
+    </div>
+
+    <section class="panel tc-bar" aria-label="Data and units">
+        <div class="tc-bar-row">
+            <p class="tc-source" id="tc-source">Loading ATcT data…</p>
+            <div class="field tc-unit-field">
+                <label for="tc-unit">Energy unit</label>
+                <select id="tc-unit" class="input">
+                    <option value="kJ/mol">kJ/mol</option><option value="kcal/mol">kcal/mol</option><option value="eV">eV</option><option value="cm⁻¹">cm⁻¹ (cm-1)</option><option value="K">K</option><option value="Eh">hartree (Eh)</option>
+                </select>
+            </div>
+        </div>
+    </section>
+
+    <div class="tc-tabs" role="tablist" aria-label="Mode">
+        <button type="button" role="tab" id="tabbtn-species" aria-controls="tab-species" aria-selected="true" tabindex="0">Species</button>
+        <button type="button" role="tab" id="tabbtn-reaction" aria-controls="tab-reaction" aria-selected="false" tabindex="-1">Reaction</button>
+        <button type="button" role="tab" id="tabbtn-channels" aria-controls="tab-channels" aria-selected="false" tabindex="-1">Bonds &amp; photolysis</button>
+        <button type="button" role="tab" id="tabbtn-diagram" aria-controls="tab-diagram" aria-selected="false" tabindex="-1">Energy diagram</button>
+        <button type="button" role="tab" id="tabbtn-units" aria-controls="tab-units" aria-selected="false" tabindex="-1">Units</button>
+        <button type="button" role="tab" id="tabbtn-selftest" aria-controls="tab-selftest" aria-selected="false" tabindex="-1">Self-test</button>
+        <button type="button" role="tab" id="tabbtn-data" aria-controls="tab-data" aria-selected="false" tabindex="-1">Data &amp; citation</button>
+    </div>
+
+    <!-- Species -->
+    <section role="tabpanel" id="tab-species" aria-labelledby="tabbtn-species" class="tc-panel">
+        <div class="panel">
+            <div class="panel-body">
+                <div class="field tc-combo">
+                    <label for="sp-q">Find a species</label>
+                    <input id="sp-q" class="input" type="search" role="combobox" aria-expanded="false" aria-controls="sp-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="formula, name, CAS, InChIKey or SMILES: CH2O, formyl, 50-00-0">
+                    <ul id="sp-list" class="tc-list" role="listbox" hidden></ul>
+                    <p class="hint">Type ATcT's structural formula (CH3OH, [OH]+), a plain or Hill formula (O3, C2H4, HO2, matched by composition and charge), an ion such as CH3+ or OH-, or a name, CAS number or InChIKey. The closest match is listed first and Enter picks it; gas-phase ground states come before other states and isomers.</p>
+                </div>
+            </div>
+        </div>
+        <div id="sp-card" class="tc-card-wrap"></div>
+    </section>
+
+    <!-- Reaction -->
+    <section role="tabpanel" id="tab-reaction" aria-labelledby="tabbtn-reaction" class="tc-panel" hidden>
+        <div class="panel">
+            <div class="panel-body">
+                <div class="field">
+                    <label for="rx-in">Reaction</label>
+                    <input id="rx-in" class="input tc-mono" autocomplete="off" spellcheck="false" value="CH2O -> H + HCO" aria-describedby="rx-hint">
+                    <p class="hint" id="rx-hint">Write <code>reactants -> products</code> with coefficients, including fractions: <code>O2 -> 2 O</code>, <code>1/2 O2 -> O</code>, <code>CH4 -> CH3+ + H + e-</code>, <code>H2O + e- -> H- + OH</code>. Species can be ATcT or plain formulas (<code>O3</code>, <code>C2H6</code>), names, CAS numbers or ATcT IDs. A plain formula is matched by composition; where several isomers share it, the most common gas-phase one is used and the others are offered in a list. Electronic states go in brackets: <code>O(1D)</code>, <code>O2(a1Δg)</code> or <code>O2(a)</code>, <code>OH(A)</code>, <code>CO(a3Π)</code>, <code>Cl(2P1/2)</code> (spin-orbit excited Cl*). A ground-state label gives the ground state (<code>Cl(2P3/2)</code>, <code>O(3P)</code>, <code>OH(X)</code>); a level outside the ground configuration needs its configuration, as the Species tab lists it (<code>Cl(4s 2P3/2)</code>, <code>H(2s)</code>). <code>hv</code> is ignored.</p>
+                </div>
+                <div class="tc-examples" id="rx-examples" aria-label="Examples"></div>
+            </div>
+        </div>
+        <div id="rx-out"></div>
+    </section>
+
+    <!-- Channels -->
+    <section role="tabpanel" id="tab-channels" aria-labelledby="tabbtn-channels" class="tc-panel" hidden>
+        <div class="panel">
+            <div class="panel-body">
+                <div class="field-row">
+                    <div class="field tc-combo">
+                        <label for="ch-q">Parent molecule (gas)</label>
+                        <input id="ch-q" class="input" type="search" role="combobox" aria-expanded="false" aria-controls="ch-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" value="CH2O">
+                        <ul id="ch-list" class="tc-list" role="listbox" hidden></ul>
+                    </div>
+                    <div class="field">
+                        <label for="ch-nm" id="ch-nm-label">Photon wavelength <span class="sym">λ</span></label>
+                        <div class="input-unit"><input id="ch-nm" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="optional" aria-describedby="ch-nm-hint"><span class="unit" id="ch-nm-unit">nm</span></div>
+                        <p class="hint" id="ch-nm-hint">Open channels and the energy left for the products. Common lasers: 157, 193, 248, 266, 308, 355 nm.</p>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="ch-mode">Products</label>
+                        <select id="ch-mode" class="input">
+                            <optgroup label="Photons or heat">
+                                <option value="neutral">Neutral fragments (bond dissociation, photolysis)</option>
+                                <option value="dpi">Ionization and dissociative ionization (IE, AE)</option>
+                            </optgroup>
+                            <optgroup label="Electron channels">
+                                <option value="dea">Dissociative electron attachment (AB + e⁻ → A + B⁻)</option>
+                                <option value="ionpair">Ion pairs (A⁺ + B⁻), by photon or electron impact</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="field tc-checks">
+                        <span class="field-label">Include</span>
+                        <label><input type="checkbox" id="ch-three"> three-body channels</label>
+                        <label><input type="checkbox" id="ch-labeled"> other states and conformers listed by ATcT</label>
+                        <label><input type="checkbox" id="ch-ex"> excited-product thresholds (NIST and ATcT states)</label>
+                        <label class="tc-sub"><input type="checkbox" id="ch-fine" checked> with spin-orbit and fine-structure levels (Cl*, O ³P₁…)</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="ch-out"></div>
+    </section>
+
+    <!-- Energy diagram -->
+    <section role="tabpanel" id="tab-diagram" aria-labelledby="tabbtn-diagram" class="tc-panel" hidden>
+        <div class="panel">
+            <div class="panel-body">
+                <div class="field-row">
+                    <div class="field">
+                        <label for="dg-r">Reactants</label>
+                        <input id="dg-r" class="input tc-mono" autocomplete="off" spellcheck="false" placeholder="CH2O" aria-describedby="dg-r-hint">
+                        <p class="hint" id="dg-r-hint">The zero of the energy scale (0 K, from ATcT). One species or several: <code>CH3 + O2</code>.</p>
+                    </div>
+                    <div class="field">
+                        <label for="dg-nm">Photon line <span class="sym">λ</span></label>
+                        <div class="input-unit"><input id="dg-nm" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="optional"><span class="unit">nm</span></div>
+                        <p class="hint">Draws hν above the reactants, e.g. 308 or 193.</p>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="dg-p">Product channels, one per line</label>
+                    <textarea id="dg-p" class="input tc-mono" rows="4" spellcheck="false" aria-describedby="dg-p-hint"></textarea>
+                    <p class="hint" id="dg-p-hint">Energies come from ATcT and must balance against the reactants. Excited products work as in the Reaction tab: <code>H + OH(A)</code>. <button type="button" class="btn btn-ghost btn-sm" id="dg-fill">Add the lowest channels</button></p>
+                </div>
+                <div class="field">
+                    <span class="field-label" id="dg-l-label">Your levels: intermediates, transition states, roaming saddles</span>
+                    <div id="dg-levels" class="tc-lvls" aria-labelledby="dg-l-label"></div>
+                    <p class="hint">Energies relative to the reactants, in any unit, for example from your own calculations or a paper you cite. They are drawn as entered and are not checked.</p>
+                    <p><button type="button" class="btn btn-secondary btn-sm" id="dg-add">Add a level</button> <button type="button" class="btn btn-ghost btn-sm" id="dg-reset">Reset the diagram</button></p>
+                </div>
+                <div class="field">
+                    <label for="dg-c">Connectors</label>
+                    <select id="dg-c" class="input">
+                        <option value="fan">From the reactants to every level</option>
+                        <option value="chain">Through your levels in order, then to each product</option>
+                        <option value="none">None</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="panel" id="dg-out">
+            <div class="panel-head"><h2>Diagram</h2></div>
+            <div class="panel-body">
+                <div id="dg-msgs"></div>
+                <div class="tc-dg-wrap" id="dg-svg-wrap"></div>
+                <div class="tc-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" id="dg-dl-svg">Download SVG</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="dg-dl-png">Download PNG</button>
+                </div>
+                <div id="dg-table" class="tc-dg-table"></div>
+                <p class="hint">Energies in the unit chosen at the top of the page. The download uses the current light or dark colours. Cite ATcT [3] for the product energies and your own source for the levels you add.</p>
+                <div id="dg-share"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Units -->
+    <section role="tabpanel" id="tab-units" aria-labelledby="tabbtn-units" class="tc-panel" hidden>
+        <div class="panel">
+            <div class="panel-body">
+                <div class="field-row">
+                    <div class="field">
+                        <label for="un-v">Value</label>
+                        <div class="input-unit"><input id="un-v" inputmode="decimal" autocomplete="off" spellcheck="false" value="30328.5"><select id="un-u" aria-label="Unit">
+                            <option value="kJ/mol">kJ/mol</option><option value="kcal/mol">kcal/mol</option><option value="eV">eV</option><option value="cm⁻¹" selected>cm⁻¹</option><option value="K">K</option><option value="Eh">hartree</option><option value="nm">nm (photon)</option>
+                        </select></div>
+                    </div>
+                </div>
+                <div id="un-out"></div>
+                <p class="hint">Molar energies per mole of molecules or photons. Wavelengths are in vacuum. More on these units in <a href="/learn/spectroscopic-units/">Spectroscopic units</a>; for frequency, temperature and photon units see the <a href="/tools/energy-converter/">energy converter</a>.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Self-test -->
+    <section role="tabpanel" id="tab-selftest" aria-labelledby="tabbtn-selftest" class="tc-panel" hidden>
+        <div id="st-root"></div>
+    </section>
+
+    <!-- Data -->
+    <section role="tabpanel" id="tab-data" aria-labelledby="tabbtn-data" class="tc-panel" hidden>
+        <div class="panel">
+            <div class="panel-head"><h2>Data source</h2></div>
+            <div class="panel-body prose tc-data">
+                <p id="dt-meta"></p>
+                <h3>How to cite</h3>
+                <p>ATcT's table attributes its values to the two method papers [1, 2] and to the network version used [3]:</p>
+                <ol class="refs" id="dt-cite"></ol>
+                <p>Cite this tool only for the arithmetic (balancing, unit conversion, channel search); the thermochemistry is ATcT's.</p>
+                <h3>Covariances</h3>
+                <p>Correlated uncertainties use the ATcT covariance matrix of Δ<sub>f</sub>H°(298.15 K) for 1874 gas-phase species, fetched from the ATcT API (<code>/api/v1/covariance/species/</code>) on 2026-11-06. The API serves <strong>TN 1.220</strong>, not 1.228. The page keeps only the pairs that change the variance of a sum or difference of two species by at least 0.1 % (326 497 of 1 732 591), which changes two-body fragmentation uncertainties by 0.04 % (median) and 0.24 % (99th percentile). Each correlation coefficient is stored with enough digits that its rounding changes no pair combination by more than 0.5 %, including strongly correlated pairs such as Br₂ and Br, where 1 − r ≈ 2 × 10⁻⁶ sets the uncertainty of D₀(Br₂). The tool uses the TN 1.220 covariances as served, except that a species whose printed uncertainty changed between TN 1.220 and TN 1.228 has its row and column scaled to the TN 1.228 uncertainty; both values are shown. The file (2.1 MB, about 0.4 MB compressed) is loaded only when a reaction, channel list, diagram or the self-test needs it.</p>
+                <h3>Excited electronic states</h3>
+                <p>106 term values of low-lying states of 10 atoms, 16 diatomics and 4 polyatomics, retrieved on 2026-11-06. Where ATcT lists a state (14 cases, such as O(¹D), O₂(a¹Δ<sub>g</sub>), CO(a³Π), ¹CH₂ and the halogen ²P½ levels), the ATcT entry is used instead, so no state is counted twice. States given only as estimates (SO a¹Δ, BrO and IO X₂) and species without an ATcT ground state (P, NS) are left out.</p>
+                <ol class="refs">
+                    <li>A. Kramida, Yu. Ralchenko, J. Reader and NIST ASD Team (2024). NIST Atomic Spectra Database (ver. 5.12), <a href="https://physics.nist.gov/asd" target="_blank" rel="noopener">physics.nist.gov/asd</a> [2026, November 6]. NIST, Gaithersburg, MD. <a href="https://doi.org/10.18434/T4W30F" target="_blank" rel="noopener">doi:10.18434/T4W30F</a> (atomic levels).</li>
+                    <li>K. P. Huber and G. Herzberg, “Constants of Diatomic Molecules” (data prepared by J. W. Gallagher and R. D. Johnson, III), in NIST Chemistry WebBook, NIST Standard Reference Database Number 69, eds. P. J. Linstrom and W. G. Mallard, NIST, Gaithersburg, MD, <a href="https://doi.org/10.18434/T4D303" target="_blank" rel="noopener">doi:10.18434/T4D303</a> (retrieved November 6, 2026); print source: K. P. Huber and G. Herzberg, <em>Molecular Spectra and Molecular Structure IV. Constants of Diatomic Molecules</em> (Van Nostrand Reinhold, 1979), data through May 1977 (diatomic T₀).</li>
+                    <li>M. E. Jacox, “Vibrational and Electronic Energy Levels of Polyatomic Transient Molecules,” in NIST Chemistry WebBook, NIST Standard Reference Database Number 69, eds. P. J. Linstrom and W. G. Mallard, NIST, Gaithersburg, MD, <a href="https://doi.org/10.18434/T4D303" target="_blank" rel="noopener">doi:10.18434/T4D303</a> (retrieved November 6, 2026) (CH₂, HCO, HO₂, NH₂).</li>
+                </ol>
+                <p class="hint">T₀ for molecules is the Huber–Herzberg (0,0) band origin to the ground state where one is listed, otherwise chained through a lower state or computed as Tₑ + G′(0) − G″(0). Huber and Herzberg give some origins from the zero point of the Hill–Van Vleck expression rather than from the lowest level (their notes on OH, SH, CH and CN); these are converted to lowest-level T₀ with the spin-orbit and rotational constants on the same pages (OH A²Σ⁺ +38.18 cm⁻¹, SH A²Σ⁺ +170.23 cm⁻¹, CH A²Δ +28.27 cm⁻¹, CN A²Π −23.06 cm⁻¹). Where the value refers to a multiplet centre or to a hypothetical J = 0 level instead, it is not converted; the spread of the multiplet (|A|ΛS, up to 146 cm⁻¹ for O₂ A′³Δ<sub>u</sub>) or the offset (about 1.3 cm⁻¹ for NO) is added to the uncertainty as an allowance. Rows marked “note” say which. Huber and Herzberg stop at 1977.</p>
+                <div id="dt-exrefs"></div>
+                <h3>Previous version (TN 1.220)</h3>
+                <p>The species card shows the TN 1.220 values of the 2352 species whose value or uncertainty differs from TN 1.228, from the ATcT API bulk endpoint <code>/api/v1/all/</code> (downloaded 2026-11-06); 13 species are new in TN 1.228.</p>
+                <h3>Use your own table</h3>
+                <p>Load a CSV with the columns of the cleaned ATcT table (<code>atct_id, formula, state, charge, composition, dHf_0K_kJmol, dHf_298K_kJmol, unc_95_kJmol</code>…), for example a newer ATcT version. It stays in your browser. <code>atct_id</code>, <code>formula</code> and <code>dHf_298K_kJmol</code> are required. Composition and charge are read from their columns, or parsed from the formula where those are missing; rows where neither works are skipped and counted, so the balance check never runs without a composition. The ATcT covariances and the version diff are not applied to a CSV; the excited states are, by ATcT ID.</p>
+                <p><label class="btn btn-secondary btn-sm" for="dt-file">Load CSV…</label> <input type="file" id="dt-file" accept=".csv,text/csv" class="visually-hidden"> <button type="button" class="btn btn-ghost btn-sm" id="dt-reset" hidden>Back to the shipped TN 1.228 table</button></p>
+                <p class="hint" id="dt-status" role="status"></p>
+            </div>
+        </div>
+    </section>
+
+    <article class="prose tc-prose" id="how">
+        <h2>How it is calculated</h2>
+        <p>Every result is a sum of ATcT enthalpies of formation, Δ<sub>r</sub>H° = Σ ν<sub>i</sub> Δ<sub>f</sub>H°<sub>i</sub>, with ν positive for products. The tool checks that elements and charge balance before it shows a number; electrons (<code>e-</code>) carry Δ<sub>f</sub>H° = 0.</p>
+        <ul>
+            <li><strong>Bond dissociation energy</strong> D₀(A–B) = Δ<sub>f</sub>H°₀(A) + Δ<sub>f</sub>H°₀(B) − Δ<sub>f</sub>H°₀(AB); D₂₉₈ uses the 298.15 K values.</li>
+            <li><strong>Photodissociation threshold</strong> λ = N<sub>A</sub>hc / D₀ = 119 626.6 nm·kJ mol⁻¹ / D₀. It is the one-photon limit for a molecule in its lowest rovibrational level with no barrier above the products. Parent internal energy lowers the real onset; a barrier (common for molecular channels such as H₂CO → H₂ + CO) raises it.</li>
+            <li><strong>Available energy</strong> at wavelength λ is E<sub>hν</sub> − D₀, shared among product translation, rotation, vibration and electronic excitation.</li>
+            <li><strong>Ionization and appearance energies</strong> are 0 K differences: IE = Δ<sub>f</sub>H°₀(M⁺) − Δ<sub>f</sub>H°₀(M) and AE(A⁺) = Δ<sub>f</sub>H°₀(A⁺) + Δ<sub>f</sub>H°₀(B) − Δ<sub>f</sub>H°₀(AB). ATcT's 298.15 K ion values follow the stationary-electron convention, in which the electron carries no enthalpy at any temperature; to treat free electrons as a thermal gas, add 5/2 RT = 6.197 kJ/mol per electron produced at 298.15 K.</li>
+            <li><strong>Proton affinity</strong> PA(M) = Δ<sub>f</sub>H°₂₉₈(M) + Δ<sub>f</sub>H°₂₉₈(H⁺) − Δ<sub>f</sub>H°₂₉₈(MH⁺).</li>
+            <li><strong>Excited products.</strong> A fragment in an excited electronic state X* has Δ<sub>f</sub>H°₀(X*) = Δ<sub>f</sub>H°₀(X) + T₀(X*), with T₀ the term value above the lowest level from NIST (atoms: ASD; diatomics: Huber and Herzberg; polyatomics: Jacox). Where ATcT lists the state itself its own value is used. A channel's excited thresholds are D₀ plus the sum of the products' T₀; no 298.15 K values are given for these. The uncertainty of such a state adds the term value's own uncertainty, where the source gives one (Jacox gives ±0.05 to ±10 cm⁻¹), and an allowance where the source refers the state to a level other than the lowest, to the ATcT uncertainty of the ground state.</li>
+            <li><strong>Electron channels.</strong> Dissociative electron attachment AB + e⁻ → A + B⁻ has threshold Δ<sub>f</sub>H°₀(A) + Δ<sub>f</sub>H°₀(B⁻) − Δ<sub>f</sub>H°₀(AB) = D₀(A–B) − EA(B); ion pairs A⁺ + B⁻ have D₀ + IE(A) − EA(B), for photons and for electron impact alike.</li>
+            <li><strong>Energy diagram.</strong> Product levels are the 0 K reaction enthalpies from the reactants; your levels are drawn at the energies you enter, converted from their unit.</li>
+        </ul>
+        <h3>Uncertainty</h3>
+        <p>The ± values are 95 % limits. ATcT values are correlated because they come from one network: when a bond energy was itself measured (H–OH, H–HCO), the parent and the fragment move together and the true uncertainty of the difference is much smaller than the independent-error estimate √Σ(ν<sub>i</sub>U<sub>i</sub>)². When every species of a reaction is in ATcT's covariance file (1874 gas-phase species), the tool uses √(νᵀCν) with ATcT's covariance matrix C from TN 1.220 (the version the ATcT API serves, covariance of Δ<sub>f</sub>H° at 298.15 K). For a species whose printed uncertainty changed in TN 1.228, its row and column are scaled by U<sub>1.228</sub>/U<sub>1.220</sub>, so that its own uncertainty is the one shown on this page while its correlations stay those of TN 1.220. For D₀(H–HCO), where both H₂CO and HCO changed, that gives ±0.0066 kJ/mol instead of ±0.110 (±0.0080 with the TN 1.220 covariances as served). If the scaling would leave less than 0.1 % of the sum of the terms (strong cancellation, as in X₂ → 2 X), the value as served is used; a result that cancels below the precision of the stored correlations is shown as a bound (“&lt; …”), never as 0. Otherwise the tool falls back to independent errors and says so. The Reaction tab shows all three numbers and which one is used; species whose printed uncertainty changed by more than ×1.5 between versions are flagged.</p>
+        <h2>Typical values</h2>
+        <p>Bond energies of small molecules span about 100 to 1100 kJ/mol (1 to 11 eV), so one-photon thresholds run from the near infrared to the vacuum ultraviolet. All values below are D₀ at 0 K to ground-state products, computed by this tool from ATcT TN 1.228 [3]; λ max = 119 626.57 nm·kJ mol⁻¹ / D₀ (CODATA 2022 [6]).</p>
+        <div class="tc-table-scroll"><table class="tc-table">
+            <thead><tr><th>Reaction</th><th class="num">D₀ or IE, kJ/mol</th><th class="num">eV</th><th class="num">λ max, nm</th></tr></thead>
+            <tbody>
+                <tr><td>O₃ → O₂ + O</td><td class="num">102.434</td><td class="num">1.0617</td><td class="num">1167.8</td></tr>
+                <tr><td>Cl₂ → 2 Cl</td><td class="num">239.242</td><td class="num">2.4796</td><td class="num">500.0</td></tr>
+                <tr><td>NO₂ → NO + O</td><td class="num">300.604</td><td class="num">3.1155</td><td class="num">398.0</td></tr>
+                <tr><td>H₂CO → H + HCO</td><td class="num">362.804</td><td class="num">3.7602</td><td class="num">329.7</td></tr>
+                <tr><td>H₂ → 2 H</td><td class="num">432.068</td><td class="num">4.4781</td><td class="num">276.9</td></tr>
+                <tr><td>CH₄ → CH₃ + H</td><td class="num">432.457</td><td class="num">4.4821</td><td class="num">276.6</td></tr>
+                <tr><td>H₂O → H + OH</td><td class="num">492.214</td><td class="num">5.1014</td><td class="num">243.0</td></tr>
+                <tr><td>O₂ → 2 O</td><td class="num">493.686</td><td class="num">5.1167</td><td class="num">242.3</td></tr>
+                <tr><td>N₂ → 2 N</td><td class="num">941.310</td><td class="num">9.7560</td><td class="num">127.1</td></tr>
+                <tr><td>CO → C + O</td><td class="num">1072.016</td><td class="num">11.1107</td><td class="num">111.6</td></tr>
+                <tr><td>H₂O → H₂O⁺ + e⁻ (adiabatic IE)</td><td class="num">1217.398</td><td class="num">12.6174</td><td class="num">98.3</td></tr>
+            </tbody>
+        </table></div>
+        <p>Real photolysis onsets are often well to the blue of λ max, because the bright or spin-allowed transition leads to excited products: ozone's main ultraviolet channel gives O(¹D) + O₂(a¹Δ<sub>g</sub>), not ground-state O + O₂.</p>
+        <h2>Worked example</h2>
+        <p>The default reaction, CH2O -> H + HCO in kJ/mol, uses the TN 1.228 values Δ<sub>f</sub>H°₀ = 216.034 (H), 41.384 ± 0.078 (HCO) and −105.386 ± 0.078 (H₂CO) kJ/mol [3].</p>
+        <ol>
+            <li>D₀ = 216.034 + 41.384 − (−105.386) = <strong>362.804 kJ/mol</strong>.</li>
+            <li>In other units: 362.804 / 96.485 332 = 3.7602 eV, and 362.804 / 0.011 962 657 = 30 328.05 cm⁻¹.</li>
+            <li>Threshold: λ = 119 626.57 / 362.804 = <strong>329.73 nm</strong>.</li>
+            <li>Independent-error uncertainty: √(0.0005² + 0.078² + 0.078²) = ±0.110 kJ/mol (H is printed as ± 0.000, taken as 0.0005). With the ATcT correlations the uncertainty is ±0.0066 kJ/mol, because H₂CO and HCO are tied by the measured bond energy.</li>
+            <li>At 298.15 K: 217.998 + 41.758 − (−109.226) = 368.982 kJ/mol.</li>
+        </ol>
+        <p>The Reaction tab shows the same numbers, and the Self-test tab checks them against Terentis and Kable's measured 30 328.5 ± 0.5 cm⁻¹, which ATcT uses as an input.</p>
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Only species in ATcT TN 1.228 (3455 entries, about 2700 in the gas phase). Products the network does not contain are not found.</li>
+            <li>One uncertainty per species as printed in the ATcT table, applied at 0 K and 298.15 K. ATcT prints each value to the decimals of its uncertainty (at most 0.001 kJ/mol), so every printed value also carries up to half a last digit of rounding. Both the independent and the correlated uncertainties include that rounding (½·10<sup>−d</sup> per species, combined in quadrature); it is what limits differences where the covariances cancel, such as Br<sub>2</sub> → 2 Br. For independent errors "± 0.000" is taken as 0.0005.</li>
+            <li>Thresholds are thermochemical: no barriers, no tunnelling, no spin or symmetry restrictions, no hot bands.</li>
+            <li>Channel search uses gas-phase entries in their listed ground states unless you include ATcT's other states and conformers (for example O(g, singlet) = O(¹D) and CH₂(g, singlet) = ¹CH₂). Ortho and para nuclear-spin entries are left out.</li>
+            <li>The covariances are from TN 1.220, the version the ATcT API served on 2026-11-06, while the values are TN 1.228; 2352 species changed value or uncertainty between the two. They are for 298.15 K and are applied to 0 K results as well. Pairs too weak to matter were dropped, so a variance can come out slightly negative; it is then shown as an upper bound, not as 0.</li>
+            <li>Excited states cover the low-lying states of 30 atoms and small molecules only. Ion fragments are always in their ground state. Huber and Herzberg's diatomic data stop in 1977. Where their reference level is not the lowest level and could not be converted (multiplet centres, hypothetical J = 0 levels), the offset, up to 146 cm⁻¹, is carried as an allowance in the uncertainty rather than corrected. Spin, symmetry and Franck–Condon factors decide whether a channel is actually reached; thresholds say only that it is energetically open.</li>
+            <li>The energy diagram draws your intermediates and transition states as entered; it does not check them.</li>
+            <li>A plain formula such as C2H4 is matched by composition and charge. When several isomers share it, the tool takes the gas-phase entry ATcT lists first (here ethylene, not ethylidene) and offers the others; check the species name in the result.</li>
+        </ul>
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>B. Ruscic et al., “Introduction to Active Thermochemical Tables: Several ‘Key’ Enthalpies of Formation Revisited,” <em>J. Phys. Chem. A</em> 108, 9979–9997 (2004), <a href="https://doi.org/10.1021/jp047912y" target="_blank" rel="noopener">doi:10.1021/jp047912y</a> (method).</li>
+            <li>B. Ruscic et al., “Active Thermochemical Tables: Thermochemistry for the 21st Century,” <em>J. Phys. Conf. Ser.</em> 16, 561–570 (2005), <a href="https://doi.org/10.1088/1742-6596/16/1/078" target="_blank" rel="noopener">doi:10.1088/1742-6596/16/1/078</a> (method).</li>
+            <li>B. Ruscic and D. H. Bross, “Active Thermochemical Tables (ATcT) values based on ver. 1.228 of the Thermochemical Network,” Argonne National Laboratory (2026), <a href="https://atct.anl.gov/Thermochemical%20Data/version%201.228/index.php" target="_blank" rel="noopener">atct.anl.gov</a> (all values).</li>
+            <li>B. Ruscic, “Uncertainty Quantification in Thermochemistry, Benchmarking Electronic Structure Computations, and Active Thermochemical Tables,” <em>Int. J. Quantum Chem.</em> 114, 1097–1101 (2014), <a href="https://doi.org/10.1002/qua.24605" target="_blank" rel="noopener">doi:10.1002/qua.24605</a> (95 % uncertainties).</li>
+            <li>B. Ruscic, “Active Thermochemical Tables: Sequential Bond Dissociation Enthalpies of Methane, Ethane, and Methanol and the Related Thermochemistry,” <em>J. Phys. Chem. A</em> 119, 7810–7837 (2015), <a href="https://doi.org/10.1021/acs.jpca.5b01346" target="_blank" rel="noopener">doi:10.1021/acs.jpca.5b01346</a> (D₀ and BDE₂₉₈ definitions).</li>
+            <li>P. J. Mohr, D. B. Newell, B. N. Taylor, and E. Tiesinga, “CODATA recommended values of the fundamental physical constants: 2022,” <em>Rev. Mod. Phys.</em> <strong>97</strong>, 025002 (2025), <a href="https://doi.org/10.1103/RevModPhys.97.025002" target="_blank" rel="noopener">doi:10.1103/RevModPhys.97.025002</a> (unit factors; all but the hartree are exact).</li>
+            <li>A. Kramida, Yu. Ralchenko, J. Reader and NIST ASD Team, NIST Atomic Spectra Database (ver. 5.12), NIST (2024), <a href="https://doi.org/10.18434/T4W30F" target="_blank" rel="noopener">doi:10.18434/T4W30F</a> (atomic term values).</li>
+            <li>K. P. Huber and G. Herzberg, “Constants of Diatomic Molecules,” and M. E. Jacox, “Vibrational and Electronic Energy Levels of Polyatomic Transient Molecules,” in <em>NIST Chemistry WebBook</em>, SRD 69, <a href="https://doi.org/10.18434/T4D303" target="_blank" rel="noopener">doi:10.18434/T4D303</a> (molecular term values).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul>
+            <li>Argonne, <a href="https://atct.anl.gov/" target="_blank" rel="noopener">Active Thermochemical Tables home page</a> (what a thermochemical network is).</li>
+            <li><a href="/learn/spectroscopic-units/">Spectroscopic units</a> on this site (cm⁻¹, eV, kJ/mol and wavelength).</li>
+        </ul>
+    </article>
+
+    <section class="panel tc-terms" id="terms" aria-labelledby="terms-h">
+        <div class="panel-head"><h2 id="terms-h">Data sources and terms</h2></div>
+        <div class="panel-body prose">
+            <p><strong>Thermochemical values.</strong> Every ground-state enthalpy of formation, uncertainty, name and identifier on this page comes from the Active Thermochemical Tables (ATcT), Argonne National Laboratory, version 1.228 of the Thermochemical Network (as of 2026-07-26, downloaded 2026-11-06 from <a href="https://atct.anl.gov/Thermochemical%20Data/version%201.228/index.php" target="_blank" rel="noopener">atct.anl.gov</a>). The covariances and the previous-version values are TN 1.220, from the <a href="https://atct.anl.gov/api/v1/" target="_blank" rel="noopener">ATcT API</a> (downloaded 2026-11-06). ATcT's table attributes its values to these three references:</p>
+            <ol class="refs">
+                <li>B. Ruscic, R. E. Pinzon, M. L. Morton, G. von Laszewski, S. Bittner, S. G. Nijsure, K. A. Amin, M. Minkoff, and A. F. Wagner, “Introduction to Active Thermochemical Tables: Several ‘Key’ Enthalpies of Formation Revisited,” <em>J. Phys. Chem. A</em> 108, 9979–9997 (2004), <a href="https://doi.org/10.1021/jp047912y" target="_blank" rel="noopener">doi:10.1021/jp047912y</a>.</li>
+                <li>B. Ruscic, R. E. Pinzon, G. von Laszewski, D. Kodeboyina, A. Burcat, D. Leahy, D. Montoya, and A. F. Wagner, “Active Thermochemical Tables: Thermochemistry for the 21st Century,” <em>J. Phys. Conf. Ser.</em> 16, 561–570 (2005), <a href="https://doi.org/10.1088/1742-6596/16/1/078" target="_blank" rel="noopener">doi:10.1088/1742-6596/16/1/078</a>.</li>
+                <li>B. Ruscic and D. H. Bross, Active Thermochemical Tables (ATcT) values based on ver. 1.228 of the Thermochemical Network, Argonne National Laboratory, Lemont, Illinois, USA (2026); available at <a href="https://atct.anl.gov/" target="_blank" rel="noopener">ATcT.anl.gov</a>.</li>
+            </ol>
+            <p><strong>Public data.</strong> ATcT is a U.S. Department of Energy Office of Science Public Reusable (PuRe) Data Resource, and its API offers the species values (currently TN 1.220) for download. This page uses the published values unchanged (correlated uncertainties combine the TN 1.220 covariances with TN 1.228 uncertainties, as described above), with the version and the citations above, and links each species to its ATcT page.</p>
+            <p><strong>Excited states.</strong> Excited-state enthalpies of formation not listed by ATcT are an ATcT ground-state value plus an electronic term value from NIST Standard Reference Data: the Atomic Spectra Database (SRD 78) and the Chemistry WebBook (SRD 69). The page uses 106 individual term values selected from those databases, each cited in the Data &amp; citation tab with its primary paper (the data file carries those bibliography entries); it does not copy a NIST table. NIST asks that SRD data products carry this statement: “Copyright protection on this compilation of data has been secured by the Secretary of the U.S. Department of Commerce on behalf of the United States in the United States and all countries that are parties to the Universal Copyright Convention, pursuant to Section 290(e) of Title 15 of the United States Code.” See <a href="https://www.nist.gov/open/copyright-fair-use-and-licensing-statements-srd-data-software-and-technical-series-publications#SRD" target="_blank" rel="noopener">NIST's SRD copyright and licensing statement</a>.</p>
+            <p><strong>No endorsement.</strong> Nothing on this page is endorsed by Argonne National Laboratory, UChicago Argonne, LLC, the U.S. Department of Energy, or NIST.</p>
+            <p><strong>No warranty.</strong> The values and this tool are provided as is, without warranty of any kind, express or implied, including fitness for a particular purpose. Check any number you rely on against ATcT's own pages, which link from every species card. Argonne's own disclaimer likewise states that neither the U.S. Government nor UChicago Argonne, LLC makes any warranty or assumes any liability for the accuracy, completeness, or usefulness of the information.</p>
+            <p><strong>Unit factors.</strong> CODATA 2022 (reference 6 under References). <strong>Self-test references</strong> are cited row by row in the Self-test tab. <strong>Your diagram levels</strong> are your own input.</p>
+        </div>
+    </section>
+
+</main>
+<div id="site-footer"></div>
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
