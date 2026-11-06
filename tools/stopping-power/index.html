@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stopping Power & Range Calculator (Protons, Alphas, Electrons; NIST PSTAR, ASTAR, ESTAR)</title>
+<meta name="description" content="Proton, alpha, and electron stopping power and CSDA range in 35 common materials, interpolated from NIST PSTAR, ASTAR, and ESTAR, with energy after a layer and dose.">
+<link rel="canonical" href="https://cdfoley.com/tools/stopping-power/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Stopping Power & Range Calculator">
+<meta property="og:description" content="Proton, alpha, and electron stopping power and CSDA range in 35 common materials, interpolated from NIST PSTAR, ASTAR, and ESTAR, with energy after a layer and dose.">
+<meta property="og:url" content="https://cdfoley.com/tools/stopping-power/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-stopping-power.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Stopping Power &amp; Range Calculator. Proton, alpha, and electron stopping power and CSDA range in 35 common materials, interpolated from NIST PSTAR, ASTAR, and ESTAR, with energy after a layer and dose.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script defer src="/tools/stopping-power/materials.js"></script>
+<style>
+    .cp-group { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .cp-modes { margin-bottom: 1rem; }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Stopping Power & Range",
+   "url": "https://cdfoley.com/tools/stopping-power/",
+   "description": "Proton, alpha, and electron stopping power and CSDA range in 35 common materials, interpolated from NIST PSTAR, ASTAR, and ESTAR, with energy after a layer and dose.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "stopping power range csda range projected range pstar astar estar nist bragg peak proton range alpha range electron range energy loss de/dx linear energy transfer let mass stopping power mev cm2/g water silicon aluminum kapton mylar foil thickness degrader dose fluence gray",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Charged Particles & Plasma",
+     "item": "https://cdfoley.com/tools/#particles"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Stopping Power & Range",
+     "item": "https://cdfoley.com/tools/stopping-power/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#particles">Charged Particles &amp; Plasma</a></li><li aria-current="page">Stopping Power &amp; Range</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Stopping Power &amp; Range Calculator</h1>
+        <p class="lede">How much energy a proton, alpha particle, or electron loses per millimeter as it passes through a material, and how far it gets before it stops. The numbers come from NIST’s reference tables (PSTAR, ASTAR, and ESTAR), interpolated to your energy, for 35 commonly used materials (32 of them for protons and alphas). The calculator also gives the energy left after a foil, window, or degrader of any thickness, the dose a beam deposits, and the stopping profile along the track (the Bragg peak).</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Stopping power</dt><dd>The energy a charged particle loses per unit path length, dE/dx. Ions lose most of their energy to the material’s electrons, so stopping power rises as they slow down, which is why protons deposit the most energy just before they stop.</dd>
+            <dt>Mass stopping power</dt><dd>Stopping power divided by the material’s density, in MeV·cm²/g. It depends little on density, so one value serves a gas at any pressure or a material of any packing; multiply by the density to get MeV per centimeter.</dd>
+            <dt>Electronic and nuclear stopping</dt><dd>Energy lost to the material’s electrons (ionization and excitation) and to whole atoms (elastic collisions with nuclei). Nuclear stopping matters only for slow, heavy ions, below roughly 10&nbsp;keV for protons.</dd>
+            <dt>Collision and radiative stopping</dt><dd>For electrons: energy lost to atomic electrons, and energy carried away by bremsstrahlung x-rays. Radiative loss grows with energy and atomic number; in lead it equals collision loss near 10&nbsp;MeV.</dd>
+            <dt>CSDA range</dt><dd>The path length a particle travels before stopping, if it lost energy smoothly at the average rate (the continuous slowing-down approximation). It is given as areal density (g/cm²), which divided by density gives a length.</dd>
+            <dt>Projected range</dt><dd>How deep along its original direction an ion gets on average. Scattering makes the path zigzag, so the projected range is shorter than the CSDA path length, most at low energy. For electrons, which scatter far more, the depth they reach is much less than the CSDA range.</dd>
+            <dt>Absorbed dose</dt><dd>Energy deposited per unit mass, in gray (1&nbsp;Gy = 1&nbsp;J/kg). For a beam crossing a thin layer it is the fluence (particles per cm²) times the mass stopping power.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+
+                <div class="cp-modes">
+                    <div class="field-label"><span>Particle</span></div>
+                    <span class="seg" role="radiogroup" aria-label="Particle">
+                        <input type="radio" id="pt-p" name="pt" value="p" checked><label for="pt-p">Proton</label>
+                        <input type="radio" id="pt-a" name="pt" value="a"><label for="pt-a">Alpha (⁴He)</label>
+                        <input type="radio" id="pt-e" name="pt" value="e"><label for="pt-e">Electron</label>
+                    </span>
+                    <p class="hint" style="margin-top:.5rem">Proton: NIST PSTAR, 1&nbsp;keV–10&nbsp;GeV. Alpha particle (helium ion): ASTAR, 1&nbsp;keV–1&nbsp;GeV total kinetic energy. Electron: ESTAR, 10&nbsp;keV–1&nbsp;GeV (also a fair approximation for positrons above about 1&nbsp;MeV).</p>
+                </div>
+
+                <div class="field" id="grp-ion">
+                    <label for="mat">Material</label>
+                    <select id="mat" name="mat" class="input"></select>
+                    <p class="hint">32 common materials (19 elements, 13 compounds and mixtures) from NIST’s PSTAR and ASTAR tables. NIST’s own programs offer 74 materials for ions; use them for anything not listed here.</p>
+                </div>
+                <div class="field" id="grp-e" hidden>
+                    <label for="emat">Material</label>
+                    <select id="emat" name="emat" class="input"></select>
+                    <p class="hint">35 common materials (21 elements, 14 compounds and mixtures) from NIST’s ESTAR tables. Nickel, tantalum, and ICRU soft tissue are tabulated for electrons only. NIST’s own program offers 279 materials; use it for anything not listed here.</p>
+                </div>
+                <div class="field">
+                    <label for="E">Kinetic energy <span class="sym">E</span></label>
+                    <div class="input-unit"><input id="E" name="E" value="100" inputmode="decimal" data-positive data-label="kinetic energy"><select data-dim="kenergy" data-units="keV,MeV,GeV" data-default="MeV"></select></div>
+                    <p class="hint">The particle’s total kinetic energy as it enters the material. An ion accelerated through U volts has |z|·U&nbsp;eV: 2&nbsp;MeV for an alpha particle through 1&nbsp;MV.</p>
+                </div>
+                <div class="field">
+                    <label for="rho">Density (optional)</label>
+                    <div class="input-unit"><input id="rho" name="rho" value="" inputmode="decimal" data-optional data-positive placeholder="NIST value" data-label="density"><span class="unit">g/cm³</span></div>
+                    <p class="hint" id="rho-hint">Leave blank for NIST’s density. Enter another value for a gas at a different pressure or temperature, or a porous or thin-film material; the mass stopping power is kept, so lengths scale as 1/density.</p>
+                </div>
+
+                <div class="cp-group">Layer and beam (optional)</div>
+                <div class="field">
+                    <label for="t">Layer thickness <span class="sym">t</span></label>
+                    <div class="input-unit"><input id="t" name="t" value="50" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="layer thickness"><select data-dim="length" data-units="nm,µm,mm,cm,m,in,mil" data-default="mm"></select></div>
+                    <p class="hint">A foil, window, coating, degrader, or depth in tissue. The energy left after it comes from the range table: E<sub>out</sub> is the energy whose range is the entry range minus the layer.</p>
+                </div>
+                <div class="field">
+                    <label for="F">Fluence <span class="sym">Φ</span></label>
+                    <div class="input-unit"><input id="F" name="F" value="1e9" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="fluence"><select data-dim="pfluence" data-units="cm⁻²,mm⁻²,m⁻²" data-default="cm⁻²"></select></div>
+                    <p class="hint">Particles per unit area that cross the material: beam current × time ÷ (charge × area). 1&nbsp;nA of protons on 1&nbsp;cm² for 1&nbsp;s is 6.24&nbsp;×&nbsp;10⁹&nbsp;cm⁻².</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="status" class="badge" hidden></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Mass stopping power<span class="sym">S/ρ</span></span><output class="result-value" data-out="S">—</output><span class="result-note" id="s-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Linear stopping power<span class="sym">S = −dE/dx</span></span><output class="result-value" data-out="Sl">—</output></div>
+                    <div class="result"><span class="result-label" id="parts-label">Electronic and nuclear parts</span><output class="result-value" data-out="parts">—</output></div>
+                    <div class="result"><span class="result-label">CSDA range, areal density<span class="sym">R</span></span><output class="result-value" data-out="Rg">—</output></div>
+                    <div class="result"><span class="result-label">CSDA range in millimeters</span><output class="result-value" data-out="Rmm">—</output></div>
+                    <div class="result"><span class="result-label">CSDA range in micrometers</span><output class="result-value" data-out="Rum">—</output><span class="result-note" id="r-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Projected range (mean depth)</span><output class="result-value" data-out="Rp">—</output></div>
+                    <div class="result"><span class="result-label">Energy after the layer<span class="sym">E<sub>out</sub></span></span><output class="result-value" data-out="Eout">—</output><span class="result-note" id="eout-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Dose at the entrance<span class="sym">D = Φ·S/ρ</span></span><output class="result-value" data-out="D">—</output><span class="result-note" id="d-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Material data used</span><output class="result-value" data-out="mi">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
+        <div class="panel-head"><h2 id="plot-h">Stopping power vs. energy</h2></div>
+        <div class="panel-body"><div id="s-plot"></div><p class="hint" id="plot-note" hidden></p></div>
+    </section>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot2-h" id="bragg-panel">
+        <div class="panel-head"><h2 id="plot2-h">Stopping along the track (CSDA Bragg curve)</h2></div>
+        <div class="panel-body"><div id="b-plot"></div><p class="hint" id="plot2-note" hidden></p></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>NIST tabulates, for each material on a fixed grid of energies, the mass stopping power split into its parts and the CSDA range (plus, for ions, the projected range). The calculator interpolates linearly in log(energy) and log(value) between neighboring grid points. Lengths come from the material’s density \(\rho\):</p>
+        <div class="formula">\[ \begin{gathered} S = \rho \left(\frac{S}{\rho}\right), \qquad \frac{S}{\rho} = \frac{S_\text{el}}{\rho} + \frac{S_\text{nuc}}{\rho}\ \ \text{(ions)}, \quad \frac{S_\text{col}}{\rho} + \frac{S_\text{rad}}{\rho}\ \ \text{(electrons)}, \\[8pt] R_\text{CSDA} = \int_0^{E} \frac{dE'}{S(E')}, \qquad \text{length} = \frac{R\ [\text{g/cm}^2]}{\rho\ [\text{g/cm}^3]}. \end{gathered} \]</div>
+        <p>Behind the tables, NIST computes electronic stopping of fast ions from Bethe’s theory with shell, Barkas, and Bloch corrections and the density effect, and at low energies fits experimental data; electron collision stopping uses the Bethe theory of ICRU Report 37 and radiative stopping the bremsstrahlung cross sections of Seltzer and Berger. The key material constant is the mean excitation energy \(I\) of the Bethe formula: 75&nbsp;eV for water, 85.7&nbsp;eV for dry air, and 173&nbsp;eV for silicon in these tables.</p>
+        <h3>Energy after a layer, dose, and the Bragg curve</h3>
+        <p>In the continuous slowing-down approximation the residual range after a layer of thickness \(t\) is \(R(E) - \rho t\), so the exit energy is the energy with that range, found by inverting the range table the same way:</p>
+        <div class="formula">\[ E_\text{out} = R^{-1}\!\left(R(E) - \rho t\right), \qquad D\,[\text{Gy}] = 1.602\times10^{-10}\ \Phi\,[\text{cm}^{-2}]\ \frac{S}{\rho}\left[\frac{\text{MeV cm}^2}{\text{g}}\right]. \]</div>
+        <p>The dose uses the total stopping for ions and only the collision part for electrons (bremsstrahlung photons mostly escape a thin layer). The Bragg curve plots \(S\big(R^{-1}(R(E) - \rho x)\big)\) against depth \(x\): the stopping power each ion has when it reaches that depth, with no straggling, so its peak is sharper than a measured one.</p>
+        <p>Accuracy of the interpolation: removing each grid point and interpolating it from its neighbors (a grid twice as coarse as the real one) reproduces NIST’s values with a median error of 0.03–0.15&nbsp;% and at most 1.5&nbsp;% (protons near 1.5&nbsp;GeV) in water, silicon, and lead. On the real grid the error is about four times smaller, well inside NIST’s own uncertainty.</p>
+
+        <h2>Typical values</h2>
+        <p>Interpolated from the NIST tables for the listed materials, CSDA ranges:</p>
+        <table>
+            <thead><tr><th>Particle and energy</th><th>Material</th><th class="num">S/ρ (MeV cm²/g)</th><th class="num">Range</th></tr></thead>
+            <tbody>
+                <tr><td>Proton, 3&nbsp;MeV</td><td>Silicon</td><td class="num">84.3</td><td class="num">92.8&nbsp;µm</td></tr>
+                <tr><td>Proton, 10&nbsp;MeV</td><td>Kapton</td><td class="num">41.8</td><td class="num">0.949&nbsp;mm</td></tr>
+                <tr><td>Proton, 100&nbsp;MeV (therapy)</td><td>Water</td><td class="num">7.29</td><td class="num">77.2&nbsp;mm</td></tr>
+                <tr><td>Alpha, 5.5&nbsp;MeV (²⁴¹Am)</td><td>Dry air</td><td class="num">712</td><td class="num">41.9&nbsp;mm</td></tr>
+                <tr><td>Alpha, 5.5&nbsp;MeV</td><td>Silicon</td><td class="num">580</td><td class="num">27.8&nbsp;µm</td></tr>
+                <tr><td>Electron, 1&nbsp;MeV</td><td>Water</td><td class="num">1.862</td><td class="num">4.37&nbsp;mm</td></tr>
+                <tr><td>Electron, 2.28&nbsp;MeV (⁹⁰Y beta maximum)</td><td>Aluminum</td><td class="num">1.536</td><td class="num">5.21&nbsp;mm</td></tr>
+            </tbody>
+        </table>
+        <p>An alpha particle from a smoke detector stops in about 4&nbsp;cm of air or a sheet of paper; a 100&nbsp;MeV proton crosses 7.7&nbsp;cm of tissue; a 1&nbsp;MeV electron travels a 4.4&nbsp;mm path in water but, because it scatters, rarely gets deeper than about 4&nbsp;mm.</p>
+
+        <h2>Worked example</h2>
+        <p>The default inputs: 100&nbsp;MeV protons entering liquid water (ρ = 1.000&nbsp;g/cm³), a 50&nbsp;mm layer, and a fluence of 10⁹&nbsp;cm⁻².</p>
+        <ul>
+            <li>PSTAR gives S/ρ = 7.289&nbsp;MeV·cm²/g at 100&nbsp;MeV (a grid point, so no interpolation): 7.289&nbsp;MeV/cm, or 0.729&nbsp;keV/µm. The nuclear part is 0.04&nbsp;% of the total.</li>
+            <li>The CSDA range is 7.718&nbsp;g/cm², so 77.18&nbsp;mm or 77&#8239;180&nbsp;µm of water; the mean depth (projected range) is 77.07&nbsp;mm.</li>
+            <li>After 50&nbsp;mm the residual range is 7.718 − 5.000 = 2.718&nbsp;g/cm², which belongs to an energy of 55.8&nbsp;MeV: the layer absorbed 44.2&nbsp;MeV per proton, more than its entrance stopping power times its thickness (36.4&nbsp;MeV), because the protons slow down and lose energy faster as they go.</li>
+            <li>The entrance dose is 1.602&nbsp;×&nbsp;10⁻¹⁰ × 10⁹ × 7.289 = 1.17&nbsp;Gy. The Bragg curve below shows the stopping power climbing steeply over the last few millimeters before 77.2&nbsp;mm.</li>
+        </ul>
+
+        <h2>Data used</h2>
+        <p>The tables are NIST Standard Reference Database 124 (ESTAR, PSTAR, and ASTAR, version 2.0.1), retrieved on 2026-11-06 with NIST’s default energy grids: 132 energies from 1&nbsp;keV to 10&nbsp;GeV for protons, 121 from 1&nbsp;keV to 1&nbsp;GeV for alphas, and 81 from 10&nbsp;keV to 1&nbsp;GeV for electrons. This page does not reproduce the full database: it carries NIST’s tables only for the materials in its menus (21 elements and 14 compounds and mixtures chosen as the ones most often needed for beams, detectors, windows, and dosimetry, of the 74 materials NIST tabulates for ions and 279 for electrons), and every result is interpolated from NIST’s tables for those materials. The page loads only the table for the particle you choose (60–130&nbsp;kB, less when compressed), with only the columns used here, and NIST’s four significant figures unchanged. Densities and mean excitation energies are NIST’s, separately for the ion and electron sets. For any other material, or for a table at your own energies, use <a href="https://physics.nist.gov/PhysRefData/Star/Text/intro.html" target="_blank" rel="noopener">NIST’s programs</a> directly.</p>
+        <p class="hint">NIST Standard Reference Data. Copyright protection on this compilation of data has been secured by the Secretary of the U.S. Department of Commerce on behalf of the United States in the United States and all countries that are parties to the Universal Copyright Convention, pursuant to Section 290(e) of Title 15 of the United States Code. NIST makes no warranties for the data and is not liable for damage that may result from errors or omissions in them.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Mean values only.</strong> Real particles straggle: the energy loss and range vary from particle to particle by about 1&nbsp;% of the range for protons in water and far more for electrons, which also scatter so much that their CSDA range is a path length, not a depth.</li>
+            <li><strong>CSDA.</strong> The exit energy assumes all energy is lost continuously and every particle survives. Nuclear reactions remove about 1&nbsp;% of protons per centimeter of water at 100&nbsp;MeV, and an electron can lose a large fraction of its energy in one bremsstrahlung event.</li>
+            <li><strong>Uncertainty of the tables.</strong> NIST quotes ICRU’s estimates. Protons and alphas: 1–2&nbsp;% for elements and 1–4&nbsp;% for compounds at high energies, 2–5&nbsp;% at 1&nbsp;MeV, 5–10&nbsp;% at 100&nbsp;keV, 10–15&nbsp;% at 10&nbsp;keV, and at least 20–30&nbsp;% at 1&nbsp;keV. Electron collision stopping: 1–2&nbsp;% above 100&nbsp;keV, and 2–3&nbsp;% (low Z) to 5–10&nbsp;% (high Z) from 10 to 100&nbsp;keV; radiative stopping 2–5&nbsp;%. NIST also notes that the values are accurate to three significant figures, with the fourth given for interpolation.</li>
+            <li><strong>Materials.</strong> Compounds use NIST’s fixed compositions; for compounds without measurements NIST combines the elements by Bragg additivity. Changing the density keeps the tabulated density-effect correction, which for electrons above about 1&nbsp;MeV differs between a gas and a condensed material.</li>
+            <li><strong>Other ions.</strong> For a heavier ion at the same speed, a rough estimate is S ≈ z²<sub>eff</sub> × S<sub>proton</sub>(E/A) with an effective charge below z at low speed; use a dedicated heavy-ion code for accurate values.</li>
+            <li>The range is where the particle stops in the material, not where it stops ionizing a detector: detector windows, dead layers, and gas gaps add to the material in the path. For beam trajectories through electrode and magnet fields before the target, use the <a href="/beta/ion-optics/">Ion Optics Workbench</a>.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>M. J. Berger, J. S. Coursey, M. A. Zucker, and J. Chang, <em>ESTAR, PSTAR, and ASTAR: Computer Programs for Calculating Stopping-Power and Range Tables for Electrons, Protons, and Helium Ions</em> (version 2.0.1), NIST Standard Reference Database 124, National Institute of Standards and Technology, Gaithersburg, MD, <a href="https://doi.org/10.18434/T4NC7P" target="_blank" rel="noopener">doi:10.18434/T4NC7P</a>, <a href="https://physics.nist.gov/PhysRefData/Star/Text/intro.html" target="_blank" rel="noopener">physics.nist.gov/PhysRefData/Star</a> [2026, November 6]. Originally published as M. J. Berger, NISTIR 4999, National Institute of Standards and Technology, Gaithersburg, MD (1993) (every stopping power, range, density, and I value used here).</li>
+            <li>ICRU Report 49, <em>Stopping Powers and Ranges for Protons and Alpha Particles</em>, International Commission on Radiation Units and Measurements, Bethesda, MD (1993) (the method behind PSTAR and ASTAR).</li>
+            <li>ICRU Report 37, <em>Stopping Powers for Electrons and Positrons</em>, International Commission on Radiation Units and Measurements, Bethesda, MD (1984) (the method behind ESTAR).</li>
+            <li>ICRU Report 90, “Key data for ionizing-radiation dosimetry: Measurement standards and applications,” <em>J. ICRU</em> <strong>14</strong>(1) (2014), <a href="https://doi.org/10.1093/jicru/ndw043" target="_blank" rel="noopener">doi:10.1093/jicru/ndw043</a> (the key dosimetric data NIST added in version 2.0.0, April 2017).</li>
+            <li>S. M. Seltzer and M. J. Berger, “Bremsstrahlung energy spectra from electrons with kinetic energy 1&nbsp;keV–10&nbsp;GeV incident on screened nuclei and orbital electrons of neutral atoms with Z = 1–100,” <em>At. Data Nucl. Data Tables</em> <strong>35</strong>, 345–418 (1986), <a href="https://doi.org/10.1016/0092-640X(86)90014-8" target="_blank" rel="noopener">doi:10.1016/0092-640X(86)90014-8</a> (the radiative stopping powers).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>D. E. Groom and S. R. Klein, “Passage of particles through matter,” in S. Navas et al. (Particle Data Group), <em>Phys. Rev. D</em> <strong>110</strong>, 030001 (2024), <a href="https://pdg.lbl.gov/2024/reviews/rpp2024-rev-passage-particles-matter.pdf" target="_blank" rel="noopener">pdg.lbl.gov</a> (the Bethe equation, its corrections, the CSDA range, minimum ionization, and radiation length).</li>
+            <li>NIST, “Stopping-Power &amp; Range Tables for Electrons, Protons, and Helium Ions,” <a href="https://www.nist.gov/pml/stopping-power-range-tables-electrons-protons-and-helium-ions" target="_blank" rel="noopener">nist.gov</a> (the programs, their method and uncertainty notes, and the tables for any energy).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="ion-time-of-flight,cyclotron-radius,plasma-parameters,energy-converter"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, K } = Calc;
+    if (!Calc.UNITS.kenergy) Calc.UNITS.kenergy = { 'keV': 1.602176634e-16, 'MeV': 1.602176634e-13, 'GeV': 1.602176634e-10 };
+    if (!Calc.UNITS.pfluence) Calc.UNITS.pfluence = { 'cm⁻²': 1e4, 'mm⁻²': 1e6, 'm⁻²': 1 };
+    const MeV = 1.602176634e-13;
+    const MAT = window.STAR_MATERIALS;
+    const PROG = { p: 'pstar', a: 'astar', e: 'estar' };
+    const NAME = { pstar: 'PSTAR', astar: 'ASTAR', estar: 'ESTAR' };
+
+    // material menus: elements and compounds in two groups, NIST's order inside each
+    const byId = { pa: {}, e: {} };
+    function fill(selId, set, selected) {
+        const list = MAT[set];
+        list.forEach(m => { byId[set][m[0]] = { id: m[0], name: m[1], rho: m[3], I: m[4] }; });
+        const opt = m => `<option value="${m[0]}"${m[0] === selected ? ' selected' : ''}>${m[1]}</option>`;
+        document.getElementById(selId).innerHTML =
+            '<optgroup label="Compounds and mixtures">' + list.filter(m => !m[2]).map(opt).join('') + '</optgroup>' +
+            '<optgroup label="Elements">' + list.filter(m => m[2]).map(opt).join('') + '</optgroup>';
+    }
+    fill('mat', 'pa', '276');
+    fill('emat', 'e', '276');
+    const selI = document.getElementById('mat'), selE = document.getElementById('emat');
+    selI.addEventListener('change', () => { selE.value = selI.value; });               // every ion-set material is in the electron set
+    selE.addEventListener('change', () => { if (byId.pa[selE.value]) selI.value = selE.value; });
+
+    // tables, fetched on first use; logs precomputed for log-log interpolation
+    const DATA = {}, LOADING = {}, FAILED = {};
+    let calc = null;
+    function load(prog) {
+        if (DATA[prog] || LOADING[prog]) return;
+        LOADING[prog] = fetch('/tools/stopping-power/' + prog + '.json').then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(d => {
+                const lx = d.E.map(Math.log), mats = {};
+                d.materials.forEach(m => {
+                    const o = { rho: m.rho, I: m.I, n: m.n };
+                    ['Se', 'Sn', 'Sc', 'Sr', 'R', 'Rp'].forEach(k => { if (m[k]) o[k] = m[k].map(Math.log); });
+                    mats[m.id] = o;
+                });
+                DATA[prog] = { E: d.E, lx, mats };
+            })
+            .catch(err => { FAILED[prog] = err; console.error(err); })
+            .then(() => { LOADING[prog] = null; if (calc) calc.run(); });
+    }
+    // log-log interpolation of the column ly at energy E (MeV): index of the interval by bisection
+    function seg(lx, x) {
+        let lo = 0, hi = lx.length - 1;
+        while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (lx[mid] <= x) lo = mid; else hi = mid; }
+        return lo;
+    }
+    function at(T, ly, E) {
+        const x = Math.log(E), i = seg(T.lx, x), f = (x - T.lx[i]) / (T.lx[i + 1] - T.lx[i]);
+        return Math.exp(ly[i] + f * (ly[i + 1] - ly[i]));
+    }
+    // inverse: the energy (MeV) whose CSDA range is R (g/cm²), or 0 below the table
+    function energyAtRange(T, m, R) {
+        const lr = m.R, x = Math.log(R);
+        if (!(R > 0) || x < lr[0]) return 0;
+        const i = seg(lr, x), f = (x - lr[i]) / (lr[i + 1] - lr[i]);
+        return Math.exp(T.lx[i] + f * (T.lx[i + 1] - T.lx[i]));
+    }
+    function stopping(T, m, E, e) {   // [part 1, part 2] in MeV cm²/g
+        return e ? [at(T, m.Sc, E), at(T, m.Sr, E)] : [at(T, m.Se, E), at(T, m.Sn, E)];
+    }
+    const lenFmt = cm => fmt.si(cm / 100, 'm', 4, { max: 3 });
+    const status = document.getElementById('status');
+    const notes = {};
+    ['s-note', 'r-note', 'eout-note', 'd-note', 'plot-note', 'plot2-note'].forEach(id => { notes[id] = document.getElementById(id); });
+    const note = (id, t) => { notes[id].textContent = t || ''; notes[id].hidden = !t; };
+    const gIon = document.getElementById('grp-ion'), gE = document.getElementById('grp-e'), braggPanel = document.getElementById('bragg-panel');
+    const partsLabel = document.getElementById('parts-label'), rhoIn = document.getElementById('rho');
+    let last = null;
+
+    calc = Calc.create({
+        form: '#calc',
+        compute(v) {
+            const e = v.pt === 'e', prog = PROG[v.pt];
+            gIon.hidden = e; gE.hidden = !e; braggPanel.hidden = e;
+            partsLabel.textContent = e ? 'Collision and radiative parts' : 'Electronic and nuclear parts';
+            const id = e ? v.emat : v.mat, info = byId[e ? 'e' : 'pa'][id];
+            rhoIn.placeholder = 'NIST: ' + info.rho;
+            last = null;
+            if (FAILED[prog]) throw Calc.fail('The ' + NAME[prog] + ' table could not be loaded (' + FAILED[prog].message + '). Check the connection and reload the page.');
+            const T = DATA[prog];
+            if (!T) {
+                load(prog);
+                status.textContent = 'Loading ' + NAME[prog] + '…'; status.className = 'badge'; status.hidden = false;
+                const wait = 'Loading the ' + NAME[prog] + ' table…';
+                return { S: wait, Sl: wait, parts: wait, Rg: wait, Rmm: wait, Rum: wait, Rp: e ? null : wait, Eout: isFinite(v.t) ? wait : null, D: isFinite(v.F) ? wait : null, mi: info.name };
+            }
+            status.textContent = NAME[prog]; status.className = 'badge badge-ok'; status.hidden = false;
+            const m = T.mats[id];
+            const E = v.E / MeV;
+            const Emin = T.E[0], Emax = T.E[T.E.length - 1];
+            if (E < Emin * (1 - 1e-9) || E > Emax * (1 + 1e-9))
+                throw Calc.fail(NAME[prog] + ' covers ' + fmt.si(Emin * 1e6, 'eV', 3) + ' to ' + fmt.si(Emax * 1e6, 'eV', 3) + ' for this particle; enter an energy in that range.', 'E');
+            const Ec = Math.min(Math.max(E, Emin), Emax);
+            const rho = isFinite(v.rho) ? v.rho : m.rho;
+            const [s1, s2] = stopping(T, m, Ec, e), S = s1 + s2;
+            const R = at(T, m.R, Ec), Rcm = R / rho;
+            note('s-note', (e ? 'Radiative share ' : 'Nuclear share ') + fmt.num(s2 / S * 100, 3) + ' %. ' + (T.E.some(x => Math.abs(x - E) <= 1e-9 * x) ? 'A NIST grid point.' : 'Interpolated between NIST grid points.'));
+            note('r-note', e ? 'A path length: electrons scatter so much that few reach a depth near it.' : '');
+            let Eout = null, dE = null;
+            if (isFinite(v.t)) {
+                const tg = v.t * 100 * rho;                    // layer in g/cm²
+                Eout = energyAtRange(T, m, R - tg);
+                dE = E - Eout;
+                note('eout-note', Eout > 0 ? 'Energy deposited in the layer: ' + fmt.si(dE * 1e6, 'eV', 4) + ' (' + fmt.num(dE / E * 100, 3) + ' %). Layer = ' + fmt.num(tg, 4) + ' g/cm².'
+                    : 'The particle stops inside the layer, at a CSDA path length of ' + lenFmt(Rcm) + '.');
+            } else note('eout-note', '');
+            let D = null;
+            if (isFinite(v.F)) {
+                const sd = e ? s1 : S;
+                D = 1.602176634e-10 * (v.F / 1e4) * sd;
+                note('d-note', e ? 'From the collision stopping power only: bremsstrahlung mostly escapes a thin layer.' : 'In a thin layer at the entrance; deeper in, the dose follows the Bragg curve.');
+            } else note('d-note', '');
+            last = { T, m, E: Ec, rho, e, R, prog };
+            return {
+                S: fmt.num(S, 4) + ' MeV·cm²/g',
+                Sl: fmt.num(S * rho, 4) + ' MeV/cm = ' + fmt.num(S * rho / 10, 4) + ' keV/µm',
+                parts: fmt.num(s1, 4) + ' + ' + fmt.num(s2, 4) + ' MeV·cm²/g',
+                Rg: fmt.num(R, 4) + ' g/cm²' + (R < 1 ? ' (' + fmt.num(R * 1e3, 4) + ' mg/cm²)' : ''),
+                Rmm: fmt.num(Rcm * 10, 4) + ' mm',
+                Rum: fmt.num(Rcm * 1e4, 4) + ' µm',
+                Rp: e ? null : (() => { const Rp = at(T, m.Rp, Ec); return fmt.num(Rp / rho * 10, 4) + ' mm (' + fmt.num(Rp / R, 4) + ' × CSDA)'; })(),
+                Eout: Eout === null ? null : Eout > 0 ? fmt.si(Eout * 1e6, 'eV', 4) : 'stops in the layer',
+                D: D === null ? null : fmt.si(D, 'Gy', 4, { max: 6 }),
+                mi: info.name + ': ρ = ' + fmt.num(rho, 6) + ' g/cm³' + (isFinite(v.rho) ? ' (yours)' : '') + ', I = ' + fmt.num(m.I, 4) + ' eV'
+            };
+        },
+        onError() { last = null; Object.keys(notes).forEach(k => { notes[k].hidden = true; }); Plot.clear('#s-plot'); Plot.clear('#b-plot'); },
+        after(v) {
+            if (!last) { Plot.clear('#s-plot'); Plot.clear('#b-plot'); return; }
+            const { T, m, E, rho, e, R } = last;
+            const xs = T.E, p1 = [], p2 = [], tot = [];
+            xs.forEach(x => { const s = stopping(T, m, x, e); p1.push(s[0]); p2.push(s[1]); tot.push(s[0] + s[1]); });
+            const sAt = stopping(T, m, E, e);
+            Plot.draw('#s-plot', {
+                height: 300,
+                ariaLabel: 'Mass stopping power against kinetic energy on log scales for ' + m.n + ', total and its two parts. At your energy, ' + fmt.si(E * 1e6, 'eV', 4) + ', the total is ' + fmt.num(sAt[0] + sAt[1], 4) + ' MeV cm² per gram.',
+                x: { label: 'Kinetic energy (MeV)', log: true }, y: { label: 'S/ρ (MeV·cm²/g)', log: true },
+                series: [
+                    { type: 'line', x: xs, y: p2, label: e ? 'Radiative' : 'Nuclear', color: 'var(--c3)', dash: true },
+                    { type: 'line', x: xs, y: p1, label: e ? 'Collision' : 'Electronic', color: 'var(--c4)', dash: true },
+                    { type: 'line', x: xs, y: tot, label: 'Total', color: 'var(--c1)' },
+                    { type: 'points', x: [E], y: [sAt[0] + sAt[1]], color: 'var(--c2)', r: 5 }
+                ],
+                hover: { format: (x, hits) => hits.length ? `E = ${fmt.si(hits[0].x * 1e6, 'eV', 3)} · ${hits.map(h => fmt.num(h.y, 4)).join(' / ')} MeV·cm²/g` : '' }
+            });
+            note('plot-note', NAME[last.prog] + ' table for ' + m.n + ' (' + xs.length + ' energies). The dot is your input.');
+            if (e) { Plot.clear('#b-plot'); return; }
+            // CSDA Bragg curve: stopping power against depth, from the residual range at each depth
+            const Rcm = R / rho, unit = Rcm < 0.1 ? ['µm', 1e4] : Rcm < 100 ? ['mm', 10] : ['m', 0.01];
+            const n = 240, dx = [], sy = [];
+            for (let i = 0; i <= n; i++) {
+                const f = 1 - Math.pow(1 - i / n, 2);           // denser toward the end of the track
+                const x = Rcm * f, Er = energyAtRange(T, m, R - x * rho);
+                if (!(Er >= T.E[0])) break;
+                const s = stopping(T, m, Er, false);
+                dx.push(x * unit[1]); sy.push((s[0] + s[1]) * rho / 10);
+            }
+            const iPk = sy.indexOf(Math.max.apply(null, sy));
+            const vl = isFinite(v.t) && v.t * 100 < Rcm ? [{ x: v.t * 100 * unit[1], label: 'Layer t', color: 'var(--c3)' }] : [];
+            Plot.draw('#b-plot', {
+                height: 280,
+                ariaLabel: 'Linear stopping power against depth along the track, from the CSDA range table, rising to a peak near the end of the range at ' + fmt.num(dx[iPk], 4) + ' ' + unit[0] + '.',
+                x: { label: 'Depth along the track (' + unit[0] + ')', min: 0, max: Rcm * unit[1] }, y: { label: 'Stopping power (keV/µm = MeV/mm)', log: true },
+                series: [{ type: 'line', x: dx, y: sy, label: 'S(x)', color: 'var(--c1)' }],
+                vlines: vl,
+                hover: { format: (x, hits) => hits.length ? `depth ${fmt.num(hits[0].x, 4)} ${unit[0]} · ${fmt.num(hits[0].y, 4)} keV/µm` : '' }
+            });
+            note('plot2-note', 'Log scale. Without straggling, the stopping power keeps rising into the last few micrometers of the track, up to the maximum of the stopping-power curve; a measured Bragg peak is spread over about 1 % of the range and far lower. The curve stops where the energy falls below the table’s lowest value (1 keV). The CSDA range is ' + fmt.num(Rcm * unit[1], 4) + ' ' + unit[0] + '.');
+        }
+    });
+});
+</script>
+</body>
+</html>

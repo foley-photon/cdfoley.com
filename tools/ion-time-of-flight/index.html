@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ion Time-of-Flight Calculator (TOF Mass Spectrometry, Wiley–McLaren)</title>
+<meta name="description" content="Ion and electron speed and flight time from voltage, mass, and charge, relativistic and classical, with a Wiley–McLaren source, space focus, and mass resolution.">
+<link rel="canonical" href="https://cdfoley.com/tools/ion-time-of-flight/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Ion Time-of-Flight Calculator">
+<meta property="og:description" content="Ion and electron speed and flight time from voltage, mass, and charge, relativistic and classical, with a Wiley–McLaren source, space focus, and mass resolution.">
+<meta property="og:url" content="https://cdfoley.com/tools/ion-time-of-flight/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-ion-time-of-flight.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Ion Time-of-Flight Calculator. Ion and electron speed and flight time from voltage, mass, and charge, relativistic and classical, with a Wiley–McLaren source, space focus, and mass resolution.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script defer src="/assets/js/charged-particles.js"></script>
+<style>
+    .cp-group { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .cp-modes { margin-bottom: 1rem; }
+    .cp-modes .seg { flex-wrap: wrap; }
+    .cp-fig { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; font-family: var(--font); }
+    .cp-fig .elec { fill: var(--surface-2); stroke: var(--border-strong); stroke-width: 1.5; }
+    .cp-fig .grid { stroke: var(--text-2); stroke-width: 1.5; stroke-dasharray: 3 3; }
+    .cp-fig .det { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+    .cp-fig .path { stroke: var(--accent); stroke-width: 2; fill: none; }
+    .cp-fig .head { fill: var(--accent); }
+    .cp-fig .ion { fill: var(--warn); }
+    .cp-fig .lab { fill: var(--text); font-size: 11px; font-weight: 600; }
+    .cp-fig .sub { fill: var(--text-2); font-size: 10.5px; }
+    @media (max-width: 560px) { .cp-fig .sub { font-size: 12.5px; } .cp-fig .lab { font-size: 13px; } }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Ion Time of Flight",
+   "url": "https://cdfoley.com/tools/ion-time-of-flight/",
+   "description": "Ion and electron speed and flight time from voltage, mass, and charge, relativistic and classical, with a Wiley–McLaren source, space focus, and mass resolution.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "time of flight tof mass spectrometry mass spectrometer flight time ion velocity electron velocity m/z mass to charge accelerating voltage drift tube wiley mclaren two stage source space focus focusing turnaround time mass resolution resolving power relativistic kinetic energy keV",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Charged Particles & Plasma",
+     "item": "https://cdfoley.com/tools/#particles"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Ion Time of Flight",
+     "item": "https://cdfoley.com/tools/ion-time-of-flight/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#particles">Charged Particles &amp; Plasma</a></li><li aria-current="page">Ion Time of Flight</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Ion Time-of-Flight Calculator</h1>
+        <p class="lede">How fast an ion or electron moves after it is accelerated through a voltage, and how long it takes to fly down a tube to a detector. This is the arithmetic behind a time-of-flight (TOF) mass spectrometer, an electron energy analyzer, or any beamline timing. The calculator works relativistically and shows the classical answer beside it, models one- and two-field (Wiley–McLaren) ion sources with their space focus, and estimates the mass resolution.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Accelerating voltage</dt><dd>The potential difference an ion falls through. An ion with charge number z gains z electronvolts of kinetic energy per volt: a singly charged ion accelerated through 2&nbsp;kV carries 2&nbsp;keV, a doubly charged one 4&nbsp;keV.</dd>
+            <dt>m/z</dt><dd>The ion’s mass in atomic mass units divided by its charge number. Ions with the same m/z fly in exactly the same way through electric fields, so a TOF spectrum is a spectrum of m/z, not of mass.</dd>
+            <dt>Drift region</dt><dd>The field-free tube between the ion source and the detector, where ions coast at constant speed and separate by m/z. Flight time grows with the square root of m/z.</dd>
+            <dt>Wiley–McLaren source</dt><dd>An ion source with two accelerating fields in a row: a weak field where the ions are formed and a stronger one after it. Choosing the ratio of the two fields brings ions that started at different positions to the detector at the same time.</dd>
+            <dt>Space focus</dt><dd>The distance from the source at which ions of one m/z that started slightly closer to or farther from the exit arrive together, to first order. Ions that start farther back gain more energy and catch up with those that started ahead of them.</dd>
+            <dt>Turn-around time</dt><dd>An ion that starts moving away from the detector must first be stopped and turned around by the source field; it then trails an identical ion that started toward the detector by this time. It limits the resolution of any linear TOF.</dd>
+            <dt>Mass resolving power</dt><dd>m/Δm: how well neighboring masses are separated. In a TOF it is half the flight time divided by the width of a peak in time, t/(2Δt), because t grows as the square root of m.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+
+                <div class="cp-modes">
+                    <div class="field-label"><span>Ion source</span></div>
+                    <span class="seg" role="radiogroup" aria-label="Ion source">
+                        <input type="radio" id="mo-d" name="mode" value="drift" checked><label for="mo-d">Drift only</label>
+                        <input type="radio" id="mo-s" name="mode" value="single"><label for="mo-s">One field</label>
+                        <input type="radio" id="mo-w" name="mode" value="wm"><label for="mo-w">Two fields (Wiley–McLaren)</label>
+                    </span>
+                    <p class="hint" style="margin-top:.5rem">Drift only: every ion enters the tube with the full energy z·e·U, and the time spent accelerating is ignored. One field or two fields: ions start at rest inside the source, and the time in the source and the energy each ion gains from its start position are included.</p>
+                </div>
+
+                <div class="cp-group">Particle</div>
+                <div class="field">
+                    <label for="sp">Particle or ion</label>
+                    <select id="sp" name="sp" class="input"></select>
+                    <p class="hint">Fills in the mass and charge. To work from an m/z value, choose Custom and enter it as the mass with charge 1: flight times depend only on m/z.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="m">Mass <span class="sym">m</span></label>
+                        <div class="input-unit"><input id="m" name="m" value="39.9618345438" inputmode="decimal" data-positive data-label="mass"><span class="unit">u</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="z">Charge number <span class="sym">z</span></label>
+                        <div class="input-unit"><input id="z" name="z" value="1" inputmode="text" data-label="charge number"><span class="unit">e</span></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">Ion masses are atomic masses minus z electron masses (AME2020, CODATA 2022). Negative z (electrons, anions) only reverses the polarity of the voltages; enter the voltages as magnitudes.</p>
+
+                <div class="cp-group">Acceleration</div>
+                <div id="grp-drift">
+                    <div class="field">
+                        <label for="U">Accelerating voltage <span class="sym">U</span></label>
+                        <div class="input-unit"><input id="U" name="U" value="2000" inputmode="decimal" data-positive data-label="accelerating voltage"><select data-dim="voltage" data-units="V,kV,MV" data-default="V"></select></div>
+                        <p class="hint">The potential difference between where the ion starts and the drift tube, as a magnitude.</p>
+                    </div>
+                </div>
+                <div id="grp-single" hidden>
+                    <div class="field">
+                        <label for="Us">Repeller voltage <span class="sym">U</span></label>
+                        <div class="input-unit"><input id="Us" name="Us" value="2000" inputmode="decimal" data-positive data-label="repeller voltage"><select data-dim="voltage" data-units="V,kV" data-default="V"></select></div>
+                        <p class="hint">The back plate’s voltage; the exit grid and drift tube are at ground. An ion starting at s₀ gains z·e·U·s₀/S.</p>
+                    </div>
+                </div>
+                <div id="grp-wm" hidden>
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="VR">Repeller voltage <span class="sym">V<sub>R</sub></span></label>
+                            <div class="input-unit"><input id="VR" name="VR" value="2000" inputmode="decimal" data-positive data-label="repeller voltage"><select data-dim="voltage" data-units="V,kV" data-default="V"></select></div>
+                        </div>
+                        <div class="field">
+                            <label for="VE">Extractor voltage <span class="sym">V<sub>E</sub></span></label>
+                            <div class="input-unit"><input id="VE" name="VE" value="1830" inputmode="decimal" data-nonneg data-label="extractor voltage"><select data-dim="voltage" data-units="V,kV" data-default="V"></select></div>
+                        </div>
+                    </div>
+                    <p class="hint" style="margin:-.4rem 0 .9rem">The back plate and the first (extraction) grid; the second grid and the drift tube are at ground. V<sub>E</sub> must be below V<sub>R</sub>. The results give the V<sub>E</sub> that space-focuses at your drift length.</p>
+                    <div class="field">
+                        <label for="d">Acceleration gap, extractor to ground <span class="sym">d</span></label>
+                        <div class="input-unit"><input id="d" name="d" value="10" inputmode="decimal" data-positive data-label="acceleration gap"><select data-dim="length" data-units="mm,cm,in" data-default="mm"></select></div>
+                    </div>
+                </div>
+                <div id="grp-src" hidden>
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="S">Source gap <span class="sym">S</span></label>
+                            <div class="input-unit"><input id="S" name="S" value="10" inputmode="decimal" data-positive data-label="source gap"><select data-dim="length" data-units="mm,cm,in" data-default="mm"></select></div>
+                        </div>
+                        <div class="field">
+                            <label for="s0">Start, from exit grid <span class="sym">s₀</span></label>
+                            <div class="input-unit"><input id="s0" name="s0" value="5" inputmode="decimal" data-positive data-label="start position"><select data-dim="length" data-units="mm,cm,in" data-default="mm"></select></div>
+                        </div>
+                    </div>
+                    <p class="hint" style="margin:-.4rem 0 .9rem">S is the distance from the back plate to the first grid; s₀ is how far in front of that grid the ions are made, for example where a laser crosses the gas or sample (at most S).</p>
+                </div>
+
+                <div class="field">
+                    <label for="L">Drift length <span class="sym">L</span></label>
+                    <div class="input-unit"><input id="L" name="L" value="1" inputmode="decimal" data-positive data-label="drift length"><select data-dim="length" data-units="mm,cm,m,in" data-default="m"></select></div>
+                    <p class="hint">The field-free distance from the last grid of the source to the detector. Bench-top linear TOFs use 0.3–2&nbsp;m.</p>
+                </div>
+
+                <div class="cp-group">Resolution (optional)</div>
+                <div class="field">
+                    <label for="dt">Timing spread, FWHM <span class="sym">Δt</span></label>
+                    <div class="input-unit"><input id="dt" name="dt" value="2" inputmode="decimal" data-optional data-nonneg placeholder="optional" data-label="timing spread"><select data-dim="time" data-units="ps,ns,µs" data-default="ns"></select></div>
+                    <p class="hint">The width that the source pulse or laser pulse, the detector, and the digitizer add to every peak. A microchannel-plate detector with a fast digitizer adds about 0.5–2&nbsp;ns.</p>
+                </div>
+                <div id="grp-res" hidden>
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="ds">Start-position spread <span class="sym">Δs</span></label>
+                            <div class="input-unit"><input id="ds" name="ds" value="0.5" inputmode="decimal" data-optional data-nonneg placeholder="optional" data-label="start-position spread"><select data-dim="length" data-units="µm,mm,cm" data-default="mm"></select></div>
+                        </div>
+                        <div class="field">
+                            <label for="e0">Initial energy <span class="sym">ε₀</span></label>
+                            <div class="input-unit"><input id="e0" name="e0" value="" inputmode="decimal" data-optional data-nonneg placeholder="e.g. 0.04" data-label="initial energy"><select data-dim="kenergy" data-units="meV,eV" data-default="eV"></select></div>
+                        </div>
+                    </div>
+                    <p class="hint" style="margin:-.4rem 0 .9rem">Δs is the full thickness of the region where ions are made (the laser beam diameter, for example), centered on s₀. ε₀ is the kinetic energy an ion has along the axis when it is made, for the turn-around time: about 0.013&nbsp;eV (kT/2) for room-temperature gas, or 0.04&nbsp;eV (3kT/2) if you take the whole thermal energy as a worst case, and more for ions from a desorption plume or a dissociation.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Flight time to the detector<span class="sym">t</span></span><output class="result-value" data-out="t">—</output><span class="result-note" id="t-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Nonrelativistic flight time</span><output class="result-value" data-out="tn">—</output><span class="result-note" id="tn-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Speed in the drift region<span class="sym">v</span></span><output class="result-value" data-out="v">—</output><span class="result-note" id="v-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Kinetic energy in the drift region<span class="sym">K</span></span><output class="result-value" data-out="K">—</output></div>
+                    <div class="result"><span class="result-label">Lorentz factor<span class="sym">γ</span></span><output class="result-value" data-out="gam">—</output></div>
+                    <div class="result"><span class="result-label">Mass-to-charge ratio<span class="sym">m/z</span></span><output class="result-value" data-out="mz">—</output></div>
+                    <div class="result"><span class="result-label">Time in the source</span><output class="result-value" data-out="tsrc">—</output></div>
+                    <div class="result"><span class="result-label">Time in the drift region</span><output class="result-value" data-out="tdr">—</output></div>
+                    <div class="result"><span class="result-label">Peak spacing for 1&nbsp;u</span><output class="result-value" data-out="step">—</output><span class="result-note">The time between this peak and the one for an ion 1&nbsp;u heavier with the same charge.</span></div>
+                    <div class="result"><span class="result-label">First-order space focus, drift length<span class="sym">L<sub>f</sub></span></span><output class="result-value" data-out="Lf">—</output><span class="result-note" id="lf-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Extractor voltage for focus at L</span><output class="result-value" data-out="VEf">—</output><span class="result-note" id="vef-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Arrival spread from Δs</span><output class="result-value" data-out="dts">—</output></div>
+                    <div class="result"><span class="result-label">Turn-around time<span class="sym">Δt<sub>ta</sub></span></span><output class="result-value" data-out="dta">—</output></div>
+                    <div class="result"><span class="result-label">Mass resolving power<span class="sym">m/Δm</span></span><output class="result-value" data-out="R">—</output><span class="result-note" id="r-note" hidden></span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="fig-h">
+        <div class="panel-head"><h2 id="fig-h">Layout</h2></div>
+        <div class="panel-body">
+            <svg class="cp-fig" id="fig" viewBox="0 0 560 150" role="img" aria-labelledby="fig-t"><title id="fig-t">Time-of-flight layout</title></svg>
+        </div>
+    </section>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
+        <div class="panel-head"><h2 id="plot-h">Flight time vs. m/z</h2></div>
+        <div class="panel-body"><div id="tof-plot"></div><p class="hint" id="plot-note" hidden></p></div>
+    </section>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot2-h" id="focus-panel" hidden>
+        <div class="panel-head"><h2 id="plot2-h">Arrival time vs. start position</h2></div>
+        <div class="panel-body"><div id="focus-plot"></div><p class="hint" id="plot2-note" hidden></p></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>An ion of mass \(m\) and charge \(q = ze\) that falls through a potential difference \(U\) gains the kinetic energy \(K = |q|U\). Relativistically its Lorentz factor, speed, and momentum are</p>
+        <div class="formula">\[ \begin{gathered} \gamma = 1 + \frac{K}{mc^2}, \qquad v = c\sqrt{1 - \frac{1}{\gamma^2}}, \qquad p = \gamma m v = \frac{\sqrt{K^2 + 2Kmc^2}}{c}, \\[8pt] t_\text{drift} = \frac{L}{v}. \end{gathered} \]</div>
+        <p>The classical values are \(v = \sqrt{2K/m}\) and \(p = mv\). The two agree while \(K \ll mc^2\) (938&nbsp;MeV for a proton, 511&nbsp;keV for an electron): the relativistic flight time is longer by about \(\tfrac34 K/mc^2\), 0.04&nbsp;ppm for Ar⁺ at 2&nbsp;keV but 0.3&nbsp;% for an electron at 2&nbsp;keV.</p>
+        <p>In a uniform field \(E\) the force \(|q|E\) changes the momentum at a constant rate, both classically and relativistically, so the time to cross a field region is the momentum gained divided by the force. For the two-field source, with the back plate (repeller) at \(V_R\), the extraction grid at \(V_E\), and ground at the second grid,</p>
+        <div class="formula">\[ \begin{gathered} E_s = \frac{V_R - V_E}{S}, \qquad E_d = \frac{V_E}{d}, \qquad K_1 = |q| E_s s_0, \qquad K = K_1 + |q| V_E, \\[8pt] t = \frac{p_1}{|q| E_s} + \frac{p - p_1}{|q| E_d} + \frac{L}{v}, \end{gathered} \]</div>
+        <p>where \(p_1\) is the momentum at the extraction grid and \(p\), \(v\) the momentum and speed in the drift region. The one-field source is the same with no second gap: \(E_s = U/S\) and \(K = |q|E_s s_0\). The peak spacing for 1&nbsp;u is the exact difference of two flight times, and every result uses \(|z|\).</p>
+
+        <h2>Space focus and the Wiley–McLaren condition</h2>
+        <p>An ion that starts farther from the exit grid (larger \(s_0\)) spends longer in the source but gains more energy, so it catches up with an ion that started ahead of it. The catch-up happens at the drift length where the arrival time does not change with \(s_0\) to first order, \(\partial t/\partial s_0 = 0\). The calculator finds it by differentiating the full relativistic \(t\) numerically; classically Wiley and McLaren’s result is</p>
+        <div class="formula">\[ L_f = 2 s_0\, k_0^{3/2} \left( 1 - \frac{d}{s_0\,(k_0 + \sqrt{k_0})} \right), \qquad k_0 = \frac{K}{K_1} = \frac{s_0 E_s + d E_d}{s_0 E_s}. \]</div>
+        <p>With one field (\(d = 0\), \(k_0 = 1\)) the focus is at \(L_f = 2s_0\), only a centimeter or two from the source: the reason a single-field source cannot space-focus a tube of useful length. With two fields, raising \(V_E\) toward \(V_R\) weakens the source field, raises \(k_0\), and pushes the focus out to the detector. The calculator solves for that extractor voltage by bisection. The arrival spread for a start-position spread \(\Delta s\) is the full range of arrival times over the interval \(s_0 \pm \Delta s/2\), evaluated at 41 points.</p>
+        <p>An ion born with energy \(\varepsilon_0\) moving away from the detector is stopped and turned around by the source field. It passes its starting point with the same speed as an identical ion that started toward the detector, but later by the turn-around time</p>
+        <div class="formula">\[ \Delta t_\text{ta} = \frac{2\sqrt{2 m \varepsilon_0}}{|q| E_s}. \]</div>
+        <p>No static field arrangement removes it; delayed extraction and reflectrons reduce its effect.</p>
+
+        <h2>Mass resolution</h2>
+        <p>Because \(t \propto \sqrt{m/z}\) in any electrostatic instrument, \(\Delta m/m = 2\Delta t/t\), so the resolving power is</p>
+        <div class="formula">\[ \frac{m}{\Delta m} = \frac{t}{2\,\Delta t}, \qquad \Delta t = \sqrt{\Delta t_\text{inst}^2 + \Delta t_s^2 + \Delta t_\text{ta}^2}. \]</div>
+        <p>The calculator adds the timing spread, the arrival spread from \(\Delta s\), and the turn-around time in quadrature, as if each were an independent peak width. That is an estimate: the start-position spread at the focus gives a skewed peak, and the turn-around time is the full separation of the two extreme ions, not a FWHM.</p>
+
+        <h2>Typical values</h2>
+        <p>Flight times through a 1&nbsp;m drift region (drift only, singly charged), from the formulas above:</p>
+        <table>
+            <thead><tr><th>Particle</th><th class="num">m/z</th><th class="num">U = 2&nbsp;kV</th><th class="num">U = 20&nbsp;kV</th></tr></thead>
+            <tbody>
+                <tr><td>Electron</td><td class="num">0.000549</td><td class="num">37.81&nbsp;ns</td><td class="num">12.27&nbsp;ns</td></tr>
+                <tr><td>Proton</td><td class="num">1.007</td><td class="num">1.616&nbsp;µs</td><td class="num">0.511&nbsp;µs</td></tr>
+                <tr><td>⁴⁰Ar⁺</td><td class="num">39.96</td><td class="num">10.18&nbsp;µs</td><td class="num">3.218&nbsp;µs</td></tr>
+                <tr><td>¹³²Xe⁺</td><td class="num">131.9</td><td class="num">18.49&nbsp;µs</td><td class="num">5.846&nbsp;µs</td></tr>
+                <tr><td>C₆₀⁺</td><td class="num">720.0</td><td class="num">43.19&nbsp;µs</td><td class="num">13.66&nbsp;µs</td></tr>
+                <tr><td>A 10&nbsp;kDa protein, 1+</td><td class="num">10&#8239;000</td><td class="num">161.0&nbsp;µs</td><td class="num">50.90&nbsp;µs</td></tr>
+            </tbody>
+        </table>
+        <p>Every factor of 10 in voltage shortens the flight time by \(\sqrt{10} \approx 3.16\); every factor of 4 in m/z doubles it. For the electron the relativistic correction is 0.29&nbsp;% at 2&nbsp;kV and 2.9&nbsp;% at 20&nbsp;kV.</p>
+
+        <h2>Worked example</h2>
+        <p>The default inputs: ⁴⁰Ar⁺ (m = 39.9618&nbsp;u, z = 1) accelerated through 2000&nbsp;V into a 1&nbsp;m drift tube, with 2&nbsp;ns of timing spread.</p>
+        <ul>
+            <li>K = 2000&nbsp;eV, and \(K/mc^2 = 2000/(39.9618 \times 931.494\times10^6) = 5.37\times10^{-8}\), so γ − 1 is tiny.</li>
+            <li>\(v = \sqrt{2K/m}\), with \(2K = 2 \times 2000 \times 1.602\times10^{-19} = 6.408\times10^{-16}\)&nbsp;J and \(m = 39.9618 \times 1.6605\times10^{-27} = 6.636\times10^{-26}\)&nbsp;kg, so v = 98.27&nbsp;km/s, and t = 1&nbsp;m / v = 10.176&nbsp;µs. The relativistic value is longer by 0.04&nbsp;ppm (0.4&nbsp;ps).</li>
+            <li>An ion of 41&nbsp;u would arrive 0.126&nbsp;µs later (t grows as √m: 10.176&nbsp;µs × (√(41.0/39.96) − 1)). With 2&nbsp;ns of spread, m/Δm = 10.176&nbsp;µs / (2 × 2&nbsp;ns) ≈ 2540.</li>
+        </ul>
+        <p>Switch to <strong>Two fields (Wiley–McLaren)</strong> to see the source defaults: V<sub>R</sub> = 2000&nbsp;V, V<sub>E</sub> = 1830&nbsp;V, S = 10&nbsp;mm, s₀ = 5&nbsp;mm, d = 10&nbsp;mm. The source field is 170&nbsp;V/10&nbsp;mm = 17&nbsp;V/mm, so an ion starting at s₀ gains 85&nbsp;eV before the extraction grid and 1915&nbsp;eV in all, and k₀ = 1915/85 = 22.5. The formula above gives L<sub>f</sub> = 0.991&nbsp;m, so the detector at 1&nbsp;m sits 0.9&nbsp;% beyond the focus; the calculator’s extractor voltage for focus at exactly 1&nbsp;m is 1830.9&nbsp;V. The ion arrives at 11.064&nbsp;µs (0.494&nbsp;µs in the first gap, 0.172&nbsp;µs in the second). The 0.5&nbsp;mm start-position spread adds only 0.24&nbsp;ns, so with the 2&nbsp;ns timing spread m/Δm ≈ 2750. An initial energy of 0.04&nbsp;eV would add a turn-around time of 21&nbsp;ns and cut m/Δm to about 260: in a linear TOF with a weak source field, thermal motion, not the start position, sets the resolution.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Ideal grids and uniform fields: no field penetration through the grid meshes, no fringe fields, and no lensing. Real grids transmit 70–95&nbsp;% of the ions each and slightly deflect them. For electrode shapes, fringe fields, and trajectories, use the <a href="/beta/ion-optics/">Ion Optics Workbench</a> for full field solutions.</li>
+            <li>Motion along the axis only. A transverse velocity does not change the flight time in a field-free tube to first order, but it decides whether the ion reaches a detector of finite size.</li>
+            <li>No collisions (the mean free path must be much longer than L; see the <a href="/tools/mean-free-path/">mean free path calculator</a>), no space charge, and no fragmentation in flight. A metastable ion that fragments in the drift tube keeps its parent’s speed and arrives at the parent’s time in a linear TOF.</li>
+            <li>Linear TOF only: reflectrons, orthogonal acceleration, and delayed extraction are not modeled. A reflectron corrects energy spread to first or second order and typically raises the resolving power to 10⁴ and more.</li>
+            <li>The source modes assume ions start at rest (except for the turn-around estimate) and that every ion of one m/z experiences the same fields.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>W. C. Wiley and I. H. McLaren, “Time-of-flight mass spectrometer with improved resolution,” <em>Rev. Sci. Instrum.</em> <strong>26</strong>, 1150–1157 (1955), <a href="https://doi.org/10.1063/1.1715212" target="_blank" rel="noopener">doi:10.1063/1.1715212</a> (the two-field source, its space-focus condition, and the turn-around time).</li>
+            <li>U. Boesl, “Time-of-flight mass spectrometry: Introduction to the basics,” <em>Mass Spectrom. Rev.</em> <strong>36</strong>, 86–109 (2017), <a href="https://doi.org/10.1002/mas.21520" target="_blank" rel="noopener">doi:10.1002/mas.21520</a> (one- and two-stage sources, flight-time broadening, and mass resolution).</li>
+            <li>J. D. Jackson, <em>Classical Electrodynamics</em>, 3rd ed., Wiley (1999), ch. 11–12 (relativistic kinematics; motion in a uniform electric field, where the momentum grows linearly in time).</li>
+            <li>P. J. Mohr, D. B. Newell, B. N. Taylor, and E. Tiesinga, “CODATA recommended values of the fundamental physical constants: 2022,” <em>Rev. Mod. Phys.</em> <strong>97</strong>, 025002 (2025), <a href="https://doi.org/10.1103/RevModPhys.97.025002" target="_blank" rel="noopener">doi:10.1103/RevModPhys.97.025002</a> (e, u, the electron, proton, deuteron, and alpha-particle masses, and c).</li>
+            <li>M. Wang, W. J. Huang, F. G. Kondev, G. Audi, and S. Naimi, “The AME 2020 atomic mass evaluation (II). Tables, graphs and references,” <em>Chin. Phys. C</em> <strong>45</strong>, 030003 (2021), <a href="https://doi.org/10.1088/1674-1137/abddaf" target="_blank" rel="noopener">doi:10.1088/1674-1137/abddaf</a> (the atomic masses of the preset ions).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>NIST, “Atomic Weights and Isotopic Compositions with Relative Atomic Masses,” <a href="https://www.nist.gov/pml/atomic-weights-and-isotopic-compositions-relative-atomic-masses" target="_blank" rel="noopener">nist.gov</a> (isotope masses and abundances, for ions not in the preset list).</li>
+            <li>NIST, “CODATA Internationally recommended 2022 values of the Fundamental Physical Constants,” <a href="https://physics.nist.gov/cuu/Constants/" target="_blank" rel="noopener">physics.nist.gov/cuu/Constants</a> (the constants used, with their uncertainties).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="cyclotron-radius,stopping-power,plasma-parameters,mean-free-path,energy-converter"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, K } = Calc;
+    const CP = window.ChargedParticles;
+    const c = K.c, c2 = c * c;
+
+    const sel = document.getElementById('sp'), mIn = document.getElementById('m'), zIn = document.getElementById('z');
+    sel.innerHTML = CP.options('ar');
+    CP.bind(sel, mIn, zIn);
+
+    // momentum p (kg·m/s) and speed v (m/s) for kinetic energy Kj (J) and mass m (kg)
+    function kin(Kj, m, rel) {
+        if (!(Kj > 0)) return { p: 0, v: 0 };
+        if (!rel) { const p = Math.sqrt(2 * m * Kj); return { p, v: p / m }; }
+        const eps = Kj / (m * c2), s = Math.sqrt(eps * (2 + eps));
+        return { p: m * c * s, v: c * s / (1 + eps) };
+    }
+    // flight time for geometry g (SI) with start position s0; returns times (s), the final energy (J), and speed
+    function flight(g, s0, rel) {
+        const q = g.q, m = g.m;
+        if (g.mode === 'drift') {
+            const f = kin(q * g.U, m, rel);
+            return { t: g.L / f.v, ts: 0, K: q * g.U, v: f.v, p: f.p };
+        }
+        if (g.mode === 'single') {
+            const Es = g.Us / g.S, Kj = q * Es * s0, f = kin(Kj, m, rel);
+            const ts = f.p / (q * Es);
+            return { t: ts + g.L / f.v, ts, K: Kj, v: f.v, p: f.p };
+        }
+        const Es = (g.VR - g.VE) / g.S, K1 = q * Es * s0, Kt = K1 + q * g.VE;
+        const f1 = kin(K1, m, rel), f2 = kin(Kt, m, rel);
+        const t1 = f1.p / (q * Es);
+        const t2 = g.VE > 0 ? (f2.p - f1.p) / (q * g.VE / g.d) : g.d / f1.v;   // no field in the second gap: it drifts
+        return { t: t1 + t2 + g.L / f2.v, ts: t1 + t2, K: Kt, v: f2.v, p: f2.p };
+    }
+    // first-order space focus: the drift length where ∂t/∂s₀ = 0, from central differences of the source time and 1/v
+    function focusLength(g) {
+        const h = 1e-5 * g.s0;
+        const a = flight(Object.assign({}, g, { L: 0 }), g.s0 + h, true), b = flight(Object.assign({}, g, { L: 0 }), g.s0 - h, true);
+        const dts = (a.ts - b.ts) / (2 * h), dinv = (1 / a.v - 1 / b.v) / (2 * h);
+        return -dts / dinv;
+    }
+    // extractor voltage that focuses at the drift length L (bisection on V_E in (0, V_R)), or null
+    function focusVE(g) {
+        const F = VE => focusLength(Object.assign({}, g, { VE })) - g.L;
+        let lo = g.VR * 1e-9, hi = g.VR * (1 - 1e-9), flo = F(lo), fhi = F(hi);
+        if (!(flo < 0 && fhi > 0)) return null;
+        for (let i = 0; i < 200 && hi - lo > 1e-12 * g.VR; i++) {
+            const mid = 0.5 * (lo + hi), fm = F(mid);
+            if (fm < 0) lo = mid; else hi = mid;
+        }
+        return 0.5 * (lo + hi);
+    }
+    const fmtT = (x, sig) => fmt.si(x, 's', sig || 5, { max: 0 });
+    const fmtL = (x, sig) => fmt.si(x, 'm', sig || 4, { max: 3 });
+    const fmtE = (x, sig) => fmt.si(x / K.e, 'eV', sig || 5);
+
+    const groups = { drift: document.getElementById('grp-drift'), single: document.getElementById('grp-single'), wm: document.getElementById('grp-wm') };
+    const gSrc = document.getElementById('grp-src'), gRes = document.getElementById('grp-res'), focusPanel = document.getElementById('focus-panel');
+    const notes = {};
+    ['t-note', 'tn-note', 'v-note', 'lf-note', 'vef-note', 'r-note', 'plot-note', 'plot2-note'].forEach(id => { notes[id] = document.getElementById(id); });
+    const note = (id, text) => { notes[id].textContent = text || ''; notes[id].hidden = !text; };
+    function showGroups(mode) {
+        Object.keys(groups).forEach(k => { groups[k].hidden = k !== mode; });
+        gSrc.hidden = gRes.hidden = mode === 'drift';
+        focusPanel.hidden = mode === 'drift';
+    }
+    let last = null;
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            showGroups(v.mode);
+            if (!isFinite(v.z) || v.z === 0 || !Number.isInteger(v.z)) throw Calc.fail('Enter a whole-number charge other than zero (for example 1, 2, or −1).', 'z');
+            const zA = Math.abs(v.z);
+            const g = { mode: v.mode, m: v.m * K.u, q: zA * K.e, L: v.L, U: v.U, Us: v.Us, VR: v.VR, VE: v.VE, d: v.d, S: v.S, s0: v.s0 };
+            if (v.mode !== 'drift') {
+                if (v.s0 > v.S) throw Calc.fail('The start position s₀ must lie inside the source gap (s₀ ≤ S).', 's0');
+                if (v.mode === 'wm' && !(v.VE < v.VR)) throw Calc.fail('The extractor voltage must be lower than the repeller voltage, or the source field pushes the ions backward.', 'VE');
+            }
+            const r = flight(g, v.s0, true), rn = flight(g, v.s0, false);
+            const gam = 1 + r.K / (g.m * c2);
+            const gH = Object.assign({}, g, { m: (v.m + 1) * K.u });
+            const step = flight(gH, v.s0, true).t - r.t;
+            note('t-note', 'For m/z = ' + fmt.num(v.m / zA, 6) + ' in this setup, t ∝ √(m/z): t = ' + fmt.num(r.t * 1e6 / Math.sqrt(v.m / zA), 5) + ' µs × √(m/z).');
+            const dRel = (r.t - rn.t) / rn.t;
+            note('tn-note', 'Relativistic minus classical: ' + fmtT(r.t - rn.t, 3) + ' (' + (Math.abs(dRel) < 1e-4 ? fmt.num(dRel * 1e6, 3) + ' ppm' : fmt.num(dRel * 100, 3) + ' %') + ').');
+            note('v-note', 'β = v/c = ' + fmt.num(r.v / c, 4) + '; classically ' + fmt.num(rn.v / 1e3, 6) + ' km/s.');
+            let Lf = null, VEf = null, dts = null, dta = null;
+            if (v.mode !== 'drift') {
+                Lf = focusLength(g);
+                if (v.mode === 'wm' && Math.abs(Lf) < 1e-6 * v.d) Lf = 0;   // focus at the grid (V_E = 0 gives 2s₀ − d = 0); the rest is rounding noise
+                note('lf-note', v.mode === 'single' ? 'One field: Lf = 2s₀ classically, too short to reach a detector.'
+                    : Lf === 0 ? 'The space focus is at the extractor grid, not in the drift tube: raise the extractor voltage to move it out.'
+                    : 'Your drift length is ' + fmt.num(v.L / Lf, 4) + ' × Lf. ' + (Math.abs(v.L / Lf - 1) < 0.01 ? 'The detector sits at the space focus.' : 'Adjust the extractor voltage to move the focus to the detector.'));
+                if (v.mode === 'wm') {
+                    VEf = focusVE(g);
+                    note('vef-note', VEf === null ? 'No extractor voltage between 0 and V_R focuses at this L: the shortest reachable focus is about 2s₀ − d. Lengthen L or move s₀.'
+                        : 'With V_R = ' + fmt.num(v.VR, 5) + ' V; the ion energy would then be ' + fmt.num(zA * (VEf + (v.VR - VEf) * v.s0 / v.S), 5) + ' eV.');
+                }
+                if (isFinite(v.ds) && v.ds > 0) {
+                    const a = v.s0 - v.ds / 2, b = v.s0 + v.ds / 2;
+                    if (a <= 0 || b > v.S) throw Calc.fail('s₀ ± Δs/2 must stay inside the source gap (0 to S).', 'ds');
+                    let lo = Infinity, hi = -Infinity;
+                    for (let i = 0; i <= 40; i++) { const t = flight(g, a + (b - a) * i / 40, true).t; lo = Math.min(lo, t); hi = Math.max(hi, t); }
+                    dts = hi - lo;
+                }
+                if (isFinite(v.e0) && v.e0 > 0) {
+                    const Es = v.mode === 'single' ? v.Us / v.S : (v.VR - v.VE) / v.S;
+                    dta = 2 * Math.sqrt(2 * g.m * v.e0) / (g.q * Es);
+                }
+            }
+            const parts = [v.dt, dts, dta].filter(x => isFinite(x) && x !== null && x > 0);
+            const dtot = Math.sqrt(parts.reduce((s, x) => s + x * x, 0));
+            note('r-note', parts.length > 1 ? 'From the spreads above added in quadrature: Δt = ' + fmtT(dtot, 3) + '.' : '');
+            last = { g, v, r, zA };
+            return {
+                t: fmtT(r.t),
+                tn: fmtT(rn.t),
+                v: fmt.num(r.v / 1e3, 6) + ' km/s',
+                K: fmtE(r.K) + (zA !== 1 ? ' (' + fmt.num(r.K / K.e / zA, 5) + ' eV per charge)' : ''),
+                gam: gam - 1 < 1e-4 ? '1 + ' + fmt.sci(r.K / (g.m * c2), 4) : fmt.num(gam, 6),
+                mz: fmt.num(v.m / zA, 6) + ' u/e',
+                tsrc: v.mode === 'drift' ? null : fmtT(r.ts, 4),
+                tdr: fmtT(r.t - r.ts),
+                step: v.m >= 0.5 ? fmtT(step, 4) : null,   // an electron has no neighboring mass
+                Lf: Lf === null ? null : Lf === 0 ? '≈ 0 (at the grid)' : (isFinite(Lf) && Lf > 0 ? fmtL(Lf, 4) : 'none'),
+                VEf: v.mode === 'wm' ? (VEf === null ? 'not reachable' : fmt.num(VEf, 5) + ' V') : null,
+                dts: dts === null ? null : fmtT(dts, 3),
+                dta: dta === null ? null : fmtT(dta, 3),
+                R: parts.length ? fmt.num(r.t / (2 * dtot), 4) : null
+            };
+        },
+        onError() {
+            last = null;
+            Object.keys(notes).forEach(k => { notes[k].hidden = true; });
+            ['#tof-plot', '#focus-plot'].forEach(s => Plot.clear(s));
+        },
+        after() { if (last) { drawFig(last); drawPlots(last); } }
+    });
+
+    function drawPlots({ g, v, r, zA }) {
+        const mz = v.m / zA;
+        const lo = Math.min(1, mz / 10), hi = Math.max(1000, mz * 10);
+        const xs = Calc.math.logspace(lo, hi, 120);
+        const tAt = x => flight(Object.assign({}, g, { m: x * zA * K.u }), v.s0, true).t * 1e6;
+        Plot.draw('#tof-plot', {
+            height: 280,
+            ariaLabel: 'Flight time against m/z on log scales for these voltages and this drift length. Your ion, m/z ' + fmt.num(mz, 4) + ', arrives at ' + fmtT(r.t, 4) + '.',
+            x: { label: 'm/z (u/e)', log: true }, y: { label: 'Flight time (µs)', log: true },
+            series: [
+                { type: 'line', x: xs, y: xs.map(tAt), label: 'Flight time', color: 'var(--c1)' },
+                { type: 'points', x: [mz], y: [r.t * 1e6], color: 'var(--c2)', r: 5 }
+            ],
+            hover: { format: (x, hits) => hits.length ? `m/z = ${fmt.num(hits[0].x, 4)} · t = ${fmt.num(hits[0].y, 4)} µs` : '' }
+        });
+        note('plot-note', 'Same voltages, drift length' + (g.mode === 'drift' ? '' : ', and start position') + ' for every m/z; the dot is your ion.');
+        if (g.mode === 'drift') { Plot.clear('#focus-plot'); return; }
+        const S = v.S, n = 121, xsS = [], ys = [];
+        const t0 = r.t;
+        for (let i = 1; i <= n; i++) { const s = S * i / n; xsS.push(s * 1e3); ys.push((flight(g, s, true).t - t0) * 1e9); }
+        const ser = [{ type: 'line', x: xsS, y: ys, label: 'Arrival time − t(s₀)', color: 'var(--c1)' },
+                     { type: 'points', x: [v.s0 * 1e3], y: [0], color: 'var(--c2)', r: 5 }];
+        if (isFinite(v.ds) && v.ds > 0) {
+            const a = (v.s0 - v.ds / 2) * 1e3, b = (v.s0 + v.ds / 2) * 1e3;
+            const yMin = Math.min.apply(null, ys), yMax = Math.max.apply(null, ys);
+            ser.unshift({ type: 'band', x: [a, b], y: [yMax, yMax], y0: [yMin, yMin], label: 'Δs', color: 'var(--c3)', opacity: 0.15 });
+        }
+        Plot.draw('#focus-plot', {
+            height: 260,
+            ariaLabel: 'Arrival time relative to an ion starting at s0, against start position across the source gap. A flat curve at s0 means the detector is at the space focus.',
+            x: { label: 'Start position s, from exit grid (mm)', min: 0, max: S * 1e3 }, y: { label: 'Arrival time − t(s₀) (ns)' },
+            series: ser,
+            hover: { format: (x, hits) => hits.length ? `s = ${fmt.num(hits[0].x, 4)} mm · Δt = ${fmt.num(hits[0].y, 4)} ns` : '' }
+        });
+        note('plot2-note', 'Ions that start closer to the back plate (larger s) gain more energy. Where the curve is flat at s₀, the drift length equals the space focus; a curve that rises to the right means the detector is beyond the focus.');
+    }
+
+    // schematic: back plate, grids, drift tube, and detector, labeled with this setup
+    function drawFig({ v, r }) {
+        const svg = document.getElementById('fig');
+        const T = (x, y, cls, s, a) => `<text x="${x}" y="${y}" class="${cls}"${a ? ' text-anchor="' + a + '"' : ''}>${s}</text>`;
+        let h = '<title id="fig-t">Time-of-flight layout</title>';
+        const y0 = 40, y1 = 110, xr = 30;
+        let x = xr;
+        if (v.mode === 'drift') {
+            h += `<rect class="elec" x="${x}" y="${y0}" width="8" height="${y1 - y0}" rx="2"/>` + T(x + 4, y0 - 8, 'lab', 'Start', 'middle') + T(x + 4, y1 + 16, 'sub', fmt.num(v.U, 5) + ' V', 'middle');
+            x += 30;
+            h += `<line class="grid" x1="${x}" y1="${y0}" x2="${x}" y2="${y1}"/>` + T(x, y1 + 16, 'sub', '0 V', 'middle');
+        } else {
+            const wS = 70, wd = v.mode === 'wm' ? 60 : 0;
+            h += `<rect class="elec" x="${x}" y="${y0}" width="8" height="${y1 - y0}" rx="2"/>` + T(x + 4, y0 - 8, 'lab', 'Repeller', 'middle');
+            h += T(x + 4, y1 + 16, 'sub', fmt.num(v.mode === 'wm' ? v.VR : v.Us, 5) + ' V', 'middle');
+            const xs0 = x + 8 + wS * (1 - v.s0 / v.S);
+            h += `<circle class="ion" cx="${xs0}" cy="${(y0 + y1) / 2}" r="4"/>` + T(xs0, y0 + 14, 'sub', 's₀', 'middle');
+            x += 8 + wS;
+            h += `<line class="grid" x1="${x}" y1="${y0}" x2="${x}" y2="${y1}"/>`;
+            if (v.mode === 'wm') {
+                h += T(x, y0 - 8, 'lab', 'Extractor', 'middle') + T(x, y1 + 16, 'sub', fmt.num(v.VE, 5) + ' V', 'middle');
+                x += wd;
+                h += `<line class="grid" x1="${x}" y1="${y0}" x2="${x}" y2="${y1}"/>`;
+            }
+            h += T(x, y1 + 30, 'sub', '0 V', 'middle');
+        }
+        const xd = 520;
+        h += `<line class="path" x1="${x}" y1="${(y0 + y1) / 2}" x2="${xd - 8}" y2="${(y0 + y1) / 2}"/><path class="head" d="M${xd - 6},${(y0 + y1) / 2} l-9,-4.5 v9 z"/>`;
+        h += T((x + xd) / 2, (y0 + y1) / 2 - 10, 'lab', 'Drift, L = ' + fmtL(v.L, 4), 'middle') + T((x + xd) / 2, (y0 + y1) / 2 + 20, 'sub', 'v = ' + fmt.num(r.v / 1e3, 4) + ' km/s', 'middle');
+        h += `<rect class="det" x="${xd}" y="${y0}" width="10" height="${y1 - y0}" rx="2"/>` + T(xd + 5, y0 - 8, 'lab', 'Detector', 'middle') + T(xd + 5, y1 + 16, 'sub', 't = ' + fmtT(r.t, 4), 'middle');
+        svg.innerHTML = h;
+    }
+});
+</script>
+</body>
+</html>

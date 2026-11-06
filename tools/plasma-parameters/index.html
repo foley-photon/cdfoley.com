@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plasma Parameters Calculator (Debye Length, Plasma Frequency, ECR Field)</title>
+<meta name="description" content="Debye length, plasma frequencies, plasma parameter, collision rates and mean free paths, gyrofrequencies, plasma beta, and the ECR field for 2.45 or 28 GHz.">
+<link rel="canonical" href="https://cdfoley.com/tools/plasma-parameters/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Plasma Parameters Calculator">
+<meta property="og:description" content="Debye length, plasma frequencies, plasma parameter, collision rates and mean free paths, gyrofrequencies, plasma beta, and the ECR field for 2.45 or 28 GHz.">
+<meta property="og:url" content="https://cdfoley.com/tools/plasma-parameters/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-plasma-parameters.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Plasma Parameters Calculator. Debye length, plasma frequencies, plasma parameter, collision rates and mean free paths, gyrofrequencies, plasma beta, and the ECR field for 2.45 or 28 GHz.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/charged-particles.js"></script>
+<style>
+    .cp-group { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .calc-error + .cp-group { margin-top: 0; padding-top: 0; border-top: 0; }
+    .results .cp-sub { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 0.6rem 0 0; }
+    .regimes { margin: 1rem 0 0; padding-left: 1.1rem; font-size: 0.9rem; color: var(--text-2); }
+    .regimes li { margin: 0.3rem 0; }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Plasma Parameters",
+   "url": "https://cdfoley.com/tools/plasma-parameters/",
+   "description": "Debye length, plasma frequencies, plasma parameter, collision rates and mean free paths, gyrofrequencies, plasma beta, and the ECR field for 2.45 or 28 GHz.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "plasma parameters debye length plasma frequency electron plasma frequency ion plasma frequency plasma parameter coulomb logarithm collision frequency electron ion collision electron neutral collision mean free path gyrofrequency cyclotron frequency larmor radius ecr electron cyclotron resonance 2.45 ghz 28 ghz cutoff density critical density plasma beta nrl formulary",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Charged Particles & Plasma",
+     "item": "https://cdfoley.com/tools/#particles"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Plasma Parameters",
+     "item": "https://cdfoley.com/tools/plasma-parameters/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#particles">Charged Particles &amp; Plasma</a></li><li aria-current="page">Plasma Parameters</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Plasma Parameters Calculator</h1>
+        <p class="lede">The handful of numbers that decide how a plasma behaves: how far a charge’s field reaches before the plasma screens it, how fast the electrons and ions oscillate, how often they collide, and how tightly a magnetic field holds them. Enter a density and temperature, the field and gas pressure if you have them, and the calculator also gives the electron cyclotron resonance (ECR) field for a microwave source and flags which regime the plasma is in.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Electron density</dt><dd>Free electrons per cubic centimeter. Glow and RF processing discharges hold 10⁹–10¹² cm⁻³; the solar wind about 5 cm⁻³; a fusion plasma 10¹⁴ cm⁻³.</dd>
+            <dt>Electron temperature</dt><dd>The spread of electron energies, quoted as kT in electronvolts: 1&nbsp;eV corresponds to 11&#8239;605&nbsp;K. In a low-pressure discharge the electrons are at 1–10&nbsp;eV while the ions and gas stay near room temperature (0.026&nbsp;eV).</dd>
+            <dt>Debye length</dt><dd>The distance over which the plasma screens out the electric field of a charge or a biased surface. Probes, sheaths at walls, and anything smaller than a few Debye lengths behave differently from the plasma bulk.</dd>
+            <dt>Plasma frequency</dt><dd>How fast the electrons oscillate if they are pushed away from the ions and let go. Electromagnetic waves below this frequency cannot travel through the plasma; they are reflected.</dd>
+            <dt>Plasma parameter</dt><dd>The number of electrons inside a sphere one Debye length in radius. When it is large, collective behavior dominates over close two-body encounters, which is what makes an ionized gas a plasma.</dd>
+            <dt>Collision frequency and mean free path</dt><dd>How often an electron is deflected by an ion or a gas atom, and how far it travels between such events on average.</dd>
+            <dt>Gyrofrequency</dt><dd>How often an electron or ion circles a magnetic field line: 28.0&nbsp;GHz per tesla for electrons. If particles complete many turns between collisions, the field confines them.</dd>
+            <dt>Electron cyclotron resonance (ECR)</dt><dd>Where the electron gyrofrequency equals the frequency of applied microwaves, the electrons absorb energy efficiently. ECR ion sources and plasma reactors are built around this field: 0.0875&nbsp;T for 2.45&nbsp;GHz, 1.0&nbsp;T for 28&nbsp;GHz.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+
+                <div class="cp-group">Plasma</div>
+                <div class="field">
+                    <label for="ne">Electron density <span class="sym">n<sub>e</sub></span></label>
+                    <div class="input-unit"><input id="ne" name="ne" value="1e11" inputmode="decimal" data-positive data-label="electron density"><select data-dim="ndensity" data-units="cm⁻³,m⁻³" data-default="cm⁻³"></select></div>
+                    <p class="hint">From a Langmuir probe, interferometer, or a typical value: 10⁹–10¹² cm⁻³ in processing discharges. The ion density is n<sub>e</sub>/Z (quasi-neutrality).</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="Te">Electron temperature <span class="sym">T<sub>e</sub></span></label>
+                        <div class="input-unit"><input id="Te" name="Te" value="5" inputmode="decimal" data-positive data-label="electron temperature"><select data-dim="tempev" data-units="eV,K" data-default="eV"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="Ti">Ion temperature <span class="sym">T<sub>i</sub></span></label>
+                        <div class="input-unit"><input id="Ti" name="Ti" value="0.05" inputmode="decimal" data-positive data-label="ion temperature"><select data-dim="tempev" data-units="eV,K" data-default="eV"></select></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">Temperatures as kT in eV (1&nbsp;eV = 11&#8239;605&nbsp;K). Ions in a low-pressure discharge are usually close to the gas temperature, 0.03–0.1&nbsp;eV.</p>
+                <div class="field">
+                    <label for="sp">Ion species</label>
+                    <select id="sp" name="sp" class="input"></select>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="m">Ion mass <span class="sym">m<sub>i</sub></span></label>
+                        <div class="input-unit"><input id="m" name="m" value="39.9618345438" inputmode="decimal" data-positive data-label="ion mass"><span class="unit">u</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="z">Ion charge state <span class="sym">Z</span></label>
+                        <div class="input-unit"><input id="z" name="z" value="1" inputmode="decimal" data-positive data-label="ion charge state"><span class="unit">e</span></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">A single ion species. For a mixture, use the dominant ion, or an average Z and mass.</p>
+
+                <div class="cp-group">Field and microwaves (optional)</div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="B">Magnetic field <span class="sym">B</span></label>
+                        <div class="input-unit"><input id="B" name="B" value="0.0875" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="magnetic field"><select data-dim="bfield" data-units="mT,T,G,kG" data-default="T"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="fmw">Microwave frequency <span class="sym">f</span></label>
+                        <div class="input-unit"><input id="fmw" name="fmw" value="2.45" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="microwave frequency"><select data-dim="frequency" data-units="MHz,GHz" data-default="GHz"></select></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">B gives the gyrofrequencies, gyroradii, and plasma beta. The frequency of a microwave or RF source gives the ECR field and the cutoff density: 2.45&nbsp;GHz (magnetron), 14.5, 18, or 28&nbsp;GHz (ECR ion sources), or 13.56&nbsp;MHz (RF).</p>
+
+                <div class="cp-group">Neutral gas (optional)</div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="p">Gas pressure <span class="sym">p</span></label>
+                        <div class="input-unit"><input id="p" name="p" value="1" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="gas pressure"><select data-dim="pressure" data-units="Pa,mbar,Torr,mTorr" data-default="mTorr"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="Tg">Gas temperature <span class="sym">T<sub>g</sub></span></label>
+                        <div class="input-unit"><input id="Tg" name="Tg" value="20" inputmode="decimal" data-positive data-label="gas temperature (absolute)"><select data-dim="temperature" data-units="°C,K" data-default="°C"></select></div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="sig">Electron–neutral momentum-transfer cross section <span class="sym">σ<sub>m</sub></span></label>
+                    <div class="input-unit"><input id="sig" name="sig" value="10" inputmode="decimal" data-positive data-label="cross section"><select data-dim="xsec" data-units="Å²,cm²,m²" data-default="Å²"></select></div>
+                    <p class="hint">Default 10&nbsp;Å² (1&nbsp;×&nbsp;10⁻¹⁹&nbsp;m², 10⁻¹⁵&nbsp;cm²): the order of magnitude for electrons of a few eV to a few tens of eV in N₂, O₂, and Ar. It depends strongly on energy and gas: argon has a deep Ramsauer–Townsend minimum near 0.24&nbsp;eV, and helium is closer to 6&nbsp;Å². For accurate rates, average a measured cross section over the electron energy distribution.</p>
+                </div>
+
+                <div class="cp-group">Size (optional)</div>
+                <div class="field">
+                    <label for="L">Plasma size <span class="sym">L</span></label>
+                    <div class="input-unit"><input id="L" name="L" value="10" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="plasma size"><select data-dim="length" data-units="µm,mm,cm,m" data-default="cm"></select></div>
+                    <p class="hint">The chamber or discharge dimension, to compare with the Debye length and the mean free paths in the regime notes.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Electron Debye length<span class="sym">λ<sub>De</sub></span></span><output class="result-value" data-out="lDe">—</output></div>
+                    <div class="result"><span class="result-label">Debye length with ion screening<span class="sym">λ<sub>D</sub></span></span><output class="result-value" data-out="lD">—</output><span class="result-note">Both species screen a slow test charge. Ions flowing into a sheath do not, so sheath widths scale with λ<sub>De</sub>.</span></div>
+                    <div class="result"><span class="result-label">Electron plasma frequency<span class="sym">f<sub>pe</sub></span></span><output class="result-value" data-out="fpe">—</output></div>
+                    <div class="result"><span class="result-label">Ion plasma frequency<span class="sym">f<sub>pi</sub></span></span><output class="result-value" data-out="fpi">—</output></div>
+                    <div class="result"><span class="result-label">Plasma parameter (electrons per Debye sphere)<span class="sym">N<sub>D</sub></span></span><output class="result-value" data-out="ND">—</output></div>
+                    <div class="result"><span class="result-label">Coulomb logarithm, electron–ion<span class="sym">ln Λ</span></span><output class="result-value" data-out="lnL">—</output></div>
+                    <div class="result"><span class="result-label">Electron–ion collision frequency<span class="sym">ν<sub>ei</sub></span></span><output class="result-value" data-out="nuei">—</output><span class="result-note" id="nuei-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Ion–ion collision frequency<span class="sym">ν<sub>ii</sub></span></span><output class="result-value" data-out="nuii">—</output></div>
+                    <div class="result"><span class="result-label">Electron–neutral collision frequency<span class="sym">ν<sub>en</sub></span></span><output class="result-value" data-out="nuen">—</output><span class="result-note" id="nuen-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Electron thermal speed<span class="sym">v<sub>te</sub> = (kT<sub>e</sub>/m<sub>e</sub>)<sup>1/2</sup></span></span><output class="result-value" data-out="vte">—</output></div>
+                    <div class="result"><span class="result-label">Electron gyrofrequency<span class="sym">f<sub>ce</sub></span></span><output class="result-value" data-out="fce">—</output></div>
+                    <div class="result"><span class="result-label">Ion gyrofrequency<span class="sym">f<sub>ci</sub></span></span><output class="result-value" data-out="fci">—</output></div>
+                    <div class="result"><span class="result-label">Electron and ion gyroradii (thermal)<span class="sym">r<sub>e</sub>, r<sub>i</sub></span></span><output class="result-value" data-out="rg">—</output></div>
+                    <div class="result"><span class="result-label">Plasma beta<span class="sym">β</span></span><output class="result-value" data-out="beta">—</output></div>
+                    <div class="result"><span class="result-label">ECR field for the microwave frequency<span class="sym">B<sub>ECR</sub></span></span><output class="result-value" data-out="Becr">—</output></div>
+                    <div class="result"><span class="result-label">Cutoff (critical) density for that frequency<span class="sym">n<sub>c</sub></span></span><output class="result-value" data-out="nc">—</output><span class="result-note" id="nc-note" hidden></span></div>
+                </div>
+                <h3 class="cp-sub" id="reg-h">Regime notes</h3>
+                <ul class="regimes" id="regimes" aria-labelledby="reg-h"></ul>
+            </div>
+        </section>
+    </div>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>All quantities are in SI units with temperatures as energies (\(T\) in joules is \(e\) times the value in eV). With the ion density \(n_i = n_e/Z\) (quasi-neutrality):</p>
+        <div class="formula">\[ \begin{gathered} \lambda_{De} = \sqrt{\frac{\varepsilon_0 T_e}{n_e e^2}}, \qquad \frac{1}{\lambda_D^2} = \frac{1}{\lambda_{De}^2} + \frac{1}{\lambda_{Di}^2}, \quad \lambda_{Di} = \sqrt{\frac{\varepsilon_0 T_i}{n_i Z^2 e^2}}, \\[8pt] \omega_{pe} = 2\pi f_{pe} = \sqrt{\frac{n_e e^2}{\varepsilon_0 m_e}}, \qquad \omega_{pi} = \sqrt{\frac{n_i Z^2 e^2}{\varepsilon_0 m_i}}, \qquad N_D = \frac{4\pi}{3} n_e \lambda_{De}^3. \end{gathered} \]</div>
+        <p>Some texts call \(\Lambda = 4\pi n_e \lambda_{De}^3 = 3N_D\) the plasma parameter; either way it must be much larger than 1 for the plasma to be weakly coupled. In practical units \(f_{pe} \approx 8.98\ \text{kHz} \times \sqrt{n_e/\text{cm}^{-3}}\) and \(\lambda_{De} \approx 7.43\ \text{m} \times \sqrt{(T_e/\text{eV})/(n_e/\text{cm}^{-3})}\).</p>
+
+        <h3>Collisions</h3>
+        <p>Coulomb collisions are counted with the Coulomb logarithm. The calculator uses the NRL Plasma Formulary’s expressions, with \(n_e\) in cm⁻³ and \(T\) in eV:</p>
+        <div class="formula">\[ \begin{gathered} \ln\Lambda_{ei} = 23 - \ln\!\left(n_e^{1/2} Z\, T_e^{-3/2}\right) \ \ (T_e < 10Z^2\ \text{eV}), \\[6pt] \ln\Lambda_{ei} = 24 - \ln\!\left(n_e^{1/2}\, T_e^{-1}\right) \ \ (T_e > 10 Z^2\ \text{eV}), \\[8pt] \ln\Lambda_{ii} = 23 - \ln\!\left[\frac{Z^2}{T_i}\left(\frac{2 n_i Z^2}{T_i}\right)^{1/2}\right]. \end{gathered} \]</div>
+        <p>The electron–ion and ion–ion collision frequencies are the inverse Braginskii collision times,</p>
+        <div class="formula">\[ \nu_{ei} = \frac{4\sqrt{2\pi}\, n_e Z e^4 \ln\Lambda_{ei}}{3\,(4\pi\varepsilon_0)^2\, m_e^{1/2}\, T_e^{3/2}}, \qquad \nu_{ii} = \frac{4\sqrt{\pi}\, n_i Z^4 e^4 \ln\Lambda_{ii}}{3\,(4\pi\varepsilon_0)^2\, m_i^{1/2}\, T_i^{3/2}}, \]</div>
+        <p>which for Z = 1 are the Formulary’s \(\nu_e = 2.91\times10^{-6}\, n_e \ln\Lambda\, T_e^{-3/2}\)&nbsp;s⁻¹ and \(\nu_i = 4.80\times10^{-8}\, \mu^{-1/2} n_i \ln\Lambda\, T_i^{-3/2}\)&nbsp;s⁻¹ (\(\mu = m_i/m_p\)). The electron–ion mean free path is \(v_{te}/\nu_{ei}\) with \(v_{te} = \sqrt{T_e/m_e}\). Electron–neutral collisions use a constant momentum-transfer cross section \(\sigma_m\) (your input) and the mean electron speed:</p>
+        <div class="formula">\[ n_n = \frac{p}{k_B T_g}, \qquad \nu_{en} = n_n \sigma_m \bar v_e, \quad \bar v_e = \sqrt{\frac{8 T_e}{\pi m_e}}, \qquad \lambda_{en} = \frac{1}{n_n \sigma_m}. \]</div>
+
+        <h3>Magnetic field and microwaves</h3>
+        <div class="formula">\[ \begin{gathered} \omega_{ce} = \frac{eB}{m_e}, \qquad \omega_{ci} = \frac{ZeB}{m_i}, \qquad r_e = \frac{v_{te}}{\omega_{ce}}, \qquad r_i = \frac{\sqrt{T_i/m_i}}{\omega_{ci}}, \qquad \beta = \frac{2\mu_0 (n_e T_e + n_i T_i)}{B^2}, \\[8pt] B_\text{ECR} = \frac{2\pi f\, m_e}{e}, \qquad n_c = \frac{\varepsilon_0 m_e (2\pi f)^2}{e^2}. \end{gathered} \]</div>
+        <p>\(B_\text{ECR}\) is the field where the electron gyrofrequency equals the microwave frequency: \(f/(27.992\ \text{GHz})\) teslas, so 2.45&nbsp;GHz resonates at 87.5&nbsp;mT and 28&nbsp;GHz at 1.000&nbsp;T. Above the cutoff density \(n_c\) (where \(f_{pe} = f\)) an ordinary wave cannot propagate into the plasma: 7.4&nbsp;×&nbsp;10¹⁰&nbsp;cm⁻³ at 2.45&nbsp;GHz and 9.7&nbsp;×&nbsp;10¹²&nbsp;cm⁻³ at 28&nbsp;GHz. ECR sources reach higher densities with waves that travel along the field from the high-field side or by mode conversion.</p>
+
+        <h2>Typical values</h2>
+        <p>From the formulas above (Z = 1, n<sub>e</sub> in cm⁻³):</p>
+        <table>
+            <thead><tr><th>Plasma</th><th class="num">n<sub>e</sub></th><th class="num">T<sub>e</sub></th><th class="num">λ<sub>De</sub></th><th class="num">f<sub>pe</sub></th><th class="num">N<sub>D</sub></th></tr></thead>
+            <tbody>
+                <tr><td>Solar wind near Earth</td><td class="num">5</td><td class="num">10&nbsp;eV</td><td class="num">10.5&nbsp;m</td><td class="num">20&nbsp;kHz</td><td class="num">2.4&nbsp;×&nbsp;10¹⁰</td></tr>
+                <tr><td>Ionosphere (F layer)</td><td class="num">10⁶</td><td class="num">0.1&nbsp;eV</td><td class="num">2.4&nbsp;mm</td><td class="num">9.0&nbsp;MHz</td><td class="num">5.4&nbsp;×&nbsp;10⁴</td></tr>
+                <tr><td>RF or ECR processing plasma</td><td class="num">10¹¹</td><td class="num">5&nbsp;eV</td><td class="num">53&nbsp;µm</td><td class="num">2.8&nbsp;GHz</td><td class="num">6.1&nbsp;×&nbsp;10⁴</td></tr>
+                <tr><td>Fluorescent lamp</td><td class="num">10¹¹</td><td class="num">1&nbsp;eV</td><td class="num">24&nbsp;µm</td><td class="num">2.8&nbsp;GHz</td><td class="num">5.4&nbsp;×&nbsp;10³</td></tr>
+                <tr><td>Tokamak core</td><td class="num">10¹⁴</td><td class="num">10&nbsp;keV</td><td class="num">74&nbsp;µm</td><td class="num">90&nbsp;GHz</td><td class="num">1.7&nbsp;×&nbsp;10⁸</td></tr>
+                <tr><td>Laser-produced plasma</td><td class="num">10²¹</td><td class="num">1&nbsp;keV</td><td class="num">7.4&nbsp;nm</td><td class="num">280&nbsp;THz</td><td class="num">1.7&nbsp;×&nbsp;10³</td></tr>
+            </tbody>
+        </table>
+        <p>The densities and temperatures are round, representative values (compare the NRL Plasma Formulary’s table of typical plasma parameters), not measurements of a particular device.</p>
+
+        <h2>Worked example</h2>
+        <p>The default inputs: an argon plasma with n<sub>e</sub> = 10¹¹&nbsp;cm⁻³, T<sub>e</sub> = 5&nbsp;eV, T<sub>i</sub> = 0.05&nbsp;eV, in 1&nbsp;mTorr of gas at 20&nbsp;°C, at the 87.5&nbsp;mT resonance of a 2.45&nbsp;GHz source, in a 10&nbsp;cm chamber.</p>
+        <ul>
+            <li>\(\lambda_{De}^2 = 8.854\times10^{-12} \times 5 / (10^{17} \times 1.602\times10^{-19}) = 2.763\times10^{-9}\ \text{m}^2\), so \(\lambda_{De} = 52.6\ \mu\text{m}\) and N<sub>D</sub> = 6.1&nbsp;×&nbsp;10⁴: a weakly coupled plasma, and the 10&nbsp;cm chamber is about 1900 Debye lengths across.</li>
+            <li>f<sub>pe</sub> = 8.98&nbsp;kHz × √10¹¹ = 2.84&nbsp;GHz, above the 2.45&nbsp;GHz drive: the plasma is over-dense (n<sub>e</sub> = 1.34&nbsp;n<sub>c</sub>), so an ordinary wave from outside is cut off.</li>
+            <li>ln Λ = 23 − ln(√10¹¹ × 5⁻¹·⁵) = 12.75, and ν<sub>ei</sub> = 2.91&nbsp;×&nbsp;10⁻⁶ × 10¹¹ × 12.75 / 5¹·⁵ = 3.3&nbsp;×&nbsp;10⁵&nbsp;s⁻¹. The gas (n<sub>n</sub> = 3.3&nbsp;×&nbsp;10¹³&nbsp;cm⁻³, so the plasma is 0.3&nbsp;% ionized) gives ν<sub>en</sub> = 4.9&nbsp;×&nbsp;10⁶&nbsp;s⁻¹ and an electron–neutral mean free path of 30&nbsp;cm, longer than the chamber.</li>
+            <li>At B = 87.5&nbsp;mT, f<sub>ce</sub> = 2.45&nbsp;GHz, so ω<sub>ce</sub>/ν<sub>e</sub> ≈ 2900 (about 470 turns between collisions) with a thermal gyroradius of 61&nbsp;µm: they are strongly magnetized. Argon ions (f<sub>ci</sub> = 33.6&nbsp;kHz, r<sub>i</sub> = 1.6&nbsp;mm) collide with each other more often than they gyrate, and β = 2.7&nbsp;×&nbsp;10⁻⁵, so the field is far stronger than the plasma pressure.</li>
+        </ul>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Maxwellian electrons and ions, each at one temperature. Discharge electrons often have a non-Maxwellian tail, which changes the electron–neutral rate a great deal and the Coulomb rates a little.</li>
+            <li>The Coulomb logarithm formulas need ln Λ well above 2 (weak coupling); the calculator warns when N<sub>D</sub> is below about 10. Factors of order unity in the definitions of collision frequency and mean free path differ between texts: the electron–ion rate here is Braginskii’s, the rate of momentum loss, not the rate of 90° deflections.</li>
+            <li>The electron–neutral rate uses one energy-independent cross section; ion–neutral collisions (charge exchange dominates for ions in their parent gas) are not calculated, so the ion magnetization note considers ion–ion collisions only.</li>
+            <li>Single ion species and quasi-neutrality. Near walls (in the sheath, a few Debye lengths thick) n<sub>e</sub> ≠ Z n<sub>i</sub>.</li>
+            <li>The ECR field and cutoff density are for cold electrons and an ordinary wave; relativistic and hot-plasma corrections shift the resonance at high electron energies (by the factor γ for electrons of tens of keV in ECR ion sources).</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>A. Beresnyak, <em>2023 NRL Plasma Formulary</em>, Plasma Physics Division, U.S. Naval Research Laboratory, Washington, DC (2023), <a href="https://www.nrl.navy.mil/News-Media/Publications/nrl-plasma-formulary/" target="_blank" rel="noopener">nrl.navy.mil</a> (the Coulomb logarithms; the collision rates ν<sub>e</sub> and ν<sub>i</sub>; the practical-unit plasma frequencies, Debye length, gyrofrequencies, and gyroradii used as checks).</li>
+            <li>S. I. Braginskii, “Transport processes in a plasma,” in <em>Reviews of Plasma Physics</em>, vol. 1, M. A. Leontovich (ed.), Consultants Bureau, New York (1965), pp. 205–311 (the electron and ion collision times τ<sub>e</sub> and τ<sub>i</sub>).</li>
+            <li>F. F. Chen, <em>Introduction to Plasma Physics and Controlled Fusion</em>, 3rd ed., Springer (2016), <a href="https://doi.org/10.1007/978-3-319-22309-4" target="_blank" rel="noopener">doi:10.1007/978-3-319-22309-4</a> (Debye shielding, the plasma parameter, plasma oscillations, cutoffs, and cyclotron motion).</li>
+            <li>M. A. Lieberman and A. J. Lichtenberg, <em>Principles of Plasma Discharges and Materials Processing</em>, 2nd ed., Wiley (2005) (electron–neutral collisions and momentum-transfer cross sections in processing discharges; ECR discharges).</li>
+            <li>Y. Itikawa, M. Hayashi, A. Ichimura, K. Onda, K. Sakimoto, K. Takayanagi, M. Nakamura, H. Nishimura, and T. Takayanagi, “Cross sections for collisions of electrons and photons with nitrogen molecules,” <em>J. Phys. Chem. Ref. Data</em> <strong>15</strong>, 985–1010 (1986), <a href="https://doi.org/10.1063/1.555762" target="_blank" rel="noopener">doi:10.1063/1.555762</a> (the N₂ momentum-transfer cross section, about 10⁻¹⁵&nbsp;cm² for electrons of a few eV to tens of eV).</li>
+            <li>R. Geller, <em>Electron Cyclotron Resonance Ion Sources and ECR Plasmas</em>, Institute of Physics Publishing (1996) (the resonance condition and the high-field ECR sources).</li>
+            <li>P. J. Mohr, D. B. Newell, B. N. Taylor, and E. Tiesinga, “CODATA recommended values of the fundamental physical constants: 2022,” <em>Rev. Mod. Phys.</em> <strong>97</strong>, 025002 (2025), <a href="https://doi.org/10.1103/RevModPhys.97.025002" target="_blank" rel="noopener">doi:10.1103/RevModPhys.97.025002</a> (e, mₑ, ε₀, μ₀, k<sub>B</sub>, and u).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>A. Beresnyak, <em>2023 NRL Plasma Formulary</em>, free download from the U.S. Naval Research Laboratory, <a href="https://www.nrl.navy.mil/News-Media/Publications/nrl-plasma-formulary/" target="_blank" rel="noopener">nrl.navy.mil</a> (every formula on this page in practical units, with typical parameters of laboratory and space plasmas).</li>
+            <li>MIT OpenCourseWare, “22.611J Introduction to Plasma Physics I” (Fall 2006), <a href="https://ocw.mit.edu/courses/22-611j-introduction-to-plasma-physics-i-fall-2006/" target="_blank" rel="noopener">ocw.mit.edu</a> (lecture notes on Debye shielding, plasma frequency, collisions, and particle orbits).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="cyclotron-radius,ion-time-of-flight,mean-free-path,pressure-converter,stopping-power"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, K } = Calc;
+    const CP = window.ChargedParticles;
+    if (!Calc.UNITS.xsec) Calc.UNITS.xsec = { 'Å²': 1e-20, 'cm²': 1e-4, 'm²': 1 };
+    const sel = document.getElementById('sp'), mIn = document.getElementById('m'), zIn = document.getElementById('z');
+    sel.innerHTML = CP.options('ar', ['e']);
+    CP.bind(sel, mIn, zIn);
+    const { e, me, eps0, kB } = { e: K.e, me: K.me, eps0: K.eps0, kB: K.kB };
+    const mu0 = 1.25663706127e-6;              // N/A² (CODATA 2022)
+    const fq = x => fmt.si(x, 'Hz', 4, { max: 15 });
+    const len = x => fmt.si(x, 'm', 4, { max: 3 });
+    const rate = x => fmt.sci(x, 3) + ' s⁻¹';
+    const regimes = document.getElementById('regimes');
+    const notes = {};
+    ['nuei-note', 'nuen-note', 'nc-note'].forEach(id => { notes[id] = document.getElementById(id); });
+    const note = (id, t) => { notes[id].textContent = t || ''; notes[id].hidden = !t; };
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            const ne = v.ne, Z = v.z, ni = ne / Z, mi = v.m * K.u;
+            const Te = v.Te * e, Ti = v.Ti * e;          // J (v.Te and v.Ti are in eV)
+            const neCC = ne * 1e-6, niCC = ni * 1e-6;
+            const lDe = Math.sqrt(eps0 * Te / (ne * e * e)), lDi = Math.sqrt(eps0 * Ti / (ni * Z * Z * e * e));
+            const lD = 1 / Math.sqrt(1 / (lDe * lDe) + 1 / (lDi * lDi));
+            const wpe = Math.sqrt(ne * e * e / (eps0 * me)), wpi = Math.sqrt(ni * Z * Z * e * e / (eps0 * mi));
+            const ND = 4 * Math.PI / 3 * ne * lDe ** 3;
+            // NRL Plasma Formulary Coulomb logarithms (n in cm⁻³, T in eV); the electron–ion form assumes Tᵢmₑ/mᵢ < Tₑ
+            const lnL = v.Te < 10 * Z * Z ? 23 - Math.log(Math.sqrt(neCC) * Z * v.Te ** -1.5) : 24 - Math.log(Math.sqrt(neCC) / v.Te);
+            const lnLii = 23 - Math.log(Z * Z / v.Ti * Math.sqrt(2 * niCC * Z * Z / v.Ti));
+            const k4 = (4 * Math.PI * eps0) ** 2;
+            const nuei = 4 * Math.sqrt(2 * Math.PI) * ne * Z * e ** 4 * lnL / (3 * k4 * Math.sqrt(me) * Te ** 1.5);
+            const nuii = 4 * Math.sqrt(Math.PI) * ni * Z ** 4 * e ** 4 * lnLii / (3 * k4 * Math.sqrt(mi) * Ti ** 1.5);
+            const vte = Math.sqrt(Te / me), vbar = Math.sqrt(8 * Te / (Math.PI * me)), vti = Math.sqrt(Ti / mi);
+            // the Coulomb-collision formulas need ln Λ ≥ 2; below that they give meaningless (even negative) rates
+            const okEI = lnL >= 2, okII = lnLii >= 2, NA = 'n/a (ln Λ < 2)';
+            const lei = vte / nuei;
+            note('nuei-note', okEI ? 'Electron–ion mean free path v_te/ν_ei = ' + len(lei) + '; collision time ' + fmt.si(1 / nuei, 's', 3) + '.' : '');
+            const hasGas = isFinite(v.p) && v.p > 0;
+            const nn = hasGas ? v.p / (kB * v.Tg) : NaN;
+            const nuen = hasGas ? nn * v.sig * vbar : NaN, len_en = hasGas ? 1 / (nn * v.sig) : NaN;
+            note('nuen-note', hasGas ? 'Gas density ' + fmt.sci(nn * 1e-6, 3) + ' cm⁻³ (ionization fraction ' + fmt.sci(ne / (ne + nn), 2) + '); electron–neutral mean free path ' + len(len_en) + '.' : '');
+            const hasB = isFinite(v.B) && v.B > 0, B = v.B;
+            const wce = hasB ? e * B / me : NaN, wci = hasB ? Z * e * B / mi : NaN;
+            const hasF = isFinite(v.fmw) && v.fmw > 0, w = 2 * Math.PI * v.fmw;
+            const Becr = hasF ? w * me / e : NaN, nc = hasF ? eps0 * me * w * w / (e * e) : NaN;
+            note('nc-note', hasF ? 'Your density is ' + fmt.num(ne / nc, 3) + ' n_c: ' + (ne > nc ? 'over-dense, an ordinary wave at this frequency is reflected.' : 'under-dense, the wave can propagate.') : '');
+
+            // regime notes
+            const R = [];
+            if (ND < 10) R.push('N_D = ' + fmt.num(ND, 3) + ' is not much greater than 1: the plasma is strongly coupled, and the Coulomb-logarithm and collision formulas here do not apply.');
+            else R.push('Weakly coupled (ideal) plasma: ' + fmt.sci(ND, 2) + ' electrons per Debye sphere.');
+            if (!okEI) R.push('The electron–ion ln Λ is below 2: Coulomb collisions are outside the range of the formulas used, so the electron–ion rate, mean free path, collisionality, and electron magnetization are not given.');
+            if (!okII) R.push('The ion–ion ln Λ is below 2: the ion–ion rate and ion magnetization are not given.');
+            if (isFinite(v.L) && v.L > 0) {
+                const r = v.L / lDe;
+                R.push(r > 100 ? 'Quasi-neutral: the plasma is ' + fmt.num(r, 3) + ' Debye lengths across, so sheaths occupy a thin layer at the walls.'
+                    : r > 3 ? 'Only ' + fmt.num(r, 3) + ' Debye lengths across: sheaths fill a sizable part of the volume.'
+                    : 'Smaller than a few Debye lengths (L/λ_De = ' + fmt.num(r, 3) + '): this is not a quasi-neutral plasma.');
+                const lam = hasGas ? 1 / (1 / lei + 1 / len_en) : lei;
+                if (okEI) R.push(lam > v.L ? 'Electrons are collisionless on the scale of the plasma (mean free path ' + len(lam) + ' > L).' : 'Electrons are collisional on the scale of the plasma (mean free path ' + len(lam) + ' < L).');
+            }
+            if (hasB) {
+                const nue = nuei + (hasGas ? nuen : 0);
+                const he = wce / nue, hi = wci / nuii;
+                if (okEI) R.push(he > 1 ? 'Magnetized electrons: ω_ce/ν_e = ' + fmt.num(he, 3) + ', the angle in radians they gyrate between collisions.' : 'Electrons are not magnetized: they collide before completing a turn (ω_ce/ν_e = ' + fmt.num(he, 3) + ').');
+                if (okII) R.push(hi > 1 ? 'Magnetized ions (ω_ci/ν_ii = ' + fmt.num(hi, 3) + ', ion–neutral collisions not counted).' : 'Ions are not magnetized by ion–ion collisions alone (ω_ci/ν_ii = ' + fmt.num(hi, 3) + '); ion–neutral collisions would lower this further.');
+                if (hasF) R.push(Math.abs(B / Becr - 1) < 0.02 ? 'B is at the ECR field for ' + fq(v.fmw) + '.' : 'B is ' + fmt.num(B / Becr, 3) + ' times the ECR field for ' + fq(v.fmw) + '.');
+            }
+            if (hasF) R.push(wpe > w ? 'f_pe = ' + fq(wpe / (2 * Math.PI)) + ' exceeds the drive frequency: over-dense.' : 'f_pe = ' + fq(wpe / (2 * Math.PI)) + ' is below the drive frequency: under-dense.');
+            if (v.Te > 1e5) R.push('T_e above 100 keV: electrons are relativistic (mc² = 511 keV) and these classical formulas lose accuracy.');
+            regimes.innerHTML = R.map(t => '<li>' + t.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</li>').join('');
+
+            return {
+                lDe: len(lDe), lD: len(lD),
+                fpe: fq(wpe / (2 * Math.PI)), fpi: fq(wpi / (2 * Math.PI)),
+                ND: fmt.sci(ND, 3),
+                lnL: fmt.num(lnL, 4) + ' (ion–ion ' + fmt.num(lnLii, 3) + ')',
+                nuei: okEI ? rate(nuei) : NA, nuii: okII ? rate(nuii) : NA,
+                nuen: hasGas ? rate(nuen) : null,
+                vte: fmt.num(vte / 1e3, 4) + ' km/s',
+                fce: hasB ? fq(wce / (2 * Math.PI)) : null,
+                fci: hasB ? fq(wci / (2 * Math.PI)) : null,
+                rg: hasB ? len(vte / wce) + ', ' + len(vti / wci) : null,
+                beta: hasB ? fmt.sci(2 * mu0 * (ne * Te + ni * Ti) / (B * B), 3) : null,
+                Becr: hasF ? fmt.si(Becr, 'T', 5, { max: 3 }) + ' (' + fmt.num(Becr * 1e4, 5) + ' G)' : null,
+                nc: hasF ? fmt.sci(nc * 1e-6, 3) + ' cm⁻³' : null
+            };
+        },
+        onError() { regimes.innerHTML = ''; Object.keys(notes).forEach(k => { notes[k].hidden = true; }); }
+    });
+});
+</script>
+</body>
+</html>
