@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outgassing Calculator &amp; NASA Outgassing Database (ASTM E595)</title>
+<meta name="description" content="Search all 13,582 NASA ASTM E595 outgassing results (TML, CVCM, WVR), and estimate a vacuum chamber’s outgassing gas load and base pressure over time.">
+<link rel="canonical" href="https://cdfoley.com/tools/outgassing/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Outgassing Calculator & NASA Outgassing Database">
+<meta property="og:description" content="Search all 13,582 NASA ASTM E595 outgassing results (TML, CVCM, WVR), and estimate a vacuum chamber’s outgassing gas load and base pressure over time.">
+<meta property="og:url" content="https://cdfoley.com/tools/outgassing/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-outgassing.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Outgassing Calculator &amp; NASA Outgassing Database Search. Search all 13,582 NASA ASTM E595 outgassing results (TML, CVCM, WVR), and estimate a vacuum chamber’s outgassing gas load and base pressure over time.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<style>
+    .og-group { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .calc-error + .og-group { margin-top: 0; padding-top: 0; border-top: 0; }
+    .og-part { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; margin: 2.6rem 0 0.3rem; }
+    .og-part + h2 { margin-top: 0; font-size: 1.35rem; }
+    .og-intro { color: var(--text-2); max-width: 760px; margin: 0 0 1.2rem; }
+    .check-line { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.9rem; color: var(--text-2); margin: 0.2rem 0 0.9rem; }
+    .check-line input { margin-top: 0.2rem; }
+    .og-chips { margin: 0.45rem 0 0; }
+    .og-chips .chip-lbl { font-size: 0.8rem; color: var(--muted); align-self: center; }
+    .og-mat { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem 0.8rem 0.1rem; margin-bottom: 0.8rem; }
+    .og-mat > .field:first-child { margin-bottom: 0.7rem; }
+    .og-mat .hint.src { margin: -0.3rem 0 0.75rem; }
+    .db-wrap { overflow-x: auto; }
+    table.db { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 780px; }
+    table.db th { text-align: left; font-weight: 650; color: var(--muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.5rem 0.55rem; border-bottom: 1px solid var(--border-strong); white-space: nowrap; }
+    table.db td { padding: 0.45rem 0.55rem; border-bottom: 1px solid var(--border); color: var(--text-2); vertical-align: top; }
+    table.db td.num, table.db th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    table.db th.num { font-family: inherit; }
+    table.db td.nm { min-width: 15rem; }
+    table.db td.nm b { color: var(--text); font-weight: 600; }
+    table.db td .sub { color: var(--muted); font-size: 0.78rem; display: block; margin-top: 0.1rem; }
+    table.db td.cure { font-size: 0.8rem; max-width: 15rem; }
+    @media (max-width: 640px) { table.db td.cure.na { display: none; } }
+    table.db td.num.over { color: var(--danger); font-weight: 600; }
+    table.db mark { background: var(--accent-soft); color: inherit; border-radius: 2px; padding: 0 1px; }
+    @media (max-width: 640px) {   /* phones: each test becomes a card, so no column scrolls out of view */
+        table.db { min-width: 0; }
+        table.db thead { display: none; }
+        table.db tr { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.6rem, 1fr)); gap: 0.2rem 0.6rem; padding: 0.7rem 0; border-bottom: 1px solid var(--border); }
+        table.db td { border: 0; padding: 0; }
+        table.db td.nm, table.db td.app, table.db td.cure, table.db td.scr { grid-column: 1 / -1; min-width: 0; max-width: none; }
+        table.db td.num { text-align: left; }
+        table.db td.num::before, table.db td.cure::before { content: attr(data-label); display: block; font-family: var(--font); font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    }
+    .db-badge { font-size: 0.72rem; font-weight: 650; border-radius: 999px; padding: 0.1rem 0.5rem; white-space: nowrap; }
+    .db-badge.ok { background: var(--ok-soft); color: var(--ok); }
+    .db-badge.bad { background: var(--danger-soft); color: var(--danger); }
+    .db-badge.na { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+    .db-more { display: flex; flex-wrap: wrap; gap: 0.5rem 0.9rem; align-items: center; margin: 0.9rem 0 0; }
+    .db-more .hint { margin: 0; }
+    .db-status { font-size: 0.9rem; color: var(--text-2); margin: 0 0 0.8rem; }
+    .og-split { list-style: none; padding: 0; margin: 0.2rem 0 0; display: grid; gap: 0.15rem; font-family: var(--mono); font-size: 0.85rem; }
+    @media print {
+        .og-chips, .db-more button, .og-mat .src { display: none !important; }
+        .db-wrap { overflow: visible; }
+        table.db { min-width: 0; font-size: 0.72rem; }
+    }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Outgassing Database & Gas Load",
+   "url": "https://cdfoley.com/tools/outgassing/",
+   "description": "Search all 13,582 NASA ASTM E595 outgassing results (TML, CVCM, WVR), and estimate a vacuum chamber’s outgassing gas load and base pressure over time.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "outgassing nasa outgassing database astm e595 tml cvcm wvr rml total mass loss collected volatile condensable materials water vapor regained low outgassing materials spacecraft materials ecss-q-st-70-02 vacuum compatible materials specific outgassing rate gas load base pressure bake-out bakeout viton fkm o-ring peek kapton vespel ptfe stainless steel aluminum copper 1/t",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Vacuum Technology",
+     "item": "https://cdfoley.com/tools/#vacuum"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Outgassing Database & Gas Load",
+     "item": "https://cdfoley.com/tools/outgassing/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#vacuum">Vacuum Technology</a></li><li aria-current="page">Outgassing Database &amp; Gas Load</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Outgassing Calculator &amp; NASA Outgassing Database Search</h1>
+        <p class="lede">Two tools for choosing what goes inside a vacuum system. The first searches all 13,582 results in NASA’s outgassing database, the standard screening test for spacecraft materials (ASTM&nbsp;E595), and marks the ones within the usual limits of 1.0&nbsp;% total mass loss and 0.10&nbsp;% condensable material. The second estimates how much gas the chamber walls, seals, and parts give off per second, how that falls with pumping time, and what pressure it holds the chamber at. The two answer different questions: a material can pass the NASA screen and still be the largest gas source in a high-vacuum chamber.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Outgassing</dt><dd>The slow release of gas from materials in vacuum: mostly water vapor at first, then solvents, uncured resin fractions, and plasticizers from polymers, and hydrogen from metals once the water is gone.</dd>
+            <dt>ASTM E595</dt><dd>A screening test: a small sample is held at 125&nbsp;°C in vacuum for 24&nbsp;h, and the mass it loses and the mass that condenses on a nearby plate at 25&nbsp;°C are weighed. It ranks materials; it does not measure how fast they outgas at room temperature.</dd>
+            <dt>TML (total mass loss)</dt><dd>The mass the sample lost in the E595 test, as a percentage of its starting mass. Water counts toward it.</dd>
+            <dt>CVCM (collected volatile condensable materials)</dt><dd>The mass that condensed on the 25&nbsp;°C collector, as a percentage of the sample’s starting mass. It stands for the material that can deposit as a film on optics, detectors, and other cool surfaces.</dd>
+            <dt>WVR and RML</dt><dd>Water vapor regained: the mass the sample takes back up in 24&nbsp;h of humid air after the test. TML minus WVR, the mass lost other than water, is called the recovered mass loss (RML) and is what the European space standard screens on.</dd>
+            <dt>Specific outgassing rate</dt><dd>Gas released per second per unit area of surface, in mbar·L/(s·cm²) or Pa·m/s. It depends strongly on the pumping time, so a value means little without it.</dd>
+            <dt>Gas load</dt><dd>The total gas entering the chamber per second (mbar·L/s): the sum over every surface of its outgassing rate times its area, plus any leaks and process gas.</dd>
+            <dt>Base pressure</dt><dd>The pressure at which the pump removes gas as fast as the gas load brings it in. While outgassing falls with time, so does the base pressure.</dd>
+        </dl></details>
+    </header>
+
+    <p class="og-part">Part 1</p>
+    <h2 id="db-h">Search the NASA outgassing database (ASTM E595)</h2>
+    <p class="og-intro">Every test in NASA Goddard’s compilation, from 1964 to 2023, loaded in your browser: search by material, maker’s code, or use, and set the limits your program screens on.</p>
+
+    <div class="tool-layout">
+        <form class="panel" id="db" autocomplete="off" aria-labelledby="db-h">
+            <div class="panel-head"><h2>Search and filters</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="db">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="dq">Material, maker, or use</label>
+                    <input id="dq" name="q" class="input" type="search" value="" data-text placeholder="e.g. Viton, RTV 566, Kapton tape" spellcheck="false" autocapitalize="off" aria-describedby="dq-hint">
+                    <p class="hint" id="dq-hint">Every word must appear in the material name, the GSFC test number, the three-letter manufacturer code, the application, or the category. Hyphens are ignored, so RTV566, RTV 566, and RTV-566 find the same tests.</p>
+                    <div class="chip-row og-chips"><span class="chip-lbl">Try:</span><button type="button" class="chip" data-q="Viton">Viton</button><button type="button" class="chip" data-q="Kapton tape">Kapton tape</button><button type="button" class="chip" data-q="PEEK">PEEK</button><button type="button" class="chip" data-q="Torr Seal">Torr Seal</button><button type="button" class="chip" data-q="RTV 566">RTV 566</button><button type="button" class="chip" data-q="Apiezon">Apiezon</button><button type="button" class="chip" data-q="Vespel">Vespel</button><button type="button" class="chip" data-q="G-10">G-10</button></div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="dcat">Category</label>
+                        <select id="dcat" name="cat" class="input">
+                            <option value="" selected>All categories</option>
+                            <option value="0">Adhesives</option>
+                            <option value="1">Cable insulation and shrink tubing</option>
+                            <option value="2">Conformal coating</option>
+                            <option value="3">Electrical components</option>
+                            <option value="4">Electrical shields</option>
+                            <option value="5">Films and sheet materials</option>
+                            <option value="6">Foams</option>
+                            <option value="7">Greases and lubricants</option>
+                            <option value="8">Lacing tape and cord cable ties</option>
+                            <option value="9">Laminates and circuit boards</option>
+                            <option value="10">Marking materials and inks</option>
+                            <option value="11">Miscellaneous</option>
+                            <option value="12">Molding compounds</option>
+                            <option value="13">Paints, lacquers, and varnishes</option>
+                            <option value="14">Potting compounds</option>
+                            <option value="15">Rubber and elastomers</option>
+                            <option value="16">Tapes</option>
+                            <option value="17">Thermal greases</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="dsort">Sort</label>
+                        <select id="dsort" name="sort" class="input">
+                            <option value="best" selected>Best match</option>
+                            <option value="tml">Lowest mass loss (TML or RML)</option>
+                            <option value="cvcm">Lowest CVCM</option>
+                            <option value="new">Newest test</option>
+                            <option value="az">Material A–Z</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">Categories are NASA’s 18 groups by primary use. NASA’s older export assigns them; for the newer tests the page matches them from the application text, and 678 tests fit none and appear only under All categories.</p>
+
+                <div class="og-group">Screening limits</div>
+                <div class="field">
+                    <span class="field-label" id="basis-l">Mass-loss limit applies to</span>
+                    <span class="seg" role="radiogroup" aria-labelledby="basis-l">
+                        <input type="radio" id="b-t" name="basis" value="tml" checked><label for="b-t">TML (NASA, ASTM E595)</label>
+                        <input type="radio" id="b-r" name="basis" value="rml"><label for="b-r">RML = TML − WVR (ESA)</label>
+                    </span>
+                    <p class="hint">NASA screens on TML ≤ 1.0&nbsp;% and CVCM ≤ 0.10&nbsp;%. ESA’s ECSS-Q-ST-70-02C subtracts the water the sample regains, and requires RML &lt; 1.0&nbsp;% and CVCM &lt; 0.10&nbsp;%. Where WVR was not measured (before mid-1975), RML falls back to TML.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="dtml">Mass-loss limit</label>
+                        <div class="input-unit"><input id="dtml" name="tml" value="1.0" inputmode="decimal" data-positive data-label="mass-loss limit"><span class="unit">%</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="dcvcm">CVCM limit</label>
+                        <div class="input-unit"><input id="dcvcm" name="cvcm" value="0.10" inputmode="decimal" data-positive data-label="CVCM limit"><span class="unit">%</span></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">Optics, detectors, and cold surfaces often need tighter limits, such as CVCM ≤ 0.01&nbsp;%; set them here.</p>
+                <label class="check-line"><input type="checkbox" name="pass" id="dpass"> Show only materials within both limits</label>
+                <div class="field">
+                    <label for="dsince">Tested in or after (optional)</label>
+                    <div class="input-unit"><input id="dsince" name="since" value="" inputmode="numeric" data-optional data-positive placeholder="e.g. 2000" data-label="year"><span class="unit">year</span></div>
+                    <p class="hint">Formulations change. NASA’s guide warns that the data span decades and recommends testing each lot for critical uses.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="dbr-h" id="db-results">
+            <div class="panel-head"><h2 id="dbr-h">Matches</h2><span id="db-badge" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Tests that match</span><output class="result-value" data-out="n">—</output></div>
+                    <div class="result"><span class="result-label">Within both limits</span><output class="result-value" data-out="pass">—</output>
+                        <span class="result-note" id="db-lim">Of the matches with both values reported.</span>
+                        <span class="result-note">“Within the limits” is a screen, not an approval: it says nothing about the outgassing rate in a room-temperature vacuum system (see below).</span></div>
+                    <div class="result"><span class="result-label">Median of the matches</span><output class="result-value" data-out="med">—</output>
+                        <span class="result-note">Half the matching tests are lower. A wide spread for one product name usually means different cures, grades, or lots.</span></div>
+                    <div class="result"><span class="result-label">Data</span><output class="result-value" data-out="src">—</output>
+                        <span class="result-note">NASA Goddard Space Flight Center, Outgassing Database, retrieved 6 November 2026. Values as published; NASA does not endorse this page.</span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="dbt-h">
+        <div class="panel-head"><h2 id="dbt-h">Test results</h2></div>
+        <div class="panel-body">
+            <p class="db-status" id="db-status" aria-live="polite">Loading the NASA table…</p>
+            <div class="db-wrap" id="db-table"></div>
+            <div class="db-more">
+                <button type="button" class="btn btn-secondary btn-sm" id="db-more" hidden>Show 50 more</button>
+                <button type="button" class="btn btn-ghost btn-sm" id="db-csv" disabled>Download matches (CSV)</button>
+                <p class="hint">TML, CVCM, and WVR in percent of the starting mass; red values exceed your limit. Cure: the cure or post-cure steps before the test, in order, as NASA lists them (a vacuum written as 1.5×10^? lost its exponent in NASA’s own data; in many 2019 and later entries the first step reads 24&nbsp;h at 125&nbsp;°C in vacuum, the same exposure as the E595 test itself).</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="callout callout-warn" style="max-width:760px;margin-top:1.5rem">
+        <p><strong>What ASTM E595 tells you, and what it does not.</strong> It is a 24&nbsp;h test at 125&nbsp;°C that compares how much volatile material different products hold, and how much of it can recondense on a 25&nbsp;°C surface. It does <em>not</em> give an outgassing rate at room temperature, how that rate falls with pumping time, which gases come off, or anything that condenses only below 25&nbsp;°C. Water, the main gas load in an unbaked system, is counted in TML and returns from humid air. Most Viton tests in the database pass the NASA limits, yet after an hour of pumping, unbaked Viton outgasses more than 300 times as much per square centimeter as cleaned stainless steel. Use E595 data to rule materials out for contamination, and outgassing rates (Part 2) to size the vacuum.</p>
+    </div>
+
+    <p class="og-part">Part 2</p>
+    <h2 id="gl-h">Gas load and base pressure from outgassing rates</h2>
+    <p class="og-intro">List the surfaces inside the chamber, pick a typical rate for each or enter a measured one, and set the pumping speed the chamber actually gets. The rates fall as a power of the pumping time, so the pressure keeps creeping down for days.</p>
+
+    <div class="tool-layout">
+        <form class="panel" id="gl" autocomplete="off" aria-labelledby="gl-h">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="gl">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="og-group">Surfaces inside the chamber</div>
+                <div class="og-mat">
+                    <div class="field">
+                        <label for="m1">Surface 1</label>
+                        <select id="m1" name="m1" class="input"><option value="none">Not used</option><optgroup label="Unbaked metals and glass"><option value="metal" data-short="Metal walls" selected>Metals, cleaned for vacuum (CERN rule)</option><option value="ss-avg" data-short="Stainless steel (avg.)">Stainless steel, literature average</option><option value="al-avg" data-short="Aluminum (avg.)">Aluminum, literature average</option><option value="cu-avg" data-short="Copper (avg.)">Copper, literature average</option><option value="mild" data-short="Mild steel">Mild steel, fresh</option><option value="ti" data-short="Titanium">Titanium, literature average</option><option value="glass" data-short="Glass">Borosilicate glass (Pyrex)</option></optgroup><optgroup label="Baked metals (hydrogen)"><option value="ss-bake" data-short="Baked steel">Stainless steel, baked 24 h at 150 °C</option><option value="al-bake" data-short="Baked aluminum">Aluminum alloy, baked at 100–200 °C</option><option value="cu-bake" data-short="Baked copper">OFS copper, baked 24 h at 200 °C</option><option value="ss-fired" data-short="Vacuum-fired steel">316LN, vacuum-fired and baked at 300 °C</option></optgroup><optgroup label="Elastomers and plastics"><option value="fkm" data-short="Viton">Fluoroelastomer (Viton, FKM), unbaked</option><option value="fkm-bake" data-short="Baked Viton">Fluoroelastomer, baked</option><option value="neoprene" data-short="Neoprene">Neoprene</option><option value="ptfe" data-short="PTFE">PTFE (Teflon)</option><option value="pvc" data-short="PVC">PVC, humid storage</option><option value="peek" data-short="PEEK">PEEK, 2 mm thick</option><option value="kapton" data-short="Kapton">Kapton HN film, 0.125 mm</option><option value="vespel" data-short="Vespel">Vespel SP-1, 1.3 mm</option></optgroup><option value="custom">Custom (your own rate)</option></select>
+                    </div>
+                    <p class="hint src" id="src1"></p>
+                    <div class="field-row" id="vals1">
+                        <div class="field">
+                            <label for="A1">Area <span class="sym">A₁</span></label>
+                            <div class="input-unit"><input id="A1" name="A1" value="5400" inputmode="decimal" data-positive data-label="area of surface 1"><select data-dim="area" data-units="cm²,m²,in²" data-default="cm²"></select></div>
+                        </div>
+                        <div class="field">
+                            <label for="q1">Rate after 1 h <span class="sym">q₁</span></label>
+                            <div class="input-unit"><input id="q1" name="q1" value="3e-9" inputmode="decimal" data-nonneg data-label="rate of surface 1"><select data-dim="outgassing" data-units="mbar·L/(s·cm²),Torr·L/(s·cm²),Pa·m/s" data-default="mbar·L/(s·cm²)"></select></div>
+                        </div>
+                        <div class="field">
+                            <label for="n1">Exponent <span class="sym">n</span></label>
+                            <div class="input-unit"><input id="n1" name="n1" value="1" inputmode="decimal" data-nonneg data-label="exponent of surface 1"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="og-mat">
+                    <div class="field">
+                        <label for="m2">Surface 2</label>
+                        <select id="m2" name="m2" class="input"><option value="none">Not used</option><optgroup label="Unbaked metals and glass"><option value="metal" data-short="Metal walls">Metals, cleaned for vacuum (CERN rule)</option><option value="ss-avg" data-short="Stainless steel (avg.)">Stainless steel, literature average</option><option value="al-avg" data-short="Aluminum (avg.)">Aluminum, literature average</option><option value="cu-avg" data-short="Copper (avg.)">Copper, literature average</option><option value="mild" data-short="Mild steel">Mild steel, fresh</option><option value="ti" data-short="Titanium">Titanium, literature average</option><option value="glass" data-short="Glass">Borosilicate glass (Pyrex)</option></optgroup><optgroup label="Baked metals (hydrogen)"><option value="ss-bake" data-short="Baked steel">Stainless steel, baked 24 h at 150 °C</option><option value="al-bake" data-short="Baked aluminum">Aluminum alloy, baked at 100–200 °C</option><option value="cu-bake" data-short="Baked copper">OFS copper, baked 24 h at 200 °C</option><option value="ss-fired" data-short="Vacuum-fired steel">316LN, vacuum-fired and baked at 300 °C</option></optgroup><optgroup label="Elastomers and plastics"><option value="fkm" data-short="Viton" selected>Fluoroelastomer (Viton, FKM), unbaked</option><option value="fkm-bake" data-short="Baked Viton">Fluoroelastomer, baked</option><option value="neoprene" data-short="Neoprene">Neoprene</option><option value="ptfe" data-short="PTFE">PTFE (Teflon)</option><option value="pvc" data-short="PVC">PVC, humid storage</option><option value="peek" data-short="PEEK">PEEK, 2 mm thick</option><option value="kapton" data-short="Kapton">Kapton HN film, 0.125 mm</option><option value="vespel" data-short="Vespel">Vespel SP-1, 1.3 mm</option></optgroup><option value="custom">Custom (your own rate)</option></select>
+                    </div>
+                    <p class="hint src" id="src2"></p>
+                    <div class="field-row" id="vals2">
+                        <div class="field">
+                            <label for="A2">Area <span class="sym">A₂</span></label>
+                            <div class="input-unit"><input id="A2" name="A2" value="20" inputmode="decimal" data-positive data-label="area of surface 2"><select data-dim="area" data-units="cm²,m²,in²" data-default="cm²"></select></div>
+                        </div>
+                        <div class="field">
+                            <label for="q2">Rate after 1 h <span class="sym">q₂</span></label>
+                            <div class="input-unit"><input id="q2" name="q2" value="1.1e-6" inputmode="decimal" data-nonneg data-label="rate of surface 2"><select data-dim="outgassing" data-units="mbar·L/(s·cm²),Torr·L/(s·cm²),Pa·m/s" data-default="mbar·L/(s·cm²)"></select></div>
+                        </div>
+                        <div class="field">
+                            <label for="n2">Exponent <span class="sym">n</span></label>
+                            <div class="input-unit"><input id="n2" name="n2" value="0.7" inputmode="decimal" data-nonneg data-label="exponent of surface 2"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="og-mat">
+                    <div class="field">
+                        <label for="m3">Surface 3</label>
+                        <select id="m3" name="m3" class="input"><option value="none">Not used</option><optgroup label="Unbaked metals and glass"><option value="metal" data-short="Metal walls">Metals, cleaned for vacuum (CERN rule)</option><option value="ss-avg" data-short="Stainless steel (avg.)">Stainless steel, literature average</option><option value="al-avg" data-short="Aluminum (avg.)">Aluminum, literature average</option><option value="cu-avg" data-short="Copper (avg.)">Copper, literature average</option><option value="mild" data-short="Mild steel">Mild steel, fresh</option><option value="ti" data-short="Titanium">Titanium, literature average</option><option value="glass" data-short="Glass">Borosilicate glass (Pyrex)</option></optgroup><optgroup label="Baked metals (hydrogen)"><option value="ss-bake" data-short="Baked steel">Stainless steel, baked 24 h at 150 °C</option><option value="al-bake" data-short="Baked aluminum">Aluminum alloy, baked at 100–200 °C</option><option value="cu-bake" data-short="Baked copper">OFS copper, baked 24 h at 200 °C</option><option value="ss-fired" data-short="Vacuum-fired steel">316LN, vacuum-fired and baked at 300 °C</option></optgroup><optgroup label="Elastomers and plastics"><option value="fkm" data-short="Viton">Fluoroelastomer (Viton, FKM), unbaked</option><option value="fkm-bake" data-short="Baked Viton">Fluoroelastomer, baked</option><option value="neoprene" data-short="Neoprene">Neoprene</option><option value="ptfe" data-short="PTFE">PTFE (Teflon)</option><option value="pvc" data-short="PVC">PVC, humid storage</option><option value="peek" data-short="PEEK" selected>PEEK, 2 mm thick</option><option value="kapton" data-short="Kapton">Kapton HN film, 0.125 mm</option><option value="vespel" data-short="Vespel">Vespel SP-1, 1.3 mm</option></optgroup><option value="custom">Custom (your own rate)</option></select>
+                    </div>
+                    <p class="hint src" id="src3"></p>
+                    <div class="field-row" id="vals3">
+                        <div class="field">
+                            <label for="A3">Area <span class="sym">A₃</span></label>
+                            <div class="input-unit"><input id="A3" name="A3" value="50" inputmode="decimal" data-positive data-label="area of surface 3"><select data-dim="area" data-units="cm²,m²,in²" data-default="cm²"></select></div>
+                        </div>
+                        <div class="field">
+                            <label for="q3">Rate after 1 h <span class="sym">q₃</span></label>
+                            <div class="input-unit"><input id="q3" name="q3" value="4.7e-7" inputmode="decimal" data-nonneg data-label="rate of surface 3"><select data-dim="outgassing" data-units="mbar·L/(s·cm²),Torr·L/(s·cm²),Pa·m/s" data-default="mbar·L/(s·cm²)"></select></div>
+                        </div>
+                        <div class="field">
+                            <label for="n3">Exponent <span class="sym">n</span></label>
+                            <div class="input-unit"><input id="n3" name="n3" value="0.5" inputmode="decimal" data-nonneg data-label="exponent of surface 3"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="og-mat">
+                    <div class="field">
+                        <label for="m4">Surface 4</label>
+                        <select id="m4" name="m4" class="input"><option value="none" selected>Not used</option><optgroup label="Unbaked metals and glass"><option value="metal" data-short="Metal walls">Metals, cleaned for vacuum (CERN rule)</option><option value="ss-avg" data-short="Stainless steel (avg.)">Stainless steel, literature average</option><option value="al-avg" data-short="Aluminum (avg.)">Aluminum, literature average</option><option value="cu-avg" data-short="Copper (avg.)">Copper, literature average</option><option value="mild" data-short="Mild steel">Mild steel, fresh</option><option value="ti" data-short="Titanium">Titanium, literature average</option><option value="glass" data-short="Glass">Borosilicate glass (Pyrex)</option></optgroup><optgroup label="Baked metals (hydrogen)"><option value="ss-bake" data-short="Baked steel">Stainless steel, baked 24 h at 150 °C</option><option value="al-bake" data-short="Baked aluminum">Aluminum alloy, baked at 100–200 °C</option><option value="cu-bake" data-short="Baked copper">OFS copper, baked 24 h at 200 °C</option><option value="ss-fired" data-short="Vacuum-fired steel">316LN, vacuum-fired and baked at 300 °C</option></optgroup><optgroup label="Elastomers and plastics"><option value="fkm" data-short="Viton">Fluoroelastomer (Viton, FKM), unbaked</option><option value="fkm-bake" data-short="Baked Viton">Fluoroelastomer, baked</option><option value="neoprene" data-short="Neoprene">Neoprene</option><option value="ptfe" data-short="PTFE">PTFE (Teflon)</option><option value="pvc" data-short="PVC">PVC, humid storage</option><option value="peek" data-short="PEEK">PEEK, 2 mm thick</option><option value="kapton" data-short="Kapton">Kapton HN film, 0.125 mm</option><option value="vespel" data-short="Vespel">Vespel SP-1, 1.3 mm</option></optgroup><option value="custom">Custom (your own rate)</option></select>
+                    </div>
+                    <p class="hint src" id="src4"></p>
+                    <div class="field-row" id="vals4">
+                        <div class="field">
+                            <label for="A4">Area <span class="sym">A₄</span></label>
+                            <div class="input-unit"><input id="A4" name="A4" value="" inputmode="decimal" data-positive data-label="area of surface 4"><select data-dim="area" data-units="cm²,m²,in²" data-default="cm²"></select></div>
+                        </div>
+                        <div class="field">
+                            <label for="q4">Rate after 1 h <span class="sym">q₄</span></label>
+                            <div class="input-unit"><input id="q4" name="q4" value="" inputmode="decimal" data-nonneg data-label="rate of surface 4"><select data-dim="outgassing" data-units="mbar·L/(s·cm²),Torr·L/(s·cm²),Pa·m/s" data-default="mbar·L/(s·cm²)"></select></div>
+                        </div>
+                        <div class="field">
+                            <label for="n4">Exponent <span class="sym">n</span></label>
+                            <div class="input-unit"><input id="n4" name="n4" value="" inputmode="decimal" data-nonneg data-label="exponent of surface 4"></div>
+                        </div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.2rem 0 .9rem">Rates are in mbar·L/(s·cm²) after 1&nbsp;h of pumping at room temperature; the exponent sets how fast they fall: q(t) = q₁·(t/1&nbsp;h)<sup>−n</sup>. Cleaned metals fall about as 1/t (n&nbsp;=&nbsp;1), polymers about as 1/√t (n&nbsp;≈&nbsp;0.5), and a baked surface releasing hydrogen hardly at all (n&nbsp;=&nbsp;0). Count only the area that faces the vacuum: for an O-ring, the strip between the flanges.</p>
+
+                <div class="og-group">Pumping</div>
+                <div class="field">
+                    <label for="t">Pumping time <span class="sym">t</span></label>
+                    <div class="input-unit"><input id="t" name="t" value="10" inputmode="decimal" data-positive data-label="pumping time"><select data-dim="time" data-units="h,min" data-default="h"></select></div>
+                    <p class="hint">Time since the pump-down from atmosphere began. The model holds from a few minutes on, once the air in the volume is gone; before that, use the <a href="/tools/pumpdown/">pump-down calculator</a>.</p>
+                </div>
+                <div class="field">
+                    <label for="S">Effective pumping speed at the chamber <span class="sym">S<sub>eff</sub></span></label>
+                    <div class="input-unit"><input id="S" name="S" value="200" inputmode="decimal" data-positive data-label="pumping speed"><select data-dim="throughput" data-units="L/s,m³/h" data-default="L/s"></select></div>
+                    <p class="hint">The high vacuum pump’s speed for water vapor, reduced by the port, valve, and any line in front of it. The <a href="/tools/pumpdown/">pump-down calculator</a> gives it from the pump’s speed and the line.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="pb">Pump base pressure (optional) <span class="sym">p<sub>pump</sub></span></label>
+                        <div class="input-unit"><input id="pb" name="pb" value="" inputmode="decimal" data-optional data-nonneg placeholder="optional" data-label="pump base pressure"><select data-dim="pressure" data-units="mbar,Pa,Torr" data-default="mbar"></select></div>
+                    </div>
+                    <div class="field">
+                        <label for="pt">Target pressure (optional) <span class="sym">p<sub>target</sub></span></label>
+                        <div class="input-unit"><input id="pt" name="pt" value="1e-8" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="target pressure"><select data-dim="pressure" data-units="mbar,Pa,Torr" data-default="mbar"></select></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 0">The pump’s own ultimate pressure adds to the result. With a target, the calculator finds the pumping time to reach it and the speed that would hold it at the time above.</p>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="glr-h" id="gl-results">
+            <div class="panel-head"><h2 id="glr-h">Results</h2><span id="gl-badge" class="badge"></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Pressure at time t<span class="sym">p = p<sub>pump</sub> + Q/S<sub>eff</sub></span></span><output class="result-value" data-out="p">—</output>
+                        <span class="result-note">The outgassing-limited pressure, mostly water vapor in an unbaked system. Leaks and permeation through seals add to it.</span></div>
+                    <div class="result"><span class="result-label">Gas load at time t<span class="sym">Q = Σ q<sub>i</sub>A<sub>i</sub></span></span><output class="result-value" data-out="Q">—</output></div>
+                    <div class="result"><span class="result-label">Share of the gas load</span><output class="result-value" data-out="split">—</output>
+                        <span class="result-note">A small area of polymer often outweighs all the metal around it.</span></div>
+                    <div class="result"><span class="result-label">Pressure after 1 h, 10 h, 100 h, 1000 h</span><output class="result-value" data-out="ptab">—</output></div>
+                    <div class="result"><span class="result-label">Pumping time to reach p<sub>target</sub></span><output class="result-value" data-out="tt">—</output>
+                        <span class="result-note">With these rates kept up indefinitely. Real water outgassing eventually falls faster, and the hydrogen from the steel, about 3&nbsp;×&nbsp;10⁻¹²&nbsp;mbar·L/(s·cm²), takes over after weeks; add it as a row to see where it sets a floor.</span></div>
+                    <div class="result"><span class="result-label">Speed needed to hold p<sub>target</sub> at time t<span class="sym">Q/(p<sub>target</sub> − p<sub>pump</sub>)</span></span><output class="result-value" data-out="Sreq">—</output></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="glp-h">
+        <div class="panel-head"><h2 id="glp-h">Pressure vs. pumping time</h2></div>
+        <div class="panel-body"><div id="gl-plot"></div>
+            <p class="hint" style="margin:0.6rem 0 0">The total pressure and each surface’s share of it (its gas load divided by the pumping speed), on log scales. A straight line falls as a power of time, steeper for a larger exponent, so the metal walls fade while the polymers persist.</p>
+        </div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p><strong>Database search.</strong> The page loads NASA’s table once (13,582 rows, 1.4&nbsp;MB, about 360&nbsp;kB as sent compressed) after the rest of the page has loaded, and filters it in the browser. A test is within the limits when</p>
+        <div class="formula">\[ \text{TML} \le \text{TML}_\text{max} \quad\text{and}\quad \text{CVCM} \le \text{CVCM}_\text{max}, \]</div>
+        <p>both as published (to 0.01&nbsp;%). On the ESA basis, the mass loss is \(\text{RML} = \text{TML} - \text{WVR}\), and both comparisons are strict (&lt;), as ECSS-Q-ST-70-02C writes them. A test missing TML or CVCM is shown as incomplete and never counted as passing.</p>
+        <p><strong>Gas load.</strong> Each surface \(i\) of area \(A_i\) outgasses at a rate that falls as a power of the pumping time \(t\), the empirical law found for nearly all unbaked materials:</p>
+        <div class="formula">\[ q_i(t) = q_{1,i}\left(\frac{t}{1\ \text{h}}\right)^{-n_i}, \qquad Q(t) = \sum_i q_i(t)\,A_i . \]</div>
+        <p>For a rate \(q_\text{ref}\) quoted at another time \(t_\text{ref}\), the rate after 1&nbsp;h on the same law is \(q_1 = q_\text{ref}\,(t_\text{ref}/1\ \text{h})^{n}\); several presets below were converted this way. A constant hydrogen rate from baked metal is \(n = 0\).</p>
+        <p><strong>Pressure.</strong> Hours into a pump-down, the air in the volume is long gone (it is pumped with the time constant \(V/S_\text{eff}\), a fraction of a second for a small chamber on a turbo pump), so the pressure follows the gas load, as in the pump-down equation with \(dp/dt\) negligible:</p>
+        <div class="formula">\[ p(t) = p_\text{pump} + \frac{Q(t)}{S_\text{eff}} . \]</div>
+        <p>Every term of \(Q(t)\) falls or stays constant, so the time to reach a target pressure is the single root of \(Q(t) = S_\text{eff}\,(p_\text{target} - p_\text{pump})\), found by bisection in \(\ln t\). The speed that holds the target at time \(t\) is \(Q(t)/(p_\text{target} - p_\text{pump})\). Units: 1&nbsp;mbar·L/(s·cm²) = 1000&nbsp;Pa·m/s, and 1&nbsp;Torr·L/(s·cm²) = 1333.2&nbsp;Pa·m/s.</p>
+
+        <h2>Typical values</h2>
+        <p>The presets, with their sources. For unbaked materials the scatter between nominally identical samples is an order of magnitude or more, and the cleaning, the humidity the parts were stored in, and how long they stood open matter as much as the material. Rates in mbar·L/(s·cm²) at room temperature.</p>
+        <table>
+            <thead><tr><th>Material and condition</th><th class="num">Rate after 1&nbsp;h</th><th class="num">n</th><th>Source and basis</th></tr></thead>
+            <tbody>
+                <tr><td>Metals (stainless steel, aluminum, copper, titanium), cleaned, unbaked</td><td class="num">3&nbsp;×&nbsp;10⁻⁹</td><td class="num">1</td><td>CERN design rule q = 3&nbsp;×&nbsp;10⁻⁹/t[h], mostly water (Chiggiato, eq.&nbsp;13 and Table&nbsp;3; Baglin, eq.&nbsp;11)</td></tr>
+                <tr><td>Stainless steel, literature average</td><td class="num">1.9&nbsp;×&nbsp;10⁻⁷</td><td class="num">1</td><td rowspan="5">Averages of published values at 1&nbsp;h (Edwards application note, from Grinham and Chew); n&nbsp;≈&nbsp;1 for metals and glass</td></tr>
+                <tr><td>Aluminum, literature average</td><td class="num">3.0&nbsp;×&nbsp;10⁻⁷</td><td class="num">1</td></tr>
+                <tr><td>Copper, literature average</td><td class="num">2.3&nbsp;×&nbsp;10⁻⁸</td><td class="num">1</td></tr>
+                <tr><td>Mild steel, fresh</td><td class="num">6.2&nbsp;×&nbsp;10⁻⁷</td><td class="num">1</td></tr>
+                <tr><td>Titanium / borosilicate glass (Pyrex)</td><td class="num">1.0&nbsp;×&nbsp;10⁻⁸ / 9.9&nbsp;×&nbsp;10⁻⁹</td><td class="num">1</td></tr>
+                <tr><td>Stainless steel baked 24&nbsp;h at 150&nbsp;°C (H₂)</td><td class="num">3&nbsp;×&nbsp;10⁻¹²</td><td class="num">0</td><td rowspan="3">Chiggiato, Table&nbsp;3 (Cu measured at CERN; steel and Al from his refs.&nbsp;13–16)</td></tr>
+                <tr><td>Aluminum alloys baked at 100–200&nbsp;°C, about 20&nbsp;h (H₂)</td><td class="num">1&nbsp;×&nbsp;10⁻¹³</td><td class="num">0</td></tr>
+                <tr><td>OFS copper baked 24&nbsp;h at 200&nbsp;°C (H₂)</td><td class="num">3&nbsp;×&nbsp;10⁻¹⁴</td><td class="num">0</td></tr>
+                <tr><td>316LN vacuum-fired at 950&nbsp;°C, then baked at 300&nbsp;°C (H₂)</td><td class="num">6&nbsp;×&nbsp;10⁻¹⁵</td><td class="num">0</td><td>Baglin</td></tr>
+                <tr><td>Fluoroelastomer (Viton, FKM), unbaked</td><td class="num">1.1&nbsp;×&nbsp;10⁻⁶</td><td class="num">0.7</td><td>Edwards (1&nbsp;h); n chosen to give 2.2&nbsp;×&nbsp;10⁻⁷ at 10&nbsp;h, against Baglin’s 2&nbsp;×&nbsp;10⁻⁷</td></tr>
+                <tr><td>Fluoroelastomer, after bake-out</td><td class="num">5&nbsp;×&nbsp;10⁻¹⁰</td><td class="num">0</td><td>Baglin</td></tr>
+                <tr><td>Neoprene</td><td class="num">4.0&nbsp;×&nbsp;10⁻⁵</td><td class="num">0.6</td><td>Edwards (1&nbsp;h); n from Chiggiato’s 10⁻⁵ at 10&nbsp;h</td></tr>
+                <tr><td>PTFE / PVC (stored at 95&nbsp;% humidity)</td><td class="num">1.4&nbsp;×&nbsp;10⁻⁶ / 3.2&nbsp;×&nbsp;10⁻⁶</td><td class="num">0.5</td><td>Edwards (1&nbsp;h); n&nbsp;=&nbsp;0.5, diffusion from the bulk (polymers 0.4–0.8, Grinham and Chew)</td></tr>
+                <tr><td>PEEK, 2&nbsp;mm thick, unbaked</td><td class="num">4.7&nbsp;×&nbsp;10⁻⁷</td><td class="num">0.5</td><td>Chiggiato: 500 times the metal rule (1.5&nbsp;×&nbsp;10⁻⁷) at 10&nbsp;h, slope −0.5 after 3&nbsp;h</td></tr>
+                <tr><td>Kapton HN film, 0.125&nbsp;mm, unbaked</td><td class="num">6.4&nbsp;×&nbsp;10⁻⁸</td><td class="num">0.5</td><td rowspan="2">CERN, Sammartano et al. (1.3&nbsp;×&nbsp;10⁻⁸ and 1.6&nbsp;×&nbsp;10⁻⁶ at 24&nbsp;h), back-extrapolated as 1/√t</td></tr>
+                <tr><td>Vespel SP-1, 1.3&nbsp;mm, unbaked</td><td class="num">7.8&nbsp;×&nbsp;10⁻⁶</td><td class="num">0.5</td></tr>
+            </tbody>
+        </table>
+        <p>The cleaned-metal rule and the literature averages differ by a factor of 60 for stainless steel. The averages include as-received and poorly cleaned surfaces, so use the CERN rule for parts cleaned for vacuum and the averages as a pessimistic case. Thin films such as Kapton deplete their water within hours: after the bend, the rate falls much faster than 1/√t (Baglin gives 5&nbsp;×&nbsp;10⁻¹⁰ after 100&nbsp;h for 0.1&nbsp;mm), so the preset overestimates it at long times. ISO/TS&nbsp;20177:2018 sets out how outgassing rates should be measured and reported; quote the pumping time with any rate you measure.</p>
+
+        <h2>Worked example</h2>
+        <p>The defaults: a chamber with 5400&nbsp;cm² of cleaned, unbaked stainless steel walls (a 30&nbsp;cm cube), 20&nbsp;cm² of Viton O-ring surface facing the vacuum, and 50&nbsp;cm² of PEEK insulators, pumped at an effective 200&nbsp;L/s.</p>
+        <ul>
+            <li>After 10&nbsp;h the steel gives 3&nbsp;×&nbsp;10⁻⁹/10 × 5400 = 1.62&nbsp;×&nbsp;10⁻⁶&nbsp;mbar·L/s, the Viton 1.1&nbsp;×&nbsp;10⁻⁶ × 10<sup>−0.7</sup> × 20 = 4.39&nbsp;×&nbsp;10⁻⁶, and the PEEK 4.7&nbsp;×&nbsp;10⁻⁷ × 10<sup>−0.5</sup> × 50 = 7.43&nbsp;×&nbsp;10⁻⁶&nbsp;mbar·L/s.</li>
+            <li>The total, Q = 1.34&nbsp;×&nbsp;10⁻⁵&nbsp;mbar·L/s, holds the chamber at 1.34&nbsp;×&nbsp;10⁻⁵/200 = 6.7&nbsp;×&nbsp;10⁻⁸&nbsp;mbar. The 70&nbsp;cm² of polymer, 1.3&nbsp;% of the area, supplies 88&nbsp;% of the gas.</li>
+            <li>To reach 10⁻⁸&nbsp;mbar takes 253&nbsp;h, about 10.5 days. The steel alone would get there in 8.1&nbsp;h: 3&nbsp;×&nbsp;10⁻⁹ × 5400/(200 × 10⁻⁸) = 8.1. Holding 10⁻⁸&nbsp;mbar at 10&nbsp;h would take 1340&nbsp;L/s, a much larger pump; replacing the PEEK with metal parts and baking the seals is cheaper.</li>
+            <li>In Part&nbsp;1, a search for <a href="#db.q=PEEK">PEEK</a> finds 25 tests, 24 within the NASA limits. PEEK is a sound low-contamination choice, and still the largest gas source here. The two criteria measure different things.</li>
+        </ul>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Power-law rates.</strong> \(q \propto t^{-n}\) is an empirical fit that holds over a few decades of time. Water from metals follows 1/t from minutes to weeks; diffusion from polymers follows 1/√t until the part is depleted, after which it falls faster (thin films within hours). The calculator does not model that bend, so at long times it overestimates thin polymer parts.</li>
+            <li><strong>Room temperature.</strong> Outgassing rises steeply with temperature; a heated stage or a lamp near a polymer part changes everything. Bake-out lowers the later rates by orders of magnitude, and the baked presets assume it has been done.</li>
+            <li><strong>Each surface independent.</strong> Readsorption on the other walls, permeation of air and water through elastomer seals (about 10⁻⁷&nbsp;mbar·L/s of water through a 6&nbsp;cm Viton O-ring with a 5&nbsp;mm cord, once it reaches steady state after about two months), leaks, and virtual leaks (trapped volumes behind screws and welds) are not included.</li>
+            <li><strong>One pumping speed.</strong> Pumps have different speeds for different gases, and a turbo pump’s speed and compression are lowest for hydrogen. Use the speed for the gas that dominates, usually water.</li>
+            <li><strong>E595 numbers are not rates.</strong> TML and CVCM come from a 125&nbsp;°C test and cannot be converted into a room-temperature rate. NASA’s guide notes that formulations change and recommends testing each lot for critical uses. Manufacturer codes are shown as NASA lists them; the current NASA site does not publish the code list.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>NASA Goddard Space Flight Center, Engineering and Technology Directorate, “Outgassing Database” and “Outgassing Database User Guide,” <a href="https://etd.gsfc.nasa.gov/capabilities/outgassing-database/" target="_blank" rel="noopener">etd.gsfc.nasa.gov</a> (retrieved 6 November 2026) (all 13,582 test results shown here, the test procedure, the 1.0&nbsp;% TML and 0.10&nbsp;% CVCM criteria, cure notation, and the caution on batch testing). The data are a US Government work; NASA does not endorse this page.</li>
+            <li>W. A. Campbell Jr. and J. J. Scialdone, “Outgassing Data for Selecting Spacecraft Materials,” NASA Reference Publication 1124, Revision 3 (November 1990) (the printed compilation the database continues).</li>
+            <li>ASTM E595-15(2021), Standard Test Method for Total Mass Loss and Collected Volatile Condensable Materials from Outgassing in a Vacuum Environment, ASTM International (125&nbsp;°C, below 7&nbsp;×&nbsp;10⁻³&nbsp;Pa, 24&nbsp;h, 25&nbsp;°C collector; a screening method, not valid for computing contamination of a system).</li>
+            <li>ECSS-Q-ST-70-02C, Space product assurance — Thermal vacuum outgassing test for the screening of space materials, ESA Requirements and Standards Division (15 November 2008), <a href="https://ecss.nl/standard/ecss-q-st-70-02c-thermal-vacuum-outgassing-test-for-the-screening-of-space-materials/" target="_blank" rel="noopener">ecss.nl</a> (RML = TML − WVR; limits RML &lt; 1.0&nbsp;% and CVCM &lt; 0.10&nbsp;%).</li>
+            <li>P. Chiggiato, “Outgassing properties of vacuum materials for particle accelerators,” lecture notes, CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.07124" target="_blank" rel="noopener">arXiv:2006.07124</a> (2020) (the 3&nbsp;×&nbsp;10⁻⁹/t rule for cleaned metals, eq.&nbsp;13; rates of baked metals and neoprene, Table&nbsp;3; PEEK’s rate and 1/√t decay, Fig.&nbsp;30; Viton permeation).</li>
+            <li>V. Baglin, “Vacuum in accelerators for mechanical &amp; materials engineering,” CERN Accelerator School: Mechanical &amp; Materials Engineering for Particle Accelerators and Detectors (Sint-Michielsgestel, 2024), <a href="https://arxiv.org/abs/2601.11361" target="_blank" rel="noopener">arXiv:2601.11361</a> (the same metal rule, eq.&nbsp;11; Viton unbaked and baked; Kapton after 100&nbsp;h; vacuum-fired 316LN).</li>
+            <li>S. G. Sammartano, I. Wevers, G. Bregliozzi, and P. Chiggiato, “Outgassing rates of PEEK, Kapton and Vespel foils,” CERN ATS note, draft of 13 October 2021, attached to I. Wevers, “Outgassing of Polymers,” CERN workshop <em>Materials and Engineering Technologies for Particle Accelerator Beam Diagnostic Instruments</em> (21–23 June 2021), <a href="https://indico.cern.ch/event/1031708/contributions/4355322/" target="_blank" rel="noopener">indico.cern.ch</a> (Table&nbsp;2, rates after 24&nbsp;h by thickness; 1/√t decay and its later bend).</li>
+            <li>R. Grinham and A. Chew, “A review of outgassing and methods for its reduction,” <em>Appl. Sci. Converg. Technol.</em> <strong>26</strong>, 95–109 (2017), <a href="https://doi.org/10.5757/ASCT.2017.26.5.95" target="_blank" rel="noopener">doi:10.5757/ASCT.2017.26.5.95</a> (averaged literature rates, Table&nbsp;4, and the time exponents of metals, polymers, and porous surfaces); converted to mbar at 1&nbsp;h in Edwards, “Outgassing,” application note 3601&nbsp;2171&nbsp;01 (2021).</li>
+            <li>R. J. Elsey, “Outgassing of vacuum materials — I,” <em>Vacuum</em> <strong>25</strong>, 299–306 (1975), <a href="https://doi.org/10.1016/0042-207X(75)90730-7" target="_blank" rel="noopener">doi:10.1016/0042-207X(75)90730-7</a>, and “— II,” <strong>25</strong>, 347–361 (1975), <a href="https://doi.org/10.1016/0042-207X(75)91653-X" target="_blank" rel="noopener">doi:10.1016/0042-207X(75)91653-X</a> (the classic review of outgassing measurements, mechanisms, and their time dependence).</li>
+            <li>P. A. Redhead, “Modeling the pump-down of a reversibly adsorbed phase. I. Monolayer and submonolayer initial coverage,” <em>J. Vac. Sci. Technol. A</em> <strong>13</strong>, 467–475 (1995), <a href="https://doi.org/10.1116/1.579381" target="_blank" rel="noopener">doi:10.1116/1.579381</a> (why water desorption from a surface with a spread of binding energies falls about as 1/t).</li>
+            <li>P. A. Redhead, “Recommended practices for measuring and reporting outgassing data,” <em>J. Vac. Sci. Technol. A</em> <strong>20</strong>, 1667–1675 (2002), <a href="https://doi.org/10.1116/1.1496783" target="_blank" rel="noopener">doi:10.1116/1.1496783</a> (why a rate needs its pumping time, temperature, and history).</li>
+            <li>ISO/TS&nbsp;20177:2018, Vacuum technology — Vacuum gauges — Procedures to measure and report outgassing rates.</li>
+            <li>J. F. O’Hanlon, <em>A User’s Guide to Vacuum Technology</em>, 3rd ed., Wiley (2003), <a href="https://doi.org/10.1002/0471467162" target="_blank" rel="noopener">doi:10.1002/0471467162</a>, ch. 4 (gas release from solids: desorption, diffusion, and permeation, and their time dependence).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>P. Chiggiato, “Outgassing properties of vacuum materials for particle accelerators,” <a href="https://arxiv.org/abs/2006.07124" target="_blank" rel="noopener">arXiv:2006.07124</a> (the most complete free treatment: water, hydrogen, polymers, bake-out, and how rates are measured).</li>
+            <li>Edwards Vacuum, “Outgassing,” application note 3601&nbsp;2171&nbsp;01 (2021), <a href="https://www.edwardsvacuum.com/content/dam/brands/edwards-vacuum/general-vacuum/gated-downloads/application-notes/3601-2171-01-outgassing.pdf" target="_blank" rel="noopener">edwardsvacuum.com</a> (two pages: the gas sources, the power law, and a table of rates at 1&nbsp;h).</li>
+            <li>NASA Goddard, “Outgassing Database User Guide,” <a href="https://etd.gsfc.nasa.gov/capabilities/outgassing-database/user-guide" target="_blank" rel="noopener">etd.gsfc.nasa.gov</a> (how the E595 test works and how to read the table).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="pumpdown,mean-free-path,pressure-converter,article:vacuum-fundamentals"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    /* ── Part 1: NASA outgassing database ─────────────────────────────────── */
+    const DATA_URL = '/tools/outgassing/nasa-e595.json';
+    const PAGE = 50;
+    let db = null, failed = false, loading = false, shown = PAGE, matches = [], lastKey = '', dbCalc = null, cur = null;
+    const statusBox = document.getElementById('db-status'), tableBox = document.getElementById('db-table');
+    const moreBtn = document.getElementById('db-more'), csvBtn = document.getElementById('db-csv'), dbBadge = document.getElementById('db-badge');
+
+    // search text: lower case, accents and punctuation removed; three forms so that "RTV-566", "RTV 566", and "RTV566" meet
+    const fold = s => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
+    const spaced = s => ' ' + fold(s).replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+    const joined = s => ' ' + fold(s).replace(/([a-z0-9])[-./]+(?=[a-z0-9])/g, '$1').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+    const glued = s => spaced(s).replace(/([a-z]) (?=\d)/g, '$1');
+    function prepare(d) {
+        const rows = d.rows.map((r, i) => {
+            const cat = r[8] === null ? '' : d.cats[r[8]];
+            const text = r[0] + ' ' + r[1] + ' ' + r[2] + ' ' + d.apps[r[6]] + ' ' + cat;
+            return { i, mat: r[0], ref: r[1], mfr: r[2], tml: r[3], cvcm: r[4], wvr: r[5], app: d.apps[r[6]], year: r[7], cat: r[8],
+                     catApp: r.length > 10, cure: d.cures[r[9]], hay: spaced(text) + '|' + joined(text) + '|' + glued(text), matS: spaced(r[0]) + joined(r[0]) };
+        });
+        const az = rows.slice().sort((a, b) => a.mat.localeCompare(b.mat, 'en', { sensitivity: 'base', numeric: true }) || a.i - b.i);
+        az.forEach((r, k) => { r.az = k; });
+        return { rows, cats: d.cats, accessed: d.accessed, count: d.count };
+    }
+    function load() {
+        if (loading || db) return;
+        loading = true;
+        fetch(DATA_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(d => { db = prepare(d); csvBtn.disabled = false; dbCalc.run(); })
+            .catch(e => { failed = true; console.warn('Outgassing table not loaded: ' + e.message); dbCalc.run(); });
+    }
+    // fetch the table once the page itself has finished loading, so it never delays the first paint
+    const whenLoaded = () => { if (document.readyState === 'complete') load(); else window.addEventListener('load', load, { once: true }); };
+
+    // each typed word, joined ("o-ring" → "oring") and split at its hyphens, dots, and slashes (["o", "ring"])
+    const terms = q => fold(q).split(/\s+/).map(w => ({ t: w.replace(/[-./]+/g, '').replace(/[^a-z0-9]/g, ''),
+        parts: w.split(/[-./]+/).map(x => x.replace(/[^a-z0-9]/g, '')).filter(Boolean) })).filter(x => x.t);
+    // a short word (1–2 characters) has to start a word; a longer one may sit anywhere
+    const hit = (hay, t) => t.length <= 2 ? hay.indexOf(' ' + t) !== -1 : hay.indexOf(t) !== -1;
+    // a hyphenated word matches written either way: joined ("ORING", "RTV566") or as its separate parts ("O RING")
+    const hitTerm = (hay, x) => hit(hay, x.t) || (x.parts.length > 1 && x.parts.every(p => hit(hay, p)));
+    const rmlOf = r => r.wvr === null || r.tml === null ? r.tml : Math.round((r.tml - r.wvr) * 1000) / 1000;
+    function verdict(r, o) {
+        const m = o.rml ? rmlOf(r) : r.tml;
+        if (m === null || r.cvcm === null) return { ok: null, m };
+        const okM = o.rml ? m < o.lt : m <= o.lt, okC = o.rml ? r.cvcm < o.lc : r.cvcm <= o.lc;
+        return { ok: okM && okC, m, okM, okC };
+    }
+    const pct = x => x === null ? '—' : (Math.round(x * 100) / 100).toFixed(2);
+    function median(xs) {
+        if (!xs.length) return null;
+        const s = xs.slice().sort((a, b) => a - b), k = s.length >> 1;
+        return s.length % 2 ? s[k] : (s[k - 1] + s[k]) / 2;
+    }
+    function mark(text, toks) {
+        // highlight the typed words in the material name (letters and digits only, case-insensitive)
+        const words = toks.filter(t => t.length > 1).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        if (!words.length) return esc(text);
+        const re = new RegExp('(' + words.join('|') + ')', 'gi');
+        return text.split(re).map((part, k) => k % 2 ? '<mark>' + esc(part) + '</mark>' : esc(part)).join('');
+    }
+
+    function render() {
+        const o = cur;
+        if (!matches.length) { tableBox.innerHTML = ''; moreBtn.hidden = true; return; }
+        const n = Math.min(shown, matches.length);
+        const body = matches.slice(0, n).map(r => {
+            const v = verdict(r, o);
+            const badge = v.ok === null ? '<span class="db-badge na">Incomplete</span>' : v.ok ? '<span class="db-badge ok">Within limits</span>'
+                : '<span class="db-badge bad">' + (!v.okM && !v.okC ? 'Both over' : !v.okM ? (o.rml ? 'RML over' : 'TML over') : 'CVCM over') + '</span>';
+            const cls = bad => 'num' + (bad ? ' over' : '');
+            const sub = [r.mfr && 'Mfr ' + esc(r.mfr), esc(r.ref), r.year ? r.year : 'year unknown'].filter(Boolean).join(' · ');
+            const cat = r.cat === null ? '' : esc(o.catName[r.cat]) + (r.catApp ? ' (matched)' : '');
+            return '<tr><td class="nm"><b>' + mark(r.mat, o.marks) + '</b><span class="sub">' + sub + '</span></td>' +
+                '<td class="app">' + esc(r.app || '—') + (cat ? '<span class="sub">' + cat + '</span>' : '') + '</td>' +
+                '<td class="' + cls(v.ok !== null && !v.okM && !o.rml) + '" data-label="TML %">' + pct(r.tml) + '</td>' +
+                '<td class="' + cls(v.ok !== null && !v.okC) + '" data-label="CVCM %">' + pct(r.cvcm) + '</td>' +
+                '<td class="num" data-label="WVR %">' + pct(r.wvr) + '</td>' +
+                (o.rml ? '<td class="' + cls(v.ok !== null && !v.okM) + '" data-label="RML %">' + pct(v.m) + '</td>' : '') +
+                (r.cure ? '<td class="cure" data-label="Cure">' + esc(r.cure) + '</td>' : '<td class="cure na">—</td>') + '<td class="scr">' + badge + '</td></tr>';
+        }).join('');
+        tableBox.innerHTML = '<table class="db"><caption class="visually-hidden">NASA ASTM E595 outgassing test results matching the search, ' + n + ' of ' + matches.length + ' shown</caption>' +
+            '<thead><tr><th scope="col">Material</th><th scope="col">Application</th><th scope="col" class="num">TML %</th><th scope="col" class="num">CVCM %</th><th scope="col" class="num">WVR %</th>' +
+            (o.rml ? '<th scope="col" class="num">RML %</th>' : '') + '<th scope="col">Cure</th><th scope="col">Screen</th></tr></thead><tbody>' + body + '</tbody></table>';
+        moreBtn.hidden = n >= matches.length;
+        moreBtn.textContent = 'Show ' + Math.min(PAGE, matches.length - n) + ' more';
+        statusBox.textContent = 'Showing ' + n.toLocaleString('en-US') + ' of ' + matches.length.toLocaleString('en-US') + ' matching tests.';
+    }
+    moreBtn.addEventListener('click', () => { shown += PAGE; render(); });
+
+    function csvCell(x) { const s = x === null || x === undefined ? '' : String(x); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+    csvBtn.addEventListener('click', () => {
+        if (!db || !cur) return;
+        const head = ['material', 'data_ref', 'mfr_code', 'tml_pct', 'cvcm_pct', 'wvr_pct', 'rml_pct', 'application', 'category', 'category_matched_from_application', 'year', 'cure', 'within_limits'];
+        const lines = [head.join(',')].concat(matches.map(r => {
+            const v = verdict(r, cur);
+            return [r.mat, r.ref, r.mfr, r.tml, r.cvcm, r.wvr, rmlOf(r), r.app, r.cat === null ? '' : db.cats[r.cat], r.catApp ? 'yes' : '', r.year, r.cure,
+                    v.ok === null ? 'incomplete' : v.ok ? 'yes' : 'no'].map(csvCell).join(',');
+        }));
+        const note = 'Source: NASA Goddard Space Flight Center Outgassing Database (ASTM E595), https://etd.gsfc.nasa.gov/capabilities/outgassing-database/, retrieved ' + db.accessed +
+            '. Limits applied: ' + (cur.rml ? 'RML < ' : 'TML <= ') + cur.ltRaw + ' %, CVCM ' + (cur.rml ? '< ' : '<= ') + cur.lcRaw + ' %. Via cdfoley.com/tools/outgassing/';
+        const blob = new Blob(['﻿' + lines.join('\r\n') + '\r\n\r\n' + csvCell(note) + '\r\n'], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'nasa-outgassing-matches.csv';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    });
+
+    document.querySelectorAll('.og-chips [data-q]').forEach(b => b.addEventListener('click', () => {
+        const box = document.getElementById('dq');
+        box.value = b.dataset.q; box.dispatchEvent(new Event('input', { bubbles: true })); box.focus();
+    }));
+
+    const limNote = document.getElementById('db-lim');
+    const catName = Array.from(document.querySelectorAll('#dcat option')).reduce((m, op) => { if (op.value !== '') m[+op.value] = op.textContent; return m; }, {});
+    dbCalc = Calc.create({
+        form: '#db', id: 'db', outputs: '#db-results',
+        compute(v) {
+            const since = isFinite(v.since) ? v.since : null;
+            if (since !== null && !(since >= 1900 && since <= 2100 && Number.isInteger(since))) throw Calc.fail('Enter a four-digit year, or leave it blank.', 'since');
+            const tm = terms(v.q);
+            const o = { terms: tm, toks: tm.map(x => x.t), marks: tm.flatMap(x => x.parts.length > 1 ? [x.t].concat(x.parts) : [x.t]), cat: v.cat === '' ? null : +v.cat, rml: v.basis === 'rml', lt: v.tml, lc: v.cvcm, ltRaw: v.$raw.tml.trim(), lcRaw: v.$raw.cvcm.trim(), since, catName };
+            cur = o;
+            const basisName = o.rml ? 'RML' : 'TML';
+            const lim = basisName + (o.rml ? ' < ' : ' ≤ ') + v.$raw.tml.trim() + ' %, CVCM' + (o.rml ? ' < ' : ' ≤ ') + v.$raw.cvcm.trim() + ' %';
+            if (!db) {
+                dbBadge.textContent = ''; dbBadge.className = 'badge';
+                if (failed) {
+                    statusBox.textContent = 'The NASA table could not be loaded. Check the connection and reload the page.';
+                    return { n: 'not available', pass: 'not available', med: 'not available', src: 'not loaded' };
+                }
+                whenLoaded();
+                statusBox.textContent = 'Loading the NASA table…';
+                return { n: 'loading…', pass: 'loading…', med: 'loading…', src: 'NASA GSFC, loading…' };
+            }
+            limNote.textContent = 'Of the matches with both values reported, at ' + lim + '.';
+            const key = JSON.stringify([o.terms, o.cat, o.since, v.sort, v.pass, o.rml, o.lt, o.lc]);
+            if (key !== lastKey) { shown = PAGE; lastKey = key; }
+            let m = db.rows.filter(r => (o.cat === null || r.cat === o.cat) && (since === null || (r.year !== null && r.year >= since)) && o.terms.every(x => hitTerm(r.hay, x)));
+            const any = m.length;
+            const judged = m.map(r => verdict(r, o));
+            const nJudged = judged.filter(j => j.ok !== null).length, nPass = judged.filter(j => j.ok).length;
+            if (v.pass) m = m.filter((r, k) => judged[k].ok);
+            // sorting
+            const nullLast = (a, b) => (a === null) - (b === null);
+            const score = r => o.toks.reduce((s, t) => s + (r.matS.indexOf(' ' + t) !== -1 ? 3 : r.matS.indexOf(t) !== -1 ? 1 : 0), 0);
+            const sorts = {
+                best: o.toks.length ? (a, b) => (b._s - a._s) || a.az - b.az : (a, b) => a.az - b.az,
+                tml: o.rml ? (a, b) => nullLast(rmlOf(a), rmlOf(b)) || (rmlOf(a) - rmlOf(b)) || a.az - b.az
+                           : (a, b) => nullLast(a.tml, b.tml) || (a.tml - b.tml) || a.az - b.az,
+                cvcm: (a, b) => nullLast(a.cvcm, b.cvcm) || (a.cvcm - b.cvcm) || a.az - b.az,
+                new: (a, b) => nullLast(a.year, b.year) || (b.year - a.year) || b.i - a.i,
+                az: (a, b) => a.az - b.az
+            };
+            if (v.sort === 'best' && o.toks.length) m.forEach(r => { r._s = score(r); });
+            matches = m.sort(sorts[v.sort] || sorts.best);
+            render();
+            if (!matches.length) statusBox.textContent = any ? 'No matching test is within the limits. Clear “Show only materials within both limits” to see them all.' : 'No test matches. Try fewer or shorter words, another spelling, or All categories.';
+            const share = nJudged ? Math.round(100 * nPass / nJudged) : 0;
+            if (any && nJudged) { dbBadge.textContent = share + ' % within limits'; dbBadge.className = 'badge ' + (share >= 50 ? 'badge-ok' : share > 0 ? 'badge-warn' : 'badge-bad'); }
+            else { dbBadge.textContent = ''; dbBadge.className = 'badge'; }
+            const mt = median(m.length ? matches.map(r => o.rml ? rmlOf(r) : r.tml).filter(x => x !== null) : []);
+            const mc = median(m.length ? matches.map(r => r.cvcm).filter(x => x !== null) : []);
+            return {
+                n: any.toLocaleString('en-US') + ' of ' + db.count.toLocaleString('en-US') + (v.pass && matches.length !== any ? ' (' + matches.length.toLocaleString('en-US') + ' shown)' : ''),
+                pass: nJudged ? nPass.toLocaleString('en-US') + ' of ' + nJudged.toLocaleString('en-US') + ' (' + share + ' %)' : 'none with both values',
+                med: mt === null ? 'no matches' : basisName + ' ' + pct(mt) + ' %, CVCM ' + (mc === null ? '—' : pct(mc)) + ' %',
+                src: 'NASA GSFC, ' + db.count.toLocaleString('en-US') + ' tests, 1964–2023'
+            };
+        },
+        onError() { dbBadge.textContent = ''; dbBadge.className = 'badge'; }
+    });
+
+    /* ── Part 2: gas load and base pressure ───────────────────────────────── */
+    // q₁: rate after 1 h of pumping, mbar·L/(s·cm²); n: exponent of q ∝ t^−n. Sources in the "Typical values" table.
+    const PRESETS = {
+        'metal':    { q: 3e-9,   n: 1,   note: 'CERN design rule for cleaned, unbaked metals: 3 × 10⁻⁹/t[h], mostly water (Chiggiato; Baglin).' },
+        'ss-avg':   { q: 1.9e-7, n: 1,   note: 'Average of published values at 1 h (Edwards, from Grinham and Chew); includes as-received surfaces.' },
+        'al-avg':   { q: 3.0e-7, n: 1,   note: 'Average of published values at 1 h (Edwards, from Grinham and Chew).' },
+        'cu-avg':   { q: 2.3e-8, n: 1,   note: 'Average of published values at 1 h (Edwards, from Grinham and Chew).' },
+        'mild':     { q: 6.2e-7, n: 1,   note: 'Fresh mild steel, average at 1 h (Edwards, from Grinham and Chew).' },
+        'ti':       { q: 1.0e-8, n: 1,   note: 'Average at 1 h (Edwards, from Grinham and Chew).' },
+        'glass':    { q: 9.9e-9, n: 1,   note: 'Fresh Pyrex, average at 1 h (Edwards, from Grinham and Chew).' },
+        'ss-bake':  { q: 3e-12,  n: 0,   note: 'Hydrogen after 24 h at 150 °C, constant (Chiggiato, Table 3).' },
+        'al-bake':  { q: 1e-13,  n: 0,   note: 'Hydrogen after about 20 h at 100–200 °C, constant (Chiggiato, Table 3).' },
+        'cu-bake':  { q: 3e-14,  n: 0,   note: 'OFS copper, hydrogen after 24 h at 200 °C, constant (Chiggiato, Table 3).' },
+        'ss-fired': { q: 6e-15,  n: 0,   note: '316LN vacuum-fired at 950 °C, then baked at 300 °C (Baglin).' },
+        'fkm':      { q: 1.1e-6, n: 0.7, note: 'Edwards at 1 h; n = 0.7 gives 2.2 × 10⁻⁷ at 10 h, close to Baglin’s 2 × 10⁻⁷.' },
+        'fkm-bake': { q: 5e-10,  n: 0,   note: 'After bake-out, taken as constant (Baglin).' },
+        'neoprene': { q: 4.0e-5, n: 0.6, note: 'Edwards at 1 h; n = 0.6 gives Chiggiato’s 10⁻⁵ at 10 h.' },
+        'ptfe':     { q: 1.4e-6, n: 0.5, note: 'Edwards at 1 h; n = 0.5 for diffusion from the bulk.' },
+        'pvc':      { q: 3.2e-6, n: 0.5, note: 'Stored at 95 % humidity; Edwards at 1 h; n = 0.5.' },
+        'peek':     { q: 4.7e-7, n: 0.5, note: '2 mm thick: Chiggiato’s 1.5 × 10⁻⁷ at 10 h, back-extrapolated as 1/√t.' },
+        'kapton':   { q: 6.4e-8, n: 0.5, note: '0.125 mm film: 1.3 × 10⁻⁸ at 24 h (Sammartano et al.), back-extrapolated as 1/√t. Falls faster after a few hours.' },
+        'vespel':   { q: 7.8e-6, n: 0.5, note: '1.3 mm: 1.6 × 10⁻⁶ at 24 h (Sammartano et al.), back-extrapolated as 1/√t.' }
+    };
+    const NROWS = 4, rows = [];
+    for (let i = 1; i <= NROWS; i++) {
+        rows.push({ i, sel: document.getElementById('m' + i), vals: document.getElementById('vals' + i), q: document.getElementById('q' + i), n: document.getElementById('n' + i), src: document.getElementById('src' + i) });
+    }
+    const qUnitSel = r => r.q.parentElement.querySelector('select');
+    const toUnit = (r, mbar) => Calc.fromSI('outgassing', qUnitSel(r).value || 'mbar·L/(s·cm²)', Calc.toSI('outgassing', 'mbar·L/(s·cm²)', mbar));
+    const presetText = (r, p) => ({ q: fmt.plain(toUnit(r, p.q), 3), n: String(p.n) });
+    function syncRow(r) {
+        const p = PRESETS[r.sel.value];
+        r.vals.hidden = r.sel.value === 'none';
+        r.src.hidden = !p;
+        r.src.textContent = p ? p.note : '';
+    }
+    rows.forEach(r => {
+        r.sel.addEventListener('change', () => {
+            const p = PRESETS[r.sel.value];
+            if (p) { const t = presetText(r, p); r.q.value = t.q; r.n.value = t.n; }
+            syncRow(r);
+        });
+        [r.q, r.n].forEach(inp => inp.addEventListener('input', () => {
+            const p = PRESETS[r.sel.value];
+            if (!p) return;
+            const t = presetText(r, p);
+            if (Calc.parseNum(r.q.value) !== Calc.parseNum(t.q) || Calc.parseNum(r.n.value) !== p.n) { r.sel.value = 'custom'; syncRow(r); }
+        }));
+        syncRow(r);
+    });
+
+    function fmtTime(h) {
+        if (!isFinite(h)) return '∞';
+        if (h < 1) return fmt.num(h * 60, 3) + ' min';
+        if (h < 72) return fmt.num(h, 3) + ' h';
+        if (h < 24 * 365) return fmt.num(h, 3) + ' h (' + fmt.num(h / 24, 3) + ' days)';
+        return fmt.num(h / 8766, 3) + ' years';
+    }
+    const glBadge = document.getElementById('gl-badge');
+    let glLast = null;
+    const glCalc = Calc.create({
+        form: '#gl', id: 'gl', outputs: '#gl-results',
+        compute(v) {
+            rows.forEach(syncRow);
+            const used = [];
+            rows.forEach(r => {
+                const k = r.i;
+                if (v['m' + k] === 'none') return;
+                if (!(v['A' + k] > 0)) throw Calc.fail('Enter the area of surface ' + k + ', or set it to “not used”.', 'A' + k);
+                if (!(v['q' + k] >= 0)) throw Calc.fail('Enter the outgassing rate of surface ' + k + '.', 'q' + k);
+                if (!(v['n' + k] >= 0 && v['n' + k] <= 3)) throw Calc.fail('The exponent of surface ' + k + ' should be between 0 and 3 (1 for metals, about 0.5 for polymers).', 'n' + k);
+                const opt = r.sel.selectedOptions[0];
+                used.push({ k, name: r.sel.value === 'custom' ? 'Surface ' + k + ' (custom)' : opt.dataset.short || opt.textContent, q1: v['q' + k], n: v['n' + k], A: v['A' + k] });
+            });
+            if (!used.length) throw Calc.fail('Choose a material for at least one surface.', 'm1');
+            const pp = isFinite(v.pb) ? v.pb : 0;                 // Pa
+            const S = v.S;                                          // m³/s
+            const th = v.t / 3600;                                  // pumping time in hours
+            const Qi = (u, h) => u.q1 * Math.pow(h, -u.n) * u.A;    // Pa·m/s × m² = Pa·m³/s
+            const Q = h => used.reduce((s, u) => s + Qi(u, h), 0);
+            const P = h => pp + Q(h) / S;
+            const Qt = Q(th), pt = P(th);
+            const unit = v.$unit.pt || v.$unit.pb || 'mbar';
+            const pFmt = pa => fmt.sci(Calc.fromSI('pressure', unit, pa), 3) + ' ' + unit;
+            const qu = qUnitSel(rows[used[0].k - 1]).value || '';
+            const QFmt = q => qu.startsWith('Torr') ? fmt.sci(q / (Calc.K.torr * 1e-3), 3) + ' Torr·L/s' : qu.startsWith('Pa') ? fmt.sci(q, 3) + ' Pa·m³/s' : fmt.sci(q * 10, 3) + ' mbar·L/s';
+            const shares = used.map(u => ({ u, f: Qi(u, th) / Qt })).sort((a, b) => b.f - a.f);
+            // time to the target: Q(t) falls monotonically, so bisect ln t between 1 s and 10⁶ years
+            let tt = null, Sreq = null, ttNote = null;
+            const hasT = isFinite(v.pt);
+            if (hasT) {
+                if (!(v.pt > pp)) throw Calc.fail('The target pressure must be above the pump base pressure.', 'pt');
+                const goal = S * (v.pt - pp);
+                Sreq = Qt / (v.pt - pp);
+                let lo = Math.log(1 / 3600), hi = Math.log(8.766e9);
+                const Qconst = used.filter(u => u.n === 0).reduce((s, u) => s + u.q1 * u.A, 0);
+                if (Q(Math.exp(hi)) > goal) ttNote = Qconst > goal ? 'not reached: the constant (n = 0) rates alone exceed it' : 'not reached within 10⁶ years at these rates';
+                else if (Q(Math.exp(lo)) <= goal) ttNote = 'within seconds (before this model applies)';
+                else {
+                    for (let i = 0; i < 100; i++) { const mid = (lo + hi) / 2; if (Q(Math.exp(mid)) > goal) lo = mid; else hi = mid; }
+                    tt = Math.exp((lo + hi) / 2);
+                }
+            }
+            const top = shares[0];
+            if (hasT) {
+                const ok = pt <= v.pt;
+                glBadge.textContent = ok ? 'Target reached at t' : 'Above target at t'; glBadge.className = 'badge ' + (ok ? 'badge-ok' : 'badge-warn');
+            } else { glBadge.textContent = ''; glBadge.className = 'badge'; }
+            glLast = { used, Qi, P, S, pp, th, unit, tt, target: hasT ? v.pt : null };
+            return {
+                p: pFmt(pt),
+                Q: QFmt(Qt),
+                split: { html: '<ul class="og-split">' + shares.map(s => '<li>' + esc(s.u.name) + ': ' + fmt.num(100 * s.f, 3) + ' %</li>').join('') + '</ul>' },
+                ptab: { html: '<ul class="og-split">' + [1, 10, 100, 1000].map(h => '<li>' + h + ' h: ' + esc(pFmt(P(h))) + '</li>').join('') + '</ul>' },
+                tt: hasT ? (tt !== null ? fmtTime(tt) + (tt > 8766 ? ', far beyond the times these rates were measured over' : '') : ttNote) : null,
+                Sreq: hasT ? fmt.num(Sreq * 1000, 3) + ' L/s' + (Sreq > S ? '  (' + fmt.num(Sreq / S, 3) + ' × the speed above)' : '') : null
+            };
+        },
+        onError() { glBadge.textContent = ''; glBadge.className = 'badge'; if (window.Plot) Plot.clear('#gl-plot'); },
+        after() {
+            const g = glLast;
+            const toU = pa => Calc.fromSI('pressure', g.unit, pa);
+            const tMax = Math.min(1e6, Math.max(1000, 3 * g.th, g.tt ? 3 * g.tt : 0)), tMin = 0.1;
+            const ts = Calc.math.logspace(tMin, tMax, 160);
+            const colors = ['var(--c4)', 'var(--c3)', 'var(--c6)', 'var(--c2)'];
+            const series = [{ type: 'line', x: ts, y: ts.map(h => toU(g.P(h))), label: 'Total pressure', color: 'var(--c1)' }];
+            g.used.forEach((u, k) => series.push({ type: 'line', x: ts, y: ts.map(h => toU(g.Qi(u, h) / g.S)), label: u.name, color: colors[k % 4], dash: true }));
+            const hl = g.target ? [{ y: toU(g.target), label: 'target', color: 'var(--c5)' }] : [];
+            if (g.pp > 0) hl.push({ y: toU(g.pp), label: 'pump base pressure', color: 'var(--muted)' });
+            Plot.draw('#gl-plot', {
+                height: 320,
+                x: { label: 'Pumping time (h)', log: true, min: tMin, max: tMax },
+                y: { label: 'Pressure (' + g.unit + ')', log: true },
+                series, hlines: hl,
+                vlines: [{ x: g.th, label: 't', color: 'var(--muted)' }],
+                ariaLabel: 'Log-log chart of the chamber pressure versus pumping time from 0.1 h to ' + fmt.num(tMax, 3) + ' h, with each surface’s contribution. At t = ' +
+                    fmt.num(g.th, 3) + ' h the pressure is ' + fmt.sci(toU(g.P(g.th)), 3) + ' ' + g.unit + '.',
+                hover: { format: (x, hits) => hits.length ? `t = ${fmt.num(hits[0].x, 3)} h · p = ${fmt.sci(hits[0].y, 3)} ${g.unit}` : '' }
+            });
+        }
+    });
+    // Reset puts the material menus back without firing their change events: hide the rows now set to “not used” (their
+    // empty area fields would otherwise fail validation) and recalculate. This runs after Calc's own reset handler.
+    document.querySelector('[data-action="reset"][data-for="gl"]').addEventListener('click', () => { rows.forEach(syncRow); glCalc.run(); });
+});
+</script>
+</body>
+</html>

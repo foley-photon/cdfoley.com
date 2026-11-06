@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cyclotron Radius & Frequency Calculator (Larmor Radius, Bρ, ICR)</title>
+<meta name="description" content="Larmor (cyclotron) radius, frequency, period, magnetic rigidity Bρ, and helix pitch for ions and electrons at any energy, plus the ICR frequency for an m/z.">
+<link rel="canonical" href="https://cdfoley.com/tools/cyclotron-radius/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Cyclotron Radius & Frequency Calculator">
+<meta property="og:description" content="Larmor (cyclotron) radius, frequency, period, magnetic rigidity Bρ, and helix pitch for ions and electrons at any energy, plus the ICR frequency for an m/z.">
+<meta property="og:url" content="https://cdfoley.com/tools/cyclotron-radius/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-cyclotron-radius.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Cyclotron Radius &amp; Frequency Calculator. Larmor (cyclotron) radius, frequency, period, magnetic rigidity Bρ, and helix pitch for ions and electrons at any energy, plus the ICR frequency for an m/z.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script defer src="/assets/js/charged-particles.js"></script>
+<style>
+    .cp-group { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .calc-error + .cp-group { margin-top: 0; padding-top: 0; border-top: 0; }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Cyclotron Radius & Frequency",
+   "url": "https://cdfoley.com/tools/cyclotron-radius/",
+   "description": "Larmor (cyclotron) radius, frequency, period, magnetic rigidity Bρ, and helix pitch for ions and electrons at any energy, plus the ICR frequency for an m/z.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "cyclotron radius larmor radius gyroradius gyro radius cyclotron frequency gyrofrequency magnetic rigidity b rho brho bending radius magnet ion cyclotron resonance icr ft-icr penning trap pitch angle helix relativistic proton electron tesla gauss momentum mev/c",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Charged Particles & Plasma",
+     "item": "https://cdfoley.com/tools/#particles"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Cyclotron Radius & Frequency",
+     "item": "https://cdfoley.com/tools/cyclotron-radius/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#particles">Charged Particles &amp; Plasma</a></li><li aria-current="page">Cyclotron Radius &amp; Frequency</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Cyclotron Radius &amp; Frequency Calculator</h1>
+        <p class="lede">A charged particle in a magnetic field moves in a circle, or a helix if it also moves along the field. This calculator gives the size of that circle and how often the particle goes around it, for electrons, protons, or any ion at any energy, from electronvolts to GeV. Use it to size a bending magnet or an energy analyzer, to check whether a field confines a beam or a plasma, or to find the ion cyclotron resonance (ICR) frequency of an m/z in a Penning trap.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Cyclotron (Larmor) radius</dt><dd>The radius of the circle a charged particle follows in a uniform magnetic field, also called the gyroradius. It grows with the particle’s momentum and shrinks as the field gets stronger: a 1&nbsp;keV electron in a 10&nbsp;mT field circles with a radius of about 1&nbsp;cm.</dd>
+            <dt>Cyclotron frequency</dt><dd>How many times per second the particle goes around. At low energy it depends only on the charge-to-mass ratio and the field, not on the energy: 28&nbsp;GHz per tesla for an electron and 15.2&nbsp;MHz per tesla for a proton.</dd>
+            <dt>Magnetic rigidity (Bρ)</dt><dd>The particle’s momentum divided by its charge, in tesla-meters. It is the field times bending radius a magnet must provide: a beam of rigidity 0.46&nbsp;T·m (10&nbsp;MeV protons) bends on a 0.46&nbsp;m radius in a 1&nbsp;T dipole.</dd>
+            <dt>Pitch angle</dt><dd>The angle between the particle’s velocity and the magnetic field. At 90° the particle moves in a flat circle; at smaller angles it spirals along the field, and only the velocity across the field sets the radius.</dd>
+            <dt>Lorentz factor</dt><dd>γ, the ratio of a particle’s total energy to its rest energy. Relativity makes a fast particle behave as if heavier by this factor, so its orbit is larger and its cyclotron frequency lower than the classical formulas give.</dd>
+            <dt>Ion cyclotron resonance (ICR)</dt><dd>Measuring an ion’s cyclotron frequency in a strong, very uniform magnetic field to find its m/z. FT-ICR mass spectrometers reach the highest mass resolution of any type, because a frequency can be measured very precisely.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+
+                <div class="cp-group">Particle</div>
+                <div class="field">
+                    <label for="sp">Particle or ion</label>
+                    <select id="sp" name="sp" class="input"></select>
+                    <p class="hint">Fills in the mass and charge. For an ion not in the list, choose Custom and enter its mass; for an m/z value, enter it as the mass with charge 1.</p>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="m">Mass <span class="sym">m</span></label>
+                        <div class="input-unit"><input id="m" name="m" value="1.0072764665789" inputmode="decimal" data-positive data-label="mass"><span class="unit">u</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="z">Charge number <span class="sym">z</span></label>
+                        <div class="input-unit"><input id="z" name="z" value="1" inputmode="text" data-label="charge number"><span class="unit">e</span></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The sign of the charge sets only the direction of rotation (positive particles circle clockwise when the field points at you).</p>
+
+                <div class="cp-group">Motion and field</div>
+                <div class="field">
+                    <label for="K">Kinetic energy <span class="sym">K</span></label>
+                    <div class="input-unit"><input id="K" name="K" value="10" inputmode="decimal" data-positive data-label="kinetic energy"><select data-dim="kenergy" data-units="meV,eV,keV,MeV,GeV" data-default="MeV"></select></div>
+                    <p class="hint">The particle’s total kinetic energy (not per nucleon). An ion accelerated through U volts has K = |z|·U&nbsp;eV; a thermal particle at temperature T has about 3kT/2 (0.04&nbsp;eV at room temperature).</p>
+                </div>
+                <div class="field">
+                    <label for="B">Magnetic flux density <span class="sym">B</span></label>
+                    <div class="input-unit"><input id="B" name="B" value="1.5" inputmode="decimal" data-positive data-label="magnetic field"><select data-dim="bfield" data-units="µT,mT,T,G,kG" data-default="T"></select></div>
+                    <p class="hint">1&nbsp;T = 10&nbsp;kG = 10&#8239;000&nbsp;G. The Earth’s field is about 50&nbsp;µT; a strong permanent magnet gives 0.2–1&nbsp;T near its face; FT-ICR and NMR magnets run at 7–21&nbsp;T.</p>
+                </div>
+                <div class="field">
+                    <label for="al">Pitch angle <span class="sym">α</span></label>
+                    <div class="input-unit"><input id="al" name="al" value="90" inputmode="decimal" data-nonneg data-max="180" data-label="pitch angle"><span class="unit">deg</span></div>
+                    <p class="hint">The angle between the velocity and the field: 90° for motion straight across the field (a flat circle), smaller for a helix along it.</p>
+                </div>
+                <div class="field">
+                    <label for="fm">Measured cyclotron frequency (optional) <span class="sym">f<sub>m</sub></span></label>
+                    <div class="input-unit"><input id="fm" name="fm" value="" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="measured frequency"><select data-dim="frequency" data-units="Hz,kHz,MHz,GHz" data-default="kHz"></select></div>
+                    <p class="hint">An ICR frequency read from a Penning trap or FT-ICR spectrum. The result gives the m/z it belongs to in the field B above.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="regime" class="badge" hidden></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Cyclotron (Larmor) radius<span class="sym">r<sub>c</sub></span></span><output class="result-value" data-out="r">—</output><span class="result-note" id="r-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Cyclotron frequency<span class="sym">f<sub>c</sub></span></span><output class="result-value" data-out="f">—</output><span class="result-note" id="f-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Angular frequency<span class="sym">ω<sub>c</sub> = 2πf<sub>c</sub></span></span><output class="result-value" data-out="w">—</output></div>
+                    <div class="result"><span class="result-label">Period<span class="sym">T<sub>c</sub></span></span><output class="result-value" data-out="T">—</output></div>
+                    <div class="result"><span class="result-label">ICR frequency (low-energy limit)<span class="sym">f<sub>0</sub> = |q|B/2πm</span></span><output class="result-value" data-out="f0">—</output></div>
+                    <div class="result"><span class="result-label">Magnetic rigidity<span class="sym">Bρ = p/|q|</span></span><output class="result-value" data-out="brho">—</output><span class="result-note">The field × bending radius needed to bend the whole momentum, whatever the pitch angle.</span></div>
+                    <div class="result"><span class="result-label">Momentum<span class="sym">pc</span></span><output class="result-value" data-out="p">—</output></div>
+                    <div class="result"><span class="result-label">Speed<span class="sym">v</span></span><output class="result-value" data-out="v">—</output><span class="result-note" id="v-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Lorentz factor<span class="sym">γ</span></span><output class="result-value" data-out="gam">—</output></div>
+                    <div class="result"><span class="result-label">Helix pitch (advance per turn)</span><output class="result-value" data-out="pitch">—</output></div>
+                    <div class="result"><span class="result-label">m/z for the measured frequency</span><output class="result-value" data-out="mzf">—</output><span class="result-note" id="mzf-note" hidden></span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
+        <div class="panel-head"><h2 id="plot-h">Radius vs. kinetic energy</h2></div>
+        <div class="panel-body"><div id="r-plot"></div><p class="hint" id="plot-note" hidden></p></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>The magnetic force \(q\,\mathbf v \times \mathbf B\) is always perpendicular to the velocity, so it changes the particle’s direction but never its speed or energy. Across the field the particle moves on a circle; along it, it coasts. For mass \(m\), charge \(q = ze\), and kinetic energy \(K\):</p>
+        <div class="formula">\[ \begin{gathered} \gamma = 1 + \frac{K}{mc^2}, \qquad pc = \sqrt{K^2 + 2Kmc^2}, \qquad v = \frac{pc^2}{\gamma m c^2}, \\[8pt] r_c = \frac{p \sin\alpha}{|q| B}, \qquad \omega_c = 2\pi f_c = \frac{|q| B}{\gamma m}, \qquad B\rho = \frac{p}{|q|}. \end{gathered} \]</div>
+        <p>The helix advances \(v\cos\alpha \cdot T_c\) along the field per turn. Classically \(\gamma = 1\) and \(p = \sqrt{2mK}\), which gives the familiar \(r_c = mv_\perp/|q|B\) and an orbit frequency \(f_0 = |q|B/2\pi m\) that does not depend on energy. That independence is why a classical cyclotron can accelerate with a fixed radio frequency, and why ICR measures m/z from a frequency alone:</p>
+        <div class="formula">\[ \frac{m}{z} = \frac{e B}{2\pi f_m}\ \ \text{(in kg; divide by 1 u for u/e)}, \qquad f_0 \approx 15.356\ \text{MHz} \times \frac{B/\text{T}}{(m/z)/\text{u}}. \]</div>
+        <p>Relativistically, the orbit frequency falls as \(1/\gamma\). For 10&nbsp;MeV protons γ = 1.011, so a fixed-frequency cyclotron would slip out of step after a few hundred turns: the reason isochronous cyclotrons shape their field to rise with radius, and synchrocyclotrons sweep the frequency.</p>
+        <p>In practical units, \(B\rho\,[\mathrm{T\,m}] = 3.3356\, pc\,[\mathrm{GeV}]/|z|\) (the factor is \(10^9/c\)), and the electron cyclotron frequency is 27.992&nbsp;GHz per tesla (2.80&nbsp;MHz per gauss).</p>
+
+        <h2>Typical values</h2>
+        <p>From the formulas above, motion straight across the field (α = 90°):</p>
+        <table>
+            <thead><tr><th>Particle and energy</th><th class="num">B</th><th class="num">Radius</th><th class="num">Frequency</th></tr></thead>
+            <tbody>
+                <tr><td>Electron, 1&nbsp;keV (an electron gun)</td><td class="num">10&nbsp;mT</td><td class="num">10.67&nbsp;mm</td><td class="num">279.4&nbsp;MHz</td></tr>
+                <tr><td>Electron, 1&nbsp;MeV (beta particle)</td><td class="num">0.1&nbsp;T</td><td class="num">47.4&nbsp;mm</td><td class="num">946.7&nbsp;MHz</td></tr>
+                <tr><td>⁴⁰Ar⁺, 2&nbsp;keV (ion beam)</td><td class="num">0.5&nbsp;T</td><td class="num">81.4&nbsp;mm</td><td class="num">192.1&nbsp;kHz</td></tr>
+                <tr><td>Proton, 10&nbsp;MeV (medical-isotope cyclotron)</td><td class="num">1.5&nbsp;T</td><td class="num">305.4&nbsp;mm</td><td class="num">22.63&nbsp;MHz</td></tr>
+                <tr><td>Ion of m/z 500, at rest (FT-ICR)</td><td class="num">7&nbsp;T</td><td class="num">—</td><td class="num">215.0&nbsp;kHz</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Worked example</h2>
+        <p>The default inputs: a 10&nbsp;MeV proton (m = 1.007276&nbsp;u, mc² = 938.272&nbsp;MeV) in a 1.5&nbsp;T field, moving across it.</p>
+        <ul>
+            <li>γ = 1 + 10/938.272 = 1.01066, and \(pc = \sqrt{10^2 + 2 \times 10 \times 938.272} = 137.35\)&nbsp;MeV, so v = pc²/(γmc²) = 0.1448&nbsp;c = 43&#8239;420&nbsp;km/s.</li>
+            <li>Bρ = 137.35&nbsp;MeV / (299.79&nbsp;MeV per T·m) = 0.4582&nbsp;T·m, and r = 0.4582/1.5 = 0.3054&nbsp;m. The classical formula gives 0.3046&nbsp;m, 0.27&nbsp;% smaller.</li>
+            <li>f = eB/(2πγm) = 22.868&nbsp;MHz / 1.01066 = 22.627&nbsp;MHz, so one turn takes 44.2&nbsp;ns. A 1.5&nbsp;T cyclotron for 10&nbsp;MeV protons therefore needs a pole radius of a little over 30&nbsp;cm.</li>
+        </ul>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>A uniform, static magnetic field and no electric field. In crossed E and B fields the guiding center also drifts at E/B; in a trap, the electric field shifts the measured frequency (the reduced cyclotron frequency of a Penning trap is lower than f₀ by roughly the magnetron frequency, and space charge shifts it further). Calibrate an ICR mass scale against known ions.</li>
+            <li>No energy loss: radiation (synchrotron radiation matters only for electrons at high energy and field), collisions, and space charge are ignored. In a gas the particle may not complete one orbit; compare the period with the collision time in the <a href="/tools/plasma-parameters/">plasma parameters calculator</a>.</li>
+            <li>Field gradients and fringe fields change real orbits and focusing. For trajectories through real magnets and electrodes, use the <a href="/beta/ion-optics/">Ion Optics Workbench</a> for full field solutions.</li>
+            <li>Masses of atomic and molecular ions are atomic masses minus z electron masses (AME2020, CODATA 2022); chemical binding energies are neglected.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources and standards</h3>
+        <ol class="refs">
+            <li>J. D. Jackson, <em>Classical Electrodynamics</em>, 3rd ed., Wiley (1999), §12.2 (relativistic motion in a uniform static magnetic field: gyration frequency ω<sub>B</sub> = ecB/γmc² in Gaussian units, gyration radius, and helical motion).</li>
+            <li>A. G. Marshall, C. L. Hendrickson, and G. S. Jackson, “Fourier transform ion cyclotron resonance mass spectrometry: A primer,” <em>Mass Spectrom. Rev.</em> <strong>17</strong>, 1–35 (1998), <a href="https://doi.org/10.1002/(SICI)1098-2787(1998)17:1%3C1::AID-MAS1%3E3.0.CO;2-K" target="_blank" rel="noopener">doi:10.1002/(SICI)1098-2787(1998)17:1&lt;1::AID-MAS1&gt;3.0.CO;2-K</a> (the ICR frequency, f = 1.535611&nbsp;×&nbsp;10⁷&nbsp;B/(m/z), and its trap shifts).</li>
+            <li>P. J. Mohr, D. B. Newell, B. N. Taylor, and E. Tiesinga, “CODATA recommended values of the fundamental physical constants: 2022,” <em>Rev. Mod. Phys.</em> <strong>97</strong>, 025002 (2025), <a href="https://doi.org/10.1103/RevModPhys.97.025002" target="_blank" rel="noopener">doi:10.1103/RevModPhys.97.025002</a> (e, u, the electron, proton, deuteron, and alpha-particle masses, and c).</li>
+            <li>M. Wang, W. J. Huang, F. G. Kondev, G. Audi, and S. Naimi, “The AME 2020 atomic mass evaluation (II). Tables, graphs and references,” <em>Chin. Phys. C</em> <strong>45</strong>, 030003 (2021), <a href="https://doi.org/10.1088/1674-1137/abddaf" target="_blank" rel="noopener">doi:10.1088/1674-1137/abddaf</a> (the atomic masses of the preset ions).</li>
+        </ol>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>S. Zaremba and W. Kleeven, “Cyclotrons: Magnetic design and beam dynamics,” CERN Accelerator School: Accelerators for Medical Applications, CERN Yellow Report CERN-2017-004-SP, 177–239, <a href="https://doi.org/10.23730/CYRSP-2017-001.177" target="_blank" rel="noopener">doi:10.23730/CYRSP-2017-001.177</a>, <a href="https://arxiv.org/abs/1804.08961" target="_blank" rel="noopener">arXiv:1804.08961</a> (classical, isochronous, and synchrocyclotrons, and why relativity breaks the constant orbit frequency).</li>
+            <li>M. Seidel, “Cyclotrons and fixed field alternating gradient accelerators,” CERN Accelerator School: Introduction to Accelerator Physics, <a href="https://arxiv.org/abs/2105.04477" target="_blank" rel="noopener">arXiv:2105.04477</a> (2021) (the cyclotron frequency, magnetic rigidity, and isochronism).</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="ion-time-of-flight,plasma-parameters,stopping-power,energy-converter"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt, K } = Calc;
+    const CP = window.ChargedParticles;
+    const c = K.c, c2 = c * c;
+    const sel = document.getElementById('sp'), mIn = document.getElementById('m'), zIn = document.getElementById('z');
+    sel.innerHTML = CP.options('p');
+    CP.bind(sel, mIn, zIn);
+
+    // relativistic kinematics for kinetic energy Kj (J), mass m (kg): γ, momentum p (kg·m/s), speed v (m/s)
+    function kin(Kj, m) {
+        const eps = Kj / (m * c2), s = Math.sqrt(eps * (2 + eps));
+        return { gam: 1 + eps, eps, p: m * c * s, v: c * s / (1 + eps) };
+    }
+    const fmtF = x => fmt.si(x, 'Hz', 5, { max: 12 });
+    const fmtP = pJ => fmt.si(pJ * c / K.e, 'eV/c', 5, { max: 12 });   // p·c in eV, written as eV/c
+    const regime = document.getElementById('regime');
+    const notes = {};
+    ['r-note', 'f-note', 'v-note', 'mzf-note', 'plot-note'].forEach(id => { notes[id] = document.getElementById(id); });
+    const note = (id, t) => { notes[id].textContent = t || ''; notes[id].hidden = !t; };
+    let last = null;
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            if (!isFinite(v.z) || v.z === 0 || !Number.isInteger(v.z)) throw Calc.fail('Enter a whole-number charge other than zero (for example 1, 2, or −1).', 'z');
+            const q = Math.abs(v.z) * K.e, m = v.m * K.u, B = v.B;
+            const a = v.al * Math.PI / 180, ca = Math.abs(v.al - 90) < 1e-12 ? 0 : Math.cos(a), sa = v.al === 0 || v.al === 180 ? 0 : Math.sin(a);
+            const k = kin(v.K, m);
+            const r = k.p * sa / (q * B), w = q * B / (k.gam * m), f = w / (2 * Math.PI), f0 = q * B / (2 * Math.PI * m);
+            const rn = Math.sqrt(2 * m * v.K) * sa / (q * B);
+            const eps = k.eps;              // K/mc² itself: γ − 1 would lose it in rounding at very low energy
+            const [lab, cls] = eps < 0.01 ? ['Nonrelativistic', 'badge badge-ok'] : eps < 1 ? ['Mildly relativistic', 'badge badge-warn'] : ['Relativistic', 'badge'];
+            regime.textContent = lab; regime.className = cls; regime.hidden = false;
+            note('r-note', sa < 1e-12 ? 'Along the field (α = 0° or 180°) the particle does not gyrate.'
+                : 'Diameter ' + fmt.si(2 * r, 'm', 4, { max: 3 }) + '. Classical formula: ' + fmt.si(rn, 'm', 5, { max: 3 }) + (r / rn - 1 < 1e-6 ? ', the same to within 1 ppm.' : '; the relativistic radius is ' + fmt.num((r / rn - 1) * 100, 3) + ' % larger.'));
+            note('f-note', eps > 1e-6 ? 'Lower than the low-energy value f₀ by the factor γ = ' + fmt.num(k.gam, 6) + '.' : 'Equal to f₀ to within ' + (eps < 1e-9 ? '1 part in 10⁹.' : fmt.num(eps * 1e6, 2) + ' ppm.'));
+            note('v-note', 'β = v/c = ' + fmt.num(k.v / c, 5) + '; across the field ' + fmt.num(k.v * sa / 1e3, 5) + ' km/s, along it ' + fmt.num(k.v * ca / 1e3, 5) + ' km/s.');
+            let mzf = null;
+            if (isFinite(v.fm) && v.fm > 0) {
+                const mz = K.e * B / (2 * Math.PI * v.fm) / K.u;
+                mzf = fmt.num(mz, 7) + ' u/e';
+                note('mzf-note', 'From m/z = eB/(2πf) in ' + fmt.num(B, 5) + ' T, the low-energy ICR relation, with no correction for trap fields.');
+            } else note('mzf-note', '');
+            last = { v, m, q, B, sa, r, rn };
+            return {
+                r: sa < 1e-12 ? '0 (no gyration)' : fmt.si(r, 'm', 5, { max: 3 }),
+                f: fmtF(f), w: fmt.sci(w, 5) + ' rad/s', T: fmt.si(1 / f, 's', 5, { max: 0 }),
+                f0: fmtF(f0),
+                brho: fmt.num(k.p / q, 5) + ' T·m',
+                p: fmtP(k.p),
+                v: fmt.num(k.v / 1e3, 6) + ' km/s',
+                gam: eps < 1e-4 ? '1 + ' + fmt.sci(eps, 4) : fmt.num(k.gam, 6),
+                pitch: Math.abs(ca) < 1e-12 ? '0 (flat circle)' : fmt.si(Math.abs(k.v * ca) / f, 'm', 4, { max: 3 }),
+                mzf
+            };
+        },
+        onError() { last = null; regime.hidden = true; Object.keys(notes).forEach(k => { notes[k].hidden = true; }); Plot.clear('#r-plot'); },
+        after() {
+            if (!last) return;
+            const { v, m, q, B, sa } = last;
+            if (sa < 1e-12) { Plot.clear('#r-plot'); note('plot-note', 'No plot: the particle moves along the field and does not gyrate.'); return; }
+            const eV = v.K / K.e, lo = eV / 1e4, hi = eV * 1e4;
+            const Es = Calc.math.logspace(lo, hi, 140);
+            const rel = Es.map(E => kin(E * K.e, m).p * sa / (q * B)), cl = Es.map(E => Math.sqrt(2 * m * E * K.e) * sa / (q * B));
+            Plot.draw('#r-plot', {
+                height: 290,
+                ariaLabel: 'Cyclotron radius against kinetic energy on log scales, relativistic and classical, in ' + fmt.num(B, 4) + ' T. Your particle: ' + fmt.si(eV, 'eV', 4) + ', radius ' + fmt.si(last.r, 'm', 4, { max: 3 }) + '.',
+                x: { label: 'Kinetic energy (eV)', log: true }, y: { label: 'Radius (m)', log: true },
+                series: [
+                    { type: 'line', x: Es, y: cl, label: 'Classical, √(2mK)', color: 'var(--c3)', dash: true },
+                    { type: 'line', x: Es, y: rel, label: 'Relativistic', color: 'var(--c1)' },
+                    { type: 'points', x: [eV], y: [last.r], color: 'var(--c2)', r: 5 }
+                ],
+                hover: { format: (x, hits) => hits.length ? `K = ${fmt.si(hits[0].x, 'eV', 3)} · r = ${fmt.si(hits[0].y, 'm', 3, { max: 3 })}` : '' }
+            });
+            note('plot-note', 'The two curves part where K approaches the rest energy mc² = ' + fmt.si(m * c2 / K.e, 'eV', 4) + '; above it the radius grows in proportion to K instead of √K. The dot is your input.');
+        }
+    });
+});
+</script>
+</body>
+</html>

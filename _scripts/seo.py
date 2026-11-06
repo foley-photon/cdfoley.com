@@ -5,8 +5,14 @@
 1. Writes JSON-LD (WebApplication + BreadcrumbList) into every tool page and an
    ItemList into the tools and learn hubs, from the TOOLS/ARTICLES registries
    in assets/js/site.js.
-2. Regenerates sitemap.xml with lastmod dates from git (today for uncommitted edits). Private and tooling
-   folders, the unlisted beta/ section, and pages marked noindex are left out.
+2. Regenerates sitemap.xml: today's date for pages with uncommitted edits, otherwise the lastmod already in
+   sitemap.xml (git only for a page the sitemap does not list yet). Private and tooling folders, the unlisted beta/
+   section, and pages marked noindex are left out.
+
+Dates move only for pages edited since the last commit. The repository history was consolidated (2026-10-28), so
+git's commit dates say when a file was last committed, not when its content last changed; reading dates from git
+for unedited pages would move them all to a recent commit. Article and resume dateModified values follow the same
+rule: kept as written unless the page has uncommitted content edits.
 3. Reports pages missing a title, description, canonical URL, or Open Graph tags.
 """
 import datetime, html, json, os, re, subprocess
@@ -44,17 +50,25 @@ def put_ld(path, data):
         s = s.replace('</head>', block + '</head>', 1)
     open(path, 'w', encoding='utf-8').write(s)
 
+def written(f, key):
+    """The value of a JSON-LD date field as the page has it now, or None."""
+    m = re.search(r'"%s": ?"([^"]+)"' % key, open(f, encoding='utf-8').read())
+    return m.group(1) if m else None
+
 def modified(f):
     """When a page's content last changed, as an ISO 8601 date-time with time zone (what Google expects).
-    Edits that only touch the fields this script writes (dates, article image) are ignored, so re-running it doesn't move the date."""
+    Edits that only touch the fields this script writes (dates, article image) are ignored, so re-running it doesn't move the date.
+    A page without uncommitted content edits keeps the date it has (see the note at the top); git is only a fallback."""
     def real(diff):
-        return any(l[:1] in '+-' and not l.startswith(('+++', '---')) and not re.search(r'"(date(Modified|Published)|image)"', l)
+        return any(l[:1] in '+-' and not l.startswith(('+++', '---')) and not re.search(r'"(date(Modified|Published|Created)|image)"', l)
                    for l in diff.splitlines())
     now = datetime.datetime.now().astimezone().isoformat(timespec='seconds')
     # A diff is the page's own UTF-8 text. With text=True, Windows decodes it as cp1252, which can't map some of its bytes
     # (⁻ is E2 81 BB), and then .stdout comes back as None, so decode it as UTF-8.
     if real(subprocess.run(['git', 'diff', 'HEAD', '-U0', '--', f], capture_output=True, encoding='utf-8', errors='replace').stdout):
         return now                                             # uncommitted content edits
+    have = written(f, 'dateModified')
+    if have and re.match(r'\d{4}-\d{2}-\d{2}T', have): return have
     for line in subprocess.run(['git', 'log', '--format=%H %cI', '--', f], capture_output=True, text=True).stdout.splitlines():
         sha, when = line.split()
         if real(subprocess.run(['git', 'show', '-U0', '--format=', sha, '--', f], capture_output=True, encoding='utf-8', errors='replace').stdout):
@@ -62,7 +76,10 @@ def modified(f):
     return now
 
 def created(f):
-    """When a page was first committed, as an ISO 8601 date-time with time zone (now, if it isn't committed yet)."""
+    """When a page was first committed, as an ISO 8601 date-time with time zone (now, if it isn't committed yet).
+    A date the page already has is kept."""
+    have = written(f, 'dateCreated')
+    if have: return have
     added = subprocess.run(['git', 'log', '--diff-filter=A', '--format=%cI', '--', f], capture_output=True, text=True).stdout.split()
     return added[-1] if added else datetime.datetime.now().astimezone().isoformat(timespec='seconds')
 
@@ -185,8 +202,12 @@ pages = ['index.html'] + sorted(f for f in pages if indexable(f))
 dirty = set(subprocess.run(['git', 'diff', '--name-only', 'HEAD'], capture_output=True, text=True).stdout.split()
             + subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'], capture_output=True, text=True).stdout.split())
 today = datetime.date.today().isoformat()
+# the dates the sitemap already gives, kept for pages without uncommitted edits (see the note at the top)
+listed = dict(re.findall(r'<loc>%s/([^<]*)</loc><lastmod>([^<]+)</lastmod>' % re.escape(SITE), open('sitemap.xml', encoding='utf-8').read())) \
+    if os.path.exists('sitemap.xml') else {}
 def lastmod(f):
     if f in dirty or any(f.startswith(d) for d in dirty if d.endswith('/')): return today
+    if f[:-len('index.html')] in listed: return listed[f[:-len('index.html')]]
     out = subprocess.run(['git', 'log', '-1', '--format=%cs', '--', f], capture_output=True, text=True).stdout.strip()
     return out or today
 def prio(f):
