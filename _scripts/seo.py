@@ -6,8 +6,8 @@
    ItemList into the tools and learn hubs, from the TOOLS/ARTICLES registries
    in assets/js/site.js.
 2. Regenerates sitemap.xml: today's date for pages with uncommitted edits, otherwise the lastmod already in
-   sitemap.xml (git only for a page the sitemap does not list yet). Private and tooling folders, the unlisted beta/
-   section, and pages marked noindex are left out.
+   sitemap.xml (git only for a page the sitemap does not list yet). Private and tooling folders and pages marked
+   noindex (the beta/ hub and the beta tools still in review) are left out.
 
 Dates move only for pages edited since the last commit. The repository history was consolidated (2026-10-28), so
 git's commit dates say when a file was last committed, not when its content last changed; reading dates from git
@@ -182,18 +182,33 @@ for a in ARTICLES:
         t = re.sub(r'(\n *)?"datePublished"', lambda m: '%s"image":%s%s,%s"datePublished"' % (
             m.group(1) or '', ' ' if m.group(1) else '', json.dumps(img), m.group(1) or ''), t, count=1)
     if t != s: open(f, 'w', encoding='utf-8').write(t)
+# Beta tools that are open to search engines: a WebApplication each, from the page's own heading and description
+for d in sorted(os.listdir('beta')):
+    f = 'beta/%s/index.html' % d
+    if not os.path.isfile(f): continue
+    s = open(f, encoding='utf-8').read()
+    if re.search(r'<meta name="robots" content="[^"]*noindex', s, re.I): continue
+    h1 = re.sub(r'<span class="badge[^"]*">.*?</span>', '', re.search(r'<h1[^>]*>(.*?)</h1>', s, re.S).group(1))
+    name = html.unescape(re.sub(r'<[^>]+>', '', h1)).strip()
+    put_ld(f, {'@context': 'https://schema.org', '@graph': [
+        {'@type': 'WebApplication', 'name': name, 'url': '%s/beta/%s/' % (SITE, d), 'description': meta(s, 'description'),
+         'applicationCategory': 'EducationalApplication', 'operatingSystem': 'Any (web browser)',
+         'browserRequirements': 'Requires JavaScript', 'isAccessibleForFree': True,
+         'offers': {'@type': 'Offer', 'price': '0', 'priceCurrency': 'USD'},
+         'author': AUTHOR, 'publisher': AUTHOR, 'dateCreated': created(f), 'dateModified': modified(f)},
+        crumbs([('Beta tools', '/beta/'), (name, '/beta/%s/' % d)])]})
 formulas = open('formulas/index.html', encoding='utf-8').read()
 put_ld('formulas/index.html', {'@context': 'https://schema.org', '@type': 'CollectionPage', 'name': 'Formula reference',
     'url': SITE + '/formulas/', 'description': meta(formulas, 'description'), 'author': AUTHOR})
 print('JSON-LD: %d tools, %d games, %d publications, tools/learn/games hubs, resume, formulas' % (len(TOOLS), len(GAMES), len(PUBS)))
 
 # 2. Sitemap: public pages only. Folders starting with . or _ (.git, .claude worktrees, _scripts), the private
-#    applications/ folder, and the unlisted beta/ section are pruned, and so is any page marked noindex.
+#    applications/ folder are pruned, and so is any page marked noindex (the beta/ hub and the beta tools still in review).
 def indexable(f):
     return not re.search(r'<meta name="robots" content="[^"]*noindex', open(f, encoding='utf-8').read(), re.I)
 pages = []
 for dp, dn, fn in os.walk('.'):
-    dn[:] = [d for d in dn if not d.startswith(('.', '_')) and not (dp == '.' and d in ('applications', 'beta'))]
+    dn[:] = [d for d in dn if not d.startswith(('.', '_')) and not (dp == '.' and d == 'applications')]
     if 'index.html' in fn and dp != '.':
         pages.append(os.path.relpath(os.path.join(dp, 'index.html')).replace('\\', '/'))
 pages = ['index.html'] + sorted(f for f in pages if indexable(f))
@@ -215,6 +230,7 @@ def prio(f):
     if f in ('tools/index.html', 'learn/index.html', 'formulas/index.html'): return '0.9'
     if f.startswith(('tools/', 'learn/')): return '0.8'
     if f.startswith('publications/'): return '0.7'
+    if f.startswith('beta/'): return '0.7'
     return '0.6'
 urls = []
 for f in pages:

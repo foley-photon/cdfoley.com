@@ -121,12 +121,13 @@ jobs += [('tools/index.html', 'hub-tools', 'Free engineering calculators', 'Calc
          ('learn/index.html', 'hub-learn', 'Knowledge center', 'Laser, optics & vacuum explainers'),
          ('formulas/index.html', 'hub-formulas', 'Reference', 'Laser, optics, vacuum & SPC formulas'),
          ('games/index.html', 'hub-games', 'Free online games · No ads', 'Pinball, Brick Breaker, 2048, Sudoku & more')]
+jobs += [('beta/thermochem/index.html', 'beta-thermochem', 'Free calculator · Thermochemistry & photochemistry', 'Thermochemistry Lab')]
 for page, name, eyebrow, title in jobs:
     s = open(page, encoding='utf-8').read()
     desc = meta(s, 'name', 'description')
     h1 = re.search(r'<h1[^>]*>(.*?)</h1>', s, re.S)
     if h1 and not page.endswith(('tools/index.html', 'learn/index.html', 'games/index.html', 'formulas/index.html')):
-        title = re.sub(r'<[^>]+>', '', h1.group(1)).strip()     # the page's own heading, e.g. "Laser Fluence & Irradiance Calculator"
+        title = re.sub(r'<[^>]+>', '', re.sub(r'<span class="badge[^"]*">.*?</span>', '', h1.group(1))).strip()     # the page's own heading, e.g. "Laser Fluence & Irradiance Calculator"
     card('assets/img/og/%s.jpg' % name, eyebrow, html.unescape(title), desc)
     # Alt text: the title and the description as two sentences (after a colon the description's capital would be wrong,
     # and lowercasing it would break descriptions that open with a name, such as Doppler or Planck's)

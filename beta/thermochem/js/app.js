@@ -4,8 +4,9 @@ import {
     buildDB, payloadFromCSV, search, resolveToken, parseReaction, resolveReaction, balance, reactionEnthalpy,
     findChannels, ionizationEnergies, electronAffinities, protonAffinities, sameComposition, coreFormula,
     attachCov, attachExcited, attachDiff, excitedStates, excitedThresholds, excitedTerms, versionChange, bestU, stateText,
-    stateToken, unboundAnion, parseNum, UNITS, toKJ, fromKJ, kjToNm, nmToKJ,
+    stateToken, unboundAnion, parseNum, uncertaintyBudget, UNITS, KJ_NM, toKJ, fromKJ, kjToNm, nmToKJ,
 } from './engine.js';
+import { photofragments, vmi, dopplerShift, collisionFrame, collisionChannels, labForCM } from './kinematics.js';
 import { buildDiagram, KINDS as DKINDS } from './diagram.js';
 import { CASES, KINDS, runCase, extraChecks } from './selftest.js';
 
@@ -15,7 +16,7 @@ const COV_URL = './data/atct-cov-tn1.220.json';
 const EXC_URL = './data/excited-states.json';
 const DIFF_URL = './data/atct-tn1.220-diff.json';
 const ATCT_BASE = 'https://atct.anl.gov/Thermochemical%20Data/version%201.228/';
-const TABS = ['species', 'reaction', 'channels', 'diagram', 'units', 'selftest', 'data'];
+const TABS = ['channels', 'recoil', 'collide', 'reaction', 'diagram', 'species', 'units', 'selftest', 'data'];
 const DIGITS = { 'kJ/mol': 3, 'kcal/mol': 3, 'eV': 4, 'cm⁻¹': 1, 'K': 0, 'Eh': 6 };
 const DG_DEFAULT = { r: 'CH2O', p: ['H + HCO', 'H2 + CO', 'H + H + CO'], l: [], nm: '', c: 'fan' };
 
@@ -23,9 +24,14 @@ let shipped = null;   // payload as shipped
 let db = null;
 let unit = 'kJ/mol';
 const state = {
-    tab: 'species', sp: '', rx: 'CH2O -> H + HCO', rxo: {}, ch: '50-00-0*0', nm: '', ee: '', mode: 'neutral', three: false, lab: false,
+    tab: 'channels', sp: '', rx: 'CH2O -> H + HCO', rxo: {}, ch: '50-00-0*0', nm: '', ee: '', mode: 'neutral', three: false, lab: false,
     ex: false, fine: true, uv: '30328.5', uu: 'cm⁻¹', dg: structuredClone(DG_DEFAULT),
+    rc: 'CH3I -> CH3 + I', rnm: '266', rn: '1', rpi: '', rpp: '', rL: '500', rV: '3000', rN: '1', rE: '', rpr: '',
+    cp: '14158-23-7*0', ct: '7782-44-7*0', ce: '10', cthree: false, cion: false, clab: false,
 };
+const RC_KEYS = ['rc', 'rnm', 'rn', 'rpi', 'rpp', 'rL', 'rV', 'rN', 'rE', 'rpr'];
+const RC_DEFAULT = Object.fromEntries(RC_KEYS.map((k) => [k, state[k]]));
+const CL_KEYS = ['cp', 'ct', 'ce'];
 
 /* ── lazy data ──────────────────────────────────────────────────────── */
 // Each extra file is fetched once, on first need. Covariances and the version diff belong to ATcT's IDs and versions,
@@ -57,6 +63,8 @@ function needFor(t) {
     if (t === 'species') { need('diff'); need('exc'); }
     if (t === 'reaction' || t === 'diagram' || t === 'selftest') { need('cov'); need('diff'); need('exc'); }
     if (t === 'channels') { need('cov'); need('diff'); if (state.ex) need('exc'); }
+    if (t === 'recoil') { need('cov'); need('diff'); need('exc'); }
+    if (t === 'collide') { need('cov'); need('diff'); }
 }
 
 /* ── formatting ─────────────────────────────────────────────────────── */
@@ -111,7 +119,9 @@ const txt = (s) => (s.isElectron ? 'e-' : `${s.formula}${s.plainState ? '' : `($
 function readURL() {
     const p = new URLSearchParams(location.search);
     if (TABS.includes(p.get('tab'))) state.tab = p.get('tab');
-    for (const k of ['sp', 'rx', 'ch', 'nm', 'ee', 'mode', 'uv', 'uu']) if (p.has(k)) state[k] = p.get(k);
+    for (const k of ['sp', 'rx', 'ch', 'nm', 'ee', 'mode', 'uv', 'uu', ...RC_KEYS, ...CL_KEYS]) if (p.has(k)) state[k] = p.get(k);
+    if (!['1', '2', '3', '4'].includes(state.rn)) state.rn = '1';
+    state.cthree = p.get('cthree') === '1'; state.cion = p.get('cion') === '1'; state.clab = p.get('clab') === '1';
     if (!['neutral', 'dpi', 'ionpair', 'dea'].includes(state.mode)) state.mode = 'neutral';
     state.three = p.get('three') === '1'; state.lab = p.get('lab') === '1'; state.ex = p.get('ex') === '1'; state.fine = p.get('fine') !== '0';
     if (p.has('u') && UNITS.includes(p.get('u')) && [...$('tc-unit').options].some((o) => o.value === p.get('u'))) unit = p.get('u');
@@ -139,12 +149,17 @@ function urlFor(tab) {
     }
     if (tab === 'diagram') p.set('dg', JSON.stringify(state.dg));
     if (tab === 'units') { p.set('uv', state.uv); p.set('uu', state.uu); }
+    if (tab === 'recoil') for (const k of RC_KEYS) if (k === 'rc' || k === 'rnm' || state[k] !== RC_DEFAULT[k]) p.set(k, state[k]);
+    if (tab === 'collide') {
+        for (const k of CL_KEYS) if (state[k]) p.set(k, state[k]);
+        if (state.cthree) p.set('cthree', '1'); if (state.cion) p.set('cion', '1'); if (state.clab) p.set('clab', '1');
+    }
     return `${location.pathname}?${p.toString()}`;
 }
 const writeURL = () => { try { history.replaceState(null, '', urlFor(state.tab)); } catch { /* file:// or sandbox */ } };
 function shareBox(tab) {
     const url = new URL(urlFor(tab), location.href).href;
-    const what = { channels: 'channel list', diagram: 'diagram' }[tab] || tab;
+    const what = { channels: 'channel list', diagram: 'diagram', recoil: 'recoil calculation', collide: 'collision', species: 'lookup' }[tab] || tab;
     return `<div class="tc-share"><button type="button" class="btn btn-secondary btn-sm" data-copy="${esc(url)}">Copy link</button><span class="hint">Opens this ${what} with the same inputs.</span></div>`;
 }
 document.addEventListener('click', async (e) => {
@@ -164,6 +179,8 @@ function showTab(t, focus = false) {
     needFor(t);
     if (t === 'selftest') renderSelfTest();
     if (t === 'diagram' && db) renderDiagram();
+    if (t === 'recoil' && db) renderRecoil();
+    if (t === 'collide' && db) renderCollide();
     writeURL();
 }
 function initTabs() {
@@ -224,32 +241,26 @@ function renderSpecies() {
     const exs = excitedStates(db, s);
     root.innerHTML = `
     <div class="panel"><div class="panel-body">
-        <div class="tc-card-head"><h2>${esc(s.name)}</h2>${sp(s)}</div>
-        <dl class="tc-ids">
-            <dt>ATcT ID</dt><dd>${esc(s.id)}</dd><dt>CAS RN</dt><dd>${esc(s.cas || '—')}</dd>
-            <dt>SMILES</dt><dd>${esc(s.smiles || '—')}</dd><dt>InChIKey</dt><dd>${esc(s.inchikey || '—')}</dd>
-            <dt>Molar mass</dt><dd>${s.mass != null ? s.mass + ' g/mol' : '—'}</dd><dt>Charge</dt><dd>${s.q}</dd>
-            ${s.hill ? `<dt>Hill formula</dt><dd>${F(s.hill)}</dd>` : ''}
-            ${s.syn.length ? `<dt>Also called</dt><dd>${esc(s.syn.slice(0, 12).join('; '))}${s.syn.length > 12 ? ` (and ${s.syn.length - 12} more)` : ''}</dd>` : ''}
-        </dl>
+        <div class="tc-card-head"><h2>${esc(s.name)}</h2>${sp(s)}${link ? `<a class="btn btn-secondary btn-sm" href="${link}" target="_blank" rel="noopener">Full entry and provenance on ATcT ↗</a>` : ''}</div>
         <div class="tc-results" style="margin-top:1rem">
-            <div class="tc-res"><h3>Δ<sub>f</sub>H°(0 K)</h3><div class="tc-big">${E(s.h0)}</div><div class="tc-alt">${s.h0 == null ? 'not given for this phase' : UNITS.filter((x) => x !== unit && x !== 'Eh').map((x) => E(s.h0, null, x)).join('<br>')}</div></div>
-            <div class="tc-res"><h3>Δ<sub>f</sub>H°(298.15 K)</h3><div class="tc-big">${E(s.h298)}</div><div class="tc-alt">± ${E(s.u)} (95 %)<br>${UNITS.filter((x) => x !== unit && x !== 'Eh').map((x) => E(s.h298, null, x)).join('<br>')}</div>${s.q ? '<p class="tc-note">Ion: stationary-electron convention at 298.15 K.</p>' : ''}</div>
+            <div class="tc-res"><h3>Δ<sub>f</sub>H°(0 K)</h3><div class="tc-big">${E(s.h0)}</div><div class="tc-alt">${s.h0 == null ? 'not given for this phase' : `± ${E(s.u)} (95 %)`}</div></div>
+            <div class="tc-res"><h3>Δ<sub>f</sub>H°(298.15 K)</h3><div class="tc-big">${E(s.h298)}</div><div class="tc-alt">± ${E(s.u)} (95 %)<br>${s.mass != null ? `${s.mass} g/mol` : ''}</div>${s.q ? '<p class="tc-note">Ion: stationary-electron convention at 298.15 K.</p>' : ''}</div>
             ${rel(ies, 'Adiabatic ionization energy', (x) => `<div class="tc-alt">→ ${sp(x.ion)}: <strong>${E(x.kj, x.u, 'eV')}</strong><br>${ieAlt(x.kj)}</div>`)}
             ${rel(eas, 'Electron affinity', (x) => `<div class="tc-alt">${sp(x.ion)}: <strong>${E(x.kj, x.u, 'eV')}</strong><br>${E(x.kj, null, 'cm⁻¹')}</div>`)}
             ${rel(pas, 'Proton affinity (298.15 K)', (x) => `<div class="tc-alt">→ ${sp(x.ion)}: <strong>${E(x.kj, x.u)}</strong></div>`)}
         </div>
+        <p class="hint">Values as printed by ATcT ${esc(db.meta.tn_version || '')}; the ionization energy, electron affinity and proton affinity are differences computed here. Names, identifiers and the measurements behind the value are on ATcT's page.</p>
         ${versionBlock(s)}
         <div class="tc-actions">
-            <button type="button" class="btn btn-primary btn-sm" id="sp-ch">Find dissociation channels</button>
+            ${s.gas && s.h0 != null ? '<button type="button" class="btn btn-primary btn-sm" id="sp-ch">Bonds and photolysis</button><button type="button" class="btn btn-secondary btn-sm" id="sp-cl">Collide a beam with it</button>' : ''}
             <button type="button" class="btn btn-secondary btn-sm" id="sp-rx">Use in a reaction</button>
-            ${link ? `<a class="btn btn-ghost btn-sm" href="${link}" target="_blank" rel="noopener">Provenance on ATcT ↗</a>` : ''}
         </div>
         ${shareBox('species')}
     </div></div>
     ${exs.length ? `<div class="panel"><div class="panel-head"><h2>Low-lying electronic states</h2><span class="badge">${exs.length}</span></div><div class="panel-body tc-table-scroll"><table class="tc-table"><thead><tr><th>State</th><th class="num">T₀, cm⁻¹</th><th class="num">± cm⁻¹</th><th class="num">${unit}</th><th class="num">Δ<sub>f</sub>H°(0 K), ${unit}</th><th>Source</th></tr></thead><tbody>${exs.map((x) => `<tr><td>${F(x.species)}(${stHTML(x)})${x.note && !x.atom ? ` <span class="tc-state">${esc(x.note)}</span>` : ''}${x.fine ? ' <span class="tc-tag">fine structure</span>' : ''}</td><td class="num">${num(fromKJ(x.kj, 'cm⁻¹'), 1)}</td><td class="num">${x.atct ? '<span class="tc-state">ATcT</span>' : x.uCm1 ? (x.uCm1 < 0.0005 ? '&lt; 0.001' : num(x.uCm1, x.uCm1 < 0.1 ? 3 : 1)) : '—'}</td><td class="num">${num(fromKJ(x.kj, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h0, unit), DIGITS[unit])}</td><td class="tc-state">${srcHTML(x)}</td></tr>`).join('')}</tbody></table><p class="hint">Term values T₀ above the lowest level of ${esc(s.formula)}. Where ATcT lists the state, ATcT's value is used (the NIST value is shown in brackets); otherwise Δ<sub>f</sub>H°(0 K) = ATcT ground state + NIST T₀. “± cm⁻¹” is the term value's own uncertainty where the source gives one, plus an allowance where the source refers the state to a level other than the lowest (a multiplet centre, a hypothetical J = 0 level; see the notes); “—” means the source gives none, and the value is taken as exact. Sources are in the <a href="#" data-tab="data">Data &amp; citation</a> tab.</p></div></div>` : ''}
-    ${same.length ? `<div class="panel"><div class="panel-head"><h2>Same composition: isomers, states and phases</h2></div><div class="panel-body tc-table-scroll"><table class="tc-table"><thead><tr><th>Species</th><th>Name</th><th class="num">Δ<sub>f</sub>H°(0 K)</th><th class="num">Δ<sub>f</sub>H°(298 K)</th><th class="num">± (95 %)</th><th class="num">Relative, 0 K</th></tr></thead><tbody>${same.map((x) => `<tr><td><a href="#" data-sp="${esc(x.id)}">${sp(x)}</a></td><td>${esc(x.name)}</td><td class="num">${num(x.h0 != null ? fromKJ(x.h0, unit) : null, DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h298, unit), DIGITS[unit])}</td><td class="num">${U(x.u)}</td><td class="num">${x.h0 != null && s.h0 != null ? num(fromKJ(x.h0 - s.h0, unit), DIGITS[unit]) : '—'}</td></tr>`).join('')}</tbody></table><p class="hint">Energies in ${unit}. “Relative” is the 0 K energy above ${esc(s.formula)} (${esc(s.state)}).</p></div></div>` : ''}`;
-    $('sp-ch').onclick = () => { state.ch = s.id; $('ch-q').value = s.formula; renderChannels(); showTab('channels'); };
+    ${same.length ? `<div class="panel"><div class="panel-body"><details class="tc-more"><summary>Same composition: ${same.length} other isomer${same.length === 1 ? '' : 's'}, state${same.length === 1 ? '' : 's'} or phase${same.length === 1 ? '' : 's'}, with relative energies</summary><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Species</th><th>Name</th><th class="num">Δ<sub>f</sub>H°(0 K)</th><th class="num">Δ<sub>f</sub>H°(298 K)</th><th class="num">± (95 %)</th><th class="num">Relative, 0 K</th></tr></thead><tbody>${same.map((x) => `<tr><td><a href="#" data-sp="${esc(x.id)}">${sp(x)}</a></td><td>${esc(x.name)}</td><td class="num">${num(x.h0 != null ? fromKJ(x.h0, unit) : null, DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h298, unit), DIGITS[unit])}</td><td class="num">${U(x.u)}</td><td class="num">${x.h0 != null && s.h0 != null ? num(fromKJ(x.h0 - s.h0, unit), DIGITS[unit]) : '—'}</td></tr>`).join('')}</tbody></table><p class="hint">Energies in ${unit}. “Relative” is the 0 K energy above ${esc(s.formula)} (${esc(s.state)}).</p></div></details></div></div>` : ''}`;
+    if ($('sp-ch')) $('sp-ch').onclick = () => { state.ch = s.id; $('ch-q').value = s.formula; renderChannels(); showTab('channels'); };
+    if ($('sp-cl')) $('sp-cl').onclick = () => { state.ct = s.id; $('cl-t').value = s.formula; renderCollide(); showTab('collide'); };
     $('sp-rx').onclick = () => { state.rx = `${s.formula}${s.plainState ? '' : `(${s.state})`} -> `; $('rx-in').value = state.rx; state.rxo = {}; showTab('reaction'); $('rx-in').focus(); renderReaction(); };
     writeURL();
 }
@@ -378,7 +389,8 @@ function renderReaction() {
         </div>${nist ? '<p class="tc-note">A product state comes from the NIST excited-state list: its energy is the ATcT ground state plus the NIST term value. Its uncertainty combines the ground state’s ATcT uncertainty with the term value’s own (where the source gives one) and, where the source refers the state to a level other than the lowest, an allowance for that offset (see the note on the species row).</p>' : ''}`;
     }
     out.innerHTML = `<div class="panel"><div class="panel-head"><h2>Species</h2></div><div class="panel-body tc-table-scroll"><table class="tc-table"><thead><tr><th class="num">ν</th><th>Species</th><th class="num">Δ<sub>f</sub>H°(0 K)</th><th class="num">Δ<sub>f</sub>H°(298 K)</th><th class="num">±</th></tr></thead><tbody>${rows}</tbody></table><p class="hint">Energies in ${unit}. Where ATcT lists several states of a formula, pick one; the gas-phase ground state is the default.</p></div></div>
-    <div class="panel"><div class="panel-head"><h2>Result</h2></div><div class="panel-body">${res}${shareBox('reaction')}</div></div>`;
+    <div class="panel"><div class="panel-head"><h2>Result</h2></div><div class="panel-body">${res}${shareBox('reaction')}</div></div>
+    ${h && bal.ok ? budgetPanel(r.terms) : ''}`;
     out.querySelectorAll('select[data-key]').forEach((sel) => sel.addEventListener('change', () => { state.rxo[sel.dataset.key] = sel.value; renderReaction(); }));
     writeURL();
 }
@@ -413,7 +425,7 @@ function excitedRows(c, ein, lhs, dea, ncol, open1) {
         const notes = [...new Set(x.states.filter(Boolean).flatMap(flagNotes))];
         const xthr = kjToNm(x.h0);
         const bu = bestU(reactionEnthalpy(db, excitedTerms(db, c, x.states)));
-        return `<tr class="${op === false ? 'tc-closed' : ''}"><td>${label}${x.states.some((st) => st && st.fine) ? ' <span class="tc-tag">fine structure</span>' : ''}</td><td class="num">${num(fromKJ(x.kj, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h0, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h0, 'eV'), 4)}</td>${dea ? '' : `<td class="num">${xthr ? num(xthr, 1) : '—'}</td>`}<td class="num">${PM(bu).replace(/^± /, '')}${bu.how === 'correlated' ? CMARK : ''}</td>${ein != null ? `<td class="num">${op ? num(fromKJ(ein - x.h0, unit), DIGITS[unit]) : 'closed'}</td>` : ''}<td class="tc-state">${esc(srcs.join(', '))}${flagHTML(notes)}</td><td><a class="tc-go" href="?tab=reaction&amp;rx=${encodeURIComponent(xrx)}" data-rx="${esc(xrx)}">reaction ›</a></td></tr>`;
+        return `<tr class="${op === false ? 'tc-closed' : ''}"><td>${label}${x.states.some((st) => st && st.fine) ? ' <span class="tc-tag">fine structure</span>' : ''}</td><td class="num">${num(fromKJ(x.kj, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h0, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h0, 'eV'), 4)}</td>${dea ? '' : `<td class="num">${xthr ? num(xthr, 1) : '—'}</td>`}<td class="num">${PM(bu).replace(/^± /, '')}${bu.how === 'correlated' ? CMARK : ''}</td>${ein != null ? `<td class="num">${op ? num(fromKJ(ein - x.h0, unit), DIGITS[unit]) : 'closed'}</td>` : ''}<td class="tc-state">${esc(srcs.join(', '))}${flagHTML(notes)}</td><td><a class="tc-go" href="?tab=reaction&amp;rx=${encodeURIComponent(xrx)}" data-rx="${esc(xrx)}">reaction ›</a>${rcLink(c, xrx, x.h0)}</td></tr>`;
     }).join('');
     const lowest = kjToNm(all[0].h0);
     const summ = `${all.length}${!full && all.length >= 80 ? '+' : ''} excited-product threshold${all.length === 1 ? '' : 's'}${ein != null ? `, ${nOpen} open` : ''}; lowest ${dea ? `${num(fromKJ(all[0].h0, 'eV'), 3)} eV` : lowest ? `${num(lowest, 1)} nm` : '—'}`;
@@ -471,7 +483,7 @@ function renderChannels() {
             if (x.html) nEx++;
             exRow = x.html; nOpenEx += x.nOpen;
         }
-        return `<tr class="${open === false ? 'tc-closed' : ''}"><td>${c.products.map(sp).join(' + ')}${tag}</td><td class="num">${num(fromKJ(c.h0, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(c.h0, 'eV'), 4)}</td><td class="num">${num(fromKJ(c.h0, 'cm⁻¹'), 0)}</td>${dea ? '' : `<td class="num">${thr ? num(thr, 1) : '—'}</td>`}<td class="num">${num(fromKJ(c.h298, unit), DIGITS[unit])}</td><td class="num">${uCell}</td>${ein != null ? `<td class="num">${open ? num(fromKJ(ein - c.h0, unit), DIGITS[unit]) : 'closed'}</td>` : ''}<td><a class="tc-go" href="?tab=reaction&amp;rx=${encodeURIComponent(rx)}" data-rx="${esc(rx)}">reaction ›</a></td></tr>${exRow}`;
+        return `<tr class="${open === false ? 'tc-closed' : ''}"><td>${c.products.map(sp).join(' + ')}${tag}</td><td class="num">${num(fromKJ(c.h0, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(c.h0, 'eV'), 4)}</td><td class="num">${num(fromKJ(c.h0, 'cm⁻¹'), 0)}</td>${dea ? '' : `<td class="num">${thr ? num(thr, 1) : '—'}</td>`}<td class="num">${num(fromKJ(c.h298, unit), DIGITS[unit])}</td><td class="num">${uCell}</td>${ein != null ? `<td class="num">${open ? num(fromKJ(ein - c.h0, unit), DIGITS[unit]) : 'closed'}</td>` : ''}<td><a class="tc-go" href="?tab=reaction&amp;rx=${encodeURIComponent(rx)}" data-rx="${esc(rx)}">reaction ›</a>${rcLink(c, rx, c.h0)}</td></tr>${exRow}`;
     }).join('');
     const nUnb = ein == null ? 0 : list.filter((c) => c.h0 <= ein && unbound(c)).length;
     const inMsg = ein != null ? `<p class="tc-msg">${dea ? `${num(inNum, 3)} eV electron` : `${num(inNum, inNum < 10 ? 3 : 1)} nm photon`}: ${E(ein)} = ${E(ein, null, 'eV')} = ${E(ein, null, 'cm⁻¹')}. ${openText(list.filter((c) => c.h0 <= ein && !unbound(c)).length)}${nUnb ? ` (Not counted: ${nUnb} with an unbound anion.)` : ''}${state.ex && db.exc ? ` ${nOpenEx === 1 ? '1 excited-product threshold is' : `${nOpenEx} excited-product thresholds are`} open.` : ''}</p>` : '';
@@ -498,7 +510,165 @@ document.addEventListener('click', (e) => {
     e.preventDefault(); state.rx = a.dataset.rx; state.rxo = {}; $('rx-in').value = state.rx; renderReaction(); showTab('reaction');
 });
 
+/** "recoil ›" for a two-body photon channel (photodissociation, photoionization, ion pair) open at the chosen wavelength. */
+function rcLink(c, rx, h0) {
+    if (state.mode === 'dea' || c.products.length !== 2) return '';
+    const nm = parseNum(state.nm); const open = nm != null && nm > 0 && nmToKJ(nm) >= h0;
+    if (!open) return '';
+    return `<br><a class="tc-go" href="?tab=recoil&amp;rc=${encodeURIComponent(rx)}&amp;rnm=${encodeURIComponent(state.nm)}" data-rc="${esc(rx)}">recoil ›</a>`;
+}
+document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[data-rc]'); if (!a) return;
+    e.preventDefault(); state.rc = a.dataset.rc; state.rnm = String(state.nm || '').trim(); state.rn = '1'; state.rpi = ''; state.rpp = ''; renderRecoil(); showTab('recoil');
+});
+
 const openText = (n) => (n === 0 ? 'No channel is open.' : n === 1 ? '1 channel is open.' : `${n} channels are open.`);
+
+/* ── Uncertainty budget (Reaction tab) ─────────────────────────────── */
+function budgetPanel(terms) {
+    if (covLoading()) return '<div class="panel"><div class="panel-head"><h2>Uncertainty budget</h2></div><div class="panel-body"><p class="tc-note">Loading ATcT covariances…</p></div></div>';
+    const b = uncertaintyBudget(db, terms);
+    if (!b || !b.rows.length) return '';
+    const fmtU = (u) => E(u, null, unit, Math.max(DIGITS[unit], uDigits(fromKJ(u, unit))));
+    const rows = b.rows.slice();
+    if (!b.bound && b.total > 0) rows.sort((x, y) => Math.abs(y.share) - Math.abs(x.share));
+    const maxShare = Math.max(...rows.map((r) => Math.abs(r.share || 0)), 1e-300);
+    const pct = (r) => (b.bound || !(b.total > 0) ? '—' : `${num(100 * r.share / b.total, 1)} %`);
+    const bar = (r) => (b.bound || !(b.total > 0) ? '' : `<span class="tc-bar-fill${r.share < 0 ? ' tc-neg' : ''}" style="width:${Math.max(2, 100 * Math.abs(r.share) / maxShare).toFixed(1)}%"></span>`);
+    const top = rows[0];
+    let summ = '';
+    if (b.bound) summ = 'The correlated uncertainty cancels to below the precision of the stored correlations, so it is only a bound and the shares are not shown.';
+    else if (rows.length === 1) summ = `Only ${esc(top.species.formula)} carries uncertainty here.`;
+    else {
+        const same = fmtU(Math.sqrt(b.total)) === fmtU(top.without);
+        const lead = `<strong>${esc(top.species.formula)}</strong> carries ${pct(top)} of the variance; ${same ? `knowing it exactly would barely change ±${fmtU(Math.sqrt(b.total))}` : `knowing it exactly would take ±${fmtU(Math.sqrt(b.total))} to ±${fmtU(top.without)}`}.`;
+        const cut = b.how === 'correlated' && b.indepTotal > b.total * 1.0001
+            ? ` ATcT's correlations already cut the independent-error estimate, ±${fmtU(Math.sqrt(b.indepTotal))}, to ±${fmtU(Math.sqrt(b.total))}.` : '';
+        const neg = rows.some((r) => r.share < 0) ? ' A negative share (green) means that species is correlated with the others so that its errors cancel part of theirs.' : '';
+        summ = lead + cut + neg;
+    }
+    return `<div class="panel"><div class="panel-head"><h2>Uncertainty budget</h2><span class="badge">${b.how === 'correlated' ? 'correlated' : 'independent errors'}</span></div><div class="panel-body">
+        <p class="tc-summary">${summ}</p>
+        <div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Species</th><th class="num">ν</th><th class="num">± Δ<sub>f</sub>H° (95 %)</th><th class="num">Share of variance</th><th class="tc-bar-cell"></th><th class="num">± if this species were exact</th><th></th></tr></thead><tbody>
+        ${rows.map((r) => `<tr><td><a href="#" data-sp="${esc(r.species.id)}">${sp(r.species)}</a><br><span class="tc-state">${esc(r.species.name)}</span></td><td class="num">${num(r.nu, Number.isInteger(r.nu) ? 0 : 3)}</td><td class="num">${U(r.u)}</td><td class="num">${pct(r)}</td><td class="tc-bar-cell">${bar(r)}</td><td class="num">${r.without != null ? fmtU(r.without) : '—'}</td><td>${atctLink(r.species) ? `<a class="tc-go" href="${atctLink(r.species)}" target="_blank" rel="noopener">provenance ↗</a>` : ''}</td></tr>`).join('')}
+        </tbody></table></div>
+        <p class="hint">${b.how === 'correlated' ? `Shares of νᵀCν, the correlated variance (${b.h.ucorr && b.h.ucorr.fallback ? 'TN 1.220 covariances as served: the TN 1.228 rescaling would cancel too far here' : 'TN 1.220 covariances, with the TN 1.228 rescaling described below'}); they add up to 100 %.` : 'Shares of Σ(νU)², the independent-error variance, because not every species is in the ATcT covariance file.'} Each species' share includes half a last printed digit of rounding and, for a NIST excited state, its term-value uncertainty. “If exact” is the uncertainty left if a new measurement pinned that species, with the species correlated to it moving along. The provenance link shows which measurements and calculations ATcT used for that species: the place to look for what would improve this result.</p>
+    </div></div>`;
+}
+
+/* ── Photofragment recoil ─────────────────────────────────────────── */
+const RC_EXAMPLES = [['CH3I -> CH3 + I', '266'], ['CH3I -> CH3 + I(2P1/2)', '266'], ['O3 -> O(1D) + O2(a1Δg)', '248'], ['H2O -> H + OH', '157.6'], ['HBr -> H + Br', '243'], ['NO -> NO+ + e-', '118.2']];
+const cm1ToKJ = (x) => toKJ(x, 'cm⁻¹');
+function rcInput(id, key, min, max, what) {
+    const raw = String(state[key] || '').trim();
+    const x = parseNum(raw);
+    if (x == null) return { v: null, err: '' };
+    if (!Number.isFinite(x) || x < min || x > max) return { v: null, err: `“${esc(raw)}” is not a usable ${what}.` };
+    return { v: x, err: '' };
+}
+function renderRecoil() {
+    const out = $('rc-out');
+    for (const [id, k] of [['rc-in', 'rc'], ['rc-nm', 'rnm'], ['rc-pi', 'rpi'], ['rc-pp', 'rpp'], ['rc-L', 'rL'], ['rc-V', 'rV'], ['rc-N', 'rN'], ['rc-E', 'rE'], ['rc-pr', 'rpr']]) if ($(id).value !== state[k]) $(id).value = state[k];
+    $('rc-n').value = state.rn;
+    if (state.tab === 'recoil') needFor('recoil');
+    const p = parseReaction(state.rc);
+    if (p.error) { out.innerHTML = `<div class="tc-msg tc-bad">${esc(p.error)}</div>`; writeURL(); return; }
+    const r = resolveReaction(db, p);
+    if (r.errors.length) {
+        const waitEx = /\(/.test(state.rc) && !db.exc && extra.exc !== false ? ' (loading the excited-state list…)' : '';
+        out.innerHTML = `<div class="tc-msg tc-bad">${esc([...new Set(r.errors)].join('; '))}${waitEx}</div>`; writeURL(); return;
+    }
+    if (!balance(r.terms).ok) { out.innerHTML = '<div class="tc-msg tc-bad">Not balanced: the products must add up to the parent (add e- for a photoionization).</div>'; writeURL(); return; }
+    const nm = rcInput('rc-nm', 'rnm', 1, 1e6, 'wavelength: enter nanometres from 1 to 1 000 000');
+    const pi = rcInput('rc-pi', 'rpi', 0, 1e6, 'parent internal energy (cm⁻¹, 0 or more)');
+    const pp = rcInput('rc-pp', 'rpp', 0, 1e6, 'product internal energy (cm⁻¹, 0 or more)');
+    const errs = [nm.err, pi.err, pp.err].filter(Boolean);
+    if (nm.v == null) { out.innerHTML = `${errs.map((e) => `<p class="tc-msg tc-bad">${e}</p>`).join('')}<div class="tc-msg">Enter the photon wavelength.</div>`; writeURL(); return; }
+    const n = +state.rn || 1;
+    const res = photofragments(db, r.terms, { photonKJ: nmToKJ(nm.v), nPhoton: n, eIntParent: cm1ToKJ(pi.v || 0), eIntProducts: cm1ToKJ(pp.v || 0) });
+    if (res.error) { out.innerHTML = `<div class="tc-msg tc-bad">${esc(res.error)}</div>`; writeURL(); return; }
+    const bu = bestU(res.h);
+    const hv = n * nmToKJ(nm.v);
+    const alt = (kj) => ['eV', 'cm⁻¹', 'kJ/mol'].filter((u) => u !== unit).slice(0, 2).map((u) => E(kj, null, u)).join('<br>');   // two other units
+    const lamMax = res.h.h0 > 0 ? (n * KJ_NM) / (res.h.h0 - cm1ToKJ(pi.v || 0)) : null;
+    let status = '';
+    if (res.eAvail < 0) status = `<div class="tc-msg tc-bad">Closed: ${n === 1 ? 'one photon' : `${n} photons`} at ${num(nm.v, 2)} nm carry ${E(hv, null, 'eV')}, less than the ${E(res.h.h0 - cm1ToKJ(pi.v || 0), null, 'eV')} this channel needs${lamMax && lamMax > 0 ? `; it opens below ${num(lamMax, 1)} nm` : ''}.</div>`;
+    else if (res.eT <= 0) status = '<div class="tc-msg tc-bad">The energy kept by the products is more than the available energy: nothing is left for translation.</div>';
+    const geo = { L: parseNum(state.rL), V: parseNum(state.rV), N: parseNum(state.rN), F: parseNum(state.rE), pr: parseNum(state.rpr) };
+    const okp = (x) => x != null && Number.isFinite(x) && x > 0;
+    for (const [k, what] of [['rL', 'flight length'], ['rV', 'voltage'], ['rN', 'magnification'], ['rE', 'extraction field'], ['rpr', 'probe wavelength']]) {
+        if (String(state[k] || '').trim() && !okp(parseNum(state[k]))) errs.push(`“${esc(state[k])}” is not a usable ${what}: enter a positive number. It is ignored.`);
+    }
+    const showImg = okp(geo.L) && okp(geo.V);
+    const showDt = okp(geo.F);
+    const showDop = okp(geo.pr);
+    const fr = res.frags.map((f) => {
+        const q = f.species.q ? Math.abs(f.species.q) : 1;
+        const im = vmi({ ke: f.ke, v: f.v, m: f.m, q, L: okp(geo.L) ? geo.L / 1000 : 0, V: okp(geo.V) ? geo.V : 0, N: okp(geo.N) ? geo.N : 1, field: showDt ? geo.F * 100 : null });
+        const neutral = !f.species.isElectron && !f.species.q;
+        const dop = showDop && neutral ? dopplerShift(f.v, geo.pr) : null;
+        const share = res.eT > 0 ? f.ke / res.eT : 0;
+        return `<tr><td>${sp(f.species)}${f.species.isElectron ? ' <span class="tc-tag">photoelectron</span>' : ''}</td><td class="num">${f.species.isElectron ? num(f.m, 7) : num(f.m, 3)}</td><td class="num">${num(100 * share, 2)} %</td><td class="num">${num(fromKJ(f.ke, unit), DIGITS[unit])}</td>${unit === 'eV' ? '' : `<td class="num">${num(fromKJ(f.ke, 'eV'), 4)}</td>`}<td class="num">${num(f.v, 0)}</td>${showImg ? `<td class="num">${im.R != null ? num(im.R * 1000, 2) : '—'}</td><td class="num">${im.t != null ? num(im.t * 1e6, f.species.isElectron ? 4 : 3) : '—'}</td>` : ''}${showDt ? `<td class="num">± ${num(im.dt * 1e9 / 2, 2)}</td>` : ''}${showDop ? `<td class="num">${dop != null ? `± ${num(dop, 3)}` : '—'}</td>` : ''}</tr>`;
+    }).join('');
+    const geoNote = showImg ? ` Imaging: a neutral fragment is taken as ionized once (q = 1), an ion keeps its charge; each gains energy qV with V = ${num(geo.V, 0)} V, after L = ${num(geo.L, 1)} mm, magnification ${num(okp(geo.N) ? geo.N : 1, 3)}; R ≈ N·L·√(KE/qV) and t ≈ L·√(m/2qV), so R depends on the kinetic energy only.` : ' Open “Imaging and detection” for ring radii on a velocity-map imaging detector, arrival times and Doppler widths.';
+    const dtNote = showDt ? ` “Arrival spread” is half the turnaround time, ±m·v/qE in ${num(geo.F, 1)} V/cm: a fragment recoiling toward the detector arrives that much early, one recoiling away that much late.` : '';
+    const dopNote = showDop ? ` Doppler: largest shift ±ν̃·v/c of a ${num(geo.pr, 3)} nm transition (${num(1e7 / geo.pr, 1)} cm⁻¹), for neutral fragments; an isotropic speed shell gives a flat-topped profile this wide on each side.` : '';
+    out.innerHTML = `${errs.map((e) => `<p class="tc-msg tc-bad">${e}</p>`).join('')}
+    <div class="panel"><div class="panel-head"><h2>Energy balance</h2></div><div class="panel-body">${status}
+        <div class="tc-results">
+            <div class="tc-res"><h3>${n === 1 ? 'Photon' : `${n} photons`}, ${num(nm.v, nm.v < 10 ? 3 : 2)} nm</h3><div class="tc-big">${E(hv)}</div><div class="tc-alt">${alt(hv)}</div></div>
+            <div class="tc-res"><h3>Threshold Δ<sub>r</sub>H°(0 K)</h3><div class="tc-big">${E(res.h.h0)}</div><div class="tc-alt">${PM(bu)} ${unit} (95 %, ${bu.how})<br>${alt(res.h.h0).split('<br>')[0]}${lamMax && lamMax > 0 ? `<br>opens below ${num(lamMax, 1)} nm (${n === 1 ? 'one photon' : `${n} photons`})` : ''}</div></div>
+            <div class="tc-res"><h3>Available energy</h3><div class="tc-big">${E(res.eAvail)}</div><div class="tc-alt">± ${U(bu.u ?? 0)} ${unit}<br>${alt(res.eAvail)}</div><p class="tc-note">${n === 1 ? '' : `${n}`}hν${pi.v ? ' + E<sub>int</sub>(parent)' : ''} − threshold</p></div>
+            <div class="tc-res"><h3>Translational energy</h3><div class="tc-big">${E(Math.max(res.eT, 0))}</div><div class="tc-alt">${alt(Math.max(res.eT, 0))}</div><p class="tc-note">${res.eAvail < 0 ? 'the channel is closed' : pp.v ? 'available energy minus what the products keep' : 'all of the available energy: the fastest fragments'}</p></div>
+        </div></div></div>
+    ${res.eT > 0 ? `<div class="panel"><div class="panel-head"><h2>Fragments</h2></div><div class="panel-body"><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Fragment</th><th class="num">Mass, u</th><th class="num">Share of E<sub>T</sub></th><th class="num">KE, ${unit}</th>${unit === 'eV' ? '' : '<th class="num">KE, eV</th>'}<th class="num">Speed, m/s</th>${showImg ? '<th class="num">VMI radius, mm</th><th class="num">Arrival, µs</th>' : ''}${showDt ? '<th class="num">Arrival spread, ns</th>' : ''}${showDop ? '<th class="num">Doppler, cm⁻¹</th>' : ''}</tr></thead><tbody>${fr}</tbody></table></div>
+        <p class="hint">Centre-of-mass frame of the parent: equal and opposite momenta, so the lighter fragment takes the larger share, m<sub>other</sub>/(m<sub>A</sub> + m<sub>B</sub>). Masses are ATcT's molar masses. The kinetic energies carry the threshold's uncertainty in proportion to their shares.${geoNote}${dtNote}${dopNote}</p></div></div>` : ''}
+    <div class="panel"><div class="panel-body"><p class="hint">Thermochemistry gives the energy; how it divides between translation, rotation and vibration is set by the dynamics. Enter the products' internal energy to see slower fragments, or pick an excited product state in the reaction. For the energetics of every channel at this wavelength, see <a href="#" data-tab="channels">Bonds &amp; photolysis</a>; for a Wiley–McLaren spectrometer, the <a href="/tools/ion-time-of-flight/">ion time-of-flight calculator</a>.</p>${shareBox('recoil')}</div></div>`;
+    writeURL();
+}
+
+/* ── Beam collisions ──────────────────────────────────────────────── */
+const CL_EXAMPLES = [['N+', 'O2', '10'], ['O+', 'N2', '20'], ['Ar+', 'H2', '5'], ['O', 'N2', '5'], ['H+', 'CH4', '30'], ['O+', 'CH4', '1']];
+function renderCollide() {
+    const out = $('cl-out');
+    $('cl-three').checked = state.cthree; $('cl-ion').checked = state.cion; $('cl-lab').checked = state.clab;
+    if ($('cl-e').value !== state.ce) $('cl-e').value = state.ce;
+    if (state.tab === 'collide') needFor('collide');
+    const P = db.byId.get(state.cp); const T = db.byId.get(state.ct);
+    if (!P || !T) { out.innerHTML = '<div class="tc-msg">Pick a projectile and a target.</div>'; writeURL(); return; }
+    if (P.isElectron || T.isElectron) { out.innerHTML = '<div class="tc-msg tc-bad">Electron impact is not modelled in this tab. For electron attachment and ion-pair thresholds, use the electron channels in <a href="#" data-tab="channels">Bonds &amp; photolysis</a>.</div>'; writeURL(); return; }
+    const bad = [P, T].find((s) => !s.gas || s.h0 == null);
+    if (bad) { out.innerHTML = `<div class="tc-msg tc-bad">${esc(bad.formula)} (${esc(bad.state)}) is not a gas-phase entry with a 0 K value.</div>`; writeURL(); return; }
+    const eRaw = String(state.ce || '').trim(); const eV = parseNum(eRaw);
+    const eOk = eV != null && Number.isFinite(eV) && eV >= 0 && eV <= 1e6;
+    const eLab = eOk ? toKJ(eV, 'eV') : null;
+    const f = eOk ? collisionFrame(P.mass, T.mass, eLab) : null;
+    const t0 = performance.now();
+    const list = collisionChannels(db, P, T, { three: state.cthree, ionize: state.cion, labeled: state.clab, limit: 300 });
+    const ms = performance.now() - t0;
+    const lhs = `${txt(P)} + ${txt(T)}`;
+    const nOpen = f ? list.filter((c) => c.h0 <= f.eCM).length : 0;
+    const rows = list.map((c) => {
+        const open = f ? c.h0 <= f.eCM : null;
+        const bu = bestU(c);
+        const rx = `${lhs} -> ${c.products.map(txt).join(' + ')}`;
+        const lab = c.h0 > 0 ? num(fromKJ(labForCM(c.h0, P.mass, T.mass), 'eV'), 3) : '0';
+        return `<tr class="${open === false ? 'tc-closed' : ''}"><td>${c.products.map(sp).join(' + ')}</td><td><span class="tc-tag">${esc(c.kind)}</span></td><td class="num">${num(fromKJ(c.h0, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(c.h0, 'eV'), 3)}</td><td class="num">${lab}</td><td class="num">${PM(bu).replace(/^± /, '')}${bu.how === 'correlated' ? CMARK : ''}</td>${f ? `<td class="num">${open ? num(fromKJ(f.eCM - c.h0, unit), DIGITS[unit]) : 'closed'}</td>` : ''}<td><a class="tc-go" href="?tab=reaction&amp;rx=${encodeURIComponent(rx)}" data-rx="${esc(rx)}">reaction ›</a></td></tr>`;
+    }).join('');
+    const frame = f ? `<div class="tc-results">
+            <div class="tc-res"><h3>Centre-of-mass energy</h3><div class="tc-big">${E(f.eCM, null, 'eV')}</div><div class="tc-alt">${E(f.eCM)}${unit !== 'cm⁻¹' ? `<br>${E(f.eCM, null, 'cm⁻¹')}` : ''}<br>${num(100 * T.mass / (P.mass + T.mass), 1)} % of E<sub>lab</sub></div></div>
+            <div class="tc-res"><h3>Speeds</h3><dl class="tc-kv"><dt>Projectile</dt><dd>${num(f.vp, 0)} m/s</dd><dt>Centre of mass</dt><dd>${num(f.vcm, 0)} m/s</dd></dl></div>
+            <div class="tc-res"><h3>Masses</h3><dl class="tc-kv"><dt>${F(P.formula)}</dt><dd>${num(P.mass, 3)} u</dd><dt>${F(T.formula)}</dt><dd>${num(T.mass, 3)} u</dd><dt>Reduced mass μ</dt><dd>${num(f.mu, 3)} u</dd></dl></div>
+            <div class="tc-res"><h3>Largest elastic transfer</h3><div class="tc-big">${E(f.tMax, null, 'eV')}</div><div class="tc-alt">to ${F(T.formula)} in a head-on collision, 4m<sub>p</sub>m<sub>t</sub>/(m<sub>p</sub> + m<sub>t</sub>)²·E<sub>lab</sub></div></div>
+        </div>` : `<p class="tc-msg tc-bad">${eRaw ? `“${esc(eRaw)}” is not a usable energy: enter electronvolts from 0 to 1 000 000.` : 'Enter the lab kinetic energy to see which channels are open.'}</p>`;
+    out.innerHTML = `<div class="panel"><div class="panel-head"><h2>${esc(P.name)} + ${esc(T.name)}${f ? ` at ${num(eV, eV < 10 ? 3 : 1)} eV (lab)` : ''}</h2></div><div class="panel-body">${frame}</div></div>
+    <div class="panel"><div class="panel-head"><h2>Product channels</h2><span class="badge">${list.total > list.length ? `lowest ${list.length} of ${list.total}` : `${list.length} found`}${list.truncated ? '+' : ''}</span></div><div class="panel-body">
+        ${f ? `<p class="tc-msg">${openText(nOpen)} E<sub>cm</sub> = ${E(f.eCM, null, 'eV')}.</p>` : ''}
+        <div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Products</th><th>Kind</th><th class="num">Δ<sub>r</sub>H°(0 K), ${unit}</th><th class="num">eV</th><th class="num">Lab threshold, eV</th><th class="num">±</th>${f ? `<th class="num">Excess, ${unit}</th>` : ''}<th></th></tr></thead><tbody>${rows || '<tr><td colspan="8">No channels: ATcT has no matching products.</td></tr>'}</tbody></table></div>
+        <p class="hint">Sorted by 0 K reaction enthalpy, the centre-of-mass threshold of an endothermic channel; exothermic channels are open at any energy unless a barrier intervenes. “Lab threshold” is the projectile energy that reaches it with the target at rest; “Excess” is E<sub>cm</sub> − Δ<sub>r</sub>H°, shared by the products' translation and internal energy. Kinds: charge transfer (the charge moves, nothing else), ion pair (neutral reactants to a cation and an anion), transfer (an atom, ion or group changes partner), excitation (same fragments in another ATcT state or isomer), association (one product: needs a third body or emission), dissociation (three or more heavy products), ionization (electrons released). Ion energies follow the stationary-electron convention at 0 K. ± is the 95 % uncertainty${list.some((c) => bestU(c).how === 'correlated') ? '; <sup>c</sup> marks ATcT correlated values' : ''}. Search took ${ms.toFixed(0)} ms.</p>
+        ${shareBox('collide')}</div></div>`;
+    writeURL();
+}
 
 /* ── Energy diagram ─────────────────────────────────────────────────── */
 let lastSVG = null;
@@ -681,7 +851,7 @@ function renderSelfTest() {
         return `${main}<br>${num(r.value, 3)} kJ/mol${r.nm ? `<br>${num(kjToNm(r.value), 2)} nm` : ''}`;
     };
     const caseRow = (r) => `<tr><th scope="row">${r.title}<br><span class="tc-state tc-mono">${esc(r.rxn)}</span></th><td class="num">${showVal(r)}</td><td class="num">${minus(String(r.ref.v))} ± ${r.ref.u} ${r.ref.unit}<br>${num(r.refKJ, 4)} kJ/mol</td><td class="num">${num(r.diff, 4)}</td><td class="num">± ${num(r.tol, 4)}</td><td>${badge(r.pass)}${r.pass !== null && !r.tableOk ? '<br><span class="tc-state">table value changed</span>' : ''}</td><td class="tc-state">${r.href ? `<a href="${esc(r.href)}" target="_blank" rel="noopener">${esc(r.src)}</a>` : esc(r.src)}${r.tolNote ? `<br>Tolerance: ${esc(r.tolNote)}.` : ''}${KINDS[r.kind] ? `<br><span class="tc-tag">${esc(KINDS[r.kind])}</span>` : ''}</td></tr>`;
-    const groups = [['units', 'Unit factors (CODATA 2022)'], ['lookup', 'Formula, ion and state-label lookup'], ['balance', 'Balance and uncertainty (ATcT covariances)'], ['excited', 'Excited-state and electron-attachment bookkeeping'], ['diagram', 'Energy diagram and version diff']];
+    const groups = [['units', 'Unit factors (CODATA 2022)'], ['lookup', 'Formula, ion and state-label lookup'], ['balance', 'Balance and uncertainty (ATcT covariances)'], ['excited', 'Excited-state and electron-attachment bookkeeping'], ['diagram', 'Energy diagram and version diff'], ['kinematics', 'Recoil, collisions and uncertainty budget']];
     root.innerHTML = `<div class="panel"><div class="panel-head"><h2>Self-test</h2><span class="badge ${nPass === nAll ? 'badge-ok' : 'badge-bad'}">${nPass} / ${nAll}</span></div><div class="panel-body">
         <p class="tc-st-summary">${nPass} of ${nAll} checks passed with the loaded table (ATcT TN ${esc(db.meta.tn_version || '?')})${nNA ? `; ${nNA} not applicable to this table` : ''}${waiting.length ? ` (still loading: ${waiting.join(', ')})` : ''}.</p>
         <p class="hint">Each reaction is recomputed from the loaded table and checked twice. First against the value hand-computed from ATcT TN 1.228 (plus, for excited products, the NIST term value) to 0.0015 kJ/mol, which catches data, parsing and arithmetic errors. Then against a reference value, passing when |Δ| ≤ √(U<sub>tool</sub>² + U<sub>ref</sub>²) at 95 %; for a threshold quoted to a rounded wavelength or energy, U<sub>ref</sub> is that rounding.</p>
@@ -746,7 +916,7 @@ function shippedDB() {
 }
 
 function rerender() {
-    renderData(); renderSpecies(); renderReaction(); renderChannels(); renderUnits();
+    renderData(); renderSpecies(); renderReaction(); renderChannels(); renderUnits(); renderRecoil(); renderCollide();
     if (state.tab === 'selftest') renderSelfTest();
     if (state.tab === 'diagram') renderDiagram();
 }
@@ -770,6 +940,24 @@ async function boot() {
     $('ch-labeled').addEventListener('change', () => { state.lab = $('ch-labeled').checked; renderChannels(); });
     $('ch-ex').addEventListener('change', () => { state.ex = $('ch-ex').checked; renderChannels(); });
     $('ch-fine').addEventListener('change', () => { state.fine = $('ch-fine').checked; renderChannels(); });
+    $('rc-examples').innerHTML = RC_EXAMPLES.map(([x, nm]) => `<button type="button" data-nm="${nm}">${esc(x)} <span class="tc-state">${nm} nm</span></button>`).join('');
+    $('rc-examples').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || !db) return; state.rc = b.firstChild.textContent.trim(); state.rnm = b.dataset.nm; state.rn = '1'; renderRecoil(); });
+    let rtmr = 0;
+    for (const [id, k] of [['rc-in', 'rc'], ['rc-nm', 'rnm'], ['rc-pi', 'rpi'], ['rc-pp', 'rpp'], ['rc-L', 'rL'], ['rc-V', 'rV'], ['rc-N', 'rN'], ['rc-E', 'rE'], ['rc-pr', 'rpr']]) {
+        $(id).addEventListener('input', () => { state[k] = $(id).value; clearTimeout(rtmr); rtmr = setTimeout(() => { if (db) renderRecoil(); }, 200); });
+    }
+    $('rc-n').addEventListener('change', () => { state.rn = $('rc-n').value; if (db) renderRecoil(); });
+    if (['rE', 'rpr'].some((k) => state[k]) || new URLSearchParams(location.search).has('rL')) $('rc-geo').open = true;
+    $('cl-examples').innerHTML = CL_EXAMPLES.map(([p, tg, e]) => `<button type="button" data-p="${esc(p)}" data-t="${esc(tg)}" data-e="${e}">${esc(p)} + ${esc(tg)} <span class="tc-state">${e} eV</span></button>`).join('');
+    $('cl-examples').addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if (!b || !db) return;
+        const P = resolveToken(db, b.dataset.p).species; const T = resolveToken(db, b.dataset.t).species; if (!P || !T) return;
+        state.cp = P.id; state.ct = T.id; state.ce = b.dataset.e; $('cl-p').value = P.formula; $('cl-t').value = T.formula; renderCollide();
+    });
+    $('cl-e').addEventListener('input', () => { state.ce = $('cl-e').value; clearTimeout(rtmr); rtmr = setTimeout(() => { if (db) renderCollide(); }, 200); });
+    $('cl-three').addEventListener('change', () => { state.cthree = $('cl-three').checked; renderCollide(); });
+    $('cl-ion').addEventListener('change', () => { state.cion = $('cl-ion').checked; renderCollide(); });
+    $('cl-lab').addEventListener('change', () => { state.clab = $('cl-lab').checked; renderCollide(); });
     initData();
     initDiagram();
     showTab(state.tab);
@@ -785,10 +973,14 @@ async function boot() {
     combo($('sp-q'), $('sp-list'), (s) => { state.sp = s.id; $('sp-q').value = s.formula; renderSpecies(); },
         () => true, (q) => { state.sp = ''; $('sp-card').innerHTML = `<div class="tc-msg tc-bad">“${esc(q)}” was not found in ATcT ${esc(db.meta.tn_version || '')}. Try a formula (CH2O), a name, a CAS number or an InChIKey.</div>`; writeURL(); });
     combo($('ch-q'), $('ch-list'), (s) => { state.ch = s.id; $('ch-q').value = s.formula; renderChannels(); }, (s) => s.gas && s.h0 != null, chMiss);
+    const clMiss = (side) => (q, s) => { $('cl-out').innerHTML = `<div class="tc-msg tc-bad">${s && s.isElectron ? 'Electron impact is not modelled in this tab; the electron channels in Bonds &amp; photolysis give attachment and ion-pair thresholds.' : s ? `${esc(s.formula)} (${esc(s.state)}) is not a gas-phase entry with a 0 K value.` : `“${esc(q)}” was not found in ATcT ${esc(db.meta.tn_version || '')}. Try a formula (N+, O2), a name or a CAS number.`}</div>`; state[side] = ''; writeURL(); };
+    combo($('cl-p'), $('cl-p-list'), (s) => { state.cp = s.id; $('cl-p').value = s.formula; renderCollide(); }, (s) => s.gas && s.h0 != null, clMiss('cp'));
+    combo($('cl-t'), $('cl-t-list'), (s) => { state.ct = s.id; $('cl-t').value = s.formula; renderCollide(); }, (s) => s.gas && s.h0 != null, clMiss('ct'));
+    for (const [id, k] of [['cl-p', 'cp'], ['cl-t', 'ct']]) { const s = db.byId.get(state[k]); $(id).value = s ? s.formula : ''; }
     if (!state.sp) state.sp = '50-00-0*0';
     const s0 = db.byId.get(state.sp); $('sp-q').value = s0 ? s0.formula : '';
     const c0 = db.byId.get(state.ch); $('ch-q').value = c0 ? c0.formula : '';
     rerender();
-    window.__thermochem = { db: () => db, CASES, runCase, extraChecks, extra: () => extra };
+    window.__thermochem = { db: () => db, CASES, runCase, extraChecks, extra: () => extra, state };
 }
 boot();
