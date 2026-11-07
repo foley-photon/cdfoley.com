@@ -295,13 +295,13 @@ export function reactionEnthalpy(db, terms) {
     }
     let var0 = 0; let rvar = 0;
     for (const { nu, s } of byS.values()) {
-        // ATcT prints each value to the decimals of its uncertainty (at most 3), so the printed value carries up to half
-        // a last digit of rounding; the covariances can't account for it (it matters where they cancel, as in Br₂ → 2 Br)
-        const r = nu * printRounding(s.base || s);
-        var0 += (nu * (s.u || 0)) ** 2 + r * r;   // a NIST state's u already includes its term-value uncertainty
-        xvar += r * r; rvar += r * r;
+        var0 += (nu * (s.u || 0)) ** 2;   // a NIST state's u already includes its term-value uncertainty
         if (s.base && s.uTerm) xvar += (nu * s.uTerm) ** 2;
     }
+    // ATcT prints each value to the decimals of its uncertainty (at most 3), so the printed value carries up to half a
+    // last digit of rounding; the covariances can't account for it (it matters where they cancel, as in Br₂ → 2 Br).
+    // One rounding per printed ATcT value: an excited state and its ground entry share it (net coefficient).
+    for (const { nu, s } of roundingTerms(byS)) { const r = nu * printRounding(s); var0 += r * r; xvar += r * r; rvar += r * r; }
     const u = Math.sqrt(var0);
     return {
         h0: missing0.length ? null : round(h0), h298: missing298.length ? null : round(h298), u, rvar,
@@ -310,6 +310,12 @@ export function reactionEnthalpy(db, terms) {
     };
 }
 const round = (x) => Math.round(x * 1e6) / 1e6;
+/** Net coefficient of each printed ATcT value (an excited state counts with its ground entry): [{ nu, s }]. */
+function roundingTerms(byS) {
+    const m = new Map();
+    for (const { nu, s } of byS.values()) { const g = s.base || s; const e = m.get(g.id); if (e) e.nu += nu; else m.set(g.id, { nu, s: g }); }
+    return [...m.values()];
+}
 /** Half the last printed digit of a species' ATcT value: ½·10^−d, d = decimals of its printed uncertainty (≤ 3); 0 if exact. */
 export function printRounding(s) {
     const m = /^\d*\.(\d*)$/.exec(String(s.utext || '').trim());
@@ -364,35 +370,10 @@ const CANCEL = 1e-3;
  * stale lists species whose printed uncertainty changed by more than STALE_FACTOR between the two versions.
  */
 export function covarianceU(db, nus, xvar = 0) {
-    const c = db.cov; if (!c) return null;
-    const idx = []; const v = []; const f = []; const missing = []; const stale = []; const scaled = [];
-    let extra = xvar;
-    for (const [id, nu] of nus) {
-        if (Math.abs(nu) < 1e-12) continue;
-        const s = db.byId.get(id);
-        const u = s ? s.u || 0 : 0;
-        if (c.pos.has(id)) {
-            const i = c.pos.get(id);
-            idx.push(i); v.push(nu);
-            let fi = 1;
-            const old = db.diff && s ? versionChange(db, s) : null;
-            if (old && !old.isNew && old.u != null && s.uPrinted != null && Math.abs(old.u - s.uPrinted) > 5e-7) {
-                // printed "± 0.000" means below 0.0005: use the smaller of that bound and the API value
-                const u228 = s.uPrinted > 0 ? s.uPrinted : Math.min(0.0005, c.sd[i]);
-                const u220 = old.u > 0 ? old.u : Math.min(0.0005, c.sd[i]);
-                if (u220 > 0 && u228 > 0) fi = u228 / u220;
-                if (fi !== 1) scaled.push(id);
-                if (u228 > 0.001 && u220 > 0.001 && (fi > STALE_FACTOR || 1 / fi > STALE_FACTOR)) stale.push(id);
-            }
-            f.push(fi);
-            continue;
-        }
-        if (u === 0) continue;
-        if (u <= 0.0005) { extra += (nu * u) ** 2; continue; }
-        missing.push(id);
-    }
+    const k = covSetup(db, nus, xvar); if (!k) return null;
+    const { c, idx, v, f, missing, stale, scaled } = k;
     if (missing.length) return { covered: false, u: null, lt: null, u220: null, tn: c.tn, T: c.T, missing, stale, scaled };
-    let a = extra; let b = extra; let ta = extra; let tb = extra;
+    let a = k.extra; let b = k.extra; let ta = k.extra; let tb = k.extra;
     for (let x = 0; x < idx.length; x++) {
         for (let y = 0; y < idx.length; y++) {
             const r = corr(c, idx[x], idx[y]);
@@ -410,6 +391,107 @@ export function covarianceU(db, nus, xvar = 0) {
         u220: b > 0 || tb === 0 ? Math.sqrt(Math.max(b, 0)) : null, u220lt: b > 0 || tb === 0 ? null : Math.sqrt(CANCEL * tb),
         fallback, clamped, scaled, tn: c.tn, T: c.T, missing, stale,
     };
+}
+/**
+ * The pieces of √(νᵀCν): covariance-matrix indices `idx`, coefficients `v` and TN 1.228 scale factors `f` of the covered
+ * species (`ids`), independent variance `extra` (xvar plus tiny-uncertainty species outside the file, `extraById` per
+ * species), and the `missing`, `stale` and `scaled` ID lists. Null while no covariance file is attached.
+ */
+function covSetup(db, nus, xvar = 0) {
+    const c = db.cov; if (!c) return null;
+    const idx = []; const v = []; const f = []; const ids = []; const missing = []; const stale = []; const scaled = [];
+    let extra = xvar; const extraById = new Map();
+    for (const [id, nu] of nus) {
+        if (Math.abs(nu) < 1e-12) continue;
+        const s = db.byId.get(id);
+        const u = s ? s.u || 0 : 0;
+        if (c.pos.has(id)) {
+            const i = c.pos.get(id);
+            idx.push(i); v.push(nu); ids.push(id);
+            let fi = 1;
+            const old = db.diff && s ? versionChange(db, s) : null;
+            if (old && !old.isNew && old.u != null && s.uPrinted != null && Math.abs(old.u - s.uPrinted) > 5e-7) {
+                // printed "± 0.000" means below 0.0005: use the smaller of that bound and the API value
+                const u228 = s.uPrinted > 0 ? s.uPrinted : Math.min(0.0005, c.sd[i]);
+                const u220 = old.u > 0 ? old.u : Math.min(0.0005, c.sd[i]);
+                if (u220 > 0 && u228 > 0) fi = u228 / u220;
+                if (fi !== 1) scaled.push(id);
+                if (u228 > 0.001 && u220 > 0.001 && (fi > STALE_FACTOR || 1 / fi > STALE_FACTOR)) stale.push(id);
+            }
+            f.push(fi);
+            continue;
+        }
+        if (u === 0) continue;
+        if (u <= 0.0005) { extra += (nu * u) ** 2; extraById.set(id, (nu * u) ** 2); continue; }
+        missing.push(id);
+    }
+    return { c, idx, v, f, ids, extra, extraById, missing, stale, scaled };
+}
+
+/**
+ * Uncertainty budget of a reaction: what each species adds to the variance of ΔrH, and how far the result would improve
+ * if that species were known exactly. One row per distinct ATcT entry (an excited state counts with its ground entry):
+ * { id, species, nu, u (its 95 % uncertainty), indep (its part of the independent variance: (νU)² + rounding² + term²),
+ *   share (its signed part of the variance used: Σⱼ νᵢνⱼCᵢⱼ plus its independent extras; the shares add up to the total and
+ *   a share is negative when the species' correlations with the others cancel), without (the 95 % uncertainty with this
+ *   species exact: the conditional variance Var − Cov(ΔrH, νᵢΔfHᵢ)²/Var(νᵢΔfHᵢ), as if a new measurement pinned it and the
+ *   correlated species moved with it; its own rounding and term-value extras drop out too) }.
+ * `how` is 'correlated' or 'independent' (as bestU), `total` the variance used and `indepTotal` the independent one.
+ * When the correlated result is only a bound, `share` and `without` are null. Rounding of the printed values
+ * (printRounding) and NIST term-value uncertainties are attributed to their species.
+ */
+export function uncertaintyBudget(db, terms) {
+    const h = reactionEnthalpy(db, terms); if (!h) return null;
+    const rows = new Map(); const byS = new Map();
+    for (const t of terms) {
+        const s = t.species; if (!s || s.isElectron) continue;
+        const g = s.base || s;
+        const r = rows.get(g.id) || { id: g.id, species: g, nu: 0, u: g.u || 0 };
+        r.nu += t.nu; rows.set(g.id, r);
+        const e = byS.get(s.id); if (e) e.nu += t.nu; else byS.set(s.id, { nu: t.nu, s });
+    }
+    // independent terms as in reactionEnthalpy, grouped by ground entry; extras are what the covariances can't carry
+    const indepById = new Map(); const extraById = new Map();
+    for (const { nu, s } of byS.values()) {
+        const k = (s.base || s).id;
+        indepById.set(k, (indepById.get(k) || 0) + (nu * (s.u || 0)) ** 2);
+        extraById.set(k, (extraById.get(k) || 0) + (s.base && s.uTerm ? (nu * s.uTerm) ** 2 : 0));
+    }
+    for (const { nu, s } of roundingTerms(byS)) {   // one rounding per printed ATcT value, as in reactionEnthalpy
+        const rr = (nu * printRounding(s)) ** 2;
+        indepById.set(s.id, (indepById.get(s.id) || 0) + rr); extraById.set(s.id, (extraById.get(s.id) || 0) + rr);
+    }
+    const out = [...rows.values()].filter((r) => indepById.get(r.id) > 0);
+    for (const r of out) r.indep = indepById.get(r.id);
+    const indepTotal = out.reduce((a, r) => a + r.indep, 0);
+    const bu = bestU(h);
+    if (bu.how !== 'correlated') {
+        for (const r of out) { r.share = r.indep; r.without = Math.sqrt(Math.max(indepTotal - r.indep, 0)); }
+        return { how: 'independent', total: indepTotal, indepTotal, u: Math.sqrt(indepTotal), rows: out, h };
+    }
+    if (bu.lt) {
+        for (const r of out) { r.share = null; r.without = null; }
+        return { how: 'correlated', bound: true, total: null, indepTotal, u: bu.u, rows: out, h };
+    }
+    const nus = new Map();
+    for (const t of terms) { const s = t.species; if (!s) continue; const k = s.base ? s.base.id : s.id; nus.set(k, (nus.get(k) || 0) + t.nu); }
+    const k = covSetup(db, nus, [...extraById.values()].reduce((a, x) => a + x, 0));
+    const useF = !h.ucorr.fallback;
+    const T = (x, y) => {
+        const r = corr(k.c, k.idx[x], k.idx[y]);
+        return r ? k.v[x] * k.v[y] * r * k.c.sd[k.idx[x]] * k.c.sd[k.idx[y]] * (useF ? k.f[x] * k.f[y] : 1) : 0;
+    };
+    const n = k.idx.length; let total = k.extra; const rowSum = new Array(n).fill(0);
+    for (let x = 0; x < n; x++) for (let y = 0; y < n; y++) { const t = T(x, y); rowSum[x] += t; total += t; }
+    for (const r of out) {
+        const x = k.ids.indexOf(r.id);
+        const ex = (extraById.get(r.id) || 0) + (k.extraById.get(r.id) || 0);
+        if (x < 0) { r.share = ex; r.without = Math.sqrt(Math.max(total - ex, 0)); continue; }
+        r.share = rowSum[x] + ex;
+        const kk = T(x, x);   // conditional on this species: the network's correlations move the others with it
+        r.without = Math.sqrt(Math.max(total - ex - (kk > 0 ? rowSum[x] ** 2 / kk : 0), 0));
+    }
+    return { how: 'correlated', total, indepTotal, u: Math.sqrt(Math.max(total, 0)), rows: out, h };
 }
 
 /**

@@ -11,8 +11,9 @@
 
 import {
     parseReaction, resolveReaction, resolveToken, search, balance, reactionEnthalpy, toKJ, fromKJ, kjToNm, nmToKJ,
-    excitedStates, excitedThresholds, findChannels, versionChange, stateToken, unboundAnion,
+    excitedStates, excitedThresholds, findChannels, versionChange, stateToken, unboundAnion, uncertaintyBudget, bestU,
 } from './engine.js';
+import { photofragments, collisionFrame, collisionChannels, labForCM } from './kinematics.js';
 import { buildDiagram } from './diagram.js';
 
 const ATCT_H2O = 'https://atct.anl.gov/Thermochemical%20Data/version%201.228/species/?species_number=28';
@@ -276,6 +277,39 @@ export function extraChecks(db) {
         add('Version diff: H₂O(g) was −241.808 kJ/mol at 298.15 K in TN 1.220 (−241.798 in TN 1.228)', !!v && v.h298 === -241.808, v ? `TN 1.220: ${v.h298} kJ/mol` : 'no change found', 'diagram');
     } else {
         add('Version diff (needs the diff file)', null, 'not applicable: no TN 1.220 diff loaded for this table', 'diagram');
+    }
+    // kinematics: recoil, collisions, uncertainty budget (hand values from the TN 1.228 table and CODATA 2022)
+    const ch3i = resolveReaction(db, parseReaction('CH3I -> CH3 + I')).terms;
+    const pf = photofragments(db, ch3i, { photonKJ: nmToKJ(266) });
+    const [fa, fb] = pf.frags || [];
+    add('Recoil: CH₃I → CH₃ + I at 266 nm leaves 217.205 kJ/mol, of which CH₃ carries 194.198 (m_I/(m_CH₃ + m_I))',
+        !pf.error && near(pf.eAvail, 217.205) && near(fa.ke, 194.198) && Math.abs(fa.p - fb.p) / fa.p < 1e-12 && Math.abs(fa.ke + fb.ke - pf.eT) < 1e-9,
+        pf.error || `E_avail ${pf.eAvail.toFixed(3)} kJ/mol; KE ${fa.ke.toFixed(3)} + ${fb.ke.toFixed(3)}; momenta equal to ${(Math.abs(fa.p - fb.p) / fa.p).toExponential(1)}`, 'kinematics');
+    const no = photofragments(db, resolveReaction(db, parseReaction('NO -> NO+ + e-')).terms, { photonKJ: nmToKJ(118.2) });
+    const ieNO = no.h ? no.h.h0 : null;
+    add('Photoelectron: NO at 118.2 nm gives the electron hν − IE(NO) to within 0.01 %', !no.error && Math.abs(no.frags[1].ke - (nmToKJ(118.2) - ieNO)) / no.frags[1].ke < 1e-4,
+        no.error || `${fromKJ(no.frags[1].ke, 'eV').toFixed(4)} eV of ${fromKJ(no.eT, 'eV').toFixed(4)} eV; NO⁺ keeps ${fromKJ(no.frags[0].ke, 'eV').toExponential(2)} eV`, 'kinematics');
+    const np = resolveToken(db, 'N+').species; const o2 = resolveToken(db, 'O2').species;
+    const fr = np && o2 ? collisionFrame(np.mass, o2.mass, toKJ(10, 'eV')) : null;
+    add('Collision: N⁺ + O₂ at 10 eV (lab) has E_cm = 10·m(O₂)/(m(N⁺) + m(O₂)) = 6.9555 eV, and the lab threshold inverts it',
+        !!fr && Math.abs(fromKJ(fr.eCM, 'eV') - 6.95552) < 5e-5 && Math.abs(labForCM(fr.eCM, np.mass, o2.mass) - toKJ(10, 'eV')) < 1e-9,
+        fr ? `${fromKJ(fr.eCM, 'eV').toFixed(5)} eV; μ = ${fr.mu.toFixed(3)} u` : 'species not found', 'kinematics');
+    const ct = np && o2 ? collisionChannels(db, np, o2).find((c) => c.kind === 'charge transfer' && c.products.some((s) => s.formula === 'N')) : null;
+    add('Charge transfer: N⁺ + O₂ → N + O₂⁺ is IE(O₂) − IE(N) = 12.0697 − 14.5341 = −2.4644 eV (NIST ASD and WebBook ionization energies), within 0.002 eV',
+        !!ct && Math.abs(fromKJ(ct.h0, 'eV') + 2.4644) < 0.002, ct ? `${fromKJ(ct.h0, 'eV').toFixed(4)} eV (${ct.kind})` : 'channel not found', 'kinematics');
+    const oT = db.byId.get('17778-80-2*1'); const n2 = resolveToken(db, 'N2').species; const oo = resolveToken(db, 'O').species;
+    const echo = oT && n2 ? collisionChannels(db, oT, n2).filter((c) => c.kind === 'excitation' && Math.abs(c.h0) < 1e-6) : null;
+    const ip = oo ? collisionChannels(db, oo, oo).find((c) => c.products.some((s) => s.q === 1) && c.products.some((s) => s.q === -1)) : null;
+    add('Collision bookkeeping: ATcT’s second listing O (g, triplet) + N₂ gives no fake channel back to the reactants, and O + O → O⁻ + O⁺ is tagged as an ion pair',
+        !!echo && echo.length === 0 && !!ip && ip.kind === 'ion pair', `${echo ? echo.length : '?'} echo channels; O + O: ${ip ? `${ip.kind}, ${fromKJ(ip.h0, 'eV').toFixed(3)} eV` : 'not found'}`, 'kinematics');
+    const bud = uncertaintyBudget(db, resolveReaction(db, parseReaction('CH4 + 2 O2 -> CO2 + 2 H2O')).terms);
+    if (bud && bud.how === 'correlated' && !bud.bound) {
+        const sum = bud.rows.reduce((s, r) => s + r.share, 0); const bu = bestU(bud.h);
+        add('Uncertainty budget: for CH₄ + 2 O₂ → CO₂ + 2 H₂O the species shares add up to the correlated variance, and pinning any species never raises it',
+            Math.abs(sum - bud.total) < 1e-12 && Math.abs(Math.sqrt(bud.total) - bu.u) < 1e-12 && bud.rows.every((r) => r.without <= Math.sqrt(bud.total) + 1e-12),
+            `Σ shares − total = ${(sum - bud.total).toExponential(1)} (kJ/mol)²; ± ${Math.sqrt(bud.total).toFixed(4)}; if exact: ${bud.rows.map((r) => `${r.species.formula} ${r.without.toFixed(4)}`).join(', ')}`, 'kinematics');
+    } else {
+        add('Uncertainty budget (needs the covariance file)', null, 'not applicable: no ATcT covariances loaded for this table', 'kinematics');
     }
     return out;
 }
