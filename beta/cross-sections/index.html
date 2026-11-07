@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Absorption Cross-Section Atlas (beta) | Casey D. Foley, PhD</title>
+<meta name="description" content="Beta: UV, visible and VUV absorption cross sections from open datasets, overlaid and compared, with values at laser lines, Beer–Lambert absorption, photolysis per pulse and the original references.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="../thermochem/thermochem.css">
+<link rel="stylesheet" href="./xsec.css">
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<link rel="modulepreload" href="./js/xsec.js">
+<link rel="preload" href="./data/index.json" as="fetch" type="application/json" crossorigin>
+</head>
+<body data-section="beta">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/beta/">Beta tools</a></li><li aria-current="page">Absorption Cross-Section Atlas</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <span class="eyebrow">Beta</span>
+        <h1>Absorption Cross-Section Atlas <span class="badge badge-warn">BETA</span></h1>
+        <p class="lede">Gas-phase absorption cross sections from the VUV to the near infrared, gathered from open compilations and the laboratories that measured them, and credited to the original papers. Overlay datasets, read them at your laser line, and turn a cross section into an absorbance, an optical depth or the fraction of molecules a pulse photolyses.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Cross section σ</dt><dd>The effective area a molecule presents to a photon: the fraction of light absorbed by a thin layer is σ times the number of molecules per unit area. Units cm² molecule⁻¹.</dd>
+            <dt>Molar absorptivity ε</dt><dd>The same quantity per mole and in base 10, as used in solution spectroscopy: ε = σN<sub>A</sub>/(1000 ln 10) in L mol⁻¹ cm⁻¹.</dd>
+            <dt>Optical depth τ</dt><dd>τ = σnL for number density n and path L; the transmitted fraction is e<sup>−τ</sup>. Absorbance (base 10) is τ/ln 10.</dd>
+            <dt>Quantum yield φ</dt><dd>The fraction of absorbed photons that lead to a given product. Absorption alone does not say what happens next.</dd>
+            <dt>Recommended</dt><dd>A dataset an evaluation panel (NASA JPL or IUPAC) chose as the best available at the time of the evaluation.</dd>
+        </dl></details>
+    </header>
+
+    <div class="callout callout-warn" role="note">
+        <p><strong>Beta, in review.</strong> Values are shown as each source gives them; check the original paper before you rely on a number. Found a problem? Email <a href="mailto:foley.photon@gmail.com">foley.photon@gmail.com</a>.</p>
+    </div>
+
+    <section class="panel" aria-labelledby="xs-pick-h">
+        <div class="panel-head"><h2 id="xs-pick-h">Molecule and datasets</h2><span class="badge" id="xs-count"></span></div>
+        <div class="panel-body">
+            <div class="field xs-combo">
+                <label for="xs-q">Molecule</label>
+                <input id="xs-q" class="input" type="search" role="combobox" aria-expanded="false" aria-controls="xs-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="formula, name or CAS: O3, formaldehyde, 10102-44-0">
+                <ul id="xs-list" class="xs-list" role="listbox" hidden></ul>
+            </div>
+            <div class="xs-quick" id="xs-quick" aria-label="Common molecules"></div>
+            <div id="xs-sets"></div>
+        </div>
+    </section>
+
+    <section class="panel" aria-labelledby="xs-plot-h">
+        <div class="panel-head"><h2 id="xs-plot-h">Spectrum</h2></div>
+        <div class="panel-body">
+            <div class="field-row xs-axes">
+                <div class="field">
+                    <label for="xs-x">Horizontal axis</label>
+                    <select id="xs-x" class="input"><option value="nm">Wavelength, nm</option><option value="cm1">Wavenumber, cm⁻¹</option><option value="eV">Photon energy, eV</option></select>
+                </div>
+                <div class="field">
+                    <label for="xs-y">Vertical axis</label>
+                    <select id="xs-y" class="input"></select>
+                </div>
+                <div class="field">
+                    <label for="xs-min">From</label>
+                    <div class="input-unit"><input id="xs-min" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="auto"><span class="unit">nm</span></div>
+                </div>
+                <div class="field">
+                    <label for="xs-max">To</label>
+                    <div class="input-unit"><input id="xs-max" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="auto"><span class="unit">nm</span></div>
+                </div>
+            </div>
+            <div class="xs-quick" id="xs-ranges" aria-label="Wavelength ranges"></div>
+            <div class="field tc-checks xs-opts">
+                <label><input type="checkbox" id="xs-log" checked> logarithmic σ</label>
+                <label><input type="checkbox" id="xs-lines"> mark laser lines</label>
+            </div>
+            <div id="xs-plot" class="xs-plot" role="img" aria-label="Absorption cross section against wavelength"></div>
+            <p class="hint" id="xs-plot-note"></p>
+            <div class="tc-actions"><button type="button" class="btn btn-secondary btn-sm" id="xs-csv">Download the shown datasets (CSV)</button> <button type="button" class="btn btn-ghost btn-sm" id="xs-link">Copy link</button></div>
+        </div>
+    </section>
+
+    <section class="panel" aria-labelledby="xs-lines-h">
+        <div class="panel-head"><h2 id="xs-lines-h">At a laser line</h2></div>
+        <div class="panel-body">
+            <div class="field-row">
+                <div class="field">
+                    <label for="xs-lam">Wavelength</label>
+                    <div class="input-unit"><input id="xs-lam" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="unit">nm</span></div>
+                </div>
+                <div class="field">
+                    <label for="xs-fw">Line width (FWHM)</label>
+                    <div class="input-unit"><input id="xs-fw" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0 = point value"><span class="unit">nm</span></div>
+                </div>
+            </div>
+            <div class="xs-quick" id="xs-laser" aria-label="Laser lines"></div>
+            <div id="xs-at"></div>
+        </div>
+    </section>
+
+    <section class="panel" aria-labelledby="xs-calc-h">
+        <div class="panel-head"><h2 id="xs-calc-h">Absorption and photolysis</h2></div>
+        <div class="panel-body">
+            <div class="field-row">
+                <div class="field">
+                    <label for="xs-sig">Cross section σ</label>
+                    <div class="input-unit"><input id="xs-sig" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="unit">cm²</span></div>
+                    <p class="hint" id="xs-sig-from"></p>
+                </div>
+                <div class="field">
+                    <label for="xs-p">Pressure of the absorber</label>
+                    <div class="input-unit"><input id="xs-p" inputmode="decimal" autocomplete="off" spellcheck="false"><select id="xs-pu" aria-label="Pressure unit"><option value="133.322368">Torr</option><option value="100">mbar</option><option value="1">Pa</option><option value="101325">atm</option></select></div>
+                </div>
+                <div class="field">
+                    <label for="xs-T">Gas temperature</label>
+                    <div class="input-unit"><input id="xs-T" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="unit">K</span></div>
+                </div>
+                <div class="field">
+                    <label for="xs-L">Path length</label>
+                    <div class="input-unit"><input id="xs-L" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="unit">cm</span></div>
+                </div>
+            </div>
+            <div id="xs-bl"></div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="xs-F">Pulse fluence</label>
+                    <div class="input-unit"><input id="xs-F" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="unit">mJ/cm²</span></div>
+                </div>
+                <div class="field">
+                    <label for="xs-phi">Quantum yield φ</label>
+                    <input id="xs-phi" class="input" inputmode="decimal" autocomplete="off" spellcheck="false">
+                </div>
+            </div>
+            <div id="xs-pp"></div>
+        </div>
+    </section>
+
+    <section class="panel" aria-labelledby="xs-unit-h">
+        <div class="panel-head"><h2 id="xs-unit-h">Convert units</h2></div>
+        <div class="panel-body">
+            <div class="field-row">
+                <div class="field">
+                    <label for="xs-cv">Value</label>
+                    <div class="input-unit"><input id="xs-cv" inputmode="decimal" autocomplete="off" spellcheck="false" value="1e-17"><select id="xs-cu" aria-label="Unit"></select></div>
+                </div>
+            </div>
+            <div id="xs-conv"></div>
+        </div>
+    </section>
+
+    <article class="prose xs-prose" id="how">
+        <h2>How it works</h2>
+        <ul>
+            <li><strong>Values between points</strong> are linear interpolations of the tabulated data. A value at a laser line with a width averages σ over a Gaussian of that full width at half maximum. If the data are tabulated more coarsely than the line, the tool says so: the average is then only an interpolation, and narrow structure (the bands of O₂, NO or SO₂) can make it wrong by large factors.</li>
+            <li><strong>Units.</strong> ε (base 10) = σN<sub>A</sub>/(1000 ln 10); ε (base e) = σN<sub>A</sub>/1000; k (cm⁻¹ atm⁻¹ at 273.15 K) = σn₀, with Loschmidt's constant n₀ = 2.686 780 111 × 10¹⁹ cm⁻³ (CODATA 2022). Physicists' units: 1 Mb = 10⁻¹⁸ cm², 1 barn = 10⁻²⁴ cm², 1 Å² = 10⁻¹⁶ cm², a₀² = 2.800 285 × 10⁻¹⁷ cm², and the oscillator-strength density df/dE = σ/(2π²r<sub>e</sub>ħc), so σ in Mb ≈ 109.76 × df/dE in eV⁻¹ (Berkowitz's convention for VUV photoabsorption).</li>
+            <li><strong>Beer–Lambert.</strong> n = p/k<sub>B</sub>T, τ = σnL, transmitted fraction e<sup>−τ</sup>, absorbance τ/ln 10.</li>
+            <li><strong>Photolysis per pulse.</strong> Photon fluence Φ = F/(hc/λ); fraction excited 1 − e<sup>−σΦ</sup>, fraction photolysed 1 − e<sup>−σΦφ</sup>, for an optically thin sample and one-photon absorption. The saturation fluence hν/σ is where a fraction 1 − 1/e of the molecules has absorbed.</li>
+            <li><strong>Temperature.</strong> Where one series was measured at several temperatures, σ at an intermediate temperature is interpolated linearly in T, never extrapolated.</li>
+        </ul>
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Data are shown as their sources give them, including the wavelength scale (air or vacuum, where stated) and the spectral resolution of the measurement. Above 200 nm, air and vacuum wavelengths differ by about 0.06 nm at 250 nm and 0.11 nm at 400 nm.</li>
+            <li>Cross sections of banded spectra depend on resolution, temperature and pressure; compare like with like.</li>
+            <li>Absorption is not photolysis: what happens after the photon is absorbed is set by the quantum yields.</li>
+        </ul>
+    </article>
+
+    <section class="panel xs-terms" id="sources" aria-labelledby="xs-src-h">
+        <div class="panel-head"><h2 id="xs-src-h">Data sources and terms</h2></div>
+        <div class="panel-body prose" id="xs-src"></div>
+    </section>
+</main>
+<div id="site-footer"></div>
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

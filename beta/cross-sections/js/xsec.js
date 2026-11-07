@@ -1,0 +1,160 @@
+// Absorption cross-section engine: interpolation, laser-line averages, unit conversions, Beer–Lambert absorption,
+// photolysis per pulse, temperature interpolation and resampling. Pure functions, no DOM; usable from Node for tests.
+// Spectra are arrays of [λ (nm), σ (cm² molecule⁻¹)] sorted by wavelength.
+
+// CODATA 2022 (Mohr et al., Rev. Mod. Phys. 97, 025002 (2025)); N_A, h, c and k are exact.
+export const N_A = 6.02214076e23;            // mol⁻¹
+export const H = 6.62607015e-34;             // J s
+export const C = 299792458;                  // m s⁻¹
+export const K_B = 1.380649e-23;             // J K⁻¹
+export const ATM = 101325;                   // Pa
+export const LOSCHMIDT = ATM / (K_B * 273.15) * 1e-6;   // cm⁻³ at 273.15 K and 1 atm: 2.686780111e19
+export const LN10 = Math.LN10;
+export const A0_2 = 5.29177210544e-9 ** 2;   // Bohr radius squared, cm² (CODATA 2022)
+/** σ per unit oscillator-strength density: 2π² r_e ħc = 1.0976 × 10⁻¹⁶ cm² eV (σ in Mb ≈ 109.76 df/dE in eV⁻¹). */
+export const SIGMA_PER_DFDE = 2 * Math.PI ** 2 * 2.8179403205e-13 * 1.973269804e-5;
+
+/* ── Units ─────────────────────────────────────────────────────────────── */
+// σ in cm² molecule⁻¹ to the other common measures of absorption strength. Base e: I = I₀e^(−σnL); base 10: I = I₀10^(−εcL).
+export const SIGMA_UNITS = Object.freeze({
+    'cm2': { label: 'σ, cm² molecule⁻¹', to: (s) => s, from: (x) => x },
+    'eps10': { label: 'ε (base 10), L mol⁻¹ cm⁻¹', to: (s) => (s * N_A) / (1000 * LN10), from: (x) => (x * 1000 * LN10) / N_A },
+    'epse': { label: 'ε (base e), L mol⁻¹ cm⁻¹', to: (s) => (s * N_A) / 1000, from: (x) => (x * 1000) / N_A },
+    'k273': { label: 'k (base e), cm⁻¹ atm⁻¹ at 273.15 K', to: (s) => s * LOSCHMIDT, from: (x) => x / LOSCHMIDT },
+    'k273_10': { label: 'k (base 10), cm⁻¹ atm⁻¹ at 273.15 K', to: (s) => (s * LOSCHMIDT) / LN10, from: (x) => (x * LN10) / LOSCHMIDT },
+    'Mb': { label: 'σ, Mb (10⁻¹⁸ cm²)', to: (s) => s * 1e18, from: (x) => x * 1e-18 },
+    'barn': { label: 'σ, barn (10⁻²⁴ cm²)', to: (s) => s * 1e24, from: (x) => x * 1e-24 },
+    'A2': { label: 'σ, Å² (10⁻¹⁶ cm²)', to: (s) => s * 1e16, from: (x) => x * 1e-16 },
+    'a02': { label: 'σ, a₀² (atomic units)', to: (s) => s / A0_2, from: (x) => x * A0_2 },
+    'm2': { label: 'σ, m²', to: (s) => s * 1e-4, from: (x) => x * 1e4 },
+    'dfdE': { label: 'df/dE, oscillator strength per eV', to: (s) => s / SIGMA_PER_DFDE, from: (x) => x * SIGMA_PER_DFDE },
+});
+/** Number density (cm⁻³) of an ideal gas at pressure p (Pa) and temperature T (K). */
+export const density = (pPa, T) => (pPa > 0 && T > 0 ? pPa / (K_B * T) * 1e-6 : 0);
+/** Photon energy (J) and wavenumber (cm⁻¹) of a vacuum wavelength in nm. */
+export const photonJ = (nm) => (H * C) / (nm * 1e-9);
+export const nmToCm1 = (nm) => 1e7 / nm;
+export const nmToEV = (nm) => photonJ(nm) / 1.602176634e-19;
+
+/* ── Spectra ───────────────────────────────────────────────────────────── */
+/** Index of the last point with λ ≤ x (binary search); −1 below the range. */
+function lowerIndex(d, x) {
+    let lo = 0; let hi = d.length - 1;
+    if (!d.length || x < d[0][0]) return -1;
+    if (x >= d[hi][0]) return hi;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (d[m][0] <= x) lo = m; else hi = m; }
+    return lo;
+}
+/** σ at wavelength x by linear interpolation; null outside the data. */
+export function sigmaAt(d, x) {
+    const i = lowerIndex(d, x);
+    if (i < 0 || (i === d.length - 1 && x > d[i][0])) return null;
+    if (i === d.length - 1) return d[i][1];
+    const [x0, y0] = d[i]; const [x1, y1] = d[i + 1];
+    return x1 === x0 ? y0 : y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+}
+/** Median wavelength step of a spectrum (nm), its effective resolution as tabulated. */
+export function medianStep(d) {
+    const s = []; for (let i = 1; i < d.length; i++) s.push(d[i][0] - d[i - 1][0]);
+    s.sort((a, b) => a - b);
+    return s.length ? s[s.length >> 1] : null;
+}
+/**
+ * σ averaged over a laser line: a Gaussian of FWHM `fwhm` (nm) centred on x, integrated over the tabulated points
+ * (trapezoid rule on the product σ·g, with the Gaussian evaluated at the data points and at fine sub-steps).
+ * fwhm ≤ 0 gives the point value. Returns { sigma, covered (fraction of the line's weight inside the data), points
+ * (data points inside ±FWHM), coarse (true when the data are coarser than the line: the average is an interpolation) }.
+ */
+export function sigmaLine(d, x, fwhm = 0) {
+    if (!(fwhm > 0)) { const s = sigmaAt(d, x); return { sigma: s, covered: s == null ? 0 : 1, points: 0, coarse: false }; }
+    const sd = fwhm / (2 * Math.sqrt(2 * Math.LN2));
+    const a = x - 4 * sd; const b = x + 4 * sd;
+    const lo = Math.max(a, d[0][0]); const hi = Math.min(b, d[d.length - 1][0]);
+    if (!(hi > lo)) return { sigma: null, covered: 0, points: 0, coarse: true };
+    // integrate on a grid that includes every data point in range plus at least 400 steps across the window
+    const xs = new Set();
+    const n = 400; for (let k = 0; k <= n; k++) xs.add(lo + ((hi - lo) * k) / n);
+    let inside = 0;
+    for (let i = Math.max(0, lowerIndex(d, lo)); i < d.length && d[i][0] <= hi; i++) { if (d[i][0] >= lo) xs.add(d[i][0]); if (Math.abs(d[i][0] - x) <= fwhm) inside++; }
+    const g = (t) => Math.exp(-0.5 * ((t - x) / sd) ** 2);
+    const grid = [...xs].sort((p, q) => p - q);
+    let num = 0; let den = 0;
+    for (let k = 1; k < grid.length; k++) {
+        const t0 = grid[k - 1]; const t1 = grid[k]; const w = t1 - t0;
+        const s0 = sigmaAt(d, t0); const s1 = sigmaAt(d, t1);
+        num += 0.5 * w * (s0 * g(t0) + s1 * g(t1)); den += 0.5 * w * (g(t0) + g(t1));
+    }
+    const total = sd * Math.sqrt(2 * Math.PI) * 0.99993666;   // weight of the full ±4σ window
+    const step = medianStep(d);
+    return { sigma: den > 0 ? num / den : null, covered: Math.min(1, den / total), points: inside, coarse: step != null && step > fwhm };
+}
+/**
+ * Resample a spectrum to at most `max` points while keeping its shape: points are kept where the curve bends
+ * (largest-triangle style on log σ), and the first and last point always. Returns a new array.
+ */
+export function resample(d, max = 2000) {
+    if (d.length <= max) return d.slice();
+    const out = [d[0]];
+    const bucket = (d.length - 2) / (max - 2);
+    const ly = (p) => Math.log10(Math.max(p[1], 1e-40));
+    let a = 0;
+    for (let i = 0; i < max - 2; i++) {
+        const s = Math.floor(i * bucket) + 1; const e = Math.min(Math.floor((i + 1) * bucket) + 1, d.length - 1);
+        const ns = Math.min(Math.floor((i + 1) * bucket) + 1, d.length - 1); const ne = Math.min(Math.floor((i + 2) * bucket) + 1, d.length);
+        let ax = 0; let ay = 0; const cnt = Math.max(1, ne - ns);
+        for (let j = ns; j < ne; j++) { ax += d[j][0]; ay += ly(d[j]); }
+        ax /= cnt; ay /= cnt;
+        let best = s; let area = -1;
+        for (let j = s; j < e; j++) {
+            const ar = Math.abs((d[a][0] - ax) * (ly(d[j]) - ly(d[a])) - (d[a][0] - d[j][0]) * (ay - ly(d[a])));
+            if (ar > area) { area = ar; best = j; }
+        }
+        out.push(d[best]); a = best;
+    }
+    out.push(d[d.length - 1]);
+    return out;
+}
+
+/* ── Temperature ───────────────────────────────────────────────────────── */
+/**
+ * σ(λ, T) from datasets of one series measured at several temperatures: linear in T between the two nearest
+ * temperatures that both cover λ (no extrapolation). sets: [{ T, data }]. Returns { sigma, T0, T1 } or null.
+ */
+export function sigmaAtT(sets, x, T) {
+    const ok = sets.filter((s) => Number.isFinite(s.T) && sigmaAt(s.data, x) != null).sort((a, b) => a.T - b.T);
+    if (!ok.length) return null;
+    const exact = ok.find((s) => Math.abs(s.T - T) < 1e-9);
+    if (exact) return { sigma: sigmaAt(exact.data, x), T0: exact.T, T1: exact.T };
+    let lo = null; let hi = null;
+    for (const s of ok) { if (s.T < T) lo = s; else if (!hi) hi = s; }
+    if (!lo || !hi) return null;
+    const s0 = sigmaAt(lo.data, x); const s1 = sigmaAt(hi.data, x);
+    return { sigma: s0 + ((s1 - s0) * (T - lo.T)) / (hi.T - lo.T), T0: lo.T, T1: hi.T };
+}
+
+/* ── Absorption and photolysis ─────────────────────────────────────────── */
+/**
+ * Beer–Lambert for a gas cell or path: σ (cm²), number density n (cm⁻³), path L (cm).
+ * Returns optical depth τ = σnL (base e), absorbance A = τ/ln 10, transmittance and fraction absorbed.
+ */
+export function beerLambert(sigma, n, L) {
+    const tau = sigma * n * L;
+    return { tau, A: tau / LN10, T: Math.exp(-tau), absorbed: -Math.expm1(-tau) };
+}
+/**
+ * One laser pulse of fluence F (J cm⁻²) at λ (nm) on an optically thin sample: photon fluence Φ = F/(hc/λ),
+ * fraction excited 1 − exp(−σΦ), fraction photolysed 1 − exp(−σΦφ) with quantum yield φ. Saturation is included by the
+ * exponential, stimulated emission and multiphoton steps are not.
+ */
+export function pulsePhotolysis(sigma, fluenceJcm2, nm, phi = 1) {
+    const photons = fluenceJcm2 / photonJ(nm);
+    // saturation fluence hν/σ (J cm⁻²): the fluence at which a fraction 1 − 1/e of the molecules absorbs a photon
+    return { photons, excited: -Math.expm1(-sigma * photons), photolysed: -Math.expm1(-sigma * photons * phi), saturation: sigma > 0 ? photonJ(nm) / sigma : null };
+}
+/** Common laser lines, nominal wavelengths in nm as usually quoted (the difference between air and vacuum, ≈0.06 nm at 250 nm, is below the resolution of most cross-section data). */
+export const LASER_LINES = Object.freeze([
+    { nm: 118.2, label: '118.2 nm (9th harmonic of 1064, VUV)' }, { nm: 121.567, label: '121.6 nm (Lyman-α)' }, { nm: 157.6, label: '157.6 nm (F₂)' },
+    { nm: 193.3, label: '193 nm (ArF)' }, { nm: 213, label: '213 nm (Nd:YAG 5th)' }, { nm: 222, label: '222 nm (KrCl)' }, { nm: 248.4, label: '248 nm (KrF)' },
+    { nm: 266, label: '266 nm (Nd:YAG 4th)' }, { nm: 308, label: '308 nm (XeCl)' }, { nm: 351, label: '351 nm (XeF)' }, { nm: 355, label: '355 nm (Nd:YAG 3rd)' },
+    { nm: 405, label: '405 nm (diode)' }, { nm: 532, label: '532 nm (Nd:YAG 2nd)' },
+]);
