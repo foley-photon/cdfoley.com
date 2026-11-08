@@ -64,14 +64,20 @@ def fit(text, name, size, minsize):
 
 d.text((x0, 152), 'LASERS · OPTICS · VACUUM · VISION · QUALITY', font=font('seguisb.ttf', 19), fill=BLUE)
 d.text((x0, 190), 'Casey D. Foley, PhD', font=fit('Casey D. Foley, PhD', 'segoeuib.ttf', 66, 48), fill=WHITE)
-sub = 'Laser & High Vacuum Systems Expert · Physical Chemist'
-d.text((x0, 284), sub, font=fit(sub, 'seguisb.ttf', 30, 22), fill=SUB)
+sub = 'Laser & High Vacuum Systems Expert · Physical Chemist · Manufacturing & Machine Engineer'
+if d.textlength(sub, font=font('seguisb.ttf', 22)) > maxw:  # two lines, split at the last separator
+    a, b = sub.rsplit(' · ', 1)
+    d.text((x0, 276), a, font=fit(a, 'seguisb.ttf', 26, 22), fill=SUB)
+    d.text((x0, 308), b, font=fit(b, 'seguisb.ttf', 26, 22), fill=SUB)
+else:
+    d.text((x0, 284), sub, font=fit(sub, 'seguisb.ttf', 30, 22), fill=SUB)
+by0 = 366 if d.textlength(sub, font=font('seguisb.ttf', 22)) > maxw else 350
 bullets = ['%d free engineering calculators and a formula reference' % n_tools,
            'Vision system configurator and glazing performance calculator',
            '23 peer-reviewed papers, including Science and JACS']
 fb = font('segoeui.ttf', 24)
 for i, b in enumerate(bullets):
-    y = 350 + i * 41
+    y = by0 + i * 41
     d.text((x0, y), '•', font=fb, fill=MUTED)
     d.text((x0 + 24, y), b, font=fit(b, 'segoeui.ttf', 24, 19), fill=BODY)
 d.text((x0, 522), 'cdfoley.com', font=font('seguisb.ttf', 24), fill=WHITE)
