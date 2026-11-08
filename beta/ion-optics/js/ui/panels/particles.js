@@ -1,9 +1,9 @@
 /* ==========================================================================
    Ion optics UI: panels/particles.js
    Particles rail tab (spec §4.3, §2.2.2 sources): the sources, and for the
-   selected one its settings, species (picked from the engine's species
-   table or a custom mass and charge) and the position, direction, energy
-   and birth-time cards. Direction previews are drawn on the canvas by the
+   selected one its settings, species (preset groups from engine/nuclides.js,
+   any isotope and charge state through the nuclide builder, or a custom mass
+   and charge) and the position, direction, energy and birth-time cards. Direction previews are drawn on the canvas by the
    view. Grid sampling derives the particle count from the cards.
 
    Particle lists ('rows' sources): one row per particle, edited as text,
@@ -15,7 +15,8 @@ import { h, icon, clear } from '../dom.js';
 import { bindForm, locate, nextId } from '../forms.js';
 import { formatPretty } from '../units.js';
 import { download } from '../plots.js';
-import { SPECIES, frozenSource, generateRows, convertRows } from '../../engine/particles.js';
+import { frozenSource, generateRows, convertRows } from '../../engine/particles.js';
+import { PRESET_GROUPS, presetById, ELEMENTS, Z_MAX, defaultA, isotopesOf, nuclide, nuclideMass, nuclideLabel, totalEnergyFromPerNucleon } from '../../engine/nuclides.js';
 import { particlesToCSV, parseParticlesCSV } from '../../engine/io.js';
 
 const CARD_TYPES = {
@@ -261,22 +262,40 @@ export function sourceEditor(host, ctx, app, id, { compactHead = false } = {}) {
     importBtn.addEventListener('click', () => fileInput.click());
     const actions = h('div', { class: 'io-btnrow' }, freezeBtn, exportBtn, importBtn, fileInput);
     host.append(main.el, countNote, actions);
-    // species (sampled sources)
+    // species (sampled sources): preset groups, the nuclide builder and the custom path
     const spCard = h('div', { class: 'io-card' });
     const spList = h('div', { class: 'io-species' });
-    const pick = h('select', { class: 'io-select', 'aria-label': 'Add a species' },
+    const optText = (e) => `${e.label}  (${formatPretty(e.mass, 'mass', 6)}, ${e.charge > 0 ? '+' : '−'}${Math.abs(e.charge)})`;
+    const pick = h('select', { class: 'io-select', 'aria-label': 'Add a species', dataset: { nb: 'pick' } },
         h('option', { value: '', text: 'Add a species…' }),
-        ...SPECIES.map((s) => h('option', { value: s.id, text: `${s.label}  (${formatPretty(s.mass, 'mass', 6)}, ${s.charge > 0 ? '+' : '−'}${Math.abs(s.charge)})` })),
-        h('option', { value: '__custom', text: 'Custom mass and charge' }));
+        ...PRESET_GROUPS.map((g) => h('optgroup', { label: g.title }, ...g.entries.map((e) => h('option', { value: 'preset:' + e.id, text: optText(e) })))),
+        h('optgroup', { label: 'Any isotope or mass' },
+            h('option', { value: '__nuclide', text: 'Build a nuclide…' }),
+            h('option', { value: '__custom', text: 'Custom mass and charge' })));
+    const addSpecies = (sp) => {
+        const r = ctx.commit((p) => { const L = locS(p); if (L) (L.obj.species = L.obj.species || []).push(sp); }, { label: 'Add species' });
+        if (!r.ok && ctx.ui.toast) ctx.ui.toast(r.error, { kind: 'warn' });
+        return r.ok;
+    };
+    const builder = nuclideBuilder(ctx, {
+        focusTarget: pick,
+        onAdd: (sp) => addSpecies(sp),
+        onEnergy: (ke) => {
+            const r = ctx.commit((p) => { const L = locS(p); if (L) L.obj.energy = { type: 'mono', ke }; }, { label: 'Set source energy' });
+            if (!r.ok && ctx.ui.toast) ctx.ui.toast(r.error, { kind: 'warn' });
+            else if (ctx.ui.toast) ctx.ui.toast(`Kinetic energy set to ${formatPretty(ke, 'energy', 4)} (single energy).`, { kind: 'ok' });
+        },
+    });
     pick.addEventListener('change', () => {
         const v = pick.value;
         pick.value = '';
         if (!v) return;
-        const sp = v === '__custom' ? { label: 'custom', mass: 100, charge: 1, fraction: 1 } : (() => { const s = SPECIES.find((x) => x.id === v); return { label: s.label, mass: parseFloat(s.mass.toPrecision(10)), charge: s.charge, fraction: 1 }; })();
-        const r = ctx.commit((p) => { const L = locS(p); if (L) (L.obj.species = L.obj.species || []).push(sp); }, { label: 'Add species' });
-        if (!r.ok && ctx.ui.toast) ctx.ui.toast(r.error, { kind: 'warn' });
+        if (v === '__nuclide') { builder.open(); return; }
+        if (v === '__custom') { addSpecies({ label: 'custom', mass: 100, charge: 1, fraction: 1 }); return; }
+        const e = v.startsWith('preset:') ? presetById(v.slice(7)) : null;
+        if (e) addSpecies({ label: e.label, mass: parseFloat(e.mass.toPrecision(12)), charge: e.charge, fraction: 1 });
     });
-    spCard.append(h('div', { class: 'io-card-title', text: 'Species' }), spList, pick);
+    spCard.append(h('div', { class: 'io-card-title', text: 'Species' }), spList, pick, builder.el);
     host.appendChild(spCard);
     // cards (sampled sources)
     const cards = {};
@@ -398,4 +417,116 @@ export function sourceEditor(host, ctx, app, id, { compactHead = false } = {}) {
     }
     update();
     return { update };
+}
+
+// ---------------------------------------------------------------- nuclide builder
+
+let builderCount = 0;
+/**
+ * Inline form that builds an isotope in a charge state: element, neutron number N (default: the most abundant or
+ * longest-lived isotope), mass number A = Z + N (either can be typed), charge state q (nonzero), with the AME2020 mass,
+ * the label and an "estimated mass" warning, plus a keV/u → total eV helper. onAdd(species) adds the species and
+ * returns true on success; onEnergy(ke eV) sets the source's energy card. Returns { el, open(), close() }.
+ */
+export function nuclideBuilder(ctx, { onAdd, onEnergy, focusTarget = null }) {
+    const uid = ++builderCount;
+    const id = (k) => `io-nb-${k}-${uid}`;
+    const sel = (k, label, options) => {
+        const el = h('select', { id: id(k), class: 'input', dataset: { nb: k } }, ...options);
+        return { el, field: h('div', { class: 'field io-field-select' }, h('label', { for: id(k), text: label }), el) };
+    };
+    const intInput = (k, label, { min = null, unit = null, step = 1, short = null } = {}) => {
+        const el = h('input', { id: id(k), type: 'number', class: 'input', step, inputmode: 'numeric', autocomplete: 'off', dataset: { nb: k }, 'aria-describedby': id('msg') });
+        if (min !== null) el.min = String(min);
+        const control = h('div', { class: 'input-unit' }, el, unit ? h('span', { class: 'unit', text: unit, 'aria-hidden': 'true' }) : null);
+        // `short` is the visible text when the full label would wrap at rail width; the full label stays for screen readers
+        const lab = short
+            ? h('label', { for: id(k) }, h('span', { 'aria-hidden': 'true', text: short }), h('span', { class: 'visually-hidden', text: label }))
+            : h('label', { for: id(k), text: label });
+        if (unit) lab.appendChild(h('span', { class: 'visually-hidden', text: ` (${unit})` }));
+        return { el, field: h('div', { class: 'field' }, lab, control) };
+    };
+    const elements = [];
+    for (let z = 1; z <= Z_MAX; z++) elements.push(h('option', { value: String(z), text: `${ELEMENTS[z]} (${z})` }));
+    const el = sel('el', 'Element', elements);
+    const nIn = intInput('n', 'Neutrons N', { min: 0 });
+    const aIn = intInput('a', 'Mass number A', { min: 1, short: 'Mass no. A' });
+    const qIn = intInput('q', 'Charge state q', { unit: 'e' });
+    const keIn = intInput('kevu', 'Energy per nucleon', { min: 0, unit: 'keV/u', step: 'any', short: 'Per nucleon' });
+    const out = h('p', { class: 'io-nb-out', dataset: { nb: 'out' }, 'aria-live': 'polite' });
+    const warn = h('p', { class: 'io-nb-warn', dataset: { nb: 'warn' }, hidden: true });
+    const msg = h('div', { class: 'io-field-msg', id: id('msg'), role: 'alert', hidden: true });
+    const keOut = h('span', { class: 'io-nb-keout', dataset: { nb: 'keout' } });
+    const keBtn = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', title: 'Set the kinetic energy card of this source to a single energy of this value', dataset: { nb: 'setke' } }, h('span', { text: 'Set source energy' }));
+    const addBtn = h('button', { type: 'button', class: 'btn btn-primary btn-sm', dataset: { nb: 'add' } }, icon('plus', 16), h('span', { text: 'Add species' }));
+    const closeBtn = h('button', { type: 'button', class: 'btn btn-secondary btn-sm', dataset: { nb: 'close' } }, h('span', { text: 'Close' }));
+    const titleId = id('title');
+    const root = h('div', { class: 'io-nuclide', role: 'group', 'aria-labelledby': titleId, hidden: true, dataset: { nb: 'root' } },
+        h('div', { class: 'io-card-title', id: titleId, text: 'Build a nuclide' }),
+        h('div', { class: 'io-form io-form-4' }, el.field, qIn.field, nIn.field, aIn.field),
+        msg, out, warn,
+        h('div', { class: 'io-form io-nb-energy' }, keIn.field, h('div', { class: 'field io-nb-keline' }, h('span', { class: 'io-nb-kelabel', text: 'Total energy' }), keOut)),
+        h('div', { class: 'io-btnrow' }, addBtn, keBtn, closeBtn),
+        h('p', { class: 'hint', text: 'Mass = AME2020 atomic mass − q·mₑ; electron binding energies are neglected (below 10⁻⁶ of the mass for q ≲ 30, up to a few 10⁻⁶ for bare heavy nuclei). Total energy = (keV/u) × A. Charge 0 is not accepted: the simulator traces charged particles only.' }));
+    const ints = (v) => { const t = String(v).trim(); return /^[+-]?\d+$/.test(t) ? parseInt(t, 10) : NaN; };
+    let current = null;   // { Z, A, N, q, mass, label, estimated } when the entries are valid
+    function refresh(from) {
+        const Z = parseInt(el.el.value, 10);
+        let Nn = ints(nIn.el.value), A = ints(aIn.el.value);
+        if (from === 'a') { Nn = Number.isInteger(A) ? A - Z : NaN; nIn.el.value = Number.isInteger(Nn) ? String(Nn) : ''; }
+        else { A = Number.isInteger(Nn) ? Z + Nn : NaN; aIn.el.value = Number.isInteger(A) ? String(A) : ''; }
+        const q = ints(qIn.el.value);
+        current = null;
+        let error = null;
+        const sym = ELEMENTS[Z];
+        if (!Number.isInteger(Nn)) error = 'The number of neutrons must be a whole number.';
+        else if (Nn < 0) error = 'The number of neutrons cannot be negative.';
+        else if (!Number.isInteger(q)) error = 'The charge state must be a whole number of elementary charges.';
+        else if (q === 0) error = 'Charge state 0 is not accepted: the simulator traces charged particles only. Use +1, −1 or any other nonzero charge state.';
+        else if (q > Z || q < -1) error = `A charge state of ${q > 0 ? '+' : '−'}${Math.abs(q)} is outside the range of ${sym} (−1 to +${Z}).`;
+        const nuc = error ? null : nuclide(Z, A);
+        if (!error && !nuc) {
+            const as = isotopesOf(Z);
+            error = `AME2020 has no entry for ${nuclideLabel(Z, A, 0)}; the known mass numbers of ${sym} run from ${as[0]} to ${as[as.length - 1]}.`;
+        }
+        msg.hidden = !error; msg.textContent = error || '';
+        for (const i of [nIn.el, aIn.el, qIn.el]) { if (error) i.setAttribute('aria-invalid', 'true'); else i.removeAttribute('aria-invalid'); }
+        if (error) { out.textContent = ''; warn.hidden = true; addBtn.disabled = true; updateEnergy(); return; }
+        const mass = nuclideMass(Z, A, q), label = nuclideLabel(Z, A, q);
+        current = { Z, A, N: Nn, q, mass, label, estimated: nuc.estimated };
+        out.textContent = `${label}: ${formatPretty(mass, 'mass', 10)} (atomic mass ${formatPretty(nuc.atomicMass, 'mass', 10)}, N = ${Nn})`;
+        warn.hidden = !nuc.estimated;
+        warn.textContent = nuc.estimated ? `Estimated mass: AME2020 gives the mass of ${nuclideLabel(Z, A, 0)} from systematics, not from a measurement.` : '';
+        addBtn.disabled = false;
+        updateEnergy();
+    }
+    function updateEnergy() {
+        const kevu = parseFloat(keIn.el.value);
+        const ok = !!current && Number.isFinite(kevu) && kevu > 0;
+        keOut.textContent = ok ? `= ${formatPretty(totalEnergyFromPerNucleon(kevu, current.A), 'energy', 6)} for A = ${current.A}` : '—';
+        keBtn.disabled = !ok;
+    }
+    el.el.addEventListener('change', () => { aIn.el.value = String(defaultA(parseInt(el.el.value, 10))); refresh('a'); });
+    nIn.el.addEventListener('input', () => refresh('n'));
+    aIn.el.addEventListener('input', () => refresh('a'));
+    qIn.el.addEventListener('input', () => refresh('q'));
+    keIn.el.addEventListener('input', updateEnergy);
+    addBtn.addEventListener('click', () => {
+        if (!current) return;
+        const ok = onAdd({ label: current.label, mass: parseFloat(current.mass.toPrecision(12)), charge: current.q, fraction: 1 });
+        if (ok && ctx.ui.toast) ctx.ui.toast(`Added ${current.label} (${formatPretty(current.mass, 'mass', 8)}).`, { kind: 'ok' });
+        if (ok && ctx.ui.announce) ctx.ui.announce(`Added species ${current.label}`);
+    });
+    keBtn.addEventListener('click', () => { const kevu = parseFloat(keIn.el.value); if (current && Number.isFinite(kevu) && kevu > 0) onEnergy(totalEnergyFromPerNucleon(kevu, current.A)); });
+    // hide, then move the keyboard focus back to the species picker so it does not stay on a hidden control
+    const close = () => { root.hidden = true; if (focusTarget && typeof focusTarget.focus === 'function') focusTarget.focus(); };
+    closeBtn.addEventListener('click', close);
+    root.addEventListener('keydown', (e) => { if (e.key === 'Escape') { close(); e.stopPropagation(); } });
+    const open = () => { root.hidden = false; refresh('a'); el.el.focus(); };
+    // defaults: uranium-238 in charge state +1
+    el.el.value = '92';
+    aIn.el.value = String(defaultA(92));
+    qIn.el.value = '1';
+    refresh('a');
+    return { el: root, open, close };
 }

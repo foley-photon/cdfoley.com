@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulse Duration &amp; Bandwidth Calculator: Transform Limit, Chirp &amp; Dispersion</title>
+<meta name="description" content="Transform-limited bandwidth or duration, the measured time-bandwidth product and chirp, and dispersive broadening in glass from Sellmeier data.">
+<link rel="canonical" href="https://cdfoley.com/tools/pulse-bandwidth/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="Pulse Duration &amp; Bandwidth Calculator">
+<meta property="og:description" content="Transform-limited bandwidth or duration, the measured time-bandwidth product and chirp, and dispersive broadening in glass from Sellmeier data.">
+<meta property="og:url" content="https://cdfoley.com/tools/pulse-bandwidth/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-pulse-bandwidth.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Pulse Duration &amp; Bandwidth Calculator. Transform-limited bandwidth or duration, the measured time-bandwidth product and chirp, and dispersive broadening in glass from Sellmeier data.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<style>
+    /* the shape and gain-medium tables keep readable text columns (min-width) and scroll sideways inside .tv-wrap on a phone;
+       the wrapper carries the scroll box and edge shadows that .prose > table would otherwise provide */
+    .prose .tv-wrap { overflow-x: auto; position: relative; margin: 1.2rem 0;
+        background: linear-gradient(to right, var(--bg) 30%, transparent) left / 2.5rem 100% no-repeat local,
+            linear-gradient(to left, var(--bg) 30%, transparent) right / 2.5rem 100% no-repeat local,
+            radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--text) 22%, transparent), transparent) left / 0.75rem 100% no-repeat scroll,
+            radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--text) 22%, transparent), transparent) right / 0.75rem 100% no-repeat scroll; }
+    .prose .tv-wrap table.tv { display: table; min-width: 560px; margin: 0; overflow: visible; }
+    .prose .tv-wrap table.tv-wide { min-width: 820px; }   /* the gain-medium table has two sentence columns */
+    .prose table.tv th, .prose table.tv td { padding-left: 0.55rem; padding-right: 0.55rem; }
+    .prose table.tv td.num, .prose table.tv th.num { white-space: nowrap; }
+    /* the spectroscopy reading is a sentence, not a number: it sits under its label as a left-aligned block */
+    .result.text .result-value { flex: 1 0 100%; display: block; margin: 0.15rem 0 0; font-family: inherit; font-size: 0.9rem; font-weight: 400; text-align: left; line-height: 1.5; cursor: auto; font-variant-numeric: normal; }
+    .result.text .result-value:hover { background: none; }
+</style>
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/plot.js"></script>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "Pulse Duration & Bandwidth",
+   "url": "https://cdfoley.com/tools/pulse-bandwidth/",
+   "description": "Transform-limited bandwidth or duration, the measured time-bandwidth product and chirp, and dispersive broadening in glass from Sellmeier data.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "time-bandwidth product time bandwidth product transform limited transform-limited fourier limit bandwidth limited chirp chirped pulse gdd group delay dispersion gvd group velocity dispersion sellmeier pulse compression pulse stretching femtosecond picosecond nanosecond pulse width pulse duration fwhm linewidth bandwidth nm thz ghz cm-1 wavenumber mev mode locking mode-locked q-switch q-switched cpa chirped pulse amplification opcpa injection seeding seeded single longitudinal mode slm gain bandwidth gain narrowing hollow fiber compression self-phase modulation few-cycle optical cycles coherence length fused silica bk7 sapphire caf2 mgf2 yag kdp bbo air ti:sapphire yb:yag nd:yag dye laser excimer rempi lif spectral resolution",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Photon Energy & Spectroscopy",
+     "item": "https://cdfoley.com/tools/#photon"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "Pulse Duration & Bandwidth",
+     "item": "https://cdfoley.com/tools/pulse-bandwidth/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#photon">Photon Energy &amp; Spectroscopy</a></li><li aria-current="page">Pulse Duration &amp; Bandwidth</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>Pulse Duration &amp; Bandwidth Calculator</h1>
+        <p class="lede">A short laser pulse cannot have a narrow spectrum, and a narrow spectrum cannot belong to a short pulse. This calculator puts numbers on that trade-off. Enter a pulse duration to get the narrowest spectrum it can have (the transform limit), in nm, THz, cm⁻¹, and meV; or enter a bandwidth to get the shortest pulse it can support. Enter both, as measured, and it tells you how far above the limit the pulse is and the chirp that would explain it. Add a thickness of glass to see how much dispersion stretches the pulse and how much must be compensated. The explainer below covers why nanosecond, picosecond, and femtosecond lasers are built in different ways, and what each method does and does not do to the bandwidth.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Pulse duration (FWHM)</dt><dd>How long the pulse lasts, measured between the two moments when its power is half the peak: the full width at half maximum, τ. Q-switched lasers give nanoseconds (ns, 10⁻⁹&nbsp;s); mode-locked lasers give picoseconds (ps, 10⁻¹²&nbsp;s) and femtoseconds (fs, 10⁻¹⁵&nbsp;s).</dd>
+            <dt>Bandwidth, linewidth</dt><dd>The width of the pulse’s spectrum at half its peak, Δν. Laser makers quote it in nm, GHz, or cm⁻¹; the three are the same width in different units, but only the frequency and wavenumber values are independent of wavelength.</dd>
+            <dt>Transform limit (Fourier limit)</dt><dd>The narrowest spectrum a pulse of a given duration can have, or the shortest pulse a given spectrum can produce. A pulse at this limit is called transform-limited or bandwidth-limited.</dd>
+            <dt>Time–bandwidth product</dt><dd>Δν × τ. For a transform-limited pulse it is a constant K that depends only on the pulse shape: 0.441 for a Gaussian, 0.315 for a sech² pulse. A measured product larger than K means the pulse is longer than its spectrum allows.</dd>
+            <dt>Chirp</dt><dd>A sweep of the optical frequency across the pulse, so that the red part arrives before the blue (or the reverse). Chirp stretches a pulse without changing its spectrum, which is why the time–bandwidth product grows above K.</dd>
+            <dt>Dispersion (GVD, GDD)</dt><dd>In glass, red light travels slightly faster than blue, so the colors in a pulse spread out in time. Group velocity dispersion (GVD, in fs²/mm) is the material property; group delay dispersion (GDD, in fs²) is GVD times the thickness and is what stretches the pulse.</dd>
+            <dt>Gain bandwidth</dt><dd>The range of wavelengths a laser medium can amplify. It sets the shortest pulse a mode-locked laser built from that medium can produce: 0.6&nbsp;nm for Nd:YAG, hundreds of nm for Ti:sapphire.</dd>
+            <dt>Longitudinal modes</dt><dd>The discrete frequencies a laser cavity can oscillate on, spaced by c/2L (150&nbsp;MHz for a 1&nbsp;m cavity). A nanosecond laser that runs on many modes at once has a bandwidth set by how many modes oscillate, not by its pulse length.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+                <div class="field">
+                    <label for="wl">Center wavelength <span class="sym">λ₀</span></label>
+                    <div class="input-unit"><input id="wl" name="wl" value="800" inputmode="decimal" data-positive data-label="center wavelength"><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <p class="hint">Needed only to express the bandwidth in nm and to count optical cycles: 800&nbsp;nm for Ti:sapphire, 1030&nbsp;nm for Yb lasers, 1064&nbsp;nm for Nd:YAG, 532&nbsp;nm for its second harmonic, 248&nbsp;nm for KrF.</p>
+                </div>
+                <div class="field">
+                    <label for="known">What do you know?</label>
+                    <select id="known" name="known" class="input">
+                        <option value="tau" selected>Pulse duration → transform-limited bandwidth</option>
+                        <option value="bw">Spectral bandwidth → transform-limited duration</option>
+                        <option value="both">Both measured → how far above the limit</option>
+                    </select>
+                    <p class="hint">The first two give the limit itself. The third compares a measured duration and a measured spectrum, which is the test of whether a pulse is transform-limited.</p>
+                </div>
+                <div class="field" data-show="tau both">
+                    <label for="tau">Pulse duration (FWHM) <span class="sym">τ</span></label>
+                    <div class="input-unit"><input id="tau" name="tau" value="100" inputmode="decimal" data-positive data-label="pulse duration"><select data-dim="time" data-units="fs,ps,ns,µs" data-default="fs"></select></div>
+                    <p class="hint">The FWHM of the power envelope. From an autocorrelator, divide the trace width by 1.414 (Gaussian) or 1.543 (sech²) first; see the <a href="/tools/pulse-energy/">pulse energy calculator</a>. From an oscilloscope, make sure the detector and scope are faster than the pulse.</p>
+                </div>
+                <div class="field" data-show="bw both" hidden>
+                    <label for="bw">Spectral bandwidth (FWHM) <span class="sym">Δλ, Δν</span></label>
+                    <div class="input-unit"><input id="bw" name="bw" value="12" inputmode="decimal" data-positive data-label="spectral bandwidth"><select name="bwu" aria-label="Spectral bandwidth unit"><option value="nm" selected>nm</option><option value="pm">pm</option><option value="THz">THz</option><option value="GHz">GHz</option><option value="MHz">MHz</option><option value="cm-1">cm⁻¹</option><option value="meV">meV</option></select></div>
+                    <p class="hint">The FWHM of the spectrum from a spectrometer, or the linewidth from a datasheet. A width in nm is converted at the center wavelength with Δν = cΔλ/λ₀², which holds while Δλ is much smaller than λ₀.</p>
+                </div>
+                <div class="field">
+                    <label for="shape">Pulse shape</label>
+                    <select id="shape" name="shape" class="input">
+                        <option value="gauss" selected>Gaussian (K = 0.4413)</option>
+                        <option value="sech2">sech² (K = 0.3148)</option>
+                        <option value="lorentz">Lorentzian (K = 0.1420)</option>
+                        <option value="rect">Rectangular, flat-top (K = 0.8859)</option>
+                        <option value="exp1">One-sided exponential (K = 0.1103)</option>
+                    </select>
+                    <p class="hint">The shape of the power envelope in time, which sets the transform-limited product K = Δν·τ. Gaussian is the usual assumption for amplified and Q-switched pulses; sech² for soliton mode-locked oscillators and fiber lasers; one-sided exponential for a pulse that rises abruptly and decays, such as a cavity-dumped or free-induction-decay signal; rectangular for an electro-optically gated flat-top. The Gaussian, sech², and Lorentzian products are those of Diels and Rudolph, Table 1.1; the other two are computed from the envelopes (see below).</p>
+                </div>
+                <h3 class="lidt-sub" style="margin:1.2rem 0 .6rem;font-size:.95rem">Dispersion (optional)</h3>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="mat">Material</label>
+                        <select id="mat" name="mat" class="input">
+                            <option value="none">None</option>
+                            <option value="fs" selected>Fused silica</option>
+                            <option value="bk7">N-BK7</option>
+                            <option value="sapph">Sapphire (o-ray)</option>
+                            <option value="caf2">CaF₂</option>
+                            <option value="mgf2">MgF₂ (o-ray)</option>
+                            <option value="yag">YAG</option>
+                            <option value="kdp">KDP (o-ray)</option>
+                            <option value="bbo">BBO (o-ray)</option>
+                            <option value="air">Air (15 °C, 1 atm)</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="L">Thickness <span class="sym">L</span></label>
+                        <div class="input-unit"><input id="L" name="L" value="10" inputmode="decimal" data-optional data-label="material thickness"><select data-dim="length" data-units="µm,mm,cm,m" data-default="mm"></select></div>
+                    </div>
+                </div>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The total path through windows, lenses, beamsplitters, or a crystal that a transform-limited pulse will cross. The group velocity dispersion comes from each material’s Sellmeier equation at the center wavelength (refractive index data from the refractiveindex.info database; see below), and the stretched duration assumes a Gaussian pulse that is transform-limited going in.</p>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="regime" class="badge" hidden></span></div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result"><span class="result-label">Transform-limited product<span class="sym">K = Δν·τ</span></span><output class="result-value" data-out="K">—</output>
+                        <span class="result-note">The smallest time–bandwidth product the chosen shape allows. A real pulse has Δν·τ ≥ K; equality needs a flat spectral phase (no chirp).</span></div>
+                    <div class="result primary"><span class="result-label">Spectral bandwidth (FWHM)<span class="sym">Δλ</span></span><output class="result-value" data-out="dlam">—</output>
+                        <span class="result-note" id="bw-note"></span></div>
+                    <div class="result"><span class="result-label">… in frequency, wavenumber, and photon energy<span class="sym">Δν, \(\Delta\tilde\nu\), ΔE</span></span><output class="result-value" data-out="dnu">—</output>
+                        <span class="result-note">Δν̃ = Δν/c and ΔE = hΔν hold at any wavelength; the nm value does not. Spectroscopists compare widths in cm⁻¹ or GHz for this reason (see <a href="/learn/spectroscopic-units/">energy units in spectroscopy</a>).</span></div>
+                    <div class="result"><span class="result-label">Pulse duration (FWHM)<span class="sym">τ</span></span><output class="result-value" data-out="tau">—</output>
+                        <span class="result-note" id="tau-note"></span></div>
+                    <div class="result" hidden><span class="result-label">Shortest duration this bandwidth supports<span class="sym">τ<sub>TL</sub></span></span><output class="result-value" data-out="tautl">—</output>
+                        <span class="result-note">What the measured spectrum could give if the spectral phase were flattened, for example by a compressor set correctly.</span></div>
+                    <div class="result" hidden><span class="result-label">Measured time–bandwidth product<span class="sym">Δν·τ</span></span><output class="result-value" data-out="tbp">—</output>
+                        <span class="result-note">Divided by K, this is how many times longer the pulse is than its spectrum allows. Ratios within about 10&nbsp;% of 1 are transform-limited to within the accuracy of a typical measurement.</span></div>
+                    <div class="result" hidden><span class="result-label">Linear-chirp estimate<span class="sym">C, GDD</span></span><output class="result-value" data-out="chirp">—</output>
+                        <span class="result-note">For a Gaussian pulse with a linear chirp, τ/τ<sub>TL</sub> = √(1 + C²). The GDD is what would stretch the transform-limited pulse to the measured duration; its sign cannot be told from widths alone, and other causes (satellite pulses, several longitudinal modes, higher-order phase) give the same product.</span></div>
+                    <div class="result"><span class="result-label">Optical cycles in the FWHM<span class="sym">τ/(λ₀/c)</span></span><output class="result-value" data-out="cycles">—</output>
+                        <span class="result-note">Below about three cycles the pulse is “few-cycle” and the spectrum is a large fraction of the carrier frequency, so widths in nm become approximate.</span></div>
+                    <div class="result"><span class="result-label">Coherence length<span class="sym">c·τ</span></span><output class="result-value" data-out="lcoh">—</output>
+                        <span class="result-note">The path difference over which the pulse can interfere with a delayed copy of itself, and the length of the pulse in space. For a transform-limited pulse it is also about K·c/Δν.</span></div>
+                    <div class="result text"><span class="result-label">What this bandwidth means for spectroscopy</span><output class="result-value" data-out="resol">—</output></div>
+                    <div class="result" hidden><span class="result-label">Group velocity dispersion at λ₀<span class="sym">GVD</span></span><output class="result-value" data-out="gvd">—</output>
+                        <span class="result-note" id="gvd-note"></span></div>
+                    <div class="result" hidden><span class="result-label">Group delay dispersion of the thickness<span class="sym">GDD = GVD·L</span></span><output class="result-value" data-out="gdd">—</output></div>
+                    <div class="result" hidden><span class="result-label">Duration after the material<span class="sym">τ<sub>out</sub></span></span><output class="result-value" data-out="tout">—</output>
+                        <span class="result-note" id="tout-note"></span></div>
+                    <div class="result" hidden><span class="result-label">GDD needed to compensate</span><output class="result-value" data-out="comp">—</output>
+                        <span class="result-note">Negative (anomalous) GDD of this size, from a prism or grating pair or from chirped mirrors, restores the transform-limited duration, up to the third-order dispersion that these do not cancel.</span></div>
+                    <div class="result" hidden><span class="result-label">Thickness that doubles the pulse</span><output class="result-value" data-out="ldbl">—</output>
+                        <span class="result-note">√3·τ²/(4&nbsp;ln2·|GVD|): the amount of this material a transform-limited Gaussian pulse of the duration above can cross before it is twice as long.</span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="map-h">
+        <div class="panel-head" style="flex-wrap:wrap"><h2 id="map-h">Duration vs. transform-limited bandwidth</h2>
+            <span class="seg" role="radiogroup" aria-label="Bandwidth unit"><input type="radio" id="yu-nm" name="yunit" value="nm" checked><label for="yu-nm">nm at λ₀</label><input type="radio" id="yu-cm" name="yunit" value="cm"><label for="yu-cm">cm⁻¹</label><input type="radio" id="yu-thz" name="yunit" value="thz"><label for="yu-thz">THz</label></span></div>
+        <div class="panel-body"><div id="map-plot"></div><p class="hint" id="map-note" style="font-size:.82rem;color:var(--muted);margin:.4rem 0 0"></p></div>
+    </section>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="disp-h" id="disp-panel" hidden>
+        <div class="panel-head"><h2 id="disp-h">Pulse broadening vs. thickness</h2></div>
+        <div class="panel-body"><div id="disp-plot"></div><p class="hint" id="disp-note" style="font-size:.82rem;color:var(--muted);margin:.4rem 0 0"></p></div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>The trade-off in one line</h2>
+        <p>A pulse of light is a sum of waves of different frequencies. The shorter the pulse, the more frequencies it needs: a pulse that lasts τ must contain a spread of frequencies of at least about 1/τ, because waves closer together in frequency than that would stay in step for longer than τ and could not switch the light off that quickly. This is a property of the Fourier transform, not of lasers, and it is exact. For a pulse with power envelope of full width at half maximum τ and a spectrum of FWHM Δν,</p>
+        <div class="formula">\[ \Delta\nu\,\tau \;\ge\; K, \]</div>
+        <p>where K depends only on the pulse shape, and the equality holds when every frequency component peaks at the same moment, which means the spectral phase is flat and the pulse is <em>transform-limited</em> (also called bandwidth-limited or Fourier-limited). The products for the common shapes are listed below. The Gaussian, sech², and Lorentzian values are those of Diels and Rudolph’s Table 1.1; the rectangular and one-sided exponential values are computed here from the envelopes (the table lists the square pulse by its half-width, which gives 0.443, half the FWHM value, and does not list the one-sided exponential). Every value is also recomputed from the envelope:</p>
+        <div class="tv-wrap"><table class="tv">
+            <thead><tr><th>Shape</th><th>Field envelope</th><th class="num">K = Δν·τ</th><th>Where it applies</th></tr></thead>
+            <tbody>
+                <tr><td>Gaussian</td><td>\(e^{-(t/\tau_G)^2}\)</td><td class="num">2 ln 2/π = 0.4413</td><td>Amplified pulses, Q-switched pulses, the default assumption</td></tr>
+                <tr><td>sech²</td><td>\(\operatorname{sech}(t/\tau_s)\)</td><td class="num">0.3148</td><td>Soliton mode-locked oscillators and fiber lasers</td></tr>
+                <tr><td>Lorentzian</td><td>\([1+(t/\tau_L)^2]^{-1}\)</td><td class="num">0.1420</td><td>Pulses with long wings in time</td></tr>
+                <tr><td>Rectangular</td><td>1 for \(|t| \le \tau/2\)</td><td class="num">0.8859</td><td>Electro-optically gated flat-top pulses</td></tr>
+                <tr><td>One-sided exponential</td><td>\(e^{-t/\tau_e}\) for \(t \ge 0\)</td><td class="num">ln 2/(2π) = 0.1103</td><td>Abrupt rise and exponential decay: cavity dumping, free induction decay</td></tr>
+            </tbody>
+        </table></div>
+        <p>The numbers are closed forms. For a Gaussian field \(e^{-(t/\tau_G)^2}\) the intensity FWHM is \(\tau = \tau_G\sqrt{2\ln 2}\) and the spectral intensity is a Gaussian of FWHM \(\Delta\nu = \sqrt{2\ln 2}/(\pi\tau_G)\), so \(\Delta\nu\,\tau = 2\ln 2/\pi\). The spectrum of \(\operatorname{sech}(t/\tau_s)\) is \(\operatorname{sech}(\pi^2\tau_s\nu)\), giving \(4\,\text{arccosh}^2\sqrt{2}/\pi^2\). The one-sided exponential has a Lorentzian spectrum of FWHM \(1/(\pi\tau_e)\) and an intensity FWHM of \(\tau_e\ln 2/2\). The rectangular pulse has a sinc² spectrum whose half-maximum points are at \(x = 1.3916\), giving \(2x/\pi\). The calculator’s value of K comes from these expressions, and a numerical Fourier transform of each envelope reproduces them to better than 1&nbsp;%.</p>
+        <p>Bandwidth is one quantity in several units. With \(\lambda_0\) the center wavelength, \(c\) the speed of light, and \(h\) Planck’s constant,</p>
+        <div class="formula">\[ \Delta\lambda = \frac{\lambda_0^2}{c}\,\Delta\nu, \qquad \Delta\tilde\nu = \frac{\Delta\nu}{c}, \qquad \Delta E = h\,\Delta\nu . \]</div>
+        <p>The first relation is the derivative of \(\lambda = c/\nu\) and is accurate while \(\Delta\lambda \ll \lambda_0\); the calculator flags spectra wider than 20&nbsp;% of the center wavelength, where it is only indicative. The other two are exact, which is why a width in cm⁻¹ or GHz means the same thing at every wavelength and a width in nm does not: 1&nbsp;nm is 40&nbsp;cm⁻¹ at 500&nbsp;nm but 8.8&nbsp;cm⁻¹ at 1064&nbsp;nm (see <a href="/learn/spectroscopic-units/">energy units in spectroscopy</a>). The number of optical cycles is \(\tau/(\lambda_0/c)\), with \(\lambda_0/c = 2.67\)&nbsp;fs at 800&nbsp;nm, and the coherence length is \(c\tau\).</p>
+
+        <h2>Why K is a floor, not a formula</h2>
+        <p>The inequality says what a pulse of duration τ <em>can</em> have at best. Most pulses have more bandwidth than that, for one of three reasons.</p>
+        <p><strong>Chirp.</strong> If the frequency sweeps across the pulse, the different colors arrive at different times and the pulse is longer than its spectrum requires. For a Gaussian pulse with a linear chirp, the product grows to \(\Delta\nu\,\tau = K\sqrt{1 + C^2}\), where C is the chirp parameter (Diels and Rudolph; Siegman, ch. 9). Chirp is also what dispersion does: a transform-limited Gaussian of duration \(\tau_{TL}\) that acquires a group delay dispersion \(D\) comes out with</p>
+        <div class="formula">\[ \tau = \tau_{TL}\sqrt{1 + \left(\frac{4\ln 2\, D}{\tau_{TL}^2}\right)^2}, \qquad\text{so}\qquad C = \frac{4\ln 2\, D}{\tau_{TL}^2}, \]</div>
+        <p>with the spectrum unchanged. When you enter both a measured duration and a measured spectrum, the calculator reports \(\Delta\nu\,\tau/K\), the duration the spectrum could support, and the C and D that would explain the excess. Widths alone cannot give the sign of D, and a product above K can also come from satellite pulses, a pedestal, or a spectral phase that is not quadratic, so treat C as an estimate of how much phase there is to remove, not as a diagnosis of its form. Measuring the phase takes an interferometric method such as FROG or SPIDER (Diels and Rudolph, ch. 9).</p>
+        <p><strong>Several longitudinal modes.</strong> A laser cavity oscillates on discrete frequencies spaced by \(c/2L\), 150&nbsp;MHz for a 1&nbsp;m cavity. A free-running Q-switched Nd:YAG laser runs on every mode that fits under its 0.6&nbsp;nm gain curve (Paschotta, “YAG lasers”), and its bandwidth is set by how many modes oscillate, not by the pulse length. Spectra-Physics quotes under 1&nbsp;cm⁻¹ (30&nbsp;GHz) for the unseeded Quanta-Ray Pro, against a transform limit of 44&nbsp;MHz for its 10&nbsp;ns pulse: 700 times the limit. The same laser with an injection seeder, which forces oscillation on one mode, is specified below 0.003&nbsp;cm⁻¹ (90&nbsp;MHz), within a factor of two of the limit. The beating of many modes also puts fast spikes on the pulse, so a seeded pulse is smoother as well as narrower (Paschotta, “Injection seeding”).</p>
+        <p><strong>Incoherent light.</strong> A flashlamp, an LED, or amplified spontaneous emission can have a nanometers-wide spectrum and last microseconds. Those are many independent wave trains, each of them short, with random phases; the envelope you measure is not a single pulse and the inequality does not relate its length to its spectrum. The time–bandwidth product is a statement about coherent pulses.</p>
+        <p>So, when a datasheet or a paper gives a duration, three questions decide what the bandwidth is: <em>how much bandwidth does the gain medium or any filter in the system let through</em> (an upper bound on the spectrum, and a lower bound on the duration of a transform-limited pulse); <em>is the pulse transform-limited</em> (only a measurement of both widths, or of the spectral phase, can tell); and <em>how much dispersion has it seen since</em> (every millimetre of glass and, for the shortest pulses, every metre of air adds chirp). The methods below are different answers to those questions.</p>
+
+        <h2>How the pulse lengths are made, and what each method does not do</h2>
+        <p><strong>1. Q-switching gives nanoseconds; the cavity, not the pulse, sets the spectrum.</strong> A Q-switch blocks the cavity while the gain medium stores energy, then opens it so the stored energy leaves in a single pulse of a few to a few hundred nanoseconds, a duration of the order of several cavity round trips (Paschotta, “Q-switching”; Siegman, ch. 26). Nothing in that process selects frequencies: the pulse builds up on every longitudinal mode with gain, so its spectrum is the gain curve clipped by the mode comb, hundreds or thousands of times the transform limit. To approach the limit, a nanosecond laser needs an extra frequency-selective element. Injection seeding injects a weak single-frequency continuous-wave beam into the cavity as the pulse builds up, so the pulse grows from that light rather than from noise and comes out on one mode (Paschotta, “Injection seeding”); intracavity etalons and gratings do the same more lossily. Single-longitudinal-mode operation brings an 8–12&nbsp;ns Nd:YAG pulse to below 0.003&nbsp;cm⁻¹ (Spectra-Physics), that is 90&nbsp;MHz against a Gaussian limit of 37–55&nbsp;MHz, a factor of 1.6–2.4. What seeding does <em>not</em> do is shorten the pulse: the duration is still set by the gain, the cavity, and the Q-switch.</p>
+        <p><strong>2. Mode locking gives picoseconds to femtoseconds, and the gain bandwidth sets the floor.</strong> A mode-locked laser oscillates on many longitudinal modes with their phases locked together, so that they add up to one short pulse circulating in the cavity; the more modes that lock, the shorter the pulse (Paschotta, “Mode locking”; Siegman, ch. 27). The number of modes is limited by the gain bandwidth of the medium, so the shortest pulse a mode-locked laser can produce is roughly \(K/\Delta\nu_\text{gain}\). That is why the gain medium matters so much more for a mode-locked laser than for a Q-switched one:</p>
+        <div class="tv-wrap"><table class="tv tv-wide">
+            <thead><tr><th>Gain medium</th><th class="num">λ (nm)</th><th>Gain bandwidth</th><th class="num">Implied limit (sech²)</th><th>In practice</th></tr></thead>
+            <tbody>
+                <tr><td>Nd:YAG</td><td class="num">1064</td><td>0.6&nbsp;nm (160&nbsp;GHz)¹</td><td class="num">2&nbsp;ps</td><td>Picosecond pulses; “less suitable” for mode locking because the bandwidth is small¹. Its natural role is the Q-switched nanosecond laser.</td></tr>
+                <tr><td>Nd:glass</td><td class="num">1053–1060</td><td>tens of nm²</td><td class="num">~50–100&nbsp;fs</td><td>Broad because the glass is disordered; the medium of the large fusion-class and many petawatt lasers.</td></tr>
+                <tr><td>Yb:YAG</td><td class="num">1030</td><td>9&nbsp;nm¹³ to 15&nbsp;nm¹ (2.5–4.2&nbsp;THz), by source</td><td class="num">75–125&nbsp;fs</td><td>Thin-disk oscillators and amplifiers with the highest average powers; sub-picosecond pulses.</td></tr>
+                <tr><td>Yb:KGW, Yb:KYW</td><td class="num">1030–1040</td><td>broad³</td><td class="num">—</td><td>Sub-100&nbsp;fs demonstrated³; industrial Yb amplifiers specify 100–300&nbsp;fs⁴.</td></tr>
+                <tr><td>Ti:sapphire</td><td class="num">650–1100</td><td>hundreds of nm⁵</td><td class="num">few fs</td><td>11&nbsp;fs directly from an oscillator in 1993⁶, 5&nbsp;fs with an octave-spanning spectrum in 2001⁷; 20&nbsp;fs from petawatt amplifiers⁸.</td></tr>
+                <tr><td>Laser dyes</td><td class="num">370–920¹⁰</td><td>tens of nm⁹</td><td class="num">tens of fs</td><td>Broad enough for femtosecond lasers in the 1980s, but pulsed dye lasers are mostly built the other way: narrowed with gratings to 0.03–0.1&nbsp;cm⁻¹ for spectroscopy¹⁰.</td></tr>
+                <tr><td>KrF excimer</td><td class="num">248</td><td>~1&nbsp;nm unnarrowed, &lt;1&nbsp;pm with a grating¹¹</td><td class="num">—</td><td>Not mode-locked: a 20&nbsp;ns gain-switched discharge pulse¹²; bandwidth and duration are unrelated here.</td></tr>
+            </tbody>
+        </table></div>
+        <p style="font-size:.88rem;color:var(--text-2)">¹ Paschotta, “YAG lasers.” ² Paschotta, “Laser glasses” (bandwidths “of the order of tens of nanometers”; the fs figure is K/Δν for 10–25&nbsp;nm, not a value from the source). ³ Paschotta, “Tungstate lasers.” ⁴ Light Conversion PHAROS datasheet. ⁵ Paschotta, “Titanium–sapphire lasers” (tuning range 650–1100&nbsp;nm). ⁶ Asaki et al. (1993). ⁷ Ell et al. (2001). ⁸ Sung et al. (2017). ⁹ Paschotta, “Dye lasers.” ¹⁰ Sirah Cobra-Stretch and Quantel TDL90 datasheets. ¹¹ Paschotta, “Excimer lasers”; Gigaphoton G41K datasheet (0.35&nbsp;pm). ¹² Coherent COMPex datasheet. ¹³ Laser Components and AOG Crystal Yb:YAG crystal data sheets (emission linewidth 9&nbsp;nm). The implied limit is K/Δν<sub>gain</sub> with K = 0.315; real oscillators usually stay a factor of a few above it, because the full gain curve is not used and because gain narrowing, dispersion, and the mode-locking mechanism all favor longer pulses (Paschotta, “Gain narrowing”).</p>
+        <p>Two cautions. First, the full gain bandwidth is rarely used, so a medium’s implied limit is a bound, not a prediction: the 9–15&nbsp;nm quoted for Yb:YAG implies 75–125&nbsp;fs, but Yb:YAG lasers mostly run at several hundred femtoseconds to a picosecond. Second, a mode-locked oscillator can emit chirped pulses, especially when it is not soliton mode-locked, so even an oscillator pulse should be checked against its spectrum before it is called transform-limited (Paschotta, “Time–bandwidth product”).</p>
+        <p><strong>3. Chirped-pulse amplification (CPA) does not shorten anything.</strong> Amplifying a femtosecond pulse to millijoules or joules directly would destroy the amplifier, because the peak power rises as the pulse shortens (see the <a href="/tools/pulse-energy/">pulse energy and peak power calculator</a> and the <a href="/tools/lidt/">damage threshold calculator</a>). Strickland and Mourou’s solution (1985) is to stretch the pulse with a dispersive element before amplification, so that its peak power is low while it is amplified, and to recompress it afterwards with the opposite dispersion, usually a grating pair; modern systems stretch femtosecond pulses by a factor of 10³–10⁴, to hundreds of picoseconds or a nanosecond. The bandwidth is carried through the amplifier; CPA simply makes it possible to amplify a short pulse without damage or nonlinear distortion (Paschotta, “Chirped-pulse amplification”). The compressed pulse is, at best, as short as the input pulse, and in practice longer, because an amplifier with finite gain bandwidth amplifies the center of the spectrum more than the wings: this <em>gain narrowing</em> removes bandwidth and lengthens the compressed pulse (Paschotta, “Gain narrowing”). Petawatt Ti:sapphire systems, which amplify by factors of 10¹⁰ or more, counter it with spectral shaping and still end up near 20–30&nbsp;fs, where the oscillator that seeds them might produce 10&nbsp;fs: the CoReLS 4.2&nbsp;PW laser delivers 19.4&nbsp;fs pulses from an 84&nbsp;nm amplified spectrum, 1.7 times the Gaussian limit (Sung et al. 2017). Uncompensated higher-order dispersion between the stretcher and the compressor leaves a pedestal and lengthens the pulse further.</p>
+        <p><strong>4. Optical parametric chirped-pulse amplification (OPCPA) keeps bandwidth because the gain is not stored in a medium.</strong> Dubietis, Jonušauskas, and Piskarskas (1992) replaced the laser amplifier in a CPA chain with a nonlinear crystal pumped by a strong, longer pulse, in which the stretched seed pulse is amplified by parametric down-conversion. The gain bandwidth is then set by phase matching rather than by an atomic transition, and with noncollinear phase matching it can span hundreds of nanometers; the crystal stores no energy and absorbs almost nothing, so there is little heat and little gain narrowing (Paschotta, “Optical parametric chirped-pulse amplification”). OPCPA systems reach 4–5&nbsp;fs compressed pulses, which a Ti:sapphire amplifier cannot. What OPCPA does not do is relax the pump requirements: the pump pulse must overlap the stretched seed in time and carry the energy the amplified pulse will have.</p>
+        <p><strong>5. Post-compression is the only way below the gain-bandwidth limit, because it adds new bandwidth.</strong> Everything above conserves or loses bandwidth. Self-phase modulation creates it: an intense pulse in a nonlinear medium (a noble gas in a hollow-core fiber, a bulk plate in a multipass cell, or a solid-core fiber for low energies) modulates its own phase through the Kerr effect, and the time-dependent phase shift means new frequencies, red in the leading edge and blue in the trailing edge of the pulse (Paschotta, “Self-phase modulation”). The spectrally broadened pulse is longer and strongly chirped; chirped mirrors or a prism or grating pair then remove the chirp, and the pulse comes out shorter than it went in (Paschotta, “Pulse compression”). Nisoli, De Silvestri, and Svelto introduced the gas-filled hollow fiber for this in 1996, producing 10&nbsp;fs pulses at high energy, and the same group compressed 20&nbsp;fs Ti:sapphire pulses to below 5&nbsp;fs the following year (Nisoli et al. 1997). Multipass cells do the same at high average power (Gröbmeyer et al. 2020). Post-compression does not change the pulse energy much (the hollow fiber transmits most of it) and cannot be applied before amplification, since it needs the high intensity; it is the last stage.</p>
+        <p><strong>6. The other direction: spectroscopy trades time for linewidth on purpose.</strong> To resolve rotational lines, which are a few cm⁻¹ apart in light molecules and a small fraction of a cm⁻¹ in heavy ones, a laser needs a linewidth narrower than the spacing, and the Fourier relation then forces the pulse to last nanoseconds. Resonance-enhanced multiphoton ionization (REMPI) and laser-induced fluorescence (LIF) are therefore mostly done with nanosecond dye lasers or optical parametric oscillators pumped by seeded Nd:YAG lasers: a 5&nbsp;ns pulse may be as narrow as 88&nbsp;MHz (0.003&nbsp;cm⁻¹), and commercial dye lasers reach 0.03–0.1&nbsp;cm⁻¹ with one or two gratings, a line Hänsch’s 1972 design first pushed below 0.004&nbsp;Å (about 0.01&nbsp;cm⁻¹). Picosecond lasers sit in between: a 1–2&nbsp;ps Gaussian pulse has a transform-limited width of 7–15&nbsp;cm⁻¹, which still resolves vibrational bands, hundreds of cm⁻¹ apart, but not rotational lines, and it gives time resolution on the scale of vibrational energy flow. Femtosecond pulses give the time resolution to watch nuclear motion but span 100&nbsp;cm⁻¹ or more, so they excite several vibrational levels at once, which is the basis of wavepacket spectroscopy. A pulse that is narrow in frequency and short in time at the same time does not exist; the result row “what this bandwidth means for spectroscopy” says which side of the trade-off you are on.</p>
+
+        <h2>Dispersion: how glass lengthens a pulse</h2>
+        <p>In a transparent material the refractive index \(n\) falls with wavelength, so the group velocity \(v_g\) of a pulse depends on its color. The group velocity dispersion is the rate of change of the inverse group velocity with angular frequency, which in terms of \(n(\lambda)\) is</p>
+        <div class="formula">\[ \text{GVD} = \frac{d}{d\omega}\!\left(\frac{1}{v_g}\right) = \frac{\lambda^3}{2\pi c^2}\,\frac{d^2 n}{d\lambda^2}, \qquad \text{GDD} = \text{GVD}\times L . \]</div>
+        <p>The calculator takes \(n(\lambda)\) from each material’s Sellmeier equation, differentiates it analytically for the Sellmeier forms and with a five-point stencil for the other fitted forms, and reports GVD in fs²/mm. The coefficients come from the refractiveindex.info database (Polyanskiy 2024), which is in the public domain, and from the original papers it cites: fused silica from Malitson (1965), measured 0.21–3.71&nbsp;µm (the database extends the fit to 6.7&nbsp;µm); N-BK7 from the SCHOTT catalog, 0.30–2.5&nbsp;µm; sapphire (ordinary ray) from Malitson (1962), 0.27–5.6&nbsp;µm; CaF₂ from Li (1980), 0.15–12&nbsp;µm; MgF₂ (ordinary ray) from Dodge (1984), 0.20–7.0&nbsp;µm; YAG from Zelmon et al. (1998), 0.4–5.0&nbsp;µm; KDP (ordinary ray) from Zernike (1964), 0.21–1.53&nbsp;µm; BBO (ordinary ray) from Tamošauskas et al. (2018), 0.19–5.2&nbsp;µm; and air at 15&nbsp;°C and 1&nbsp;atm from Ciddor (1996), 0.30–1.69&nbsp;µm. Outside these ranges the result is an extrapolation and the calculator says so. As checks, the Malitson equation gives 36.16&nbsp;fs²/mm for fused silica at 800&nbsp;nm, where Edmund Optics quotes 36&nbsp;fs²/mm and Paschotta about 35&nbsp;fs²/mm, and 18.97&nbsp;fs²/mm at 1030&nbsp;nm, the value Gröbmeyer et al. (2020) use for fused silica at 1&nbsp;µm; at 1550&nbsp;nm it gives −28&nbsp;fs²/mm, matching the same paper, with the zero crossing near 1.27&nbsp;µm.</p>
+        <p>A positive GDD delays the blue components relative to the red and stretches a transform-limited Gaussian pulse to \(\tau_{TL}\sqrt{1 + (4\ln 2\,D/\tau_{TL}^2)^2}\) (Siegman, ch. 9; Weiner, ch. 4). The effect scales as \(1/\tau^2\): 10&nbsp;mm of fused silica at 800&nbsp;nm (362&nbsp;fs²) lengthens a 100&nbsp;fs pulse by 0.5&nbsp;%, a 30&nbsp;fs pulse to 45&nbsp;fs, and a 10&nbsp;fs pulse to about 100&nbsp;fs; for a 10&nbsp;fs pulse even 1&nbsp;mm gives 14&nbsp;fs, and the 21&nbsp;fs²/m of air matters over a few metres. For nanosecond pulses dispersion is irrelevant. Compensation means adding the same GDD with the opposite sign, which prism pairs, grating pairs, and chirped mirrors provide; below about 20&nbsp;fs the third-order dispersion, which these do not cancel automatically, has to be managed as well (Paschotta, “Dispersion compensation”). The stretched-duration result assumes the pulse is transform-limited going in. A pulse that already carries chirp of the same sign broadens more than this, and one with the opposite chirp is compressed, which is exactly how a compressor works.</p>
+
+        <h2>Worked examples</h2>
+        <p><strong>Ti:sapphire amplifier.</strong> A 100&nbsp;fs Gaussian pulse at 800&nbsp;nm has a transform-limited bandwidth of 0.4413/100&nbsp;fs = 4.41&nbsp;THz, which is 147&nbsp;cm⁻¹, 18.3&nbsp;meV, and \(\Delta\lambda = (800\ \text{nm})^2 \times 4.41\ \text{THz}/c = 9.4\)&nbsp;nm. It contains 37 optical cycles and is 30&nbsp;µm long. If the spectrometer shows 12&nbsp;nm, the product is 1.27 times the limit; the spectrum could support 79&nbsp;fs, and a linear chirp with C = 0.79, equivalent to a GDD of about ±1&nbsp;750&nbsp;fs² or 49&nbsp;mm of fused silica, would explain the difference. A 20&nbsp;fs pulse at the same wavelength needs 47&nbsp;nm and has 7.5 cycles; a 5&nbsp;fs pulse would need 190&nbsp;nm at 800&nbsp;nm, a quarter of the center wavelength, which is why few-cycle spectra are described in frequency rather than in nm.</p>
+        <p><strong>Nanosecond spectroscopy.</strong> A 5&nbsp;ns Gaussian pulse can be as narrow as 88&nbsp;MHz, or 0.0029&nbsp;cm⁻¹, which at 560&nbsp;nm is 0.09&nbsp;pm. A dye laser specified at 0.06&nbsp;cm⁻¹ (1.8&nbsp;GHz) is therefore 20 times above the limit of its 5&nbsp;ns pulse, and a seeded Nd:YAG at 0.003&nbsp;cm⁻¹ with a 10&nbsp;ns pulse is twice its limit of 44&nbsp;MHz. Both are narrower than the Doppler width of a room-temperature gas line, 1–3&nbsp;GHz in the visible (see the <a href="/tools/doppler-broadening/">Doppler broadening calculator</a>), so the sample, not the laser, limits the resolution.</p>
+        <p><strong>Picosecond middle ground.</strong> A 1.5&nbsp;ps Gaussian pulse has a transform-limited width of 294&nbsp;GHz = 9.8&nbsp;cm⁻¹. It resolves the vibrational bands of a molecule but spans the rotational lines of N₂ (4.0&nbsp;cm⁻¹ apart) and of everything heavier; only H₂ and HCl, with 122 and 21&nbsp;cm⁻¹ between lines, would still show rotational structure.</p>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li><strong>Widths are FWHM of the intensity</strong> in time and of the spectral intensity in frequency. Datasheets sometimes quote 1/e, 1/e², or full widths at 95&nbsp;% energy; convert these first. A sech² pulse with parameter τ<sub>s</sub> has FWHM 1.763&nbsp;τ<sub>s</sub>; for a Gaussian, the intensity FWHM is 1.665 times the intensity 1/e half-width and 1.177 times the intensity 1/e² half-width (which equals the field 1/e half-width τ<sub>G</sub> of the table above).</li>
+            <li><strong>The transform limit depends on the shape</strong>, and a real pulse rarely has exactly one of the five shapes. An autocorrelation cannot distinguish Gaussian from sech², and the two products differ by 40&nbsp;%, so quote the shape with the limit.</li>
+            <li><strong>Chirp from widths alone.</strong> The chirp parameter and the equivalent GDD assume a Gaussian with a purely linear chirp. Higher-order phase, pre- or post-pulses, and a pedestal all raise the product and are not distinguished. Nor is the sign of the chirp.</li>
+            <li><strong>Wavelength conversions are first-order.</strong> Δλ = λ₀²Δν/c is exact only in the limit of a narrow spectrum; above Δλ/λ₀ ≈ 0.2 (few-cycle pulses) the calculator marks the nm value as approximate. Air wavelengths and vacuum wavelengths differ by 0.03&nbsp;%, which is negligible here.</li>
+            <li><strong>Dispersion is second order only.</strong> The broadening formula uses GDD and a transform-limited Gaussian input. Third-order dispersion, which matters below about 20&nbsp;fs and for thick materials, and the chirp of a non-transform-limited input are not included. Birefringent crystals are given for the ordinary ray only; the Sellmeier fits hold within the ranges listed above, and air is taken as dry standard air at 15&nbsp;°C.</li>
+            <li><strong>Coherent pulses.</strong> The time–bandwidth relation applies to a single coherent pulse. Multimode nanosecond pulses, amplified spontaneous emission, and incoherent sources have products far above K for reasons that have nothing to do with chirp.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Primary sources</h3>
+        <ol class="refs">
+            <li>J.-C. Diels and W. Rudolph, <em>Ultrashort Laser Pulse Phenomena</em>, 2nd ed., Academic Press (2006), ch. 1, “Fundamentals,” <a href="https://doi.org/10.1016/B978-012215493-5/50002-1" target="_blank" rel="noopener">doi:10.1016/B978-012215493-5/50002-1</a> (Table 1.1, the time–bandwidth products of the Gaussian, sech², and Lorentzian pulses, and of the square pulse in a half-width convention; chirped Gaussian pulses; dispersive broadening), and ch. 9, “Diagnostic techniques,” <a href="https://doi.org/10.1016/B978-012215493-5/50010-0" target="_blank" rel="noopener">doi:10.1016/B978-012215493-5/50010-0</a> (autocorrelation, FROG, SPIDER).</li>
+            <li>C. Rullière (ed.), <em>Femtosecond Laser Pulses: Principles and Experiments</em>, 2nd ed., Springer (2005), <a href="https://doi.org/10.1007/b137908" target="_blank" rel="noopener">doi:10.1007/b137908</a> (pulse shapes and their spectra; mode locking; dispersion).</li>
+            <li>A. E. Siegman, <em>Lasers</em>, University Science Books (1986), ch. 9, “Linear pulse propagation” (Gaussian pulse broadening by dispersion), ch. 26, “Laser Q-switching,” and ch. 27, “Active laser mode coupling.”</li>
+            <li>A. M. Weiner, <em>Ultrafast Optics</em>, Wiley (2009), <a href="https://doi.org/10.1002/9780470473467" target="_blank" rel="noopener">doi:10.1002/9780470473467</a>, ch. 4 (dispersion and pulse propagation).</li>
+            <li>D. Strickland and G. Mourou, “Compression of amplified chirped optical pulses,” <em>Opt. Commun.</em> <strong>56</strong>, 219–221 (1985), <a href="https://doi.org/10.1016/0030-4018(85)90120-8" target="_blank" rel="noopener">doi:10.1016/0030-4018(85)90120-8</a> (chirped-pulse amplification).</li>
+            <li>A. Dubietis, G. Jonušauskas, and A. Piskarskas, “Powerful femtosecond pulse generation by chirped and stretched pulse parametric amplification in BBO crystal,” <em>Opt. Commun.</em> <strong>88</strong>, 437–440 (1992), <a href="https://doi.org/10.1016/0030-4018(92)90070-8" target="_blank" rel="noopener">doi:10.1016/0030-4018(92)90070-8</a> (OPCPA).</li>
+            <li>M. Nisoli, S. De Silvestri, and O. Svelto, “Generation of high energy 10 fs pulses by a new pulse compression technique,” <em>Appl. Phys. Lett.</em> <strong>68</strong>, 2793–2795 (1996), <a href="https://doi.org/10.1063/1.116609" target="_blank" rel="noopener">doi:10.1063/1.116609</a> (the gas-filled hollow-fiber compressor).</li>
+            <li>M. Nisoli, S. De Silvestri, O. Svelto, R. Szipőcs, K. Ferencz, Ch. Spielmann, S. Sartania, and F. Krausz, “Compression of high-energy laser pulses below 5 fs,” <em>Opt. Lett.</em> <strong>22</strong>, 522–524 (1997), <a href="https://doi.org/10.1364/OL.22.000522" target="_blank" rel="noopener">doi:10.1364/OL.22.000522</a> (the few-cycle marker on the chart).</li>
+            <li>M. T. Asaki, C.-P. Huang, D. Garvey, J. Zhou, H. C. Kapteyn, and M. M. Murnane, “Generation of 11-fs pulses from a self-mode-locked Ti:sapphire laser,” <em>Opt. Lett.</em> <strong>18</strong>, 977–979 (1993), <a href="https://doi.org/10.1364/OL.18.000977" target="_blank" rel="noopener">doi:10.1364/OL.18.000977</a> (10.95&nbsp;fs, 62&nbsp;nm bandwidth centered at 780&nbsp;nm: the Ti:sapphire oscillator marker).</li>
+            <li>R. Ell, U. Morgner, F. X. Kärtner, J. G. Fujimoto, E. P. Ippen, V. Scheuer, G. Angelow, T. Tschudi, M. J. Lederer, A. Boiko, and B. Luther-Davies, “Generation of 5-fs pulses and octave-spanning spectra directly from a Ti:sapphire laser,” <em>Opt. Lett.</em> <strong>26</strong>, 373–375 (2001), <a href="https://doi.org/10.1364/OL.26.000373" target="_blank" rel="noopener">doi:10.1364/OL.26.000373</a>.</li>
+            <li>J. H. Sung, H. W. Lee, J. Y. Yoo, J. W. Yoon, C. W. Lee, J. M. Yang, Y. J. Son, Y. H. Jang, S. K. Lee, and C. H. Nam, “4.2 PW, 20 fs Ti:sapphire laser at 0.1 Hz,” <em>Opt. Lett.</em> <strong>42</strong>, 2058–2061 (2017), <a href="https://doi.org/10.1364/OL.42.002058" target="_blank" rel="noopener">doi:10.1364/OL.42.002058</a> (83&nbsp;J in 19.4&nbsp;fs from an 84&nbsp;nm FWHM amplified spectrum: the petawatt marker on the chart).</li>
+            <li>T. W. Hänsch, “Repetitively pulsed tunable dye laser for high resolution spectroscopy,” <em>Appl. Opt.</em> <strong>11</strong>, 895–898 (1972), <a href="https://doi.org/10.1364/AO.11.000895" target="_blank" rel="noopener">doi:10.1364/AO.11.000895</a> (the grating-and-etalon narrowband pulsed dye laser, bandwidth below 0.004&nbsp;Å).</li>
+            <li>S. Gröbmeyer, K. Fritsch, B. Schneider, M. Poetzlberger, V. Pervak, J. Brons, and O. Pronin, “Self-compression at 1 µm wavelength in all-bulk multi-pass geometry,” <em>Appl. Phys. B</em> <strong>126</strong>, 159 (2020), <a href="https://doi.org/10.1007/s00340-020-07506-4" target="_blank" rel="noopener">doi:10.1007/s00340-020-07506-4</a> (multipass-cell compression; fused silica GVD of 18.97&nbsp;fs²/mm at 1&nbsp;µm and −28&nbsp;fs²/mm at 1550&nbsp;nm, the checks for the Sellmeier differentiation).</li>
+            <li>M. N. Polyanskiy, “Refractiveindex.info database of optical constants,” <em>Sci. Data</em> <strong>11</strong>, 94 (2024), <a href="https://doi.org/10.1038/s41597-023-02898-2" target="_blank" rel="noopener">doi:10.1038/s41597-023-02898-2</a> (the CC0 database the Sellmeier coefficients come from; files main/SiO2/nk/Malitson.yml, specs/schott/optical/N-BK7.yml, main/Al2O3/nk/Malitson.yml, main/CaF2/nk/Li.yml, main/MgF2/nk/Dodge-o.yml, main/Y3Al5O12/nk/Zelmon.yml, main/KH2PO4/nk/Zernike-o.yml, main/BaB2O4/nk/Tamosauskas-o.yml, other/mixed gases/air/nk/Ciddor.yml, main-branch snapshot of 2026-11-06; each coefficient set was checked against the table published with the original paper, and the wavelength ranges given above are those of the original measurements).</li>
+            <li>I. H. Malitson, “Interspecimen comparison of the refractive index of fused silica,” <em>J. Opt. Soc. Am.</em> <strong>55</strong>, 1205–1209 (1965), <a href="https://doi.org/10.1364/JOSA.55.001205" target="_blank" rel="noopener">doi:10.1364/JOSA.55.001205</a>; I. H. Malitson, “Refraction and dispersion of synthetic sapphire,” <em>J. Opt. Soc. Am.</em> <strong>52</strong>, 1377–1379 (1962), <a href="https://doi.org/10.1364/JOSA.52.001377" target="_blank" rel="noopener">doi:10.1364/JOSA.52.001377</a>; H. H. Li, “Refractive index of alkaline earth halides and its wavelength and temperature derivatives,” <em>J. Phys. Chem. Ref. Data</em> <strong>9</strong>, 161–290 (1980), <a href="https://doi.org/10.1063/1.555616" target="_blank" rel="noopener">doi:10.1063/1.555616</a>; M. J. Dodge, “Refractive properties of magnesium fluoride,” <em>Appl. Opt.</em> <strong>23</strong>, 1980–1985 (1984), <a href="https://doi.org/10.1364/AO.23.001980" target="_blank" rel="noopener">doi:10.1364/AO.23.001980</a>; D. E. Zelmon, D. L. Small, and R. Page, “Refractive-index measurements of undoped yttrium aluminum garnet from 0.4 to 5.0 µm,” <em>Appl. Opt.</em> <strong>37</strong>, 4933–4935 (1998), <a href="https://doi.org/10.1364/AO.37.004933" target="_blank" rel="noopener">doi:10.1364/AO.37.004933</a>; F. Zernike, “Refractive indices of ammonium dihydrogen phosphate and potassium dihydrogen phosphate between 2000 Å and 1.5 µ,” <em>J. Opt. Soc. Am.</em> <strong>54</strong>, 1215–1220 (1964), <a href="https://doi.org/10.1364/JOSA.54.001215" target="_blank" rel="noopener">doi:10.1364/JOSA.54.001215</a> (Table IV(a), indices relative to air); G. Tamošauskas, G. Beresnevičius, D. Gadonas, and A. Dubietis, “Transmittance and phase matching of BBO crystal in the 3–5 μm range and its application for the characterization of mid-infrared laser pulses,” <em>Opt. Mater. Express</em> <strong>8</strong>, 1410–1418 (2018), <a href="https://doi.org/10.1364/OME.8.001410" target="_blank" rel="noopener">doi:10.1364/OME.8.001410</a>; P. E. Ciddor, “Refractive index of air: new equations for the visible and near infrared,” <em>Appl. Opt.</em> <strong>35</strong>, 1566–1573 (1996), <a href="https://doi.org/10.1364/AO.35.001566" target="_blank" rel="noopener">doi:10.1364/AO.35.001566</a>; SCHOTT AG, optical glass catalog (Zemax format, 2017-01-20b), N-BK7 (the Sellmeier equations behind the dispersion results).</li>
+            <li>K. P. Huber and G. Herzberg, <em>Molecular Spectra and Molecular Structure IV. Constants of Diatomic Molecules</em>, Van Nostrand Reinhold (1979), <a href="https://doi.org/10.1007/978-1-4757-0961-2" target="_blank" rel="noopener">doi:10.1007/978-1-4757-0961-2</a> (the rotational constants of H₂, HCl, N₂, NO, and I₂ behind the spectroscopy reading).</li>
+        </ol>
+        <h3>Manufacturer specifications (the chart markers)</h3>
+        <ul class="refs">
+            <li>Spectra-Physics, <em>Quanta-Ray Pro Series pulsed Nd:YAG lasers</em>, datasheet (1064&nbsp;nm pulse width 8–12&nbsp;ns; linewidth &lt;1.0&nbsp;cm⁻¹ standard, &lt;0.003&nbsp;cm⁻¹ injection seeded), <a href="https://wikis.mit.edu/confluence/download/attachments/264950419/Quanta-Ray_Pulsed_YAG_SP%20%28002%29.pdf?api=v2" target="_blank" rel="noopener">copy hosted by MIT</a>.</li>
+            <li>Quantel, <em>TDL90 tunable dye laser</em>, datasheet (pulse duration 4–5&nbsp;ns with a Brilliant pump or 8–10&nbsp;ns with the YG980; linewidth at 560&nbsp;nm 0.8&nbsp;cm⁻¹ standard, 0.08, 0.06, and 0.05&nbsp;cm⁻¹ with the narrow-bandwidth and dual-grating options), <a href="https://velocimetry.net/laser%20catalogues/quantel/TDL90%20Tunable%20Dye%20Laser.pdf" target="_blank" rel="noopener">velocimetry.net</a>; Sirah Lasertechnik, <em>Cobra and Cobra-Stretch</em> linewidth specifications (0.03–0.1&nbsp;cm⁻¹ with gratings and 5&nbsp;cm⁻¹ with prisms, by option; tuning range 370–920&nbsp;nm with the prism option), <a href="https://www.sirah.com/lasers/he/narrow-bandwidth/" target="_blank" rel="noopener">sirah.com</a>.</li>
+            <li>Coherent, <em>COMPex excimer laser series</em>, datasheet (pulse duration 20&nbsp;ns typical FWHM), <a href="https://www.coherent.com/content/dam/coherent/site/en/resources/datasheet/lasers/compex-series-ds.pdf" target="_blank" rel="noopener">coherent.com</a>; Gigaphoton, <em>G41K KrF excimer laser</em> (248&nbsp;nm, 0.35&nbsp;pm FWHM line-narrowed), <a href="https://gigaphoton.com/products/7647" target="_blank" rel="noopener">gigaphoton.com</a>.</li>
+            <li>Light Conversion, <em>PHAROS femtosecond lasers</em> (1030&nbsp;±&nbsp;10&nbsp;nm; pulse duration &lt;290&nbsp;fs to &lt;100&nbsp;fs by model, tunable to 10&nbsp;ps), <a href="https://lightcon.com/product/pharos-femtosecond-lasers/" target="_blank" rel="noopener">lightcon.com</a>.</li>
+            <li>Edmund Optics, <em>UV fused silica ultrafast dispersing prisms</em>, specification sheet (group velocity dispersion 36&nbsp;fs²/mm at 800&nbsp;nm), <a href="https://edmundoptics.co.uk/document/download/419386" target="_blank" rel="noopener">edmundoptics.co.uk</a>.</li>
+            <li>Laser Components, <em>Yb:YAG laser crystals</em>, data sheet (emission linewidth 9&nbsp;nm), <a href="https://lasercomponents.com/fileadmin/user_upload/home/Datasheets/diverse-laser-optics/laser-rods-crystals/yb-yag.pdf" target="_blank" rel="noopener">lasercomponents.com</a>; AOG Crystal, <em>Yb:YAG crystal</em> (emission linewidth 9&nbsp;nm), <a href="https://aogcrystal.com/products/yb-yag-crystal.html" target="_blank" rel="noopener">aogcrystal.com</a>.</li>
+        </ul>
+        <h3>Free introductions</h3>
+        <ul class="refs">
+            <li>R. Paschotta, <em>RP Photonics Encyclopedia</em>: “Time–bandwidth product,” <a href="https://doi.org/10.61835/bfb" target="_blank" rel="noopener">doi:10.61835/bfb</a>; “Bandwidth-limited pulses,” <a href="https://doi.org/10.61835/zft" target="_blank" rel="noopener">doi:10.61835/zft</a>; “Chirp,” <a href="https://doi.org/10.61835/j6t" target="_blank" rel="noopener">doi:10.61835/j6t</a>; “Group velocity dispersion,” <a href="https://doi.org/10.61835/9gj" target="_blank" rel="noopener">doi:10.61835/9gj</a> (fused silica about +35&nbsp;fs²/mm at 800&nbsp;nm); “Group delay dispersion,” <a href="https://doi.org/10.61835/bhj" target="_blank" rel="noopener">doi:10.61835/bhj</a>; “Sellmeier formula,” <a href="https://doi.org/10.61835/do2" target="_blank" rel="noopener">doi:10.61835/do2</a>; “Dispersion compensation,” <a href="https://doi.org/10.61835/qni" target="_blank" rel="noopener">doi:10.61835/qni</a>.</li>
+            <li>R. Paschotta, <em>RP Photonics Encyclopedia</em>: “Q-switching,” <a href="https://doi.org/10.61835/fdh" target="_blank" rel="noopener">doi:10.61835/fdh</a>; “Nanosecond lasers,” <a href="https://doi.org/10.61835/36m" target="_blank" rel="noopener">doi:10.61835/36m</a>; “Injection seeding,” <a href="https://doi.org/10.61835/zj0" target="_blank" rel="noopener">doi:10.61835/zj0</a>; “Mode locking,” <a href="https://doi.org/10.61835/dm2" target="_blank" rel="noopener">doi:10.61835/dm2</a>; “Gain bandwidth,” <a href="https://doi.org/10.61835/r1g" target="_blank" rel="noopener">doi:10.61835/r1g</a>; “Gain narrowing,” <a href="https://doi.org/10.61835/uib" target="_blank" rel="noopener">doi:10.61835/uib</a>; “Chirped-pulse amplification,” <a href="https://doi.org/10.61835/3ts" target="_blank" rel="noopener">doi:10.61835/3ts</a>; “Optical parametric chirped-pulse amplification,” <a href="https://doi.org/10.61835/19r" target="_blank" rel="noopener">doi:10.61835/19r</a>; “Pulse compression,” <a href="https://doi.org/10.61835/cb7" target="_blank" rel="noopener">doi:10.61835/cb7</a>; “Self-phase modulation,” <a href="https://doi.org/10.61835/pqf" target="_blank" rel="noopener">doi:10.61835/pqf</a>; “Hollow-core fibers and capillaries,” <a href="https://doi.org/10.61835/x34" target="_blank" rel="noopener">doi:10.61835/x34</a>.</li>
+            <li>R. Paschotta, <em>RP Photonics Encyclopedia</em>, gain media: “YAG lasers,” <a href="https://doi.org/10.61835/7vp" target="_blank" rel="noopener">doi:10.61835/7vp</a> (Nd:YAG 0.6&nbsp;nm and Yb:YAG 15&nbsp;nm gain bandwidths); “Laser glasses,” <a href="https://doi.org/10.61835/6ic" target="_blank" rel="noopener">doi:10.61835/6ic</a>; “Tungstate lasers,” <a href="https://doi.org/10.61835/2vq" target="_blank" rel="noopener">doi:10.61835/2vq</a>; “Titanium–sapphire lasers,” <a href="https://doi.org/10.61835/2j5" target="_blank" rel="noopener">doi:10.61835/2j5</a>; “Dye lasers,” <a href="https://doi.org/10.61835/hbd" target="_blank" rel="noopener">doi:10.61835/hbd</a>; “Excimer lasers,” <a href="https://doi.org/10.61835/qp6" target="_blank" rel="noopener">doi:10.61835/qp6</a>.</li>
+        </ul>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="pulse-energy,energy-converter,doppler-broadening,grating-equation,lidt,article:spectroscopic-units"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+/* PB-BEGIN */
+// Physics of the pulse-bandwidth calculator, kept free of DOM code so the hand-check script can run the same block in Node.
+var PB = (function () {
+    'use strict';
+    var c = 299792458, h = 6.62607015e-34, e = 1.602176634e-19;
+    // transform-limited time–bandwidth products K = Δν·τ (FWHM of intensity in both domains): Gaussian, sech² and Lorentzian as in
+    // Diels & Rudolph Table 1.1; rectangular and one-sided exponential derived from the envelopes (all five recomputed in check.mjs)
+    var rectK = (function () { var lo = 1, hi = 2; for (var i = 0; i < 80; i++) { var m = (lo + hi) / 2; if (Math.pow(Math.sin(m) / m, 2) > 0.5) lo = m; else hi = m; } return 2 * lo / Math.PI; })();
+    var SHAPES = {
+        gauss:   { name: 'Gaussian',               K: 2 * Math.LN2 / Math.PI },
+        sech2:   { name: 'sech²',                  K: 4 * Math.pow(Math.acosh(Math.SQRT2), 2) / (Math.PI * Math.PI) },
+        lorentz: { name: 'Lorentzian',             K: Math.LN2 / Math.PI * Math.sqrt(Math.SQRT2 - 1) },
+        rect:    { name: 'rectangular',            K: rectK },
+        exp1:    { name: 'one-sided exponential',  K: Math.LN2 / (2 * Math.PI) }
+    };
+    // Sellmeier data from the refractiveindex.info database (CC0; Polyanskiy 2024), λ in µm. f = the database's formula number:
+    // 1  n² − 1 = C0 + Σ Ci λ²/(λ² − Ci+1²)      2  the same with Ci+1 not squared
+    // 4  n² = C0 + C1 λ^C2/(λ² − C3^C4) + C5 λ^C6/(λ² − C7^C8) + Σ Ci λ^Ci+1      6  n − 1 = C0 + Σ Ci/(Ci+1 − λ⁻²)
+    var MATERIALS = {
+        fs:    { name: 'fused silica',      f: 1, C: [0, 0.6961663, 0.0684043, 0.4079426, 0.1162414, 0.8974794, 9.896161],                 range: [0.21, 3.71],    src: 'Malitson (1965)' },
+        bk7:   { name: 'N-BK7',             f: 2, C: [0, 1.03961212, 0.00600069867, 0.231792344, 0.0200179144, 1.01046945, 103.560653],     range: [0.30, 2.5],     src: 'SCHOTT catalog (2017)' },
+        sapph: { name: 'sapphire (o-ray)',  f: 1, C: [0, 1.023798, 0.06144821, 1.058264, 0.1106997, 5.280792, 17.92656],                   range: [0.2652, 5.577], src: 'Malitson (1962)' },
+        caf2:  { name: 'CaF₂',              f: 1, C: [0.33973, 0.69913, 0.09374, 0.11994, 21.18, 4.35181, 38.46],                          range: [0.15, 12],      src: 'Li (1980)' },
+        mgf2:  { name: 'MgF₂ (o-ray)',      f: 1, C: [0, 0.48755108, 0.04338408, 0.39875031, 0.09461442, 2.3120353, 23.793604],            range: [0.20, 7.0],     src: 'Dodge (1984)' },
+        yag:   { name: 'YAG',               f: 2, C: [0, 2.28200, 0.01185, 3.27644, 282.734],                                              range: [0.4, 5.0],      src: 'Zelmon et al. (1998)' },
+        kdp:   { name: 'KDP (o-ray)',       f: 4, C: [2.259276, 13.00522, 2, 400, 1, 0.01008956, 0, 0.0129426, 1],                         range: [0.2138, 1.529], src: 'Zernike (1964)' },
+        bbo:   { name: 'BBO (o-ray)',       f: 2, C: [0, 0.90291, 0.003926, 0.83155, 0.018786, 0.76536, 60.01],                            range: [0.188, 5.2],    src: 'Tamošauskas et al. (2018)' },
+        air:   { name: 'air (15 °C, 1 atm)', f: 6, C: [0, 0.05792105, 238.0185, 0.00167917, 57.362],                                        range: [0.30, 1.69],    src: 'Ciddor (1996)' }
+    };
+    function index(m, l) {
+        var C = m.C, s, i;
+        if (m.f === 1 || m.f === 2) { s = 1 + C[0]; for (i = 1; i < C.length; i += 2) s += C[i] * l * l / (l * l - (m.f === 1 ? C[i + 1] * C[i + 1] : C[i + 1])); return Math.sqrt(s); }
+        if (m.f === 4) { s = C[0] + C[1] * Math.pow(l, C[2]) / (l * l - Math.pow(C[3], C[4])) + C[5] * Math.pow(l, C[6]) / (l * l - Math.pow(C[7], C[8])); for (i = 9; i < C.length; i += 2) s += C[i] * Math.pow(l, C[i + 1]); return Math.sqrt(s); }
+        s = 1 + C[0]; for (i = 1; i < C.length; i += 2) s += C[i] / (C[i + 1] - 1 / (l * l)); return s;   // f = 6
+    }
+    // group velocity dispersion λ³/(2πc²)·d²n/dλ² in fs²/mm, with λ in µm: analytic for the Sellmeier forms, a 5-point stencil otherwise
+    function gvd(m, l) {
+        var d2;
+        if (m.f === 1 || m.f === 2) {
+            var C = m.C, s = 1 + C[0], d1 = 0, dd = 0;
+            for (var i = 1; i < C.length; i += 2) {
+                var B = C[i], D = m.f === 1 ? C[i + 1] * C[i + 1] : C[i + 1], q = l * l - D;
+                s += B * l * l / q; d1 += -2 * B * D * l / (q * q); dd += 2 * B * D * (3 * l * l + D) / (q * q * q);
+            }
+            var n = Math.sqrt(s), np = d1 / (2 * n);
+            d2 = (dd - 2 * np * np) / (2 * n);
+        } else {
+            var hh = l * 2e-3;
+            d2 = (-index(m, l + 2 * hh) + 16 * index(m, l + hh) - 30 * index(m, l) + 16 * index(m, l - hh) - index(m, l - 2 * hh)) / (12 * hh * hh);
+        }
+        return Math.pow(l * 1e-6, 3) / (2 * Math.PI * c * c) * (d2 * 1e12) * 1e27;   // s²/m → fs²/mm
+    }
+    // a transform-limited Gaussian of FWHM tau (fs) after a group delay dispersion gdd (fs²)
+    function broaden(tau, gdd) { var x = 4 * Math.LN2 * gdd / (tau * tau); return tau * Math.sqrt(1 + x * x); }
+    // bandwidth entered in a unit → Δν in Hz, at center wavelength lam (m)
+    function toDnu(x, unit, lam) {
+        switch (unit) {
+            case 'nm': return c * x * 1e-9 / (lam * lam);
+            case 'pm': return c * x * 1e-12 / (lam * lam);
+            case 'THz': return x * 1e12;
+            case 'GHz': return x * 1e9;
+            case 'MHz': return x * 1e6;
+            case 'cm-1': return x * 100 * c;
+            case 'meV': return x * 1e-3 * e / h;
+        }
+        return NaN;
+    }
+    return { c: c, h: h, e: e, SHAPES: SHAPES, MATERIALS: MATERIALS, index: index, gvd: gvd, broaden: broaden, toDnu: toDnu };
+})();
+/* PB-END */
+
+document.addEventListener('DOMContentLoaded', () => {
+    const { fmt } = Calc;
+    const c = PB.c;
+    const regime = document.getElementById('regime');
+    const knownSel = document.getElementById('known');
+    const mapBox = document.getElementById('map-plot'), mapNote = document.getElementById('map-note');
+    const dispPanel = document.getElementById('disp-panel'), dispBox = document.getElementById('disp-plot'), dispNote = document.getElementById('disp-note');
+    const note = id => document.getElementById(id);
+    const nb = s => s.replace(/ /g, String.fromCharCode(160));
+    const showFields = mode => document.querySelectorAll('[data-show]').forEach(f => { f.hidden = !f.dataset.show.split(' ').includes(mode); });
+    knownSel.addEventListener('change', () => showFields(knownSel.value));
+    const linked = new URLSearchParams(location.hash.slice(1)).get('known');
+    showFields(Array.from(knownSel.options).some(o => o.value === linked) ? linked : knownSel.value);
+
+    // formatting helpers: a wavelength width in pm or larger; all four width units together
+    const wlw = x => x > 0 && x < 1e-15 ? fmt.sci(x / 1e-12, 4) + ' pm' : fmt.si(x, 'm', 4, { min: -12 });
+    const cm1 = dnu => dnu / (c * 100);
+    const fourWidths = dnu => nb(fmt.si(dnu, 'Hz', 4)) + ' · ' + nb(fmt.num(cm1(dnu), 4) + ' cm⁻¹') + ' · ' + nb(fmt.si(PB.h * dnu / PB.e, 'eV', 4));
+    const cmText = dnu => { const w = cm1(dnu); return w >= 1 ? fmt.num(w, 3) + ' cm⁻¹' : w >= 1e-3 ? fmt.num(w, 2) + ' cm⁻¹' : fmt.sci(w, 2) + ' cm⁻¹'; };
+
+    // rotational line spacings 2B (cm⁻¹) from Huber & Herzberg (1979): H₂ B = 60.85, HCl 10.59, N₂ 1.998, NO 1.672, I₂ 0.0374
+    const LINES = [['H₂', 121.7], ['HCl', 21.2], ['N₂', 4.0], ['NO', 3.3], ['I₂', 0.075]];
+    const list = a => a.map(l => l[0]).join(', ').replace(/, ([^,]*)$/, ' and $1');
+    function reading(dnu, tau) {
+        const w = cm1(dnu), ghz = dnu / 1e9;
+        const head = '<strong>' + cmText(dnu) + ' (' + fmt.si(dnu, 'Hz', 3) + ')</strong>: ';
+        if (w < 0.01) return head + 'narrower than the Doppler width of a gas-phase line at room temperature (0.03–0.1 cm⁻¹, 1–3 GHz, in the visible and UV), so the sample rather than the laser limits the resolution. Hyperfine and isotope structure of a few hundred MHz can be resolved with Doppler-free methods. Only a nanosecond laser running on a single longitudinal mode gets here.';
+        const res = LINES.filter(l => l[1] > w), un = LINES.filter(l => l[1] <= w);
+        if (w < 0.3) return head + 'comparable with room-temperature Doppler widths (0.03–0.1 cm⁻¹ in the visible and UV). It resolves the rotational lines of ' + list(res) + (un.length ? ', but not the ' + fmt.num(un[0][1], 2) + ' cm⁻¹ spacing of ' + list(un) : ', whose spacings run from ' + fmt.num(res[res.length - 1][1], 2) + ' to ' + fmt.num(res[0][1], 3) + ' cm⁻¹') + '. This is the regime of REMPI and LIF with nanosecond dye lasers and OPOs.';
+        if (w < 100) return head + 'too broad to resolve the rotational structure of ' + list(un) + ' (lines ' + fmt.num(un[un.length - 1][1], 2) + (un.length > 1 ? '–' + fmt.num(un[0][1], 3) : '') + ' cm⁻¹ apart)' + (res.length ? ', though ' + list(res) + ' (' + fmt.num(res[res.length - 1][1], 3) + (res.length > 1 ? '–' + fmt.num(res[0][1], 3) : '') + ' cm⁻¹) would still show it' : '') + '. Vibrational bands, hundreds of cm⁻¹ apart, are resolved. This is the picosecond middle ground: vibrationally resolved, rotationally blind, with time resolution to match.';
+        if (w < 1000) return head + 'rotational structure is gone, and low-frequency vibrations (bends, torsions, and lattice modes below ' + fmt.num(w, 2) + ' cm⁻¹) fall inside the pulse spectrum, so several vibrational levels are excited at once as a wavepacket. Stretching vibrations at 1000–4000 cm⁻¹ are still separated. Femtosecond time resolution is bought with this spectral width.';
+        return head + 'wider than 1000 cm⁻¹, so most vibrational structure lies inside the pulse. This is the few-cycle regime: the spectrum is a large fraction of the carrier frequency, and widths in nm are only approximate.';
+    }
+
+    // ---- chart 1: duration vs. transform-limited bandwidth, with the user's pulse and sourced laser systems
+    // Every marker has its duration and wavelength from the cited source. Where the source also gives the linewidth (dwn in cm⁻¹ or
+    // dlam in m) the marker sits at that bandwidth; otherwise (tl: true) it sits on the Gaussian limit, and the legend says so.
+    const MARKERS = [
+        { label: 'Seeded Q-switched Nd:YAG (10 ns, <0.003 cm⁻¹)', tau: 10e-9, lam: 1064e-9, dwn: 0.003, color: 'var(--c2)', src: 'Spectra-Physics Quanta-Ray Pro datasheet: 8–12 ns at 1064 nm, linewidth below 0.003 cm⁻¹ injection seeded (below 1 cm⁻¹ unseeded)' },
+        { label: 'Pulsed dye laser, dual grating (5 ns, 0.06 cm⁻¹)', tau: 5e-9, lam: 560e-9, dwn: 0.06, color: 'var(--c3)', src: 'Quantel TDL90 datasheet: 4–5 ns with a Brilliant pump, 0.05–0.08 cm⁻¹ at 560 nm; Sirah Cobra-Stretch: 0.03–0.1 cm⁻¹ by grating option' },
+        { label: 'KrF excimer, free-running (20 ns, ~0.3–1 nm)', tau: 20e-9, lam: 248e-9, dlam: 0.5e-9, color: 'var(--c5)', src: 'Coherent COMPex datasheet: 20 ns; linewidth of the order of 1 nm without line narrowing (Paschotta, “Excimer lasers”); plotted at 0.5 nm' },
+        { label: 'Yb industrial ultrafast laser (290 fs, limit assumed)', tau: 290e-15, lam: 1030e-9, tl: true, color: 'var(--c4)', src: 'Light Conversion PHAROS datasheet: below 290 fs at 1030 nm (other models below 100 fs); the spectrum is not specified, so the marker sits on the Gaussian limit' },
+        { label: 'Ti:sapphire oscillator (11 fs, 62 nm)', tau: 10.95e-15, lam: 780e-9, dlam: 62e-9, color: 'var(--c6)', src: 'Asaki et al., Opt. Lett. 18, 977 (1993): 10.95 fs from a self-mode-locked Ti:sapphire laser, 62 nm bandwidth centered at 780 nm' },
+        { label: 'Petawatt Ti:sapphire CPA (19.4 fs, 84 nm)', tau: 19.4e-15, lam: 800e-9, dlam: 84e-9, color: 'var(--c1)', src: 'Sung et al., Opt. Lett. 42, 2058 (2017): 4.2 PW at 0.1 Hz, 83 J in 19.4 fs from an 84 nm FWHM amplified spectrum (wavelength taken as the nominal 800 nm of Ti:sapphire)' },
+        { label: 'Hollow-fiber compressed (5 fs, limit assumed)', tau: 5e-15, lam: 800e-9, tl: true, color: 'var(--text)', src: 'Nisoli et al., Opt. Lett. 22, 522 (1997): 20 fs pulses compressed below 5 fs in a gas-filled hollow fiber; plotted on the Gaussian limit' }
+    ];
+    MARKERS.forEach(m => { m.dnu = m.tl ? PB.SHAPES.gauss.K / m.tau : m.dwn ? m.dwn * 100 * c : c * m.dlam / (m.lam * m.lam); });
+    let state = null;           // set by compute(), read by the chart functions; null while an input is invalid
+    const yUnit = () => document.querySelector('input[name="yunit"]:checked').value;
+
+    function drawMap() {
+        if (!state) return;
+        const { lam, tau, dnu, shapeKey } = state;
+        const yu = yUnit();
+        const conv = d => yu === 'nm' ? lam * lam * d / c * 1e9 : yu === 'cm' ? cm1(d) : d / 1e12;
+        const yLabel = yu === 'nm' ? 'Bandwidth Δλ at λ₀ = ' + fmt.si(lam, 'm', 4) + ' (nm, FWHM)' : yu === 'cm' ? 'Bandwidth Δν̃ (cm⁻¹, FWHM)' : 'Bandwidth Δν (THz, FWHM)';
+        const xs = Calc.math.logspace(1e-15, 1e-7, 121);
+        const clip = d => (yu === 'nm' && lam * lam * d / c > 0.5 * lam) ? NaN : conv(d);   // the nm conversion is meaningless above half the carrier
+        const series = [
+            { type: 'line', x: xs, y: xs.map(t => clip(PB.SHAPES.gauss.K / t)), label: 'Gaussian limit (K = 0.441)', color: 'var(--text-2)', width: 2.2 },
+            { type: 'line', x: xs, y: xs.map(t => clip(PB.SHAPES.sech2.K / t)), label: 'sech² limit (K = 0.315)', color: 'var(--text-2)', dash: true, width: 1.5 }
+        ];
+        MARKERS.forEach(m => series.push({ type: 'points', x: [m.tau], y: [clip(m.dnu)], label: m.label, color: m.color, r: 4.5 }));
+        series.push({ type: 'points', x: [tau], y: [clip(dnu)], label: 'Your pulse', color: 'var(--accent)', r: 6.5 });
+        Plot.draw(mapBox, {
+            height: 340,
+            x: { label: 'Pulse duration (FWHM)', log: true, min: 1e-15, max: 1e-7, format: v => (mapBox.clientWidth < 600 && Math.round(Math.log10(v)) % 2 === 0) ? '' : fmt.si(v, 's', 2) },   // on a phone label every other decade
+            y: { label: yLabel, log: true },
+            series,
+            includeLines: false,
+            legend: true,
+            ariaLabel: 'Log-log chart of pulse duration from 1 femtosecond to 100 nanoseconds against transform-limited bandwidth, with the Gaussian and sech² limits as lines, seven marked laser systems, and your pulse at ' + fmt.si(tau, 's', 3) + ' and ' + fmt.si(dnu, 'Hz', 3) + '.',
+            hover: { format: (x, hits) => {
+                // plot.js reports the nearest point of every series; only a marker within 0.15 decade of the pointer counts as hit
+                let near = null;
+                hits.filter(hh => hh.series.type === 'points').forEach(p => { const d = Math.abs(Math.log10(p.x / x)); if (d < 0.15 && (!near || d < near.d)) near = { p, d }; });
+                if (near && near.p.series.label === 'Your pulse') return 'Your pulse: ' + fmt.si(tau, 's', 3) + ' · ' + fmt.si(dnu, 'Hz', 3) + ' · ' + cmText(dnu) + ' · ' + wlw(lam * lam * dnu / c) + ' at ' + fmt.si(lam, 'm', 3);
+                const m = near && MARKERS.find(mm => mm.label === near.p.series.label);
+                if (m) return m.label + ': ' + fmt.si(m.tau, 's', 3) + ' at ' + fmt.si(m.lam, 'm', 3) + ' · ' + fmt.si(m.dnu, 'Hz', 3) + ' · ' + cmText(m.dnu) + ' · ' + wlw(m.lam * m.lam * m.dnu / c) + ' · Δν·τ = ' + fmt.num(m.dnu * m.tau, 3) + (m.tl ? ' (placed on the Gaussian limit)' : ', ' + fmt.num(m.dnu * m.tau / PB.SHAPES.gauss.K, 2) + '× the Gaussian K') + '. ' + m.src;
+                const g = PB.SHAPES.gauss.K / x, s = PB.SHAPES.sech2.K / x;
+                return 'τ = ' + fmt.si(x, 's', 2) + ' · Gaussian limit ' + fmt.si(g, 'Hz', 3) + ' (' + cmText(g) + ', ' + wlw(lam * lam * g / c) + ' at λ₀) · sech² limit ' + fmt.si(s, 'Hz', 3);
+            } }
+        });
+        const own = MARKERS.filter(m => !m.tl).length, tl = MARKERS.filter(m => m.tl).length;
+        const below = MARKERS.filter(m => !m.tl && m.dnu * m.tau < PB.SHAPES.gauss.K);
+        mapNote.textContent = 'The lines are the transform limits Δν = K/τ for the two common shapes. ' + own + ' markers sit at the linewidth their manufacturer or paper specifies; the ' + tl + ' femtosecond markers give only a duration, so they sit on the Gaussian limit. ' +
+            (below.length ? 'A marker below the Gaussian line (' + below.map(m => m.label.replace(/ \(.*$/, '') + ', Δν·τ = ' + fmt.num(m.dnu * m.tau, 2)).join('; ') + ') has a product between the sech² and Gaussian values, as a sech²-like oscillator pulse can. ' : '') +
+            (yu === 'nm' ? 'In nm every bandwidth is expressed at your center wavelength (λ₀ = ' + fmt.si(lam, 'm', 4) + '), so each marker keeps its distance from the limit; hover for its own wavelength and linewidth.' : 'In ' + (yu === 'cm' ? 'cm⁻¹' : 'THz') + ' the bandwidth is independent of wavelength, so markers at 248 nm and 1064 nm share one axis.') +
+            ' Your pulse is drawn at its ' + (state.mode === 'both' ? 'measured duration and bandwidth' : state.mode === 'tau' ? 'duration and the ' + PB.SHAPES[shapeKey].name + ' limit' : 'bandwidth and the ' + PB.SHAPES[shapeKey].name + ' limit') + '.';
+    }
+    document.querySelectorAll('input[name="yunit"]').forEach(r => r.addEventListener('change', drawMap));
+
+    // ---- chart 2: duration after the material vs. thickness
+    function drawDisp() {
+        if (!state || !state.disp) { dispPanel.hidden = true; return; }
+        dispPanel.hidden = false;
+        const { tauIn, G, Lmm, mat } = state.disp;           // fs, fs²/mm, mm
+        const tFs = tauIn * 1e15;
+        const Ldbl = Math.sqrt(3) * tFs * tFs / (4 * Math.LN2 * Math.abs(G));
+        const Lmax = Math.min(Math.max(2 * Lmm, 1.5 * Ldbl), 50 * Math.max(Lmm, 1e-9));
+        const xs = Calc.math.linspace(0, Lmax, 201);
+        const unit = tFs >= 1e6 ? { f: 1e6, s: 'ns' } : tFs >= 1e3 ? { f: 1e3, s: 'ps' } : { f: 1, s: 'fs' };
+        const lu = Lmax >= 1000 ? { f: 1000, s: 'm' } : Lmax < 1 ? { f: 1e-3, s: 'µm' } : { f: 1, s: 'mm' };
+        const ys = xs.map(L => PB.broaden(tFs, G * L) / unit.f);
+        Plot.draw(dispBox, {
+            height: 260,
+            x: { label: 'Thickness of ' + mat.name + ' (' + lu.s + ')', min: 0, max: Lmax / lu.f },
+            y: { label: 'Duration after the material (' + unit.s + ')', min: 0 },
+            series: [{ type: 'line', x: xs.map(L => L / lu.f), y: ys, label: 'τ_out', color: 'var(--c1)', width: 2.2 }],
+            hlines: [{ y: tFs / unit.f, label: 'input ' + fmt.num(tFs / unit.f, 3) + ' ' + unit.s, color: 'var(--muted)' }],
+            vlines: [{ x: Lmm / lu.f, label: 'your thickness', color: 'var(--c2)' }],
+            includeLines: true,
+            ariaLabel: 'Pulse duration after ' + mat.name + ' versus thickness from 0 to ' + fmt.num(Lmax / lu.f, 3) + ' ' + lu.s + ', rising from the input duration of ' + fmt.si(tauIn, 's', 3) + ' and passing ' + fmt.si(state.disp.tauOut, 's', 3) + ' at the entered thickness.',
+            hover: { format: (x, hits) => 'L = ' + fmt.num(x, 3) + ' ' + lu.s + ' · GDD ' + fmt.num(G * x * lu.f, 4) + ' fs² · τ_out ' + fmt.num(hits.length ? hits[0].y : PB.broaden(tFs, G * x * lu.f) / unit.f, 4) + ' ' + unit.s }
+        });
+        dispNote.textContent = 'A transform-limited Gaussian pulse of ' + fmt.si(tauIn, 's', 3) + ' after GVD = ' + fmt.num(G, 4) + ' fs²/mm (' + mat.name + ' at ' + fmt.si(state.lam, 'm', 4) + ', ' + mat.src + '). The curve is τ√(1 + (4 ln2·GVD·L/τ²)²): flat while the GDD is small against τ², then linear in L. ' +
+            (Ldbl < 1e6 ? 'The pulse doubles after ' + fmt.si(Ldbl * 1e-3, 'm', 3) + '.' : 'At this duration the pulse would need more than 1000 km of material to double; dispersion is negligible.');
+    }
+
+    function need(x, name, label) {
+        if (!isFinite(x)) throw Calc.fail('Enter a value for ' + label + '.', name);
+        if (!(x > 0)) throw Calc.fail(label.charAt(0).toUpperCase() + label.slice(1) + ' must be greater than zero.', name);
+        return x;
+    }
+    const setBadge = (text, cls) => { regime.textContent = text; regime.className = 'badge' + (cls ? ' ' + cls : ''); regime.hidden = !text; };
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            showFields(v.known);
+            const lam = v.wl, nu0 = c / lam, mode = v.known;
+            const shape = PB.SHAPES[v.shape], K = shape.K;
+            let tau = null, dnu = null, tauTL, dnuTL, tbp = null, ratio = null;
+            if (mode !== 'bw') tau = need(v.tau, 'tau', 'pulse duration');
+            if (mode !== 'tau') {
+                const b = need(v.bw, 'bw', 'spectral bandwidth');
+                dnu = PB.toDnu(b, v.bwu, lam);
+                if (!(dnu > 0 && isFinite(dnu))) throw Calc.fail('The spectral bandwidth is out of range. Check the value and unit.', 'bw');
+            }
+            if (mode === 'tau') { dnuTL = K / tau; dnu = dnuTL; tauTL = tau; }
+            else if (mode === 'bw') { tauTL = K / dnu; tau = tauTL; dnuTL = dnu; }
+            else { tbp = dnu * tau; ratio = tbp / K; tauTL = K / dnu; dnuTL = K / tau; }
+            if (![tau, dnu, tauTL].every(x => isFinite(x) && x > 0)) throw Calc.fail('A result is out of range. Check the input values and units.');
+            const dlam = lam * lam * dnu / c, frac = dlam / lam;
+            const cycles = tau / (lam / c), period = lam / c, lcoh = c * tau;
+            if (dnu >= nu0) throw Calc.fail('The bandwidth (' + fmt.si(dnu, 'Hz', 3) + ') is larger than the optical frequency itself (' + fmt.si(nu0, 'Hz', 3) + ' at ' + fmt.si(lam, 'm', 3) + '): no pulse at this wavelength can be that short or that broad. Check the units.', mode === 'bw' ? 'bw' : 'tau');
+
+            // dispersion
+            let disp = null;
+            if (v.mat !== 'none') {
+                const mat = PB.MATERIALS[v.mat], lum = lam * 1e6;
+                const L = need(v.L, 'L', 'material thickness'), Lmm = L * 1e3;
+                const G = PB.gvd(mat, lum), n = PB.index(mat, lum);
+                if (!isFinite(G) || !isFinite(n)) throw Calc.fail('The Sellmeier equation for ' + mat.name + ' cannot be evaluated at ' + fmt.si(lam, 'm', 3) + ' (it is fitted for ' + mat.range[0] + '–' + mat.range[1] + ' µm). Choose another material or wavelength, or set the material to none.', 'wl');
+                const inRange = lum >= mat.range[0] && lum <= mat.range[1];
+                const tauIn = mode === 'tau' ? tau : tauTL;                    // the pulse that enters the material: the transform-limited one unless only τ is known
+                const tFs = tauIn * 1e15, gdd = G * Lmm, tOut = PB.broaden(tFs, gdd) * 1e-15;
+                const Ldbl = Math.sqrt(3) * tFs * tFs / (4 * Math.LN2 * Math.abs(G)) * 1e-3;   // m
+                disp = { mat, G, n, Lmm, gdd, tauIn, tauOut: tOut, Ldbl, inRange };
+            }
+            state = { lam, tau, dnu, tauTL, dnuTL, mode, shapeKey: v.shape, disp };
+
+            // badge and notes
+            if (cycles < 1) setBadge('Less than one optical cycle: not a physical pulse at this wavelength', 'badge-bad');
+            else if (mode === 'both' && ratio < 0.98) setBadge('Below the Fourier limit: impossible, check the shape, units, or measurement', 'badge-bad');
+            else if (mode === 'both') setBadge(ratio < 1.1 ? 'Transform-limited (within 10 %)' : 'Δν·τ = ' + fmt.num(ratio, 3) + ' × the ' + shape.name + ' limit', ratio < 1.1 ? 'badge-ok' : ratio < 3 ? 'badge-warn' : 'badge-bad');
+            else setBadge('Transform limit · ' + shape.name + ' · K = ' + fmt.num(K, 4), 'badge-ok');
+            const broadNote = frac > 0.2 ? ' The spectrum is ' + fmt.pct(frac, 2) + ' of the center wavelength, so the nm value is approximate; use the frequency widths.' : '';
+            note('bw-note').textContent = mode === 'tau'
+                ? 'Transform-limited: the narrowest spectrum a ' + fmt.si(tau, 's', 3) + ' ' + shape.name + ' pulse can have. A real pulse of this duration has at least this bandwidth, usually more.' + broadNote
+                : 'As entered.' + broadNote;
+            note('tau-note').textContent = mode === 'bw'
+                ? 'Transform-limited: the shortest ' + shape.name + ' pulse this spectrum can produce. Chirp or a non-flat spectral phase makes the real pulse longer.'
+                : mode === 'tau' ? 'As entered.' : 'As entered; the measured spectrum could support ' + fmt.si(tauTL, 's', 3) + '.';
+            if (disp) {
+                note('gvd-note').innerHTML = 'n = ' + fmt.num(disp.n, 5) + ' at ' + fmt.si(lam, 'm', 4) + ', from the ' + disp.mat.name + ' Sellmeier equation of ' + disp.mat.src + ', fitted for ' + disp.mat.range[0] + '–' + disp.mat.range[1] + ' µm' +
+                    (disp.inRange ? '.' : '. <strong>Your wavelength is outside that range, so this is an extrapolation.</strong>') + (disp.G < 0 ? ' The GVD is anomalous (negative) here: blue travels faster than red, and the pulse is stretched with the opposite chirp.' : '');
+                note('tout-note').textContent = 'For a transform-limited Gaussian pulse of ' + fmt.si(disp.tauIn, 's', 3) + ' going in' + (mode === 'both' ? ' (the limit of the measured spectrum; a chirped input broadens more or less than this, depending on the sign of its chirp)' : '') + '. The spectrum is unchanged; the extra duration is chirp.';
+            }
+
+            const chirpC = mode === 'both' && ratio > 1 ? Math.sqrt(ratio * ratio - 1) : 0;
+            const gddEq = chirpC * (tauTL * 1e15) ** 2 / (4 * Math.LN2);
+            return {
+                K: fmt.num(K, 4) + ' (' + shape.name + ')',
+                dlam: wlw(dlam),
+                dnu: fourWidths(dnu),
+                tau: fmt.si(tau, 's', 4),
+                tautl: mode === 'both' ? nb(fmt.si(tauTL, 's', 4)) + ' (' + fmt.pct(tauTL / tau, 3) + ' of the measured duration)' : null,
+                tbp: mode === 'both' ? fmt.num(tbp, 4) + ' (' + fmt.num(ratio, 3) + ' × K)' : null,
+                chirp: mode === 'both' ? (ratio < 0.98 ? 'not defined below the limit' : ratio < 1.1 ? 'C ≈ 0: no measurable chirp' : 'C = ' + fmt.num(chirpC, 3) + ', equivalent GDD ±' + fmt.num(gddEq, 4) + ' fs²' + (disp ? ' (' + fmt.si(gddEq / Math.abs(disp.G) * 1e-3, 'm', 3) + ' of ' + disp.mat.name + ')' : '')) : null,
+                cycles: fmt.num(cycles, 4) + ' (period ' + fmt.si(period, 's', 3) + ')',
+                lcoh: fmt.si(lcoh, 'm', 4),
+                resol: { html: reading(dnu, tau) },
+                gvd: disp ? fmt.num(disp.G, 4) + ' fs²/mm' : null,
+                gdd: disp ? fmt.num(disp.gdd, 4) + ' fs²' : null,
+                tout: disp ? nb(fmt.si(disp.tauOut, 's', 4)) + ' (' + (disp.tauOut / disp.tauIn < 1.0005 ? 'unchanged to 0.05 %' : '+' + fmt.pct(disp.tauOut / disp.tauIn - 1, 3)) + ')' : null,
+                comp: disp ? (Math.abs(disp.gdd) < 1 ? 'none worth adding' : fmt.num(-disp.gdd, 4) + ' fs²') : null,
+                ldbl: disp ? (disp.Ldbl < 1e6 ? fmt.si(disp.Ldbl, 'm', 3) : 'more than 1000 km: negligible') : null
+            };
+        },
+        after() { drawMap(); drawDisp(); },
+        onError() {
+            state = null;
+            setBadge('', '');
+            mapNote.textContent = ''; dispNote.textContent = '';
+            [mapBox, dispBox].forEach(b => { clearTimeout(b._plotT); b._plot = null; b.innerHTML = ''; });
+            dispPanel.hidden = true;
+        }
+    });
+});
+</script>
+</body>
+</html>

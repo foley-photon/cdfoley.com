@@ -3,7 +3,7 @@
    Phone viewer mode (spec §4.11, below 760 px): compact app bar (Presets,
    Run, menu), canvas at 55vh with one-finger pan, pinch zoom and long-press
    probe, and a bottom sheet with Voltages (electrode and parameter
-   sliders), Beam (count, energy, species), Results (Summary, TOF, Planes)
+   sliders), Beam (count, energy, preset species), Results (Summary, TOF, Planes)
    and More (Presets, Share, Help, pinned runs, Benchmarks). Drawing tools are hidden ("Geometry
    editing needs a larger screen"); parameters stay editable.
    ========================================================================== */
@@ -11,7 +11,7 @@ import { h, icon, clear } from './dom.js';
 import { voltageControl } from './panels/electrodes.js';
 import { mountParams } from './panels/params.js';
 import { createField, locate, storeEvalExpr } from './forms.js';
-import { SPECIES } from '../engine/particles.js';
+import { PRESET_GROUPS, presetById } from '../engine/nuclides.js';
 
 export const PHONE_QUERY = '(max-width: 759.98px)';
 const TABS = [['volt', 'Voltages'], ['beam', 'Beam'], ['results', 'Results'], ['more', 'More']];
@@ -167,12 +167,13 @@ export function createMobile(ctx, app) {
                     card.appendChild(f.el);
                     syncs.push(() => { const L = locate(store.get().project, 'source', id); if (L && L.obj.energy) f.sync(L.obj.energy.ke); });
                 } else card.appendChild(h('p', { class: 'io-sheet-note', text: 'Energy distribution: edit it on a larger screen.' }));
+                // the preset groups of the desktop picker (the nuclide builder needs a larger screen)
                 const sel = h('select', { class: 'input io-select', id: 'io-msp-' + id }, h('option', { value: '', text: (src.species || []).map((x) => x.label).join(', ') || 'Species' }),
-                    ...SPECIES.map((x) => h('option', { value: x.id, text: x.label })));
+                    ...PRESET_GROUPS.map((g) => h('optgroup', { label: g.title }, ...g.entries.map((x) => h('option', { value: 'preset:' + x.id, text: x.label })))));
                 sel.addEventListener('change', () => {
-                    const sp = SPECIES.find((x) => x.id === sel.value);
+                    const sp = sel.value.startsWith('preset:') ? presetById(sel.value.slice(7)) : null;
                     if (!sp) return;
-                    ctx.commit((d) => { const L = locate(d, 'source', id); if (L) L.obj.species = [{ label: sp.label, mass: parseFloat(sp.mass.toPrecision(10)), charge: sp.charge, fraction: 1 }]; }, { label: 'Species' });
+                    ctx.commit((d) => { const L = locate(d, 'source', id); if (L) L.obj.species = [{ label: sp.label, mass: parseFloat(sp.mass.toPrecision(12)), charge: sp.charge, fraction: 1 }]; }, { label: 'Species' });
                 });
                 card.appendChild(h('div', { class: 'field' }, h('label', { for: 'io-msp-' + id, text: 'Species' }), sel));
                 syncs.push(() => { const L = locate(store.get().project, 'source', id); if (L && sel.options[0]) sel.options[0].textContent = (L.obj.species || []).map((x) => x.label).join(', ') || 'Species'; });

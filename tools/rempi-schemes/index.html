@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>REMPI Scheme Planner (Resonance-Enhanced Multiphoton Ionization)</title>
+<meta name="description" content="Plan n+m REMPI schemes for atoms and small molecules: resonance wavelength in vacuum and air from NIST ASD levels, ionization margin, photoelectron energy.">
+<link rel="canonical" href="https://cdfoley.com/tools/rempi-schemes/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Casey D. Foley, PhD">
+<meta property="og:title" content="REMPI Scheme Planner">
+<meta property="og:description" content="Plan n+m REMPI schemes for atoms and small molecules: resonance wavelength in vacuum and air from NIST ASD levels, ionization margin, photoelectron energy.">
+<meta property="og:url" content="https://cdfoley.com/tools/rempi-schemes/">
+<meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-rempi-schemes.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="REMPI Scheme Planner. Plan n+m REMPI schemes for atoms and small molecules: resonance wavelength in vacuum and air from NIST ASD levels, ionization margin, photoelectron energy.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<script src="/assets/js/site.js"></script>
+<script defer src="/assets/js/calc.js"></script>
+<script defer src="rempi-data.js"></script>
+<style>
+    .rp-group { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .rp-modes { margin-bottom: 1rem; }
+    .rp-modes .seg, .rp-seg .seg { flex-wrap: wrap; }
+    .rp-seg { margin-bottom: 0.95rem; }
+    .rp-seg .field-label { margin-bottom: 0.4rem; }
+    .rp-note { font-size: 0.86rem; color: var(--text-2); margin: 0.5rem 0 0; line-height: 1.5; }
+    .rp-note a { color: inherit; }
+    .rp-list { margin: 0.2rem 0 0; padding-left: 1.1rem; font-size: 0.9rem; line-height: 1.55; }
+    .rp-list li { margin: 0.15rem 0; }
+    .rp-list .how { color: var(--text-2); }
+    .result-value .rp-fs { display: grid; grid-template-columns: auto auto; gap: 0.15rem 0.9rem; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+    .result-value .rp-fs .dim { color: var(--text-2); }
+    .result-value .rp-fs .off { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+    .rp-fig { width: 100%; max-width: 420px; height: auto; display: block; margin: 0 auto; font-family: var(--font); }
+    .rp-fig .lvl { stroke: var(--text); stroke-width: 1.8; }
+    .rp-fig .lvl.g { stroke: var(--text-2); stroke-width: 1.4; }
+    .rp-fig .lim { stroke: var(--text); stroke-width: 1.2; stroke-dasharray: 4 3; }
+    .rp-fig .cont { fill: url(#rp-hatch); stroke: none; }
+    .rp-fig .hatch { stroke: var(--text-2); stroke-width: 0.8; opacity: 0.55; }
+    .rp-fig .ph1 { stroke: var(--c1, var(--accent)); stroke-width: 2.2; fill: none; }
+    .rp-fig .ph1h { fill: var(--c1, var(--accent)); }
+    .rp-fig .ph2 { stroke: var(--c3, var(--warn)); stroke-width: 2.2; stroke-dasharray: 5 3; fill: none; }
+    .rp-fig .ph2h { fill: var(--c3, var(--warn)); }
+    .rp-fig .exc { fill: var(--c2, var(--accent-soft)); opacity: 0.55; }
+    .rp-fig .excl { stroke: var(--c2, var(--accent)); stroke-width: 1.5; }
+    .rp-fig .axis { stroke: var(--border-strong); stroke-width: 1; }
+    .rp-fig .tick { stroke: var(--border-strong); stroke-width: 1; }
+    .rp-fig .lab { fill: var(--text); font-size: 10.5px; font-weight: 600; }
+    .rp-fig .sub { fill: var(--text-2); font-size: 9.5px; }
+    .rp-fig .ax { fill: var(--muted); font-size: 9px; }
+    @media (max-width: 560px) { .rp-fig .lab { font-size: 12px; } .rp-fig .sub { font-size: 11px; } .rp-fig .ax { font-size: 10.5px; } }
+    .rp-table-wrap { overflow-x: auto; }
+    .rp-table-wrap table { min-width: 640px; }
+    .prose td.num, .prose th.num { white-space: nowrap; }
+    .rp-ref { font-size: 0.82rem; color: var(--text-2); }
+    .prose .refs a { overflow-wrap: anywhere; }
+</style>
+<script type="application/ld+json" id="ld-page">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebApplication",
+   "name": "REMPI Scheme Planner",
+   "url": "https://cdfoley.com/tools/rempi-schemes/",
+   "description": "Plan n+m REMPI schemes for atoms and small molecules: resonance wavelength in vacuum and air from NIST ASD levels, ionization margin, photoelectron energy.",
+   "applicationCategory": "UtilitiesApplication",
+   "operatingSystem": "Any (web browser)",
+   "browserRequirements": "Requires JavaScript",
+   "isAccessibleForFree": true,
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "keywords": "rempi resonance enhanced multiphoton ionization resonant two-photon ionization r2pi 1+1 2+1 2+1 prime 3+1 two-color scheme planner resonance wavelength vacuum air wavelength peck reeder ciddor ionization energy ionization limit intermediate level rydberg state two-photon selection rules parity nist asd atomic energy levels hydrogen deuterium lyman alpha 243 nm 205 nm oxygen 226 nm nitrogen 211 nm carbon sulfur chlorine bromine iodine krypton xenon argon neon helium fluorine mercury sodium potassium rubidium cesium nitric oxide no co h2 oh hydroxyl ch3 methyl radical nh3 ammonia o2 hcl h2o water photoelectron kinetic energy vmi velocity map imaging calibration time of flight mass spectrometry doppler shift doppler-free fine structure spin-orbit dye laser lambdachrome nd:yag harmonics 266 355 532 ti:sapphire opo frequency doubling mixing bbo kdp photodissociation photofragment detection",
+   "author": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   },
+   "publisher": {
+    "@type": "Person",
+    "@id": "https://cdfoley.com/#person",
+    "name": "Casey D. Foley",
+    "url": "https://cdfoley.com/"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tools",
+     "item": "https://cdfoley.com/tools/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Photon Energy & Spectroscopy",
+     "item": "https://cdfoley.com/tools/#photon"
+    },
+    {
+     "@type": "ListItem",
+     "position": 3,
+     "name": "REMPI Scheme Planner",
+     "item": "https://cdfoley.com/tools/rempi-schemes/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body data-section="tools">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="site-header"></div>
+
+<main id="main" class="wrap page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol><li><a href="/tools/">Tools</a></li><li><a href="/tools/#photon">Photon Energy &amp; Spectroscopy</a></li><li aria-current="page">REMPI Scheme Planner</li></ol>
+    </nav>
+
+    <header class="page-head">
+        <h1>REMPI Scheme Planner</h1>
+        <p class="lede">Resonance-enhanced multiphoton ionization detects an atom or molecule by tuning a laser so that <em>n</em> photons together hit one of its excited levels and <em>m</em> more photons lift it into the ionization continuum; the ion (or the photoelectron) is then counted. This planner turns level energies into a usable scheme: pick a documented scheme or build one from an <a href="https://physics.nist.gov/PhysRefData/ASD/levels_form.html" target="_blank" rel="noopener">NIST ASD</a> level, and it returns the resonance wavelength in vacuum and air, the photon energy, whether the ionizing step clears the limit and by how much, the photoelectron energy, the Doppler shift, the fine-structure companion lines, which laser gets you there, and a diagram. It is not a levels database: the level excerpts link back to ASD for the full tables.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>REMPI</dt><dd>Resonance-enhanced multiphoton ionization. Several photons are absorbed within one laser pulse; because an intermediate step lands on a real level, the rate is many orders of magnitude higher than for non-resonant multiphoton ionization, and it is species- and quantum-state-selective. R2PI (resonant two-photon ionization) is the 1+1 case.</dd>
+            <dt>n+m and n+m′ notation</dt><dd><em>n</em> photons reach the resonant level, <em>m</em> more ionize. A prime marks a second laser color for the ionizing step (two-color REMPI); without the prime every photon comes from one laser. 2+1 is the usual atomic scheme, 1+1 the usual molecular one.</dd>
+            <dt>Resonance enhancement</dt><dd>At the resonant wavelength the first step is a real transition, so the ionization probability tracks the population of the lower quantum state. Off resonance the signal collapses: scanning the laser gives a spectrum of the species.</dd>
+            <dt>Two-photon selection rules</dt><dd>Two photons from one beam connect levels of the <em>same</em> parity with ΔJ = 0, ±1, ±2 (J = 0 ↔ 1 is forbidden for two identical photons; J = 0 ↔ 0 goes only through the scalar part, so it vanishes for two photons of the same circular polarization); in LS coupling ΔS = 0. One-photon steps need a parity change and ΔJ = 0, ±1 (not 0 ↔ 0).</dd>
+            <dt>Ionization limit (IE)</dt><dd>The energy of the ground state of the ion relative to the neutral ground state, 109,678.77 cm⁻¹ = 13.598 eV for hydrogen. The last photon must carry the atom at least this high; the surplus becomes photoelectron kinetic energy.</dd>
+            <dt>Photoelectron</dt><dd>The electron freed in the last step. Its kinetic energy equals the total photon energy minus the ionization energy minus whatever internal energy the ion keeps (spin-orbit or vibrational excitation). Measured in a photoelectron spectrometer or a velocity-map imaging (VMI) apparatus, it identifies the ionization pathway.</dd>
+            <dt>Doppler-free two-photon absorption</dt><dd>If the two photons come from counter-propagating beams, the first-order Doppler shifts cancel: every atom, whatever its velocity, sees the same two-photon energy. With co-propagating photons the shift is twice that of a one-photon line.</dd>
+            <dt>Fine structure</dt><dd>Spin-orbit splitting of a term into J components. O 2p⁴ ³P has J = 2, 1, 0 at 0, 158 and 227 cm⁻¹, so one upper level is reached from three slightly different wavelengths; Cl and I have a second ground component (²P°₁/₂) hundreds to thousands of cm⁻¹ up, giving a separate line for the spin-orbit excited atom.</dd>
+        </dl></details>
+    </header>
+
+    <div class="tool-layout">
+        <form class="panel" id="calc" autocomplete="off">
+            <div class="panel-head"><h2>Inputs</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="calc-error" role="alert"></div>
+
+                <div class="rp-modes">
+                    <div class="field-label"><span>Mode</span></div>
+                    <span class="seg" role="radiogroup" aria-label="Mode">
+                        <input type="radio" id="mo-k" name="mode" value="known" checked><label for="mo-k">Known scheme</label>
+                        <input type="radio" id="mo-d" name="mode" value="design"><label for="mo-d">Design a scheme</label>
+                    </span>
+                    <p class="hint" style="margin-top:.5rem">Known scheme: documented literature schemes, each with its primary paper. Design: pick an atom and any level from the ASD excerpt (or type a level energy and ionization energy for another species) and choose the photon counts yourself.</p>
+                </div>
+
+                <div id="grp-known">
+                    <div class="field">
+                        <label for="sp">Species</label>
+                        <select id="sp" name="sp" class="input"></select>
+                    </div>
+                    <div class="field">
+                        <label for="scheme">Scheme</label>
+                        <select id="scheme" name="scheme" class="input"></select>
+                        <p class="rp-note" id="scheme-note"></p>
+                    </div>
+                </div>
+
+                <div id="grp-design" hidden>
+                    <div class="field">
+                        <label for="atom">Atom</label>
+                        <select id="atom" name="atom" class="input"></select>
+                        <p class="rp-note" id="atom-note"></p>
+                    </div>
+                    <div id="grp-levels">
+                        <div class="field">
+                            <label for="g">Starting level (ground-term component)</label>
+                            <select id="g" name="g" class="input"></select>
+                        </div>
+                        <div class="field">
+                            <label for="lvl">Resonant intermediate level</label>
+                            <select id="lvl" name="lvl" class="input"></select>
+                            <p class="hint">Energies in cm⁻¹ above the ground level; (o) marks odd parity, (e) even. Even-parity levels are the two-photon intermediates from an even ground state (H, C, N, O, S, rare gases); odd ones are reached with one or three photons. For Cl, Br, I and F the ground state is odd, so the roles swap.</p>
+                        </div>
+                    </div>
+                    <div id="grp-custom" hidden>
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="Ecust">Level energy <span class="sym">E<sub>r</sub></span></label>
+                                <div class="input-unit"><input id="Ecust" name="Ecust" value="88631.146" inputmode="decimal" data-positive data-label="level energy"><span class="unit">cm⁻¹</span></div>
+                            </div>
+                            <div class="field">
+                                <label for="IEcust">Ionization energy</label>
+                                <div class="input-unit"><input id="IEcust" name="IEcust" value="109837.02" inputmode="decimal" data-positive data-label="ionization energy"><select name="IEunit" class="input" aria-label="Ionization energy unit"><option value="cm-1">cm⁻¹</option><option value="eV">eV</option></select></div>
+                            </div>
+                        </div>
+                        <p class="hint" style="margin:-.4rem 0 .9rem">For a molecule use the band origin (T₀) of the resonant vibronic level and the adiabatic ionization energy; for an atom from another database, the level and limit in cm⁻¹. The starting level is taken as 0 (the ground state).</p>
+                    </div>
+
+                    <div class="rp-group">Photons</div>
+                    <div class="rp-seg">
+                        <div class="field-label"><span>Photons to the resonance <span class="sym">n</span></span></div>
+                        <span class="seg" role="radiogroup" aria-label="Photons to the resonance">
+                            <input type="radio" id="n1" name="n" value="1"><label for="n1">1</label>
+                            <input type="radio" id="n2" name="n" value="2" checked><label for="n2">2</label>
+                            <input type="radio" id="n3" name="n" value="3"><label for="n3">3</label>
+                        </span>
+                    </div>
+                    <div class="rp-seg">
+                        <div class="field-label"><span>Photons to ionize <span class="sym">m</span></span></div>
+                        <span class="seg" role="radiogroup" aria-label="Photons to ionize">
+                            <input type="radio" id="m1" name="m" value="1" checked><label for="m1">1</label>
+                            <input type="radio" id="m2" name="m" value="2"><label for="m2">2</label>
+                        </span>
+                    </div>
+                    <div class="rp-seg">
+                        <div class="field-label"><span>Colors</span></div>
+                        <span class="seg" role="radiogroup" aria-label="Colors">
+                            <input type="radio" id="c1" name="color" value="one" checked><label for="c1">One color (n+m)</label>
+                            <input type="radio" id="c2" name="color" value="two"><label for="c2">Two colors (n+m′)</label>
+                        </span>
+                    </div>
+                    <div id="grp-two" hidden>
+                        <div class="field">
+                            <label for="lam2">Ionizing wavelength (second color) <span class="sym">λ₂</span></label>
+                            <div class="input-unit"><input id="lam2" name="lam2" value="266.02" inputmode="decimal" data-positive data-label="second wavelength"><span class="unit">nm (vac)</span></div>
+                            <p class="hint">The <em>m</em> ionizing photons come from this laser, for example the Nd:YAG fourth harmonic at 266.0 nm or the 355 nm third harmonic.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rp-group">Options</div>
+                <div class="field">
+                    <label for="air">Air wavelength from</label>
+                    <select id="air" name="air" class="input">
+                        <option value="pr">Peck &amp; Reeder 1972 standard air (used by NIST ASD)</option>
+                        <option value="ciddor">Ciddor 1996 standard air</option>
+                    </select>
+                    <p class="hint">Dry air at 15 °C and 101.325 kPa. The two formulas differ by under 3 × 10⁻⁸ in the index between 230 and 1000 nm; Peck &amp; Reeder is defined down to 185 nm, below which no air value is shown.</p>
+                </div>
+                <div class="field">
+                    <label for="vbeam">Beam speed along the laser (for the Doppler shift) <span class="sym">v</span></label>
+                    <div class="input-unit"><input id="vbeam" name="vbeam" value="1000" inputmode="decimal" data-optional data-nonneg placeholder="optional" data-label="beam speed"><span class="unit">m/s</span></div>
+                    <p class="hint">The velocity component of the atoms or molecules along the laser beam: a thermal speed, a supersonic-beam speed (≈ 1000–2000 m/s for a seeded beam), or a photofragment recoil speed. Leave blank to skip.</p>
+                </div>
+            </div>
+        </form>
+
+        <section class="panel sticky-panel" aria-labelledby="results-h">
+            <div class="panel-head"><h2 id="results-h">Results</h2>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" id="csv-btn" title="Copy the wavelengths of every component of this scheme as CSV">Copy wavelength list (CSV)</button></div>
+            </div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="result primary"><span class="result-label">Resonance wavelength, vacuum<span class="sym">λ<sub>vac</sub></span></span><output class="result-value" data-out="lam">—</output><span class="result-note" id="lam-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Resonance wavelength, air<span class="sym">λ<sub>air</sub></span></span><output class="result-value" data-out="lamair">—</output><span class="result-note" id="air-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Photon energy<span class="sym">hν</span></span><output class="result-value" data-out="hv">—</output></div>
+                    <div class="result"><span class="result-label">Scheme</span><output class="result-value" data-out="sch">—</output><span class="result-note" id="sch-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Resonant level above the start</span><output class="result-value" data-out="eres">—</output><span class="result-note" id="eres-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Energy after the ionizing step</span><output class="result-value" data-out="after">—</output></div>
+                    <div class="result"><span class="result-label">Margin over the ionization limit</span><output class="result-value" data-out="excess">—</output><span class="result-note" id="exc-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Photoelectron kinetic energy</span><output class="result-value" data-out="ke">—</output><span class="result-note" id="ke-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Doppler shift of the resonance</span><output class="result-value" data-out="dopp">—</output><span class="result-note" id="dopp-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Selection rules</span><output class="result-value" data-out="rules">—</output></div>
+                    <div class="result"><span class="result-label">Fine-structure components</span><output class="result-value" data-out="fs">—</output><span class="result-note" id="fs-note" hidden></span></div>
+                    <div class="result"><span class="result-label">Literature value</span><output class="result-value" data-out="lit">—</output></div>
+                    <div class="result"><span class="result-label">Which laser gets there</span><output class="result-value" data-out="src">—</output><span class="result-note">Ranges from the Lambdachrome dye tables (efficiency above 10 % of peak), Nd:YAG harmonics of 1064.1 nm, Ti:sapphire 660–986 nm (Moulton 1986) with its 2nd–4th harmonics, and a 355 nm pumped BBO OPO; doubling in KDP/BBO works down to about 207 nm, mixing to 197 nm. Sources in the references.</span></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="fig-h">
+        <div class="panel-head"><h2 id="fig-h">Energy-level diagram</h2></div>
+        <div class="panel-body">
+            <svg class="rp-fig" id="diag" viewBox="0 0 400 330" role="img" aria-label="REMPI energy-level diagram"><title id="diag-t">REMPI energy-level diagram</title></svg>
+            <p class="hint" id="diag-note" style="margin-top:.6rem"></p>
+        </div>
+    </section>
+
+    <article class="prose" style="margin-top:3rem">
+        <h2>How it is calculated</h2>
+        <p>Level energies \(E\) are term values in cm⁻¹ above the ground level, exactly as NIST ASD lists them. A scheme starts from a ground-term component \(E_g\) (0 for the lowest), reaches the resonant level \(E_r\) with \(n\) identical photons, and ionizes with \(m\) photons of the same color (or of a second color \(\lambda_2\)). The resonance condition and the vacuum wavelength are</p>
+        <div class="formula">\[ n\,h\nu = E_r - E_g, \qquad \lambda_\text{vac}[\text{nm}] = \frac{n \times 10^{7}}{E_r - E_g\ [\text{cm}^{-1}]}, \qquad h\nu\,[\text{eV}] = \frac{E_r - E_g}{n \times 8065.544}. \]</div>
+        <p>The air wavelength is \(\lambda_\text{air} = \lambda_\text{vac}/n_\text{air}(\lambda)\) with the dispersion of standard air (15 °C, 101.325 kPa, dry). The default is the five-parameter formula of Peck and Reeder that NIST ASD itself uses, with \(\sigma = 1/\lambda\) in µm⁻¹,</p>
+        <div class="formula">\[ (n_\text{air} - 1) \times 10^{8} = 8060.51 + \frac{2\,480\,990}{132.274 - \sigma^2} + \frac{17\,455.7}{39.32957 - \sigma^2}, \]</div>
+        <p>valid from 185 nm to 1.7 µm; Ciddor’s 1996 two-term formula (450 ppm CO₂) is offered as an alternative. At 243 nm the index is 1.0003035, so the air wavelength is 0.074 nm shorter than the vacuum value: a dye laser’s wavemeter usually reads vacuum, a grating’s calibration often air, and that difference is many Doppler widths.</p>
+        <p>The ionizing step takes the species to \(E_\text{after} = E_r + m\,h\nu_2\) (with \(h\nu_2 = h\nu\) for one color). It ionizes if \(E_\text{after} \ge \text{IE}\), and the surplus is the photoelectron kinetic energy when the ion is left in its ground state:</p>
+        <div class="formula">\[ \text{KE}_e = E_r + m\,h\nu_2 - \text{IE}, \qquad v_e = \sqrt{2\,\text{KE}_e/m_e}. \]</div>
+        <p>If the ion can be left in an excited spin-orbit or vibrational level, a second, slower photoelectron group appears, lower by that excitation (Xe⁺ ²P°₁/₂ lies 10,537 cm⁻¹ above ²P°₃/₂; the calculator reports only the ground-state channel). The heavy ion itself takes a negligible share of the energy.</p>
+        <p>A particle moving with speed \(v\) along the beam sees each photon shifted by \(\nu\,v/c\), so an \(n\)-photon resonance driven by co-propagating photons shifts by</p>
+        <div class="formula">\[ \Delta E_\text{Doppler} = (E_r - E_g)\,\frac{v}{c}, \qquad \Delta\lambda = \lambda\,\frac{v}{c}, \]</div>
+        <p>twice the one-photon shift at the same wavelength for \(n = 2\). With one photon from each of two counter-propagating beams the first-order shifts cancel (Doppler-free two-photon spectroscopy); the calculator reports the co-propagating value, which is also the shift of a 1+1 scheme and the full width you must tune across to see every velocity in a beam. For the Doppler <em>width</em> of a thermal sample, use the <a href="/tools/doppler-broadening/">line-broadening calculator</a>.</p>
+        <p>Fine-structure companions are computed from the same upper level and every component of the ground term, and flagged when |ΔJ| exceeds \(n\). The laser suggestions test the target wavelength against fixed Nd:YAG harmonics (\(1064.1/k\) nm), each dye’s tuning range directly, doubled (\(2\lambda\)), mixed with the 1064.1 nm fundamental (\(1/\lambda_\text{dye} = 1/\lambda - 1/1064.1\)), doubled and then mixed with 1064.1 nm, or tripled; and the Ti:sapphire and OPO ranges with their harmonics.</p>
+
+        <h2>How REMPI works and why it is used</h2>
+        <p>A single photon ionizes an atom only in the vacuum ultraviolet (13.6 eV = 91 nm for hydrogen), where lasers are awkward and windows are opaque. Multiphoton ionization with a focused pulsed laser avoids that, but the non-resonant rate scales as \(I^{n+m}\) and is tiny. Placing a real level at the energy of the first \(n\) photons changes everything: the first step becomes a two-photon transition whose line-integrated cross section is a few 10⁻³⁵ cm⁴ ((2.66 ± 0.80) × 10⁻³⁵ cm⁴ for O 3p ³P ← 2p⁴ ³P₂, Bamford, Jusinski and Bischel; 2–7 × 10⁻³⁵ cm⁴ for the Xe 6p levels, Kröll and Bischel), which spread over a Doppler width of several GHz is of order 10⁻⁴⁵ cm⁴ s at line centre. One more photon then ionizes the excited atom with a cross section of 10⁻¹⁹–10⁻¹⁸ cm² (5.3 × 10⁻¹⁹ cm² for O 3p ³P at 226 nm; 4.3 × 10⁻¹⁸ cm² for Xe 6p[1/2]₀ at 248 nm), large enough to saturate with a few mJ focused to a fraction of a millimetre. The result is that a large share of the atoms in the focal volume that sit in the probed quantum state end up as ions (Kröll and Bischel estimate 10 % of the xenon atoms at 30 MW cm⁻² for 25 ns), which a channel plate detects with near-unit efficiency.</p>
+        <p>The ions are usually mass-analysed in a <a href="/tools/ion-time-of-flight/">time-of-flight spectrometer</a>, which separates the probed species from everything else the laser ionizes, or imaged in a velocity-map imaging (VMI) apparatus, where the ion (or photoelectron) velocity distribution appears directly as a ring pattern. Because the signal tracks one quantum state, scanning the laser over the rotational or fine-structure components gives a state distribution; that is how photodissociation product branching ratios (I/I*, O(³P)/O(¹D), Cl/Cl*) and nascent rotational distributions are measured. The <a href="/beta/thermochem/">Thermochemistry Lab</a> covers the energetics that decide which products appear. One caution for molecules: the ion keeps absorbing during the same pulse. Boesl, Neusser and Schlag showed with time-delayed two-color pulses on benzene that fragmentation proceeds by climbing two independent ladders, one in the neutral up to the ionization limit and a second in the parent ion (ladder switching), so fragment ions grow with pulse energy at the parent’s expense.</p>
+        <p>Why 2+1 for atoms: the first excited levels of light atoms lie at 60,000–100,000 cm⁻¹ (O 3p at 88,600, N 3p at 94,900, H 2s at 82,259 cm⁻¹). Two photons of 200–250 nm, which one doubled dye laser or a Ti:sapphire harmonic produces, reach them, and the third photon of the same beam comfortably clears the limit because the intermediate level sits above half the ionization energy. Two-photon excitation also connects levels of the same parity, which is exactly where the np levels sit relative to the np⁴ or np⁵ ground states. Why 1+1 for molecules: NO, benzene, aromatics and many radicals have bound excited states at 30,000–45,000 cm⁻¹, above half their (lower) ionization energy, so one UV photon reaches the state and a second ionizes; the one-photon step has a large cross section, so 1+1 saturates easily and even runs with unfocused beams. Molecules whose first bright states are too low for 1+1, or whose Rydberg states lie at 80,000–100,000 cm⁻¹ (CO, H₂, H₂O, HCl, OH), are done 2+1.</p>
+
+        <h2>Selection rules</h2>
+        <p>One photon changes parity and allows ΔJ = 0, ±1 (not 0 ↔ 0), ΔL = ±1 for a one-electron jump, and ΔS = 0 in LS coupling. Two photons absorbed from a single beam act as the product of two dipole operators, a tensor of rank 0 (scalar) plus rank 2: the parity does <em>not</em> change, |ΔJ| ≤ 2 with J = 0 ↔ 1 forbidden and J = 0 ↔ 0 allowed only through the scalar part (it vanishes for two photons of the same circular polarization from one beam, which is sometimes used to clean up a spectrum, and survives with linear or with opposite circular polarizations), Δl = 0, ±2 for the active electron (s → s, s → d, p → p, p → f), and ΔS = 0. Bonin and McIlrath tabulate the complete polarization-dependent rules (same parity, |ΔF| ≤ 2, the forbidden 0 ↔ 1 and the polarization-dependent 0 ↔ 0 cases), including those that reopen when the two photons differ in frequency or polarization; the ΔS = 0 rule and the three-photon rules are the standard angular-momentum results found in Demtröder. Three photons behave like one as far as parity goes (odd), with |ΔJ| ≤ 3. The calculator applies the parity, ΔJ, and (for LS terms) ΔS rules and marks the J = 0 ↔ 1 exception; it does not estimate line strengths.</p>
+        <p>For molecules the same ideas hold with the vibronic symmetry in place of parity: for centrosymmetric molecules two-photon transitions are g ↔ g (the H₂ E,F ¹Σg⁺ ← X ¹Σg⁺ and O₂ C ³Πg ← X ³Σg⁻ schemes), one-photon transitions g ↔ u. Rotational branches O, P, Q, R, S (ΔJ = −2 … +2) appear in two-photon spectra, and their relative intensities depend on polarization, as Tjossem and Smyth’s 200:1 linear-to-circular ratio for the CO B–X Q branch shows.</p>
+
+        <h2>Practical notes</h2>
+        <ul>
+            <li><strong>Saturation of the ionizing step.</strong> With σ ≈ 10⁻¹⁸ cm² and a photon fluence of 10¹⁸ cm⁻² (about 60 µJ at 250 nm in a 100 µm spot, or 1 mJ in a 0.4 mm spot; Kröll and Bischel’s 30 MW cm⁻² for 25 ns is 9 × 10¹⁷ photons cm⁻²) the excited atom ionizes with near-certainty; the signal then depends only on the two-photon step, roughly as \(I^2\). Below saturation it goes as \(I^3\). Measuring the power dependence tells you where you are.</li>
+            <li><strong>Power broadening and AC Stark shifts.</strong> The same intensity that saturates the last step shifts and broadens the two-photon resonance. For the H 1S–2S line at 243 nm the AC Stark coefficient is 1.67 Hz per W cm⁻² (Kolachevsky et al.), i.e. 0.06 cm⁻¹ (1.7 GHz) at 10⁹ W cm⁻² and 0.6 cm⁻¹ at 10¹⁰ W cm⁻², and the same intensities photoionize the 2S atoms within the pulse, which broadens the line further. Take spectra at several pulse energies if the line position matters.</li>
+            <li><strong>Doppler width versus laser bandwidth.</strong> A room-temperature O atom has a Doppler FWHM of about 0.27 cm⁻¹ (8 GHz) on the 226 nm two-photon line (twice the one-photon value), a cold beam far less; a pulsed dye laser’s doubled bandwidth of 0.1–0.3 cm⁻¹ is comparable, and a transform-limited 5 ns pulse has 0.003 cm⁻¹. Compare them with the <a href="/tools/doppler-broadening/">line-broadening</a> and <a href="/tools/pulse-bandwidth/">pulse-bandwidth</a> calculators; the narrower of the two sets the state selectivity, the wider sets how far you must scan to collect every velocity class (the Doppler-shift result above).</li>
+            <li><strong>Photoelectron energy for VMI calibration.</strong> Xe 2+1 at 249.63 nm releases 2.770 eV electrons for Xe⁺ ²P°₃/₂ and 1.464 eV for ²P°₁/₂; O 2+1 at 225.65 nm gives 2.865 eV; the atom’s known kinetic energies calibrate the velocity map. Molecules leave the ion vibrationally excited, so their photoelectron spectra carry a progression rather than one ring.</li>
+            <li><strong>Ion masses and flight times.</strong> One-color REMPI also ionizes the precursor and makes fragment ions; the <a href="/tools/ion-time-of-flight/">time-of-flight calculator</a> gives arrival times and the mass resolution needed to separate, say, O⁺ (m/z 16) from CH₄⁺ at the same mass number. Light ions arrive first, so a 2+1 H-atom signal at m/z 1 sits well clear of everything else.</li>
+            <li><strong>Non-resonant background.</strong> At the intensities needed for 2+1, the laser also ionizes precursor molecules non-resonantly and photolyses them; a one-color probe therefore often creates the very atoms it detects. Compare on- and off-resonance signals, vary the pulse energy, or use a two-color scheme with a weak resonant beam and a strong ionizing beam.</li>
+            <li><strong>Wavelength calibration.</strong> The resonance wavelength is the quantity to set, but check which medium your reference uses: ASD lines are listed in air above 200 nm and in vacuum below; wavemeters read vacuum unless told otherwise. The known-scheme table gives both.</li>
+        </ul>
+
+        <h2>Typical values</h2>
+        <p>Every documented scheme on this page, recomputed from the level energies (NIST ASD excerpts for atoms; WebBook ionization energies and band origins for molecules). Wavelengths are for the lowest ground component; the fine-structure companions appear when you select the scheme above.</p>
+        <div class="rp-table-wrap"><table id="scheme-table">
+            <thead><tr><th>Species</th><th>Scheme</th><th class="num">λ<sub>vac</sub> (nm)</th><th class="num">λ<sub>air</sub> (nm)</th><th class="num">Resonance (cm⁻¹)</th><th class="num">Margin over IE (eV)</th><th>Primary source</th></tr></thead>
+            <tbody id="scheme-rows"></tbody>
+        </table></div>
+        <p class="rp-ref">Numbers that the primary paper quotes agree with the recomputed values within the 0.01–0.1 nm precision the papers give (the N 3p ⁴D° components spread over 210.79–211.04 nm and the S 4p ³P ones over 308.2–311.0 nm). Schemes that could not be traced to a paper whose record or abstract was checked (for example the Br* and O 3p ⁵P lines sometimes quoted) are deliberately left out, and so is NH₃ 2+1 via B̃: <a href="#ref-stanley1983">Stanley, Echt and Castleman</a> report its bands only as a 304–340 nm range and no archived source gives a band origin. See the references for what each source supports.</p>
+
+        <h2>Worked example</h2>
+        <p>The default scheme, H 2+1 via 2s ²S₁/₂ at 243.13 nm. NIST ASD puts 2s at 82,258.9544 cm⁻¹ and the ionization limit at 109,678.7717 cm⁻¹.</p>
+        <ul>
+            <li>Each of the two photons carries 82,258.954 / 2 = 41,129.477 cm⁻¹ = 5.0994 eV, so \(\lambda_\text{vac}\) = 10⁷ / 41,129.477 = 243.1346 nm. In standard air, \(n\) = 1.0003035, \(\lambda_\text{air}\) = 243.0609 nm.</li>
+            <li>The third photon takes the atom to 3 × 41,129.477 = 123,388.43 cm⁻¹, which is 13,709.66 cm⁻¹ = 1.6998 eV above the limit: the scheme ionizes, and the photoelectron leaves at \(\sqrt{2 \times 1.6998\ \text{eV}/m_e}\) = 773 km/s.</li>
+            <li>Selection rules: 1s and 2s are both even parity with J = 1/2 → 1/2, allowed for two photons through the scalar part (linear polarization). Deuterium’s 2s lies 22.38 cm⁻¹ higher, moving the line to 243.0685 nm, 0.066 nm to the blue.</li>
+            <li>A hydrogen atom from a photodissociation with 2000 m/s along the beam shifts the two-photon resonance by 82,259 × 2000 / 2.998 × 10⁸ = 0.549 cm⁻¹ = 16.5 GHz (0.0016 nm). Scanning over the Doppler profile of fast fragments therefore needs a few cm⁻¹; counter-propagating beams would remove the shift for the Doppler-free pair.</li>
+            <li>Laser: 243.13 nm is the doubled output of a dye at 486.3 nm (Coumarin 102 or Coumarin 307, on a 355 nm or a 308 nm pump) or the third harmonic of a Ti:sapphire at 729.4 nm.</li>
+        </ul>
+
+        <h2>Assumptions and limits</h2>
+        <ul>
+            <li>Energetics only. The calculator says whether a scheme is allowed and whether it ionizes; it does not estimate two-photon cross sections, line strengths, or the actual ion yield, which depend on intensity, bandwidth, focusing, and the particular level. The cited papers give cross sections for O and Xe.</li>
+            <li>Level excerpts. Each atom carries only the ground-term components, a handful of low Rydberg levels, and the first ionization limit, copied from NIST ASD 5.12 with the uncertainties ASD lists (several atoms carry none). For every other level follow the ASD link; for higher Rydberg or autoionizing levels (for example O(¹D) detection through 2p³(²D°)3p ¹F₃ above the limit) type the level energy in design mode.</li>
+            <li>Molecules. The resonant energy is a band origin (or, for H₂O, the band head) from the cited paper or from Huber–Herzberg constants in the WebBook; rotational structure, vibrational bands other than the one listed, and the ion’s internal energy are not modeled, so the photoelectron energy is the maximum for that band.</li>
+            <li>Air wavelengths. Standard dry air at 15 °C and 101.325 kPa. At 20 °C and typical humidity the index is lower by about 5 × 10⁻⁷ (0.0001 nm at 250 nm), below the precision of the schemes. No air value is given below 185 nm, where the formula is undefined and air absorbs anyway.</li>
+            <li>Doppler shift. First order, non-relativistic, co-propagating photons; the second-order shift is 10⁻¹⁰ at 2000 m/s.</li>
+            <li>Laser ranges are catalog and datasheet values for broadband operation and typical conversion; a given dye laser, crystal set, or OPO reaches somewhat less at the edges, and narrowband operation narrows the range further.</li>
+        </ul>
+
+        <h2>References</h2>
+        <h3>Data</h3>
+        <ol class="refs" id="refs-data"></ol>
+        <h3>Scheme papers, selection rules, and reviews</h3>
+        <ol class="refs" id="refs-papers" start="3"></ol>
+        <h3>Air index and laser sources</h3>
+        <ol class="refs" id="refs-lasers"></ol>
+    </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="ion-time-of-flight,doppler-broadening,pulse-bandwidth,energy-converter,photon-flux,article:spectroscopic-units"></div>
+    </section>
+</main>
+
+<div id="site-footer"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const D = window.REMPI_DATA;
+    const { fmt, K } = Calc;
+    const EV = D.EV;                                  // cm⁻¹ per eV
+    const c = K.c;
+
+    /* ── level lookup ────────────────────────────────────────────────────── */
+    const lv = {};
+    Object.keys(D.atoms).forEach(el => D.atoms[el].levels.forEach(l => { lv[l.id] = Object.assign({ el }, l); }));
+    D.molecules.forEach(mol => {
+        lv[mol.id + ':X'] = { id: mol.id + ':X', E: 0, label: 'X (v″ = 0)', mol, parity: null, J: null };
+        mol.states.forEach(s => { lv[s.id] = Object.assign({ mol, parity: null, J: null }, s); });
+    });
+    const Jnum = J => J === null ? null : (J.indexOf('/') > 0 ? parseInt(J, 10) / 2 : parseInt(J, 10));
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const nm3 = x => x.toFixed(3);
+    const cmFmt = x => { const r = Math.round(x * 100) / 100; return r.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+
+    /* ── air index ───────────────────────────────────────────────────────── */
+    // Peck & Reeder 1972, standard air (15 °C, 101.325 kPa, dry); σ in µm⁻¹; valid 185 nm – 1.7 µm
+    const nPR = lam => { const s2 = Math.pow(1e3 / lam, 2); return 1 + (8060.51 + 2480990 / (132.274 - s2) + 17455.7 / (39.32957 - s2)) * 1e-8; };
+    // Ciddor 1996, standard air (15 °C, 101325 Pa, 450 ppm CO₂, dry)
+    const nCid = lam => { const s2 = Math.pow(1e3 / lam, 2); return 1 + (5792105 / (238.0185 - s2) + 167917 / (57.362 - s2)) * 1e-8; };
+    const nAir = (lam, model) => lam < 185 ? NaN : (model === 'ciddor' ? nCid(lam) : nPR(lam));
+
+    /* ── selects ─────────────────────────────────────────────────────────── */
+    const selSp = document.getElementById('sp'), selScheme = document.getElementById('scheme'), selAtom = document.getElementById('atom');
+    const selG = document.getElementById('g'), selLvl = document.getElementById('lvl');
+    const speciesOrder = [];
+    D.schemes.forEach(s => { if (speciesOrder.indexOf(s.species) < 0) speciesOrder.push(s.species); });
+    const speciesName = id => D.atoms[id] ? D.atoms[id].name + ' (' + id + ')' : (D.molecules.find(m => m.id === id) || { name: id }).name;
+    selSp.innerHTML = speciesOrder.map(id => `<option value="${id}">${esc(speciesName(id))}</option>`).join('');
+    selScheme.innerHTML = D.schemes.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join('');
+    selAtom.innerHTML = Object.keys(D.atoms).map(el => `<option value="${el}">${esc(D.atoms[el].name)} (${el})</option>`).join('') + '<option value="custom">Custom level and ionization energy</option>';
+    const lvlOption = l => `<option value="${l.id}">${esc(l.label)} — ${cmFmt(l.E)} cm⁻¹ (${l.parity === 'o' ? 'o' : 'e'})</option>`;
+    const allLevels = Object.keys(D.atoms).reduce((a, el) => a.concat(D.atoms[el].levels), []);
+    selG.innerHTML = allLevels.map(lvlOption).join('');
+    selLvl.innerHTML = allLevels.map(lvlOption).join('');
+    const DEFAULT_LVL = { H: 'H:2s2S1_2', D: 'D:2s2S1_2', He: 'He:3d1D2', C: 'C:3p3D3', N: 'N:3p4Do7_2', O: 'O:3p3P2', F: 'F:3p2Do5_2', S: 'S:4p3P2', Cl: 'Cl:4p2Do3_2', Br: 'Br:5p2[1]o3_2', I: 'I:6p2[3]o5_2', Ne: 'Ne:3p2[1/2]0', Ar: 'Ar:4p2[1/2]0', Kr: 'Kr:5p2[1/2]0', Xe: 'Xe:6p2[1/2]0', Hg: 'Hg:6d1D2', Na: 'Na:4d2D5_2', K: 'K:4d2D5_2', Rb: 'Rb:5d2D5_2', Cs: 'Cs:6d2D5_2' };
+    selSp.value = 'H'; selScheme.value = 'H-2s'; selAtom.value = 'O'; selG.value = 'O:2p43P2'; selLvl.value = DEFAULT_LVL.O;
+
+    // keep the dependent selects showing only the options of the chosen species / atom (all options exist at load so a link can restore any)
+    let lastSp = null, lastAtom = null;
+    function syncScheme(sp) {
+        if (sp === lastSp) return;
+        const cur = selScheme.value, mine = D.schemes.filter(s => s.species === sp);
+        selScheme.innerHTML = mine.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join('');
+        selScheme.value = mine.some(s => s.id === cur) ? cur : mine[0].id;
+        lastSp = sp;
+    }
+    function syncLevels(el) {
+        if (el === lastAtom) return;
+        const at = D.atoms[el];
+        if (at) {
+            const curG = selG.value, curL = selLvl.value;
+            const g = at.levels.slice(0, at.groundCount), rest = at.levels.slice(at.groundCount);
+            selG.innerHTML = g.map(lvlOption).join('');
+            selG.value = g.some(l => l.id === curG) ? curG : g[0].id;
+            selLvl.innerHTML = rest.map(lvlOption).join('');
+            selLvl.value = rest.some(l => l.id === curL) ? curL : DEFAULT_LVL[el];
+        }
+        lastAtom = el;
+    }
+
+    const groups = { known: document.getElementById('grp-known'), design: document.getElementById('grp-design') };
+    const gLevels = document.getElementById('grp-levels'), gCustom = document.getElementById('grp-custom'), gTwo = document.getElementById('grp-two');
+    const notes = {};
+    ['lam-note', 'air-note', 'sch-note', 'eres-note', 'exc-note', 'ke-note', 'dopp-note', 'fs-note', 'scheme-note', 'atom-note', 'diag-note'].forEach(id => { notes[id] = document.getElementById(id); });
+    const note = (id, html) => { notes[id].innerHTML = html || ''; if (notes[id].classList.contains('result-note')) notes[id].hidden = !html; };
+
+    /* ── selection rules ─────────────────────────────────────────────────── */
+    function rules(a, b, n) {
+        if (a.parity === null || b.parity === null) return { ok: true, text: 'Custom or molecular level: parity and J rules not applied (see the selection-rules section).' };
+        const out = [], bad = [];
+        const sameP = a.parity === b.parity;
+        if (n % 2 === 0 ? !sameP : sameP) bad.push(`parity: ${n} photon${n > 1 ? 's' : ''} need ${n % 2 === 0 ? 'the same' : 'opposite'} parity, but ${a.parity === 'e' ? 'even' : 'odd'} → ${b.parity === 'e' ? 'even' : 'odd'}`);
+        else out.push(`parity ${a.parity === 'e' ? 'even' : 'odd'} → ${b.parity === 'e' ? 'even' : 'odd'} ✓`);
+        const Ja = Jnum(a.J), Jb = Jnum(b.J), dJ = Math.abs(Ja - Jb);
+        if (dJ > n) bad.push(`|ΔJ| = ${dJ} exceeds ${n}`);
+        else if (Ja === 0 && Jb === 0 && n % 2 === 1) bad.push('J = 0 → 0 is forbidden for an odd number of photons');
+        else if (n === 2 && Math.min(Ja, Jb) === 0 && Math.max(Ja, Jb) === 1) bad.push('J = 0 ↔ 1 is forbidden for two identical photons (rank-1 part vanishes)');
+        else out.push(`ΔJ = ${Jb - Ja > 0 ? '+' : ''}${Jb - Ja} ✓` + (n === 2 && Ja === Jb && Ja === 0 ? ' (0 → 0: scalar part only; forbidden for two photons of the same circular polarization)' : ''));
+        const mult = t => { const m = /^(\d)[A-Z]/.exec(t); return m ? parseInt(m[1], 10) : null; };
+        const Sa = mult(a.term), Sb = mult(b.term);
+        if (Sa !== null && Sb !== null) { if (Sa !== Sb) bad.push(`spin: ${a.term.replace('*', '°')} → ${b.term.replace('*', '°')} changes the multiplicity (ΔS ≠ 0, weak in LS coupling)`); else out.push('ΔS = 0 ✓'); }
+        return { ok: bad.length === 0, text: (bad.length ? 'Not allowed: ' + bad.join('; ') + (out.length ? '. ' + out.join(', ') : '') : 'Allowed: ' + out.join(', ')) };
+    }
+
+    /* ── laser suggestions ───────────────────────────────────────────────── */
+    function suggest(lam) {
+        const L = D.lasers, f = L.ndyag.fundamental_nm, out = [];
+        L.ndyag.harmonics.forEach(k => { const lk = f / k; if (Math.abs(lam - lk) < 0.35) out.push({ stage: 0, html: `Nd:YAG ${['', 'fundamental', '2nd', '3rd', '4th', '5th'][k]} harmonic at ${lk.toFixed(2)} nm, a fixed line ${Math.abs(lam - lk) < 0.005 ? 'on' : (lam - lk > 0 ? (lam - lk).toFixed(2) + ' nm to the red of' : (lk - lam).toFixed(2) + ' nm to the blue of')} the resonance` }); });
+        const dyeHits = (lamFund, how, stage, cond) => {
+            if (!(lamFund > 0) || (cond && !cond)) return;
+            const hits = L.dyes.filter(d => lamFund >= d.lo && lamFund <= d.hi).sort((a, b) => Math.abs((a.lo + a.hi) / 2 - lamFund) - Math.abs((b.lo + b.hi) / 2 - lamFund));
+            if (!hits.length) return;
+            const names = hits.slice(0, 4).map(d => `${d.dye} (${d.pump} nm pump, ${d.lo}–${d.hi} nm)`).join(', ') + (hits.length > 4 ? ` and ${hits.length - 4} more` : '');
+            out.push({ stage, html: `<span class="how">${how} at ${lamFund.toFixed(1)} nm:</span> ${names}` });
+        };
+        dyeHits(lam, 'Dye laser fundamental', 1);
+        const dbl = L.doubling.lo, mix = L.doubling.mixTo;   // Brackmann: doubling to 207 nm, mixing to 197 nm
+        if (lam >= dbl) dyeHits(2 * lam, 'Doubled dye', 2);
+        if (lam < f) dyeHits(1 / (1 / lam - 1 / f), 'Dye mixed with 1064.1 nm', 2);
+        if (lam < f / 2 && lam >= mix) dyeHits(2 / (1 / lam - 1 / f), 'Doubled dye mixed with 1064.1 nm', 3);
+        if (lam >= mix) dyeHits(3 * lam, 'Tripled dye', 3);
+        L.tisapph.harmonics.forEach(k => { const lf = k * lam; if (lf >= L.tisapph.lo && lf <= L.tisapph.hi && (k < 4 || lam >= L.doubling.mixTo)) out.push({ stage: k === 1 ? 1 : k, html: `<span class="how">Ti:sapphire ${k === 1 ? 'fundamental' : ['', '', '2nd', '3rd', '4th'][k] + ' harmonic'}:</span> fundamental at ${lf.toFixed(1)} nm (${L.tisapph.lo}–${L.tisapph.hi} nm, Moulton 1986)` }); });
+        const o = L.opo;
+        if (lam >= o.signal[0] && lam <= o.signal[1]) out.push({ stage: 1, html: `<span class="how">OPO signal</span> (${o.signal[0]}–${o.signal[1]} nm)` });
+        if (lam >= o.idler[0] && lam <= o.idler[1]) out.push({ stage: 1, html: `<span class="how">OPO idler</span> (${o.idler[0]}–${o.idler[1]} nm)` });
+        if (lam >= o.shsf[0] && lam <= o.shsf[1]) out.push({ stage: 2, html: `<span class="how">OPO with the SH/SF option</span> (${o.shsf[0]}–${o.shsf[1]} nm)` });
+        if (lam >= o.duv[0] && lam <= o.duv[1]) out.push({ stage: 3, html: `<span class="how">OPO with the DUV option</span> (${o.duv[0]}–${o.duv[1]} nm)` });
+        if (lam < o.duv[0]) out.push({ stage: 9, html: 'Below 192 nm: vacuum-ultraviolet generation (four-wave mixing or tripling in a rare gas) is needed; no table-top tunable source listed here reaches it directly.' });
+        out.sort((a, b) => a.stage - b.stage);
+        return out.length ? '<ul class="rp-list">' + out.map(x => `<li>${x.html}</li>`).join('') + '</ul>' : 'No listed source reaches this wavelength directly.';
+    }
+
+    /* ── main calculation ────────────────────────────────────────────────── */
+    let last = null;
+    const csvBtn = document.getElementById('csv-btn');
+
+    Calc.create({
+        form: '#calc',
+        compute(v) {
+            const known = v.mode === 'known';
+            groups.known.hidden = !known; groups.design.hidden = known;
+            let a, b, n, m, lam2 = null, IE, IEunc = null, species, scheme = null, atom = null, custom = false, groundSet = [];
+            if (known) {
+                syncScheme(v.sp);
+                scheme = D.schemes.find(s => s.id === selScheme.value) || D.schemes[0];
+                a = lv[scheme.from]; b = lv[scheme.to]; n = scheme.n; m = scheme.m; lam2 = scheme.lambda2 || null; species = scheme.species;
+                if (b.mol) { IE = b.mol.IE; IEunc = b.mol.IE_unc; groundSet = [a]; }
+                else { atom = D.atoms[species]; IE = atom.IE.E; IEunc = atom.IE.unc; groundSet = scheme.fs ? scheme.fs.map(id => lv[id]) : atom.levels.slice(0, atom.groundCount); }
+                note('scheme-note', `${esc(scheme.note)} <span class="rp-ref">Source: ${scheme.refs.map(r => '<a href="#ref-' + r + '">' + esc(refShort(r)) + '</a>').join('; ')}.</span>`);
+            } else {
+                custom = v.atom === 'custom';
+                gLevels.hidden = custom; gCustom.hidden = !custom;
+                n = parseInt(v.n, 10); m = parseInt(v.m, 10);
+                if (v.color === 'two') lam2 = v.lam2;
+                gTwo.hidden = v.color !== 'two';
+                if (custom) {
+                    species = 'custom';
+                    a = { id: 'custom:0', E: 0, label: 'ground state', parity: null, J: null };
+                    b = { id: 'custom:r', E: v.Ecust, label: 'level at ' + cmFmt(v.Ecust) + ' cm⁻¹', parity: null, J: null };
+                    IE = v.IEunit === 'eV' ? v.IEcust * EV : v.IEcust;
+                    if (!(b.E < IE)) throw Calc.fail('The resonant level must lie below the ionization energy (an autoionizing level above it needs no further photon).', 'Ecust');
+                    groundSet = [a];
+                    note('atom-note', 'Any species: enter the resonant level (band origin) and the ionization energy.');
+                } else {
+                    syncLevels(v.atom);
+                    atom = D.atoms[v.atom]; species = v.atom;
+                    a = lv[selG.value]; b = lv[selLvl.value];
+                    IE = atom.IE.E; IEunc = atom.IE.unc;
+                    groundSet = atom.levels.slice(0, atom.groundCount);
+                    note('atom-note', `${esc(D.atomNotes[v.atom] || '')} <a href="${atom.asdUrl}" target="_blank" rel="noopener">Full ${esc(atom.name)} I level table at NIST ASD</a>.`);
+                }
+            }
+            const dE = b.E - a.E;
+            if (!(dE > 0)) throw Calc.fail('The resonant level must lie above the starting level.', known ? 'scheme' : 'lvl');
+            const hv = dE / n, lam = 1e7 / hv;
+            const nA = nAir(lam, v.air), lamAir = isNaN(nA) ? null : lam / nA;
+            const hv2 = lam2 ? 1e7 / lam2 : hv;
+            const after = b.E + m * hv2, excess = after - IE;
+            const KEeV = excess / EV, ve = excess > 0 ? Math.sqrt(2 * KEeV * K.e / K.me) : 0;
+            const rl = rules(a, b, n);
+            const notation = `${n}+${m}${lam2 ? '′' : ''}`;
+            // fine-structure companions: same upper level, every ground component
+            const fs = groundSet.map(gl => { const d = b.E - gl.E, l = n * 1e7 / d, dJ = (gl.J === null || b.J === null) ? 0 : Math.abs(Jnum(gl.J) - Jnum(b.J)); return { g: gl, lam: l, lamAir: isNaN(nAir(l, v.air)) ? null : l / nAir(l, v.air), hv: d / n, off: dJ > n, sel: gl.id === a.id }; });
+            const dopp = isFinite(v.vbeam) && v.vbeam > 0 ? { E: dE * v.vbeam / c, GHz: dE * v.vbeam / c * 29.9792458, pm: lam * v.vbeam / c * 1e3 } : null;
+            last = { a, b, n, m, lam, lamAir, hv, hv2, lam2, after, excess, IE, IEunc, species, scheme, atom, custom, fs, dopp, KEeV, ve, rl, air: v.air };
+
+            const uncTxt = u => u < 1e-6 ? 'better than 10⁻⁶ cm⁻¹' : '±' + Number(Number(u).toPrecision(2)).toString() + ' cm⁻¹';
+            note('lam-note', `${cmFmt(dE)} cm⁻¹ divided among ${n} photon${n > 1 ? 's' : ''}` + (b.unc !== undefined && b.unc !== null && b.unc > 0 ? `; the level is given to ${uncTxt(b.unc)}` : '') + '.');
+            note('air-note', lamAir === null ? 'Vacuum ultraviolet: the air formula is undefined below 185 nm and air absorbs there.' : `n<sub>air</sub> = ${nA.toFixed(8)} (${v.air === 'ciddor' ? 'Ciddor 1996' : 'Peck &amp; Reeder 1972'}); vacuum minus air = ${(lam - lamAir).toFixed(4)} nm.`);
+            note('sch-note', `${n + m} photons in all; ${lam2 ? `the ${m} ionizing photon${m > 1 ? 's' : ''} at ${lam2.toFixed(2)} nm (${cmFmt(hv2)} cm⁻¹)` : 'all from one laser'}.`);
+            note('eres-note', `${esc(a.label)} → ${esc(b.label)}` + (a.E > 0 ? `; the start lies ${cmFmt(a.E)} cm⁻¹ above the ground level` : ''));
+            note('exc-note', excess >= 0 ? `Ionization limit ${cmFmt(IE)} cm⁻¹ = ${fmt.num(IE / EV, 6)} eV${IEunc !== null && IEunc !== undefined ? ' (± ' + fmt.num(IEunc, 2) + ' cm⁻¹)' : ''}; the last photon clears it.` : `Ionization limit ${cmFmt(IE)} cm⁻¹: the scheme falls ${cmFmt(-excess)} cm⁻¹ short. Add a photon (m = 2), shorten the second color, or choose a higher intermediate level.`);
+            note('ke-note', excess > 0 ? `Electron speed ${fmt.num(ve / 1e3, 4)} km/s for an ion left in its ground state; ions in excited spin-orbit or vibrational levels give slower electrons.` : '');
+            note('dopp-note', dopp ? `For ${fmt.num(v.vbeam, 4)} m/s along co-propagating photons (first order, all ${n} photons from one direction). Counter-propagating beams cancel the shift for the photon pair they supply.` : 'Enter a beam speed to see the shift.');
+            note('fs-note', groundSet.length > 1 ? 'Same upper level from each component of the ground term; struck-through components violate |ΔJ| ≤ n.' : '');
+            return {
+                lam: nm3(lam) + ' nm',
+                lamair: lamAir === null ? 'vacuum only' : nm3(lamAir) + ' nm',
+                hv: `${cmFmt(hv)} cm⁻¹ · ${fmt.num(hv / EV, 5)} eV · ${fmt.num(hv * 29.9792458 / 1e3, 5)} THz`,
+                sch: notation + (known ? ' · ' + esc(scheme.title.replace(/\s*\(.*\)$/, '')) : ''),
+                eres: cmFmt(dE) + ' cm⁻¹ · ' + fmt.num(dE / EV, 5) + ' eV',
+                after: cmFmt(after) + ' cm⁻¹ · ' + fmt.num(after / EV, 5) + ' eV',
+                excess: { html: `<span class="badge ${excess >= 0 ? 'badge-ok' : 'badge-bad'}">${excess >= 0 ? 'ionizes' : 'does not ionize'}</span> ${excess >= 0 ? '+' : '−'}${cmFmt(Math.abs(excess))} cm⁻¹ = ${(Math.abs(excess) / EV).toFixed(3)} eV` },
+                ke: excess > 0 ? KEeV.toFixed(3) + ' eV (' + cmFmt(excess) + ' cm⁻¹)' : 'none (no ionization)',
+                dopp: dopp ? `${fmt.num(dopp.E, 4)} cm⁻¹ · ${fmt.num(dopp.GHz, 4)} GHz · ${fmt.num(dopp.pm, 4)} pm` : '—',
+                rules: { html: `<span class="badge ${rl.ok ? 'badge-ok' : 'badge-warn'}">${rl.ok ? 'allowed' : 'check'}</span> ${esc(rl.text)}` },
+                fs: { html: '<div class="rp-fs">' + fs.map(f => `<span class="${f.off ? 'off' : ''}${f.sel ? '' : ' dim'}">${esc(f.g.label)}</span><span class="${f.off ? 'off' : ''}">${nm3(f.lam)} nm${f.lamAir === null ? '' : ' (air ' + nm3(f.lamAir) + ')'}</span>`).join('') + '</div>' },
+                lit: known && scheme.lit ? `${scheme.lit} nm quoted; recomputed value ${Math.abs(lam - scheme.lit) < 0.0005 ? 'identical' : (lam > scheme.lit ? '+' : '−') + Math.abs(lam - scheme.lit).toFixed(3) + ' nm'} (papers quote 0.1–0.01 nm, air or vacuum often unstated)` : null,
+                src: { html: suggest(lam) + (lam2 ? `<p class="rp-note">Second color ${lam2.toFixed(2)} nm: ${suggest(lam2).replace('<ul class="rp-list">', '<ul class="rp-list" style="margin-top:.2rem">')}</p>` : '') }
+            };
+        },
+        onError() {
+            last = null;
+            Object.keys(notes).forEach(k => { if (notes[k].classList.contains('result-note')) notes[k].hidden = true; });
+            drawDiagram(null);
+        },
+        after() { drawDiagram(last); }
+    });
+
+    /* ── diagram ─────────────────────────────────────────────────────────── */
+    function drawDiagram(s) {
+        const svg = document.getElementById('diag');
+        if (!s) { svg.innerHTML = '<title id="diag-t">REMPI energy-level diagram</title>'; svg.setAttribute('aria-label', 'No diagram: the inputs are invalid.'); return; }
+        const W = 400, H = 330, top = 22, bot = 296, xL = 58, xR = 352;
+        const Emax = Math.max(s.IE * 1.06, s.after * 1.04, s.b.E * 1.1);
+        const y = E => bot - (bot - top) * E / Emax;
+        const T = (x, yy, cls, txt, anchor) => `<text x="${x.toFixed(1)}" y="${yy.toFixed(1)}" class="${cls}"${anchor ? ` text-anchor="${anchor}"` : ''}>${esc(txt)}</text>`;
+        let h = '<title id="diag-t">REMPI energy-level diagram</title><defs><pattern id="rp-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line class="hatch" x1="0" y1="0" x2="0" y2="7"/></pattern></defs>';
+        // axes: cm⁻¹ on the left, eV on the right
+        h += `<line class="axis" x1="${xL}" y1="${top - 6}" x2="${xL}" y2="${bot}"/><line class="axis" x1="${xR}" y1="${top - 6}" x2="${xR}" y2="${bot}"/>`;
+        const step = Emax > 150000 ? 50000 : Emax > 60000 ? 20000 : Emax > 30000 ? 10000 : 5000;
+        for (let E = 0; E <= Emax; E += step) { h += `<line class="tick" x1="${xL - 4}" y1="${y(E)}" x2="${xL}" y2="${y(E)}"/>` + T(xL - 7, y(E) + 3, 'ax', (E / 1000) + 'k', 'end'); }
+        const evStep = Emax / EV > 15 ? 5 : Emax / EV > 7 ? 2 : 1;
+        for (let e = 0; e * EV <= Emax; e += evStep) { h += `<line class="tick" x1="${xR}" y1="${y(e * EV)}" x2="${xR + 4}" y2="${y(e * EV)}"/>` + T(xR + 7, y(e * EV) + 3, 'ax', e + ' eV'); }
+        h += T(xL - 7, top - 10, 'ax', 'cm⁻¹', 'end') + T(xR + 7, top - 10, 'ax', 'eV');
+        // continuum above the limit
+        const x0 = xL + 14, x1 = xR - 14;
+        h += `<rect class="cont" x="${x0}" y="${top - 4}" width="${x1 - x0}" height="${Math.max(0, y(s.IE) - top + 4)}"/>`;
+        h += `<line class="lim" x1="${x0}" y1="${y(s.IE)}" x2="${x1}" y2="${y(s.IE)}"/>` + T(x1, y(s.IE) - 4, 'lab', 'ionization limit ' + cmFmt(s.IE) + ' cm⁻¹', 'end');
+        // ground components (left third), intermediate (middle), arrows up the middle
+        const gx0 = x0 + 4, gx1 = x0 + 92;
+        const ground = s.fs.map(f => f.g);
+        ground.forEach((g, i) => { h += `<line class="lvl g" x1="${gx0}" y1="${y(g.E)}" x2="${gx1}" y2="${y(g.E)}"/>`; });
+        const gLabel = ground.length > 1 ? ground.map(g => g.label.split(' ').pop()).join(', ') + (s.custom ? '' : ' (' + cmFmt(ground[ground.length - 1].E) + ' cm⁻¹ spread)') : s.a.label;
+        h += T(gx0, y(0) + 13, 'sub', ground.length > 1 ? s.a.label.split(' ').slice(0, -1).join(' ') + ' ' + gLabel : gLabel);
+        const ix0 = x0 + 36, ix1 = x0 + 150;
+        h += `<line class="lvl" x1="${ix0}" y1="${y(s.b.E)}" x2="${ix1}" y2="${y(s.b.E)}"/>`;
+        const bl = s.b.label.length > 30 ? s.b.label.slice(0, 29).replace(/[\s,(—]+$/, '') + '…' : s.b.label;
+        h += T(ix1 + 5, y(s.b.E) + 3.5, 'lab', bl) + T(ix1 + 5, y(s.b.E) + 14, 'sub', cmFmt(s.b.E) + ' cm⁻¹');
+        const ax = x0 + 78;
+        const arrow = (yA, yB, cls, head) => { const tip = yB + 2; return `<line class="${cls}" x1="${ax}" y1="${yA.toFixed(1)}" x2="${ax}" y2="${(tip + 5).toFixed(1)}"/><path class="${head}" d="M${ax},${tip.toFixed(1)} l-4.5,8 h9 z"/>`; };
+        let E = s.a.E;
+        for (let i = 0; i < s.n; i++) { h += arrow(y(E), y(E + s.hv), 'ph1', 'ph1h'); E += s.hv; }
+        for (let i = 0; i < s.m; i++) { h += arrow(y(E), y(E + s.hv2), s.lam2 ? 'ph2' : 'ph1', s.lam2 ? 'ph2h' : 'ph1h'); E += s.hv2; }
+        h += `<line class="lvl g" x1="${ax - 10}" y1="${y(s.after)}" x2="${ax + 10}" y2="${y(s.after)}"/>`;
+        h += T(ax - 14, (y(s.a.E) + y(s.b.E)) / 2 + 3, 'sub', `${s.n} × ${s.lam.toFixed(2)} nm`, 'end');
+        if (s.m > 0) h += T(ax + 14, (y(s.b.E) + y(s.after)) / 2 + 3, 'sub', `${s.m} × ${(s.lam2 || s.lam).toFixed(2)} nm`);
+        // excess bar at the right
+        const bx = x1 - 36;
+        if (s.excess > 0) {
+            h += `<rect class="exc" x="${bx}" y="${y(s.after)}" width="14" height="${(y(s.IE) - y(s.after)).toFixed(1)}"/><line class="excl" x1="${bx - 4}" y1="${y(s.after)}" x2="${bx + 18}" y2="${y(s.after)}"/>`;
+            h += T(bx + 7, y(s.after) - 5, 'lab', 'KE ' + fmt.num(s.KEeV, 3) + ' eV', 'middle');
+        } else {
+            h += `<line class="excl" x1="${bx - 4}" y1="${y(s.after)}" x2="${bx + 18}" y2="${y(s.after)}"/>` + T(bx + 7, y(s.after) + 14, 'lab', 'short by ' + cmFmt(-s.excess) + ' cm⁻¹', 'middle');
+        }
+        svg.innerHTML = h;
+        const desc = `Energy-level diagram for ${s.species === 'custom' ? 'a custom species' : speciesName(s.species)}: ${ground.length} ground component${ground.length > 1 ? 's' : ''} at the bottom, the resonant level ${s.b.label} at ${cmFmt(s.b.E)} cm⁻¹, the ionization limit at ${cmFmt(s.IE)} cm⁻¹ with the continuum hatched above it; ${s.n} photon arrow${s.n > 1 ? 's' : ''} of ${s.lam.toFixed(2)} nm reach the resonance and ${s.m} ${s.lam2 ? 'second-color arrow' + (s.m > 1 ? 's' : '') + ' of ' + s.lam2.toFixed(2) + ' nm' : 'more'} end at ${cmFmt(s.after)} cm⁻¹, ${s.excess >= 0 ? cmFmt(s.excess) + ' cm⁻¹ above the limit' : cmFmt(-s.excess) + ' cm⁻¹ below the limit'}.`;
+        svg.setAttribute('aria-label', desc);
+        note('diag-note', `Solid arrows: photons of the resonant color; dashed: the second color. The bar on the right is the photoelectron energy. Vertical scale: 0 to ${cmFmt(Emax)} cm⁻¹ (${fmt.num(Emax / EV, 3)} eV).`);
+    }
+
+    /* ── CSV shopping list ───────────────────────────────────────────────── */
+    const csvCell = x => { const s = x === null || x === undefined ? '' : String(x); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    csvBtn.addEventListener('click', () => {
+        if (!last) return;
+        const s = last, rows = [['species', 'scheme', 'start_level', 'resonant_level', 'n', 'm', 'lambda_vac_nm', 'lambda_air_nm', 'photon_cm-1', 'photon_eV', 'resonance_cm-1', 'ionizing_lambda_nm', 'excess_cm-1', 'excess_eV', 'allowed_dJ', 'source']];
+        s.fs.forEach(f => {
+            const exc = s.b.E + s.m * s.hv2 - s.IE;
+            rows.push([s.species, s.scheme ? s.scheme.title : (s.custom ? 'custom' : 'design'), f.g.label, s.b.label, s.n, s.m, f.lam.toFixed(4), f.lamAir === null ? '' : f.lamAir.toFixed(4), f.hv.toFixed(3), (f.hv / EV).toFixed(5), (s.b.E - f.g.E).toFixed(3), (s.lam2 || f.lam).toFixed(4), exc.toFixed(2), (exc / EV).toFixed(4), f.off ? 'no' : 'yes', s.custom ? 'user input' : (s.b.mol ? 'NIST WebBook / ' + (s.scheme ? s.scheme.refs.join(' ') : '') : 'NIST ASD 5.12' + (s.scheme ? ' / ' + s.scheme.refs.join(' ') : ''))].map(csvCell).join(','));
+        });
+        const text = rows.map(r => Array.isArray(r) ? r.join(',') : r).join('\r\n') + '\r\n';
+        Calc.copyText(text).then(ok => { const t = csvBtn.textContent; csvBtn.textContent = ok ? 'Copied' : 'Copy failed'; setTimeout(() => { csvBtn.textContent = t; }, 1200); });
+    });
+
+    /* ── scheme table and references ─────────────────────────────────────── */
+    function refShort(key) { const r = D.refs[key]; if (!r) return key; if (r.short) return r.short; const m = /^([^,“]+?)(?:,|\s+and\s|\s+et al\.)/.exec(r.text.replace(/<[^>]+>/g, '')); const yr = /\((\d{4})\)/.exec(r.text); return (m ? m[1].trim().split(' ').pop() : key) + (yr ? ' ' + yr[1] : ''); }
+    const tbody = document.getElementById('scheme-rows');
+    tbody.innerHTML = D.schemes.map(s => {
+        const a = lv[s.from], b = lv[s.to], dE = b.E - a.E, lam = s.n * 1e7 / dE, nA = nAir(lam, 'pr');
+        const IE = b.mol ? b.mol.IE : D.atoms[s.species].IE.E, exc = b.E + s.m * (s.lambda2 ? 1e7 / s.lambda2 : dE / s.n) - IE;
+        return `<tr><td>${esc(speciesName(s.species))}</td><td>${esc(s.title.replace(/\s*\([^()]*\)$/, ''))} (${s.n}+${s.m}${s.lambda2 ? '′' : ''})</td><td class="num">${lam.toFixed(3)}</td><td class="num">${isNaN(nA) ? '—' : (lam / nA).toFixed(3)}</td><td class="num">${cmFmt(dE)}</td><td class="num">${(exc / EV).toFixed(3)}</td><td>${s.refs.map(r => `<a href="#ref-${r}">${esc(refShort(r))}</a>`).join(', ')}</td></tr>`;
+    }).join('');
+    const refItem = key => { const r = D.refs[key]; return `<li id="ref-${key}">${r.text}${r.doi ? `, <a href="https://doi.org/${r.doi}" target="_blank" rel="noopener">doi:${r.doi}</a>` : (r.url ? `, <a href="${r.url}" target="_blank" rel="noopener">${new URL(r.url).host.replace(/^www\./, '')}</a>` : '')} (${r.what}).</li>`; };
+    document.getElementById('refs-data').innerHTML = ['nistasd', 'webbook'].map(refItem).join('');
+    const paperKeys = ['hansch1975', 'bokor1981', 'mahon1979', 'bamford1986', 'perry1982', 'bischel1981', 'das1983', 'lai2020', 'brewer1982', 'brewer1983', 'arepalli1985cl', 'arepalli1985br', 'simeonsson1994', 'sausa1999', 'galtier2017', 'kroll1990', 'jacobs1986', 'tjossem1989', 'marinero1982', 'debeer1991', 'hudgens1983', 'stanley1983', 'sur1986', 'radar2026', 'kallos2024', 'meijer1986', 'glab1997', 'boesl1980', 'bonin1984', 'demtroder2008', 'kolachevsky2006', 'ashfold1994'];
+    document.getElementById('refs-papers').innerHTML = paperKeys.map(refItem).join('');
+    const laserKeys = ['peck1972', 'ciddor1996', 'vorobev2009', 'brackmann2000', 'moulton1986', 'ekspla_nt342'];
+    const ol3 = document.getElementById('refs-lasers'); ol3.setAttribute('start', String(3 + paperKeys.length)); ol3.innerHTML = laserKeys.map(refItem).join('');
+});
+</script>
+</body>
+</html>

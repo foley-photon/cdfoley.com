@@ -19,6 +19,9 @@
 
    Masses: CODATA 2022 proton mass; other ions are AME2020 atomic masses
    (Wang et al., Chin. Phys. C 45, 030003 (2021)) minus one electron mass.
+   Any other isotope and charge state comes from nuclides.js (the full AME2020
+   table and the preset groups of the species picker), which imports SPECIES
+   from here; the workers never load the table.
 
    Particle lists ('rows' sources): one canonical row per particle,
    [mass, charge, x, y, z, dx, dy, dz, ke, t0]; generateRows/frozenSource
@@ -34,8 +37,10 @@ import {
     S_STRIDE, S_ID, S_STATUS, S_WHERE, S_X, S_Y, S_Z, S_VX, S_VY, S_VZ, S_KE, S_SRC, S_SPECIES, STATUS,
 } from './layout.js';
 
-// AME2020 atomic masses (u) of the most abundant isotopes.
-const ATOM = { He4: 4.00260325413, C12: 12, N14: 14.00307400425, O16: 15.99491461926, Ar40: 39.9623831237, Kr84: 83.9114977282, Xe132: 131.9041550856 };
+// AME2020 atomic masses (u) of the most abundant isotopes, as printed in mass_1.mas20.txt (engine/nuclides.js holds the
+// whole table; the two agree to every printed digit). Until 0.2.3 the Ar, Kr and Xe values were the AME2012 ones as listed
+// by NIST (39.9623831237, 83.9114977282, 131.9041550856 u).
+const ATOM = { He4: 4.00260325413, C12: 12, N14: 14.00307400425, O16: 15.99491461926, Ar40: 39.96238312204, Kr84: 83.91149772708, Xe132: 131.90415508346 };
 
 /** Built-in species: { id, label, mass (u), charge (e), isotope }. */
 export const SPECIES = Object.freeze([

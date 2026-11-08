@@ -82,13 +82,31 @@
     .feature-tool p { color: var(--text-2); margin: 0 0 0.9rem; }
     .feature-tool .go { color: var(--accent); font-weight: 600; }
     .feature-tool svg { width: 100%; height: auto; max-height: 150px; }
-    .feature-tool .new { display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 0.15rem 0.55rem; }
+    .feature-tool .new, .feature-mini .new { display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 0.15rem 0.55rem; }
+    .feature-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.2rem; margin-bottom: 2rem; }
+    @media (max-width: 1000px) { .feature-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 560px) { .feature-row { grid-template-columns: minmax(0, 1fr); } }
+    .card.feature-mini { display: flex; flex-direction: column; gap: 0.7rem; padding: 1.1rem 1.2rem; }
+    .feature-mini svg { width: 100%; height: 64px; }
+    .feature-mini .mini-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+    .feature-mini h3 { font-size: 1.02rem; margin: 0; }
+    .feature-mini .new { flex-shrink: 0; }
+    .feature-mini p { font-size: 0.9rem; color: var(--text-2); margin: 0; line-height: 1.5; }
     .ft-glass { fill: var(--c6); fill-opacity: .2; stroke: var(--c6); } .ft-coat { stroke: var(--c4); stroke-width: 4; }
     .ft-gap { fill: var(--surface-2); } .ft-ray { stroke: var(--c2); stroke-width: 2.2; fill: none; } .ft-ref { stroke: var(--c5); stroke-width: 1.8; fill: none; stroke-dasharray: 5 4; }
     .ft-tr { stroke: var(--c1); stroke-width: 2.2; fill: none; }
     .ft-cam { fill: var(--surface-2); stroke: var(--border-strong); } .ft-lens { fill: var(--c1); fill-opacity: .2; stroke: var(--c1); }
     .ft-cone { fill: var(--c6); fill-opacity: .14; stroke: var(--c6); } .ft-part { fill: var(--c3); fill-opacity: .25; stroke: var(--c3); }
     .ft-grid { stroke: var(--border-strong); stroke-width: .6; } .ft-feat { fill: none; stroke: var(--c5); stroke-width: 1.6; }
+    .ft-axis { fill: none; stroke: var(--border-strong); stroke-width: 1.2; }
+    .ft-sp1, .ft-sp2, .ft-sp3 { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+    .ft-sp1 { stroke: var(--c1); } .ft-sp2 { stroke: var(--c2); } .ft-sp3 { stroke: var(--c3); }
+    .ft-fill1 { fill: var(--c1); fill-opacity: .08; }
+    .ft-laser { stroke: var(--c5); stroke-width: 1.8; stroke-dasharray: 5 4; } .ft-dot { fill: var(--c5); }
+    .ft-level { fill: none; stroke: var(--text-2); stroke-width: 2; } .ft-dash { stroke-dasharray: 4 3; }
+    .ft-arrow { fill: none; stroke: var(--c4); stroke-width: 2; } .ft-arrowhead { fill: var(--c4); }
+    .ft-cont { fill: var(--c6); fill-opacity: .18; stroke: var(--c6); stroke-width: 1; }
+    .ft-label { fill: var(--muted); font-size: 11px; font-family: var(--font); }
     .res-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 1.2rem; margin-top: 1.4rem; }
     .about-stats { margin-top: 2rem; }
     #tools { padding-top: clamp(0.5rem, 2vw, 1.5rem); }
@@ -130,7 +148,7 @@
             <span class="eyebrow">Lasers · Vacuum · Ion &amp; Electron Beams · Metrology · Quality</span>
             <h1>Casey D. Foley, PhD</h1>
             <p class="hero-role">Laser &amp; High Vacuum Systems Expert · Physical Chemist</p>
-            <p class="hero-summary">Free calculators, an ion and electron optics simulator (in beta), a vision system configurator, a formula reference, and practical explainers for lasers, optics, vacuum, spectroscopy, machine vision, and process quality. They come out of my work in production manufacturing, a national laboratory, and university research, and I keep them here for anyone who needs them.</p>
+            <p class="hero-summary">Free calculators, an ion and electron optics simulator and an absorption cross-section atlas (both in beta), a vision system configurator, a formula reference, and practical explainers for lasers, optics, vacuum, spectroscopy and photochemistry, machine vision, and process quality. They come out of my work in production manufacturing, a national laboratory, and university research, and I keep them here for anyone who needs them.</p>
             <form class="tool-search hero-search" action="/tools/" method="get" role="search">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
                 <input type="search" name="q" placeholder="Search tools — “Rayleigh”, “Cpk”, “Torr”, “lens”" aria-label="Search engineering tools" autocomplete="off">
@@ -158,27 +176,9 @@
         <div class="section-head">
             <span class="eyebrow">Free engineering tools</span>
             <h2>Calculators, references, and explainers</h2>
-            <p><span data-tool-count>36</span> calculators for lasers, optics, spectroscopy, vacuum, charged particles and plasma, vision and color, glazing, and quality. They run in your browser, show the equations and assumptions, and every result has a shareable link.</p>
+            <p><span data-tool-count>38</span> calculators for lasers, optics, spectroscopy, vacuum, charged particles and plasma, vision and color, glazing, and quality, plus beta simulators and data tools for ion optics, absorption cross sections, and photochemistry. They run in your browser, show the equations, assumptions, and data sources, and every result has a shareable link.</p>
         </div>
         <div class="feature-pair">
-            <a class="card feature-tool" href="/tools/vision-system-configurator/">
-                <svg viewBox="0 0 420 200" aria-hidden="true">
-                    <rect class="ft-cam" x="10" y="72" width="70" height="56" rx="7"/>
-                    <rect class="ft-lens" x="80" y="80" width="34" height="40" rx="4"/>
-                    <polygon class="ft-cone" points="114,100 300,30 300,170"/>
-                    <rect class="ft-part" x="296" y="40" width="8" height="120"/>
-                    <g transform="translate(318 48)">
-                        <path class="ft-grid" d="M0 0V104M13 0V104M26 0V104M39 0V104M52 0V104M65 0V104M78 0V104M91 0V104M0 0H91M0 13H91M0 26H91M0 39H91M0 52H91M0 65H91M0 78H91M0 91H91M0 104H91"/>
-                        <circle class="ft-feat" cx="45.5" cy="52" r="20"/>
-                    </g>
-                </svg>
-                <div>
-                    <span class="new">New</span>
-                    <h3>Vision System Configurator</h3>
-                    <p>Enter your field of view, working distance, and smallest defect. Get a sensor and standard lens, a drawing of the setup, and checks for resolution, depth of field, motion blur, bandwidth, and lighting, with 392 area-scan sensors from ten makers ranked for the job.</p>
-                    <span class="go">Open the configurator →</span>
-                </div>
-            </a>
             <a class="card feature-tool" href="/beta/ion-optics/">
                 <svg viewBox="0 0 420 200" aria-hidden="true">
                     <line class="ft-ref" x1="10" y1="100" x2="410" y2="100"/>
@@ -191,9 +191,87 @@
                 <div>
                     <span class="new">Beta</span>
                     <h3>Ion Optics Workbench</h3>
-                    <p>Draw electrodes, solve the electrostatic field, and trace ions and electrons through Einzel lenses, energy analyzers, reflectrons, velocity-map imaging optics, magnetic sectors, and RF traps, all in your browser. It checks itself against published and exact benchmarks; my review of that suite is still in progress.</p>
+                    <p>Draw electrodes, solve the electrostatic field, and fly any ion, isotope or electron, at any charge state, through Einzel lenses, energy analyzers, reflectrons, velocity-map imaging optics, magnetic sectors, and RF traps, all in your browser. It checks itself against published and exact benchmarks; my review of that suite is still in progress.</p>
                     <span class="go">Open the simulator (beta) →</span>
                 </div>
+            </a>
+            <a class="card feature-tool" href="/beta/cross-sections/">
+                <svg viewBox="0 0 420 200" aria-hidden="true">
+                    <path class="ft-axis" d="M34 14V170H406"/>
+                    <path class="ft-grid" d="M34 50H406M34 90H406M34 130H406M110 170V174M190 170V174M270 170V174M350 170V174"/>
+                    <path class="ft-fill1" d="M34 168C70 160 90 60 130 40C170 20 200 60 240 110C270 148 300 162 406 168V170H34Z"/>
+                    <path class="ft-sp1" d="M34 168C70 160 90 60 130 40C170 20 200 60 240 110C270 148 300 162 406 168"/>
+                    <path class="ft-sp2" d="M60 162L80 152L90 122L98 142L108 96L116 128L126 72L134 110L144 58L152 104L164 70L174 118L186 96L198 136L212 124L228 150L250 146L270 158L300 162L340 166"/>
+                    <path class="ft-sp3" d="M190 168C230 164 262 118 296 110C330 102 362 140 406 164"/>
+                    <line class="ft-laser" x1="236" y1="22" x2="236" y2="170"/>
+                    <circle class="ft-dot" cx="236" cy="106" r="4"/>
+                    <circle class="ft-dot" cx="236" cy="152" r="4"/>
+                    <text class="ft-label" x="242" y="34">λ</text>
+                </svg>
+                <div>
+                    <span class="new">Beta</span>
+                    <h3>Absorption Cross-Section Atlas</h3>
+                    <p>UV, visible, and VUV absorption cross sections of about 1000 molecules from five open datasets, overlaid on one plot and credited to the papers that measured them. Read σ at your laser line, interpolate between measurement temperatures, and turn it into a Beer–Lambert absorbance or the fraction of molecules each pulse photolyses.</p>
+                    <span class="go">Open the atlas (beta) →</span>
+                </div>
+            </a>
+        </div>
+        <div class="feature-row">
+            <a class="card feature-mini" href="/beta/thermochem/">
+                <svg viewBox="0 0 160 64" aria-hidden="true">
+                    <path class="ft-level" d="M14 54H62"/>
+                    <path class="ft-level" d="M100 30H146"/>
+                    <path class="ft-level ft-dash" d="M100 14H146"/>
+                    <path class="ft-ref" d="M62 54C82 54 84 30 100 30"/>
+                    <path class="ft-arrow" d="M38 54V16"/>
+                    <path class="ft-arrowhead" d="M33 18L38 7L43 18Z"/>
+                    <text class="ft-label" x="44" y="30">hν</text>
+                    <text class="ft-label" x="120" y="44">D₀</text>
+                </svg>
+                <div class="mini-head"><h3>Thermochemistry Lab</h3><span class="new">Beta</span></div>
+                <p>Bond energies and photolysis thresholds from Argonne's Active Thermochemical Tables, with excited products, photofragment recoil and imaging radii, beam collision energetics, and uncertainty budgets from ATcT's covariances.</p>
+            </a>
+            <a class="card feature-mini" href="/tools/pulse-bandwidth/">
+                <svg viewBox="0 0 160 64" aria-hidden="true">
+                    <path class="ft-axis" d="M8 54H70M90 54H152"/>
+                    <path class="ft-sp1" d="M8 53C26 53 31 10 39 10C47 10 52 53 70 53"/>
+                    <path class="ft-sp2" d="M90 53C100 53 108 14 121 14C134 14 142 53 152 53"/>
+                    <path class="ft-arrow" d="M73 32H87"/>
+                    <path class="ft-arrowhead" d="M86 28L93 32L86 36ZM74 28L67 32L74 36Z"/>
+                    <text class="ft-label" x="30" y="62">Δt</text>
+                    <text class="ft-label" x="112" y="62">Δν</text>
+                </svg>
+                <div class="mini-head"><h3>Pulse Duration &amp; Bandwidth</h3><span class="new">New</span></div>
+                <p>Time–bandwidth product, transform limit, and dispersion: how nanosecond, picosecond, and femtosecond lasers reach their pulse widths.</p>
+            </a>
+            <a class="card feature-mini" href="/tools/rempi-schemes/">
+                <svg viewBox="0 0 160 64" aria-hidden="true">
+                    <rect class="ft-cont" x="34" y="6" width="92" height="12" rx="2"/>
+                    <path class="ft-level" d="M34 56H126"/>
+                    <path class="ft-level" d="M34 36H126"/>
+                    <path class="ft-arrow" d="M80 56V42M80 36V22"/>
+                    <path class="ft-arrowhead" d="M75 43L80 34L85 43ZM75 23L80 14L85 23Z"/>
+                    <circle class="ft-dot" cx="106" cy="12" r="3"/>
+                    <text class="ft-label" x="134" y="16">e⁻</text>
+                    <text class="ft-label" x="86" y="50">hν</text>
+                    <text class="ft-label" x="86" y="31">hν</text>
+                </svg>
+                <div class="mini-head"><h3>REMPI Scheme Planner</h3><span class="new">New</span></div>
+                <p>Wavelengths, level diagrams, and laser sources for resonance-enhanced multiphoton ionization schemes.</p>
+            </a>
+            <a class="card feature-mini" href="/tools/vision-system-configurator/">
+                <svg viewBox="0 0 160 64" aria-hidden="true">
+                    <rect class="ft-cam" x="8" y="22" width="30" height="22" rx="3"/>
+                    <rect class="ft-lens" x="38" y="26" width="12" height="14" rx="2"/>
+                    <polygon class="ft-cone" points="50,33 112,10 112,56"/>
+                    <rect class="ft-part" x="110" y="12" width="4" height="42"/>
+                    <g transform="translate(122 14)">
+                        <path class="ft-grid" d="M0 0V36M9 0V36M18 0V36M27 0V36M0 0H27M0 9H27M0 18H27M0 27H27M0 36H27"/>
+                        <circle class="ft-feat" cx="13.5" cy="18" r="7"/>
+                    </g>
+                </svg>
+                <div class="mini-head"><h3>Vision System Configurator</h3></div>
+                <p>Enter field of view, working distance, and smallest defect to get a sensor and lens, a drawing of the setup, and checks for resolution, depth of field, motion blur, bandwidth, and lighting.</p>
             </a>
         </div>
         <div data-tool-cats></div>
@@ -211,7 +289,7 @@
             <a class="card tool-card" href="/beta/">
                 <div class="card-meta" style="margin:0 0 .4rem">Beta · in review</div>
                 <h3>Simulators in beta</h3>
-                <p>An ion and electron optics workbench, a vacuum conductance lab with Monte Carlo for CAD models, and an open-data glazing model, each with a built-in self-test against published reference values.</p>
+                <p>An ion and electron optics workbench, an absorption cross-section atlas, a thermochemistry lab built on ATcT, a vacuum conductance lab with Monte Carlo for CAD models, and an open-data glazing model. Each is checked against published reference values. Those with documented checks are listed with the main tools and open to search.</p>
             </a>
         </div>
     </div>

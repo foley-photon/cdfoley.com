@@ -1,12 +1,13 @@
 """Draw a link-preview image (1200 × 630) for every tool, article, game, and hub page, and point each
 page's og:image at its own card, so a shared link shows that page instead of the generic site card.
 
-    python _scripts/og_pages.py
+    python _scripts/og_pages.py                       # every page
+    python _scripts/og_pages.py beta/cross-sections   # only pages whose path starts with an argument
 
 Run after changing page titles or descriptions. Uses Segoe UI from Windows and Pillow.
 Writes assets/img/og/<section>-<slug>.jpg.
 """
-import html, math, os, re
+import html, math, os, re, sys
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -121,7 +122,9 @@ jobs += [('tools/index.html', 'hub-tools', 'Free engineering calculators', 'Calc
          ('learn/index.html', 'hub-learn', 'Knowledge center', 'Laser, optics & vacuum explainers'),
          ('formulas/index.html', 'hub-formulas', 'Reference', 'Laser, optics, vacuum & SPC formulas'),
          ('games/index.html', 'hub-games', 'Free online games · No ads', 'Pinball, Brick Breaker, 2048, Sudoku & more')]
-jobs += [('beta/thermochem/index.html', 'beta-thermochem', 'Free calculator · Thermochemistry & photochemistry', 'Thermochemistry Lab')]
+jobs += [('beta/thermochem/index.html', 'beta-thermochem', 'Free calculator · Thermochemistry & photochemistry', 'Thermochemistry Lab'),
+         ('beta/cross-sections/index.html', 'beta-cross-sections', 'Free data tool · Spectroscopy & photochemistry', 'Absorption Cross-Section Atlas')]
+if sys.argv[1:]: jobs = [j for j in jobs if any(j[0].startswith(a.strip('/')) for a in sys.argv[1:])]
 for page, name, eyebrow, title in jobs:
     s = open(page, encoding='utf-8').read()
     desc = meta(s, 'name', 'description')
