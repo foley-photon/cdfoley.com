@@ -7,7 +7,7 @@
 # Outputs
 #   resume/index.html                            public page, master version only (via _scripts/resume_public.py)
 #   resume.pdf                                   master version, published at cdfoley.com/resume.pdf
-#   applications/Casey-Foley-PhD-Resume-*.pdf    tailored versions (git-ignored, never published)
+#   applications/general/Casey-Foley-PhD-Resume-*.pdf  tailored versions (git-ignored, never published)
 #
 # Phone number: only the tailored (application) PDFs include it. It is read from
 # applications/contact.json, e.g. { "phone": "555-555-5555" }, which is git-ignored, so the
@@ -26,11 +26,11 @@ if (-not $edge) { throw 'Microsoft Edge not found.' }
 
 $variants = [ordered]@{
     master  = Join-Path $root 'resume.pdf'
-    mfg     = Join-Path $root 'applications\Casey-Foley-PhD-Resume-Process-Engineering.pdf'
-    rd      = Join-Path $root 'applications\Casey-Foley-PhD-Resume-Optical-RD.pdf'
-    inspect = Join-Path $root 'applications\Casey-Foley-PhD-Resume-Inspection-Metrology.pdf'
+    mfg     = Join-Path $root 'applications\general\Casey-Foley-PhD-Resume-Process-Engineering.pdf'
+    rd      = Join-Path $root 'applications\general\Casey-Foley-PhD-Resume-Optical-RD.pdf'
+    inspect = Join-Path $root 'applications\general\Casey-Foley-PhD-Resume-Inspection-Metrology.pdf'
 }
-New-Item -ItemType Directory -Force (Join-Path $root 'applications') | Out-Null
+New-Item -ItemType Directory -Force (Join-Path $root 'applications\general') | Out-Null
 
 $phone = $null
 $contactFile = Join-Path $root 'applications\contact.json'
