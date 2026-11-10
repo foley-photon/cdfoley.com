@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Low-E Sheet Resistance to Emissivity Calculator (Ohms per Square)</title>
-<meta name="description" content="Convert low-e coating sheet resistance (ohms per square) to emissivity, silver thickness, RF attenuation, and U-factor, with typical values by coating type.">
+<meta name="description" content="Convert low-e coating sheet resistance (ohms per square) to emissivity, silver thickness, RF attenuation, U-factor, and R-value, with typical coating values.">
 <link rel="canonical" href="https://cdfoley.com/tools/low-e-sheet-resistance/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Low-E Sheet Resistance and Emissivity Calculator">
-<meta property="og:description" content="Convert low-e coating sheet resistance (ohms per square) to emissivity, silver thickness, RF attenuation, and U-factor, with typical values by coating type.">
+<meta property="og:description" content="Convert low-e coating sheet resistance (ohms per square) to emissivity, silver thickness, RF attenuation, U-factor, and R-value, with typical coating values.">
 <meta property="og:url" content="https://cdfoley.com/tools/low-e-sheet-resistance/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/tool-low-e-sheet-resistance.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Low-E Coating Sheet Resistance &amp; Emissivity Calculator. Convert low-e coating sheet resistance (ohms per square) to emissivity, silver thickness, RF attenuation, and U-factor, with typical values by coating type.">
+<meta property="og:image:alt" content="Low-E Coating Sheet Resistance &amp; Emissivity Calculator. Convert low-e coating sheet resistance (ohms per square) to emissivity, silver thickness, RF attenuation, U-factor, and R-value, with typical coating values.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -26,6 +26,7 @@
 <script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/glazing-units.js"></script>
 <script defer src="/assets/js/plot.js"></script>
 <script defer src="/assets/js/glazing-weights.js"></script>
 <script defer src="/assets/js/glazing-engine.js"></script>
@@ -37,7 +38,7 @@
    "@type": "WebApplication",
    "name": "Low-E Sheet Resistance & Emissivity",
    "url": "https://cdfoley.com/tools/low-e-sheet-resistance/",
-   "description": "Convert low-e coating sheet resistance (ohms per square) to emissivity, silver thickness, RF attenuation, and U-factor, with typical values by coating type.",
+   "description": "Convert low-e coating sheet resistance (ohms per square) to emissivity, silver thickness, RF attenuation, U-factor, and R-value, with typical coating values.",
    "applicationCategory": "UtilitiesApplication",
    "operatingSystem": "Any (web browser)",
    "browserRequirements": "Requires JavaScript",
@@ -47,7 +48,7 @@
     "price": "0",
     "priceCurrency": "USD"
    },
-   "keywords": "sheet resistance ohms per square ohm/sq ohms/sq low-e emissivity hemispherical emissivity corrected emissivity normal emissivity nfrc 301 en 12898 iso 10292 silver thickness thin film resistivity ito fto tin oxide four point probe eddy current emissometer rf shielding radio attenuation cell signal coating calculator",
+   "keywords": "sheet resistance ohms per square ohm/sq ohms/sq low-e emissivity hemispherical emissivity corrected emissivity normal emissivity nfrc 301 en 12898 iso 10292 silver thickness thin film resistivity ito fto tin oxide four point probe eddy current emissometer rf shielding radio attenuation cell signal coating u-factor u-value ufactor r-value rvalue r value rsi u to r u-factor to r-value thermal resistance w/m2k w/m2.k btu/h.ft2.f m2k/w m2.k/w h.ft2.f/btu calculator",
    "author": {
     "@type": "Person",
     "@id": "https://cdfoley.com/#person",
@@ -111,6 +112,7 @@
     #rs-plot circle.marker[r="6"] { stroke-width: 2.5; }   /* your coating: larger point, wider halo */
     /* Typical-values tables: on a phone the headers wrap and the cells pad less, so the numeric columns stay in view */
     @media (max-width: 560px) { .lowe-tbl th { white-space: normal; } .lowe-tbl th, .lowe-tbl td { padding: 0.45rem 0.5rem; } }
+    .result.r-pair { border-top: 0; padding-top: 0; margin-top: -0.3rem; }   /* the R-value row sits with the U-factor row of the same unit */
 </style>
 </head>
 <body data-section="tools">
@@ -124,13 +126,14 @@
 
     <header class="page-head">
         <h1>Low-E Coating Sheet Resistance &amp; Emissivity Calculator</h1>
-        <p class="lede">Sheet resistance is a fast, routine production check of a low-e coating: it follows the silver (or the transparent conducting oxide) that gives the coating its low emissivity. Enter a sheet resistance in ohms per square to estimate the coating’s emissivity, the conductor thickness, how strongly the coating blocks radio signals, and what it does to the U-factor of a double-glazed window. A four-point-probe converter, typical values for each coating family, and measurement notes follow.</p>
+        <p class="lede">Sheet resistance is a fast, routine production check of a low-e coating: it follows the silver (or the transparent conducting oxide) that gives the coating its low emissivity. Enter a sheet resistance in ohms per square to estimate the coating’s emissivity, the conductor thickness, how strongly the coating blocks radio signals, and what it does to the U-factor and R-value of a double-glazed window. A four-point-probe converter, typical values for each coating family, and measurement notes follow.</p>
         <details class="key-terms"><summary>Key terms</summary><dl>
             <dt>Low-e coating</dt><dd>A thin, transparent coating that reflects the long-wave infrared a warm room radiates while letting most visible light through. Most are built around one, two or three silver layers; the durable “hard-coat” type is fluorine-doped tin oxide.</dd>
             <dt>Sheet resistance</dt><dd>The electrical resistance of a square of thin film, measured from one edge to the opposite edge. It is the same for a square of any size, hence the unit ohms per square (Ω/sq). Less resistance means more conducting material: silver low-e coatings are typically 1–6&nbsp;Ω/sq.</dd>
             <dt>Emissivity</dt><dd>How strongly a surface radiates heat compared with a perfect radiator (a black body), on a scale from 0 to 1. Uncoated glass is about 0.84; silver low-e coatings are about 0.01–0.08.</dd>
             <dt>Normal and hemispherical emissivity</dt><dd>Normal emissivity is measured looking straight at the surface; hemispherical emissivity averages over all directions and is what heat-transfer calculations use. For low-e coatings the hemispherical value is about 10–30&nbsp;% higher: 20–30&nbsp;% for silver coatings and about 10–15&nbsp;% for tin-oxide hard coats. European standards call their version the corrected emissivity.</dd>
-            <dt>U-factor</dt><dd>The heat flow through a window per square meter and per degree of indoor–outdoor temperature difference, in W/m²·K (or Btu/h·ft²·°F). Lower is better; a low-e coating and argon fill together roughly halve it for a double-glazed unit.</dd>
+            <dt>U-factor</dt><dd>The heat flow through a window per square meter and per degree of indoor–outdoor temperature difference, in W/m²·K (US units: Btu/h·ft²·°F). Lower insulates better; a low-e coating and argon fill together roughly halve it for a double-glazed unit.</dd>
+            <dt>R-value</dt><dd>The same measure turned over: the resistance to heat flow, so higher insulates better. Halving the U-factor doubles the R-value. In US units it is written like R-4 (h·ft²·°F/Btu); in SI it is in m²·K/W and often called RSI. For glazing it is a center-of-glass value that includes the air films on the indoor and outdoor faces. The R-value printed on insulation is for the material alone, and a whole window, with its frame and edge, has a lower R-value than its center of glass.</dd>
             <dt>Shielding effectiveness</dt><dd>How much a barrier weakens a radio wave, in decibels: 30&nbsp;dB cuts the power a thousandfold. The silver in low-e glass makes it a good radio shield, which is why phones can lose signal behind it.</dd>
             <dt>Four-point probe and eddy-current gauge</dt><dd>The two common ways to measure sheet resistance. A four-point probe touches the film with four pins in a row; an eddy-current gauge senses the film through a coil without touching it.</dd>
         </dl></details>
@@ -167,7 +170,7 @@
                     <div class="result primary"><span class="result-label">Normal emissivity <span class="sym">ε<sub>n</sub></span></span><output class="result-value" data-out="en">—</output>
                         <span class="result-note">A thin-film estimate. An ideal silver film would sit a few percent above it; stacks with infrared-absorbing layers sit further above, especially below about 2&nbsp;Ω/sq, and doped-oxide coatings, whose films are much thicker, usually sit above it too. Check it against an emissometer for production use.</span></div>
                     <div class="result"><span class="result-label">Hemispherical emissivity, NFRC&nbsp;301 <span class="sym">ε<sub>h</sub></span></span><output class="result-value" data-out="eh">—</output>
-                        <span class="result-note">The emissivity averaged over all directions, which heat radiation between panes depends on. NFRC&nbsp;301 obtains it from ε<sub>n</sub> with the Rubin et al. correlation; the U-factors below use it.</span></div>
+                        <span class="result-note">The emissivity averaged over all directions, which heat radiation between panes depends on. NFRC&nbsp;301 obtains it from ε<sub>n</sub> with the Rubin et al. correlation; the U-factors and R-values below use it.</span></div>
                     <div class="result"><span class="result-label">Corrected emissivity, EN&nbsp;12898 <span class="sym">ε</span></span><output class="result-value" data-out="ec">—</output>
                         <span class="result-note">The European counterpart used for EN&nbsp;673 U-values: ε<sub>n</sub> times a tabulated factor (ISO&nbsp;10292). It runs 3–5&nbsp;% below the NFRC value at low emissivity, so one coating can be quoted with two numbers.</span></div>
                     <div class="result"><span class="result-label">Conductor thickness <span class="sym">t = ρ/R<sub>s</sub></span></span><output class="result-value" data-out="t">—</output>
@@ -175,9 +178,12 @@
                     <div class="result"><span class="result-label">Radio attenuation of the coating <span class="sym">20 log(1 + Z₀/2R<sub>s</sub>)</span></span><output class="result-value" data-out="se">—</output>
                         <span class="result-note">Plane wave at normal incidence, coating alone; this is why low-e windows weaken cell signals. On a 6&nbsp;mm pane the total is about 0.3&nbsp;dB lower at 0.9&nbsp;GHz, 2&nbsp;dB lower at 2.4&nbsp;GHz and 6–7&nbsp;dB lower at 5.5&nbsp;GHz. Real buildings also leak through frames and gaps.</span></div>
                     <div class="result"><span class="result-label">U-factor, 6&nbsp;mm / 12.7&nbsp;mm argon / 6&nbsp;mm, coating on #2</span><output class="result-value" data-out="uar">—</output></div>
-                    <div class="result"><span class="result-label">Same unit with air</span><output class="result-value" data-out="uair">—</output></div>
-                    <div class="result"><span class="result-label">Same unit, uncoated, air <span class="sym">for comparison</span></span><output class="result-value" data-out="u0">—</output>
-                        <span class="result-note">Center-of-glass U-factors from the ISO&nbsp;15099 model at NFRC&nbsp;100 winter conditions, with ε<sub>h</sub> (NFRC&nbsp;301) on the coated surface; the argon fill is 90&nbsp;% argon. Frames and spacers make whole-window values higher.</span></div>
+                    <div class="result r-pair"><span class="result-label">R-value, argon</span><output class="result-value" data-out="rar">—</output></div>
+                    <div class="result"><span class="result-label">U-factor, same unit with air</span><output class="result-value" data-out="uair">—</output></div>
+                    <div class="result r-pair"><span class="result-label">R-value, air</span><output class="result-value" data-out="rair">—</output></div>
+                    <div class="result"><span class="result-label">U-factor, same unit, uncoated, air <span class="sym">for comparison</span></span><output class="result-value" data-out="u0">—</output></div>
+                    <div class="result r-pair"><span class="result-label">R-value, uncoated, air</span><output class="result-value" data-out="r0">—</output>
+                        <span class="result-note">Center-of-glass values from the ISO&nbsp;15099 model at NFRC&nbsp;100 winter conditions, with ε<sub>h</sub> (NFRC&nbsp;301) on the coated surface; the argon fill is 90&nbsp;% argon. Each R-value is 1 divided by the U-factor: first the US value (R-4 means 4&nbsp;h·ft²·°F/Btu), then the SI value in m²·K/W (RSI). It includes the indoor and outdoor air films, so it is not the material-only R-value printed on insulation. Frames and spacers make whole-window U-factors higher and R-values lower. To convert any other value, use the <a href="/tools/glazing-performance/#ru-converter">U-factor and R-value converter</a>.</span></div>
                 </div>
             </div>
         </section>
@@ -229,14 +235,14 @@
         <p>where \(Z_0 = \mu_0 c = 376.73\ \Omega\) is the impedance of free space and \(n_g = 2\) is an effective infrared index of the glass. With no coating (\(y = 0\)) the formula gives \(\varepsilon_n = 8/9 = 0.889\). Averaged over all directions that is 0.839 with Rubin’s correlation for uncoated glass (0.842 with the coated-surface correlation below, which this page applies at every sheet resistance), matching the 0.893 and 0.839 computed from the measured optical constants of window glass. At the low sheet resistance of low-e coatings the glass hardly matters, and the expression reduces to the widely used rule</p>
         <div class="formula">\[ \varepsilon_n \approx \frac{4R_s}{Z_0} \approx 0.0106\,R_s \quad (R_s \text{ in } \Omega/\text{sq}). \]</div>
         <p>Halving the sheet resistance halves the emissivity. For a thick metal the classic counterpart is the Hagen–Rubens relation, \(\varepsilon_n \approx \sqrt{8\varepsilon_0\omega\rho}\), which depends on the bulk resistivity and on the frequency \(\omega\) of the radiation. For a thin film only the sheet resistance counts: while \(R_s \ll Z_0\) the result is the same at every thermal wavelength and, to first order, whatever the electrons’ scattering time.</p>
-        <p>Heat radiation between window panes depends on the hemispherical emissivity, averaged over all directions. Standards obtain it from \(\varepsilon_n\) with empirical correlations. NFRC&nbsp;301, used for North American ratings, applies the correlation of Rubin, Arasteh and Hartmann, which this page uses for \(\varepsilon_h\) and the U-factors:</p>
+        <p>Heat radiation between window panes depends on the hemispherical emissivity, averaged over all directions. Standards obtain it from \(\varepsilon_n\) with empirical correlations. NFRC&nbsp;301, used for North American ratings, applies the correlation of Rubin, Arasteh and Hartmann, which this page uses for \(\varepsilon_h\) and, through it, the U-factors and R-values:</p>
         <div class="formula">\[ \begin{aligned} \varepsilon_h = {} & 1.3217\,\varepsilon_n - 1.8766\,\varepsilon_n^2 \\ & + 4.6586\,\varepsilon_n^3 - 5.8349\,\varepsilon_n^4 \\ & + 2.7406\,\varepsilon_n^5. \end{aligned} \]</div>
         <p>European practice (EN&nbsp;12898, EN&nbsp;673) instead multiplies \(\varepsilon_n\) by a factor tabulated in ISO&nbsp;10292: 1.22 at \(\varepsilon_n\) = 0.03, 1.18 at 0.05, 1.14 at 0.1, 1.10 at 0.2, 1.06 at 0.3, 1.03 at 0.4, 1.00 at 0.5, 0.98 at 0.6, 0.96 at 0.7, 0.95 at 0.8 and 0.94 at 0.89, interpolated linearly and, below 0.03, extrapolated linearly as the table allows. EN&nbsp;12898:2019 replaced the table with a polynomial fitted to it. This “corrected emissivity” comes out 3–5&nbsp;% below the NFRC value for \(\varepsilon_n\) from 0.01 to 0.1, most near 0.05. For an ideal thin metal sheet the ratio \(\varepsilon_h/\varepsilon_n\) approaches 4/3 as \(\varepsilon_n \to 0\), because obliquely incident p-polarized radiation is absorbed more strongly. A full thin-film calculation for silver films 6–40&nbsp;nm thick (see Assumptions and limits) gives 1.21–1.29 for \(\varepsilon_n\) from 0.09 to 0.01, within 2&nbsp;% of the NFRC correlation.</p>
         <p>The conductor thickness is \(t = \rho/R_s\) for the resistivity chosen above. The silver layers of a double- or triple-silver stack conduct in parallel, so for them it is the total silver thickness.</p>
         <p>A thin sheet of resistance \(R_s\) across a plane radio wave in free space passes a fraction \(2/(2 + Z_0/R_s)\) of the field, so its shielding effectiveness is</p>
         <div class="formula">\[ SE = 20\log_{10}\!\left(1 + \frac{Z_0}{2R_s}\right)\ \text{dB}, \]</div>
         <p>the thin-film formula used for transparent conductive shields (Colaneri and Shacklette 1992). A four-point probe with equally spaced pins in a line, on a sheet much larger than the pin spacing, gives \(R_s = (\pi/\ln 2)\,V/I = 4.532\,V/I\) for a current \(I\) through the outer pins and a voltage \(V\) across the inner pins. On a finite sample the geometry factor is Smits’s correction \(C\) divided by 4.532.</p>
-        <p>The U-factors come from this site’s glazing engine: the ISO&nbsp;15099 center-of-glass model at NFRC&nbsp;100 winter conditions (−18&nbsp;°C outside with a 5.5&nbsp;m/s wind, 21&nbsp;°C inside), for a unit 1&nbsp;m tall of two 6&nbsp;mm clear panes (glass conductivity 1&nbsp;W/m·K) around a 12.7&nbsp;mm gap of air or of 90&nbsp;% argon and 10&nbsp;% air, with \(\varepsilon_h\) on surface #2 and 0.84 on the other three glass surfaces.</p>
+        <p>The U-factors and R-values come from this site’s glazing engine: the ISO&nbsp;15099 center-of-glass model at NFRC&nbsp;100 winter conditions (−18&nbsp;°C outside with a 5.5&nbsp;m/s wind, 21&nbsp;°C inside), for a unit 1&nbsp;m tall of two 6&nbsp;mm clear panes (glass conductivity 1&nbsp;W/m·K) around a 12.7&nbsp;mm gap of air or of 90&nbsp;% argon and 10&nbsp;% air, with \(\varepsilon_h\) on surface #2 and 0.84 on the other three glass surfaces. The R-value is \(R = 1/U\), in m²·K/W (RSI) when \(U\) is in W/m²·K. Because 1&nbsp;Btu/h·ft²·°F = 5.678263&nbsp;W/m²·K, the US values are \(U/5.678263\) in Btu/h·ft²·°F and \(5.678263\,R\) in h·ft²·°F/Btu. Every number is rounded from the full-precision U-factor. These are center-of-glass, air-to-air values: they include the indoor and outdoor air films at the conditions above. The R-value printed on insulation is for the material alone, and a whole window, with its frame and edge, has a lower R-value than its center of glass. The <a href="/tools/glazing-performance/#ru-converter">U-factor and R-value converter</a> on the glazing calculator converts any value in either direction.</p>
 
         <h2>Typical values</h2>
         <table class="lowe-tbl">
@@ -272,12 +278,12 @@
             <li><strong>Emissometers.</strong> Portable emissometers compare the thermal radiation of the sample with high- and low-emissivity standards (ASTM&nbsp;C1371) and can be calibrated to read hemispherical emissivity. They are useful for finding which surface is coated and for calibrating the sheet-resistance-to-emissivity relation.</li>
             <li><strong>Infrared spectrometry.</strong> Reference values come from the infrared reflectance spectrum: EN&nbsp;12898 averages the reflectance at 30 wavelengths from 5.5 to 50&nbsp;µm chosen for a 283&nbsp;K black body (ISO&nbsp;20589 covers the same determination internationally), and NFRC&nbsp;301 integrates at least 5–25&nbsp;µm for 300&nbsp;K.</li>
         </ul>
-        <p>Sheet resistance and color tell you different things. Sheet resistance follows the silver, while color follows the dielectric layer thicknesses through thin-film interference. Mapping both across a lite checks the silver and the dielectric layers together. The <a href="/tools/color-converter/">color tool</a> explains how to measure low-e color, and the <a href="/tools/glazing-performance/">glazing calculator</a> turns emissivity into U-factor and SHGC for a full window.</p>
+        <p>Sheet resistance and color tell you different things. Sheet resistance follows the silver, while color follows the dielectric layer thicknesses through thin-film interference. Mapping both across a lite checks the silver and the dielectric layers together. The <a href="/tools/color-converter/">color tool</a> explains how to measure low-e color, and the <a href="/tools/glazing-performance/">glazing calculator</a> turns emissivity into U-factor, R-value and SHGC for a full window.</p>
 
         <h2>Worked example</h2>
         <p>For the default coating, \(R_s = 2.5\ \Omega\)/sq, so \(y = 376.73/2.5 = 150.69\) and</p>
         <div class="formula">\[ \varepsilon_n = \frac{4\,(150.69 + 2)}{(1 + 150.69 + 2)^2} = 0.0259, \]</div>
-        <p>a little below the simple rule’s \(4 \times 2.5/376.73 = 0.0265\). The NFRC&nbsp;301 correlation gives \(\varepsilon_h = 0.033\), and the ISO&nbsp;10292 factor, 1.228, a corrected emissivity of 0.0318. With 4&nbsp;µΩ·cm silver the thickness is \(4\times10^{-8}\ \Omega\,\text{m} / 2.5\ \Omega = 16\ \text{nm}\), and the radio attenuation is \(20\log_{10}(1 + 376.73/5) = 37.7\ \text{dB}\). In the double-glazed unit the U-factor is 1.38&nbsp;W/m²·K with argon and 1.65&nbsp;W/m²·K with air, against 2.68&nbsp;W/m²·K uncoated. The four-point-probe default, 1.10&nbsp;mV at 2.0&nbsp;mA, gives \(4.532 \times 0.55\ \Omega = 2.493\ \Omega\)/sq.</p>
+        <p>a little below the simple rule’s \(4 \times 2.5/376.73 = 0.0265\). The NFRC&nbsp;301 correlation gives \(\varepsilon_h = 0.033\), and the ISO&nbsp;10292 factor, 1.228, a corrected emissivity of 0.0318. With 4&nbsp;µΩ·cm silver the thickness is \(4\times10^{-8}\ \Omega\,\text{m} / 2.5\ \Omega = 16\ \text{nm}\), and the radio attenuation is \(20\log_{10}(1 + 376.73/5) = 37.7\ \text{dB}\). In the double-glazed unit the U-factor is 1.38&nbsp;W/m²·K (0.244&nbsp;Btu/h·ft²·°F) with argon and 1.65&nbsp;W/m²·K (0.29&nbsp;Btu/h·ft²·°F) with air, against 2.68&nbsp;W/m²·K (0.473&nbsp;Btu/h·ft²·°F) uncoated. The matching R-values are R-4.1 (0.722&nbsp;m²·K/W), R-3.45 (0.608&nbsp;m²·K/W) and R-2.12 (0.372&nbsp;m²·K/W): the coating and the argon together nearly double the R-value of the uncoated unit. The four-point-probe default, 1.10&nbsp;mV at 2.0&nbsp;mA, gives \(4.532 \times 0.55\ \Omega = 2.493\ \Omega\)/sq.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
@@ -287,7 +293,7 @@
             <li><strong>Hemispherical values.</strong> Both conversions are empirical correlations. NFRC&nbsp;301 weights the spectrum for a 300&nbsp;K black body and EN&nbsp;12898 for 283&nbsp;K, and EN&nbsp;12898 rounds ε<sub>n</sub> to two decimals before converting; the thin-film estimate here depends on neither.</li>
             <li><strong>Thickness.</strong> The resistivity of thin silver depends on its own thickness and growth (about 3.5–6.5&nbsp;µΩ·cm at 10–20&nbsp;nm), so the thickness is an estimate.</li>
             <li><strong>Radio attenuation.</strong> Plane wave at normal incidence on the coating alone. Glass under the coating lowers it at higher frequencies (see above), insulating units add a second pane and reflections between the panes, and oblique incidence, frames and openings let more signal through, so real building losses differ.</li>
-            <li><strong>U-factors.</strong> Center of glass only, for the fixed unit described above; frames and spacers raise whole-window values. European U<sub>g</sub> values follow EN&nbsp;673, with different boundary conditions, and are not directly comparable.</li>
+            <li><strong>U-factors and R-values.</strong> Center of glass only, for the fixed unit described above; frames and spacers raise whole-window U-factors and lower whole-window R-values. The R-values are air to air: they include the indoor and outdoor air films at NFRC&nbsp;100 winter conditions, so do not compare them directly with the material-only R-value printed on insulation. European U<sub>g</sub> values follow EN&nbsp;673, with different boundary conditions, and are not directly comparable.</li>
         </ul>
 
         <h2>References</h2>
@@ -378,7 +384,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const c = E.CONDITIONS.winter, w = E.thermal(L, [{ fill, width: 0.0127 }], c, null, 1);
         return -w.qRoom / (c.Ti - c.To);
     }
-    const uStr = U => fmt.num(U, 3) + ' W/m²·K (' + fmt.num(U / 5.678263, 3) + ' Btu/h·ft²·°F)';
+    // "1.38 W/m²·K (0.244 Btu/h·ft²·°F)" and "R-4.1 (0.722 m²·K/W)", each number rounded from the full-precision U (glazing-units.js)
+    const uStr = U => GlazingUnits.uText(U, fmt.num), rStr = U => GlazingUnits.rText(U, fmt.num);
 
     function plot(Rs) {
         if (!window.Plot) return;
@@ -402,12 +409,13 @@ document.addEventListener('DOMContentLoaded', () => {
         id: 'rs', form: '#rs', outputs: '#rs-out',
         compute(v) {
             const en = emis(v.Rs), eh = hemi(en), rho = parseFloat(v.mat) * 1e-8;   // µΩ·cm → Ω·m
+            const uar = uFactor(eh, 'argon'), uair = uFactor(eh, 'air'), u0 = uFactor(0.84, 'air');   // W/m²·K
             return {
                 family: family(v.Rs),
                 en: fmt.num(en, 3), eh: fmt.num(eh, 3), ec: fmt.num(corrected(en), 3),
                 t: fmt.si(rho / v.Rs, 'm', 3),
                 se: fmt.num(20 * Math.log10(1 + Z0 / (2 * v.Rs)), 3) + ' dB',
-                uar: uStr(uFactor(eh, 'argon')), uair: uStr(uFactor(eh, 'air')), u0: uStr(uFactor(0.84, 'air'))
+                uar: uStr(uar), rar: rStr(uar), uair: uStr(uair), rair: rStr(uair), u0: uStr(u0), r0: rStr(u0)
             };
         },
         onError() { if (window.Plot) Plot.clear('#rs-plot'); },   // no valid result: no marker left at the last value beside blank outputs

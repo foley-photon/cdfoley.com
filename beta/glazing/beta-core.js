@@ -8,7 +8,14 @@
 (function (root) {
     'use strict';
 
-    var BTU = 5.678263;   // W/m²·K per Btu/h·ft²·°F
+    // U-factor and R-value conversions are the shared module's (assets/js/glazing-units.js), which the page loads
+    // before this file. The Node tests can also load this file alone, so the constant and the four-value conversion
+    // have a fallback here; _tests/glazing/units.test.mjs holds the two constants equal and wp4-core.test.mjs holds
+    // metrics() identical with and without the module.
+    var GU = root.GlazingUnits || null;
+    var BTU = GU ? GU.BTU : 5.678263;   // W/m²·K per Btu/h·ft²·°F
+    // U in W/m²·K → { U, Uip (Btu/h·ft²·°F), Rsi = 1/U (m²·K/W), Rip = BTU/U (h·ft²·°F/Btu) }, each from the full-precision U
+    function fromU(U) { return GU ? GU.fromU(U) : { U: U, Uip: U / BTU, Rsi: 1 / U, Rip: BTU / U }; }
 
     var THICK = [2.5, 3, 4, 5, 6, 8, 10, 12, 15, 19];
     var GENERIC = {
@@ -230,22 +237,25 @@
 
     function dewPoint(T, rh) { var a = 17.62, b = 243.12, g = Math.log(rh) + a * T / (b + T); return b * g / (a - g); }
 
+    // Rsi and Rip are the center-of-glass, air-to-air R-value, 1/U: they include the indoor and outdoor air-film
+    // resistances at the NFRC 100 winter conditions U is calculated for.
     function metrics(r, np) {
-        var Uip = r.U / BTU;
+        var q = fromU(r.U);
         return {
-            U: r.U, Uip: Uip, SHGC: r.SHGC, VT: r.Tvis, Rvis: r.Rvis, RvisIn: r.RvisIn,
+            U: r.U, Uip: q.Uip, Rip: q.Rip, Rsi: q.Rsi, SHGC: r.SHGC, VT: r.Tvis, Rvis: r.Rvis, RvisIn: r.RvisIn,
             Tsol: r.Tsol, Rsol: r.Rsol, RsolIn: r.RsolIn, Asol: r.Asol.slice(), Tuv: r.Tuv,
-            LSG: r.Tvis / r.SHGC, Rip: 1 / Uip, Rsi: 1 / r.U,
+            LSG: r.Tvis / r.SHGC,
             Tin: r.winter.temps[2 * np - 1] - 273.15, dew50: dewPoint(21, 0.5)
         };
     }
 
     var ROWS = [
-        ['U', 'U-factor (W/m²·K)', 'num'], ['Uip', 'U-factor (Btu/h·ft²·°F)', 'num'], ['SHGC', 'SHGC', 'num'],
+        ['U', 'U-factor (W/m²·K)', 'num'], ['Uip', 'U-factor (Btu/h·ft²·°F)', 'num'],
+        ['Rip', 'R-value (h·ft²·°F/Btu)', 'num'], ['Rsi', 'R-value (m²·K/W)', 'num'], ['SHGC', 'SHGC', 'num'],
         ['VT', 'Visible transmittance', 'pct'], ['Rvis', 'Visible reflectance, outside', 'pct'], ['RvisIn', 'Visible reflectance, inside', 'pct'],
         ['Tsol', 'Solar transmittance', 'pct'], ['Rsol', 'Solar reflectance, outside', 'pct'], ['RsolIn', 'Solar reflectance, inside', 'pct'],
         ['Asol', 'Solar absorptance', 'pct'], ['Tuv', 'UV transmittance (300–380 nm)', 'pct'], ['LSG', 'Light-to-solar gain', 'num'],
-        ['Rip', 'R-value (h·ft²·°F/Btu)', 'num'], ['Tin', 'Indoor glass temperature, winter (°C)', 'num']
+        ['Tin', 'Indoor glass temperature, winter (°C)', 'num']
     ];
     function comparisonRows(mc, mo) {
         var out = [], any = mc || mo;
@@ -266,8 +276,9 @@
         return out;
     }
 
-    // Δ with a sign and fixed decimals (3 for U and SHGC, 2 otherwise; percent quantities in points).
-    var DELTA_DEC = { U: 3, Uip: 3, SHGC: 3 };
+    // Δ with a sign and fixed decimals (3 for U, SHGC and the R-value in m²·K/W, 2 otherwise; percent quantities in
+    // points). Each model's R-value is 1/U of its own full-precision U, so ΔR has the opposite sign to ΔU.
+    var DELTA_DEC = { U: 3, Uip: 3, Rsi: 3, SHGC: 3 };
     function signed(x, key) {
         if (x == null || isNaN(x)) return 'n/a';
         var dec = DELTA_DEC[key] || 2, s = Math.abs(x).toFixed(dec);
@@ -300,7 +311,10 @@
         return h + '</tbody></table>';
     }
 
-    var KPIS = [['U', 'U-factor, W/m²·K', 1, ''], ['Uip', 'U-factor, Btu/h·ft²·°F', 1, ''], ['SHGC', 'SHGC', 1, ''], ['VT', 'Visible transmittance', 100, ' %']];
+    // U-factor and R-value in both unit systems, as equal tiles and in the order of the table rows and the converter fields
+    var KPIS = [['U', 'U-factor, W/m²·K', 1, ''], ['Uip', 'U-factor, Btu/h·ft²·°F', 1, ''],
+        ['Rip', 'R-value, h·ft²·°F/Btu', 1, ''], ['Rsi', 'R-value, m²·K/W', 1, ''],
+        ['SHGC', 'SHGC', 1, ''], ['VT', 'Visible transmittance', 100, ' %']];
     function kpiHTML(mc, mo, view, fmt) {
         return KPIS.map(function (k) {
             function val(m) { return m ? num(m[k[0]] * k[2], 3, fmt) + k[3] : 'n/a'; }
@@ -309,6 +323,11 @@
             else big = val(view === 'open' ? mo : mc);
             return '<div class="kpi"><b>' + big + '</b>' + small + '<span>' + k[1] + '</span></div>';
         }).join('');
+    }
+
+    // The same tiles with no values yet (a product still loading)
+    function kpiPendingHTML() {
+        return KPIS.map(function (k) { return '<div class="kpi"><b>…</b><span>' + k[1] + '</span></div>'; }).join('');
     }
 
     function swatchesHTML(rc, ro, view, fmt) {
@@ -481,6 +500,24 @@
         return out;
     }
 
+    // R-value equivalents for the datasheet comparison: one entry for each U-factor row of datasheetCompare().metrics,
+    // in the same order. The datasheets publish U-factors, not R-values, so every number here is converted (R = 1/U)
+    // from the value in the same column of its U-factor row: the published one from the U-factor as printed, the
+    // models' from their full-precision U. Display only: no tolerance and no pass mark, and metrics (which the
+    // self-test and the tests count) is left as it is.
+    var R_LABELS = { Uair: 'R-value, air (h·ft²·°F/Btu)', Uar: 'R-value, 90 % argon (h·ft²·°F/Btu)', U: 'R-value, monolithic (h·ft²·°F/Btu)' };
+    // U in Btu/h·ft²·°F → { Rip (h·ft²·°F/Btu), Rsi (m²·K/W) }; null without a positive U
+    function rOfUip(Uip) {
+        if (typeof Uip !== 'number' || !(Uip > 0) || !isFinite(Uip)) return null;
+        var q = fromU(Uip * BTU);
+        return { Rip: q.Rip, Rsi: q.Rsi };
+    }
+    function datasheetRRows(metrics) {
+        return (metrics || []).filter(function (m) { return !!R_LABELS[m.key]; }).map(function (m) {
+            return { of: m.key, label: R_LABELS[m.key], pub: rOfUip(m.pub), open: rOfUip(m.open), classic: rOfUip(m.classic), measured: rOfUip(m.measured) };
+        });
+    }
+
     function formValuesFor(row) {
         var o = { np: String(row.panes.length), H: '1', H_u: 'm' };
         // Defaults first, for the panes and gaps the row does not use (they may hold anything, even invalid text).
@@ -516,11 +553,11 @@
         THICK: THICK, GENERIC: GENERIC, COAT_LABELS: COAT_LABELS, TOL: TOL, BTU: BTU, DEFAULT_ROW: DEFAULT_ROW,
         glassOptionsHTML: glassOptionsHTML, productLabel: productLabel,
         readState: readState, buildLayers: buildLayers, evaluateModels: evaluateModels,
-        metrics: metrics, comparisonRows: comparisonRows, tableHTML: tableHTML, kpiHTML: kpiHTML, swatchesHTML: swatchesHTML,
+        metrics: metrics, comparisonRows: comparisonRows, tableHTML: tableHTML, kpiHTML: kpiHTML, kpiPendingHTML: kpiPendingHTML, swatchesHTML: swatchesHTML,
         xsecSVG: xsecSVG, attributionHTML: attributionHTML, tuvNFRC: tuvNFRC,
-        datasheetOptionsHTML: datasheetOptionsHTML, rowLabel: rowLabel, datasheetCompare: datasheetCompare,
+        datasheetOptionsHTML: datasheetOptionsHTML, rowLabel: rowLabel, datasheetCompare: datasheetCompare, datasheetRRows: datasheetRRows,
         tolFor: tolFor, tolMeasuredFor: tolMeasuredFor, formValuesFor: formValuesFor, status: status,
-        dewPoint: dewPoint, esc: escDefault, RANGE: RANGE, importNotes: importNotes
+        dewPoint: dewPoint, esc: escDefault, RANGE: RANGE, importNotes: importNotes, fromU: fromU
     };
     root.GlazingBeta = api;
     if (typeof module !== 'undefined') module.exports = api;

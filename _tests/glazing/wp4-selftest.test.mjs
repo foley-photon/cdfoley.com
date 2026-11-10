@@ -63,3 +63,31 @@ test('selftest.js is environment-agnostic: no test helpers, no fetch, no DOM', (
     assert.ok(!/_tests|helpers\/|require\(|^\s*import\s|fetch\(|document\./m.test(code));
     assert.ok(/root\.GlazingSelfTest = api/.test(src) && /module\.exports = api/.test(src));
 });
+
+// The self-test compares U-factors in Btu/h·ft²·°F. Its unit constant is the page's one constant, read from
+// GlazingBeta (GlazingUnits.BTU on the page, where glazing-units.js loads first), not a private copy.
+test('selftest.js takes its unit constant from GlazingBeta; same 237 checks with the units module loaded as on the page', async () => {
+    const src = fs.readFileSync(path.join(ROOT, 'beta/glazing/selftest.js'), 'utf8');
+    assert.ok(!/5\.678263/.test(src), 'no private Btu constant');
+    assert.ok(/var BTU = B\.BTU;/.test(src));
+    assert.equal(ctx.GlazingBeta.BTU, 5.678263);
+    const ctx2 = load(['assets/js/glazing-units.js'].concat(load.FILES.all));
+    assert.equal(ctx2.GlazingBeta.BTU, ctx2.GlazingUnits.BTU);
+    assert.equal(ctx2.GlazingBeta.BTU, 5.678263);
+    const reads = [];
+    const run = (c, extra) => c.GlazingSelfTest.run(Object.assign({
+        E: c.GlazingEngine, O: c.GlazingOpen, P: c.GlazingProducts, B: c.GlazingBeta,
+        published: json('published.json'), manifest: json('manifest.json'), solarE891: c.GlazingSolarE891.solarE891,
+        loadBytes: p => { reads.push(p); return fs.promises.readFile(path.join(DATA, p)); }
+    }, extra));
+    const a = await run(ctx), b = await run(ctx2);
+    assert.equal(b.pass, 237); assert.equal(b.fail, 0);
+    // every U-factor check gives the same number either way
+    const items = r => r.groups.flatMap(g => g.items.map(i => [g.id, i.label, i.got, i.exp, i.tol, i.ok]));
+    assert.deepEqual(JSON.parse(JSON.stringify(items(b))), JSON.parse(JSON.stringify(items(a))));
+    assert.ok(items(b).filter(i => /\(Btu\)/.test(i[1])).length >= 10);
+    // a different constant would move them: the checks really read B.BTU
+    const B3 = Object.assign({}, ctx.GlazingBeta, { BTU: 5.678263 * 1.1 });
+    const c3 = await run(ctx, { B: B3 });
+    assert.ok(c3.fail > 0);
+});

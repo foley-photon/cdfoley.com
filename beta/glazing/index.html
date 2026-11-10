@@ -17,6 +17,7 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
+<script defer src="/assets/js/glazing-units.js"></script>
 <script defer src="/assets/js/plot.js"></script>
 <script defer src="/assets/js/glazing-weights.js"></script>
 <script defer src="/assets/js/glazing-engine.js"></script>
@@ -95,6 +96,7 @@
                 <div class="xsec" data-out="xsec" role="img" aria-label="Cross-section of the glazing unit with surface numbers, coatings, gaps, and winter surface temperatures"></div>
                 <p class="hint" style="margin:.4rem 0 0">Purple line: low-e coating. Orange: surface temperatures (°C) at NFRC 100 winter conditions.</p>
                 <div class="kpis" data-out="kpis"></div>
+                <p class="hint kpi-hint">R-value is 1 divided by the U-factor: center of glass and air to air, at NFRC 100 winter conditions. <a href="#ru-converter">Convert a U-factor or an R-value</a>.</p>
                 <div class="gl-notes" data-out="notes" aria-live="polite"></div>
                 <div class="cmp-wrap" data-out="table"></div>
                 <div class="swatches" data-out="swatches"></div>
@@ -102,6 +104,24 @@
             </div>
         </section>
     </div>
+
+    <section class="panel gl-sec" id="ru-converter" aria-labelledby="ru-h">
+        <div class="panel-head"><h2 id="ru-h">U-factor and R-value converter</h2>
+            <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="ru">Use the calculator result</button></div>
+        </div>
+        <div class="panel-body">
+            <div class="calc-error" role="alert"></div>
+            <div class="conv-grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,max(250px,40%)),1fr))">
+                <div class="field"><label for="ru-u">U-factor <span class="sym">SI</span><span class="visually-hidden">, in W/m²·K</span></label><div class="input-unit"><input id="ru-u" name="u" inputmode="decimal" autocomplete="off"><span class="unit">W/m²·K</span></div></div>
+                <div class="field"><label for="ru-uip">U-factor <span class="sym">US units</span><span class="visually-hidden">, in Btu/h·ft²·°F</span></label><div class="input-unit"><input id="ru-uip" name="uip" inputmode="decimal" autocomplete="off"><span class="unit">Btu/h·ft²·°F</span></div></div>
+                <div class="field"><label for="ru-rip">R-value <span class="sym">US units</span><span class="visually-hidden">, in h·ft²·°F/Btu</span></label><div class="input-unit"><input id="ru-rip" name="rip" inputmode="decimal" autocomplete="off"><span class="unit">h·ft²·°F/Btu</span></div></div>
+                <div class="field"><label for="ru-rsi">R-value <span class="sym">SI (RSI)</span><span class="visually-hidden">, in m²·K/W</span></label><div class="input-unit"><input id="ru-rsi" name="rsi" inputmode="decimal" autocomplete="off"><span class="unit">m²·K/W</span></div></div>
+            </div>
+            <p class="hint" data-ru-status role="status" style="margin:.7rem 0 0">Starts at the calculator’s center-of-glass result. Type in any field to convert another value.</p>
+            <p class="hint">The calculator result is the U-factor shown large on the tiles above: the open-data model's when it is shown, otherwise the classic model's.</p>
+            <p class="hint">R-value is 1 divided by the U-factor, so a lower U-factor is a higher R-value. 1&nbsp;Btu/h·ft²·°F = 5.678263&nbsp;W/m²·K, so the US R-value is 5.678263 times the SI value (RSI). A glazing R-value found this way is a center-of-glass, air-to-air value: it includes the indoor and outdoor air films. The R-value printed on insulation is for the material alone, and a whole window, with its frame and edge, has a lower R-value than its center of glass.</p>
+        </div>
+    </section>
 
     <section class="panel gl-sec" aria-labelledby="sp-h">
         <div class="panel-head"><h2 id="sp-h">Spectral transmittance and reflectance</h2></div>
@@ -122,6 +142,7 @@
                 <div class="cmp-color" data-out="cmpcolor"></div>
             </div>
             <p class="hint">Computed with the ASTM E891 solar spectrum. In the “Measured record” column, uncoated panes use the open model's clear glass.</p>
+            <p class="hint">The R-value rows are converted, not published. The datasheets give U-factors; each R-value is 1 divided by the U-factor in the same column of the row above it, with the SI value (RSI, in m²·K/W) underneath. A published U-factor is printed to 0.01&nbsp;Btu/h·ft²·°F, so the R-value converted from it carries that rounding, about 1 to 3&nbsp;% here. Tolerances and pass marks apply to the U-factor rows only.</p>
             <p class="hint">Published values come from the manufacturers' documents linked above and are quoted as facts. Each manufacturer computed them with LBNL WINDOW; small differences in solar spectrum, glass and gap assumptions are expected.</p>
         </div>
     </section>
@@ -156,7 +177,7 @@
 
     <article class="prose gl-prose">
         <h2>How the open-data model works</h2>
-        <p>The open-data model replaces the current calculator's parametric glass and coating curves with physics computed from published optical constants. Everything else is shared: both models feed the same multiple-reflection optics, the same ISO 15099 center-of-glass thermal model and the same NFRC 100 and 200 conditions, so the two columns of the results differ only in how each pane's spectra are made.</p>
+        <p>The open-data model replaces the current calculator's parametric glass and coating curves with physics computed from published optical constants. Everything else is shared: both models feed the same multiple-reflection optics, the same ISO 15099 center-of-glass thermal model and the same NFRC 100 and 200 conditions, so the two columns of the results differ only in how each pane's spectra are made. The thermal model gives the center-of-glass U-factor; the R-value shown beside it is 1 divided by that U-factor, the same result in another form.</p>
         <p><strong>Glass.</strong> Each pane uses the refractive index \(n(\lambda)\) and extinction coefficient \(k(\lambda)\) that Rubin measured for soda-lime float glass: clear, low-iron and three tints (green, gray and bronze). The internal transmittance of a pane of thickness \(d\) is</p>
         <div class="formula">\[ \tau(\lambda) = \exp\!\left(-\frac{4\pi k d}{\lambda}\right), \]</div>
         <p>and the two air–glass surfaces add Fresnel reflection, so any thickness can be modeled. Against the measured IGDB clear-glass records shipped with this page, the Rubin glass is within about 0.1 point in visible transmittance and 0.5 to 0.8 point in solar transmittance.</p>
@@ -166,13 +187,14 @@
         <p><strong>The coated pane.</strong> The film and the thick glass combine incoherently:</p>
         <div class="formula">\[ T = \frac{T_c\,(1-R_0)\,\tau}{1 - R_g R_0 \tau^2}, \]</div>
         <p>where \(T_c\) is the film's transmittance, \(R_0\) the bare glass surface's reflectance, and \( R_g \) the film's reflectance seen from inside the glass. The classic model reuses the air-side value for \(R_g\). Within the visible band the two differ by up to about 14 points for the double-silver stack and 5 points for the triple-silver stack, mostly near the ends of the band, and by less than 1 point for the single-silver stack.</p>
-        <p><strong>Calibration.</strong> Four generic stacks (hard coat, single, double and triple silver) had their layer thicknesses fitted offline only to published datasheet values: visible transmittance, reflectance, SHGC, UV transmittance (computed as LBNL WINDOW computes it for datasheets) and, for the hard coat, solar transmittance. Color windows taken from the manufacturers' appearance statements keep the reflected color neutral. The emissivity of the coated face is then inferred from the published air and argon U-factors. A fitted stack is an effective model of a coating family, not any manufacturer's actual design. The panel “How the open coatings are built” shows every layer and every residual, and the comparison panel shows the datasheet rows the fit never saw.</p>
+        <p><strong>Calibration.</strong> Four generic stacks (hard coat, single, double and triple silver) had their layer thicknesses fitted offline only to published datasheet values: visible transmittance, reflectance, SHGC, UV transmittance (computed as LBNL WINDOW computes it for datasheets) and, for the hard coat, solar transmittance. Color windows taken from the manufacturers' appearance statements keep the reflected color neutral. The emissivity of the coated face is then inferred from the published air and argon U-factors. The datasheets give U-factors, not R-values, so the R-values in the comparison panel are converted from them. A fitted stack is an effective model of a coating family, not any manufacturer's actual design. The panel “How the open coatings are built” shows every layer and every residual, and the comparison panel shows the datasheet rows the fit never saw.</p>
         <p><strong>Measured products.</strong> The nine named products are unmodified International Glazing Database (IGDB) records that LBNL distributes in its open-source pyWinCalc and Windows-CalcEngine projects. Your browser reads each file when you first select the product and resamples its spectra to the calculator's 5 nm grid for that calculation only; a measured pane is identical in both models.</p>
         <p><strong>Solar spectrum.</strong> The solar quantities (solar transmittance, SHGC, UV) depend on the solar spectrum used to weight them. This page defaults to the ASTM E891 direct-normal spectrum, which LBNL's NFRC calculations in Windows-CalcEngine use, so its numbers are comparable with manufacturers' datasheets computed in LBNL WINDOW; the datasheet comparisons always use it. ASTM G173 (direct plus circumsolar), the newer reference spectrum, has more ultraviolet and visible light; with it, SHGC comes out about 0.01–0.03 higher for silver low-e coatings.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
             <li>Center-of-glass values at normal incidence only. Frames, edge spacers, angular optics, laminates, films and shades are not modeled.</li>
+            <li>The R-value is 1 divided by the center-of-glass U-factor. It is an air-to-air value that includes the indoor and outdoor air films at NFRC 100 winter conditions. It is not the material-only R-value printed on insulation, and a whole window, with its frame and edge, has a lower R-value.</li>
             <li>Nickel stands in for the nickel-chromium blockers used in production, for which no open optical data exist.</li>
             <li>The hard coat's emissivity comes from its published U-factors, not from the film's infrared optics.</li>
             <li>Some manufacturers' clear glass is clearer than Rubin's: Cardinal's 6 mm clear double glazing reads about 1.8 points of visible transmittance higher than the open model.</li>

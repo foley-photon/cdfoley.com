@@ -11,7 +11,6 @@
 (function (root) {
     'use strict';
 
-    var BTU = 5.678263;
     var GROUPS = ['V1', 'V2', 'V3', 'V4', 'V5', 'V6'];
     var LABELS = {
         V1: 'Windows-CalcEngine unit tests: measured records, ASTM E891 weighting',
@@ -35,6 +34,7 @@
 
     function run(ctx, onProgress) {
         var E = ctx.E, O = ctx.O, P = ctx.P, B = ctx.B, TOL = B.TOL, S891 = ctx.solarE891;
+        var BTU = B.BTU;   // W/m²·K per Btu/h·ft²·°F: the page's one constant (GlazingUnits.BTU, through beta-core.js)
         var E891 = { solar: S891 };
         // Datasheet UV is WINDOW's TUV (E891 points 310-380 nm, trapezoid): GlazingBeta.tuvNFRC (V3, V4, V5).
         var TUV = ctx.tuvTable || (root.GlazingSolarE891 && root.GlazingSolarE891.tuvTable);

@@ -79,3 +79,25 @@ test('the side-by-side view leaves the classic column unchanged', () => {
     const a = flatten(res.classic.r), b = flatten(live(v));
     assert.ok(a.every((x, i) => Object.is(x[1], b[i][1])));
 });
+
+// The page loads assets/js/glazing-units.js before beta-core.js. That changes nothing in the classic results, and the
+// U-factor and R-value tiles are the live result's U in its four forms, each from the full-precision value.
+test('with the shared units module loaded as on the page: classic results unchanged, R-value = 1/U of the live U', () => {
+    const ctx2 = load(['assets/js/glazing-units.js'].concat(load.FILES.all));
+    const E2 = ctx2.GlazingEngine, B2 = ctx2.GlazingBeta, BTU = ctx2.GlazingUnits.BTU;
+    assert.equal(BTU, 5.678263); assert.equal(B2.BTU, BTU); assert.equal(B.BTU, BTU);
+    const deps = { E: E2, open: true, P: ctx2.GlazingProducts, solarE891: ctx2.GlazingSolarE891.solarE891, getProduct: () => undefined, getImport: () => undefined };
+    for (const [name, o] of Object.entries(CONFIGS)) {
+        const v = Object.assign({}, base, o);
+        const st = B2.readState(v).state, res = B2.evaluateModels(st, deps);
+        const a = flatten(res.classic.r), b = flatten(live(v));
+        assert.equal(a.length, b.length, name);
+        assert.ok(a.every((x, i) => x[0] === b[i][0] && Object.is(x[1], b[i][1])), name);
+        const U = live(v).U, m = B2.metrics(res.classic.r, st.np);
+        assert.ok(U > 0, name);
+        assert.ok(Object.is(m.U, U) && Object.is(m.Uip, U / BTU) && Object.is(m.Rsi, 1 / U) && Object.is(m.Rip, BTU / U), name);
+        // the same tiles and rows from the copy loaded without the module
+        const m0 = B.metrics(res.classic.r, st.np);
+        assert.ok(Object.is(m0.Uip, m.Uip) && Object.is(m0.Rsi, m.Rsi) && Object.is(m0.Rip, m.Rip), name);
+    }
+});

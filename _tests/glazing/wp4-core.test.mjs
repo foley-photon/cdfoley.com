@@ -139,11 +139,18 @@ test('metrics, comparisonRows, tableHTML, kpiHTML, swatchesHTML: live formulas, 
     const r = B.evaluateModels(st, deps());
     const mc = B.metrics(r.classic.r, 3), mo = B.metrics(r.open.r, 3);
     assert.equal(mc.Uip, r.classic.r.U / BTU);
+    // R-value = 1/U, each form from the full-precision U in W/m²·K (never from a rounded or converted value)
+    for (const [m, x] of [[mc, r.classic.r], [mo, r.open.r]]) {
+        assert.equal(m.U, x.U); assert.equal(m.Uip, x.U / BTU);
+        assert.equal(m.Rsi, 1 / x.U); assert.equal(m.Rip, BTU / x.U);
+    }
     assert.equal(mc.LSG, r.classic.r.Tvis / r.classic.r.SHGC);
     assert.equal(mc.Tin, r.classic.r.winter.temps[5] - 273.15);
     assert.ok(Math.abs(mc.dew50 - 10.2) < 0.05, 'dew point of 21 °C at 50 % RH is about 10.2 °C');
     const rows = B.comparisonRows(mc, mo);
-    assert.deepEqual(plain(rows.map(x => x.key)), ['U', 'Uip', 'SHGC', 'VT', 'Rvis', 'RvisIn', 'Tsol', 'Rsol', 'RsolIn', 'A1', 'A2', 'A3', 'Tuv', 'LSG', 'Rip', 'Tin']);
+    // the R-value rows come directly after the U-factor rows, US units first, as in the converter
+    assert.deepEqual(plain(rows.map(x => x.key)), ['U', 'Uip', 'Rip', 'Rsi', 'SHGC', 'VT', 'Rvis', 'RvisIn', 'Tsol', 'Rsol', 'RsolIn', 'A1', 'A2', 'A3', 'Tuv', 'LSG', 'Tin']);
+    assert.deepEqual(plain(rows.slice(0, 4).map(x => x.label)), ['U-factor (W/m²·K)', 'U-factor (Btu/h·ft²·°F)', 'R-value (h·ft²·°F/Btu)', 'R-value (m²·K/W)']);
     const vt = rows.find(x => x.key === 'VT');
     assert.equal(vt.c, 100 * mc.VT); assert.equal(vt.o, 100 * mo.VT); assert.equal(vt.d, vt.o - vt.c); assert.equal(vt.kind, 'pct');
     const fmt = { num: (x, s) => Number(x).toPrecision(s || 4) };
@@ -155,7 +162,8 @@ test('metrics, comparisonRows, tableHTML, kpiHTML, swatchesHTML: live formulas, 
     const t = B.tableHTML(rows, 'both', fmt);
     assert.ok(/^<table class="cmp"><caption>/.test(t));
     assert.ok(t.includes('<th scope="col">Classic</th><th scope="col">Open data</th><th scope="col">Δ</th>'));
-    assert.equal((B.kpiHTML(mc, mo, 'both', fmt).match(/class="kpi"/g) || []).length, 4);
+    // six tiles: U-factor and R-value in both unit systems, then SHGC and VT
+    assert.equal((B.kpiHTML(mc, mo, 'both', fmt).match(/class="kpi"/g) || []).length, 6);
     assert.ok(B.kpiHTML(mc, mo, 'both', fmt).includes('<small>classic '));
     assert.ok(!B.kpiHTML(mc, mo, 'open', fmt).includes('<small>'));
     // with the classic column unavailable, cells say n/a rather than a blank
@@ -317,6 +325,103 @@ test('attributionHTML: one paragraph per product, 6.2 (a) wording, imports inclu
     assert.equal(B.attributionHTML([], manifest, P), '');
 });
 
+// U-factor and R-value side by side (2026-11): tiles, table rows, Δ, the loading tiles, the datasheet rows.
+test('R-value beside U-factor: tiles in the three views, table rows and Δ, loading tiles', () => {
+    const st = B.readState(values()).state;
+    const r = B.evaluateModels(st, deps());
+    const mc = B.metrics(r.classic.r, 2), mo = B.metrics(r.open.r, 2);
+    const fmt = { num: (x, s) => Number(x).toPrecision(s || 4) };
+    const LABELS = ['U-factor, W/m²·K', 'U-factor, Btu/h·ft²·°F', 'R-value, h·ft²·°F/Btu', 'R-value, m²·K/W', 'SHGC', 'Visible transmittance'];
+    const tiles = h => [...h.matchAll(/<div class="kpi"><b>([^<]*)<\/b>(?:<small>([^<]*)<\/small>)?<span>([^<]*)<\/span><\/div>/g)].map(m => ({ big: m[1], small: m[2], label: m[3] }));
+    const p3 = x => Number(x).toPrecision(3);
+    for (const view of ['both', 'open', 'classic']) {
+        const t = tiles(B.kpiHTML(mc, mo, view, fmt));
+        assert.deepEqual(t.map(x => x.label), LABELS, view);
+        const lead = view === 'classic' ? mc : mo;
+        // each of the four thermal tiles shows its own full-precision value: the R tiles are not derived from a printed U
+        assert.deepEqual(t.slice(0, 4).map(x => x.big), [p3(lead.U), p3(lead.U / BTU), p3(BTU / lead.U), p3(1 / lead.U)], view);
+        if (view === 'both') assert.deepEqual(t.slice(0, 4).map(x => x.small), ['classic ' + p3(mc.U), 'classic ' + p3(mc.U / BTU), 'classic ' + p3(BTU / mc.U), 'classic ' + p3(1 / mc.U)]);
+        else assert.ok(t.every(x => x.small === undefined), view);
+    }
+    // the loading placeholders are the same six tiles without values
+    const pend = tiles(B.kpiPendingHTML());
+    assert.deepEqual(pend.map(x => x.label), LABELS);
+    assert.ok(pend.every(x => x.big === '…' && x.small === undefined));
+    // with one model missing the tiles say n/a, never NaN
+    assert.ok(!/NaN|undefined/.test(B.kpiHTML(null, mo, 'both', fmt)) && B.kpiHTML(null, mo, 'both', fmt).includes('classic n/a'));
+
+    // table: Δ = open − classic of each model's own R-value, so ΔR has the opposite sign to ΔU
+    const rows = B.comparisonRows(mc, mo), row = k => rows.find(x => x.key === k);
+    assert.equal(row('Rsi').c, 1 / mc.U); assert.equal(row('Rsi').o, 1 / mo.U); assert.equal(row('Rsi').d, 1 / mo.U - 1 / mc.U);
+    assert.equal(row('Rip').c, BTU / mc.U); assert.equal(row('Rip').o, BTU / mo.U); assert.equal(row('Rip').d, BTU / mo.U - BTU / mc.U);
+    assert.notEqual(mo.U, mc.U);
+    assert.equal(Math.sign(row('Rip').d), -Math.sign(row('U').d)); assert.equal(Math.sign(row('Rsi').d), -Math.sign(row('U').d));
+    const cells = h => [...h.matchAll(/<tr><th scope="row">([^<]*)<\/th>((?:<td>[^<]*<\/td>)+)<\/tr>/g)].map(m => [m[1], ...[...m[2].matchAll(/<td>([^<]*)<\/td>/g)].map(x => x[1])]);
+    const both = cells(B.tableHTML(rows, 'both', fmt));
+    assert.deepEqual(both.slice(0, 4).map(x => x[0]), ['U-factor (W/m²·K)', 'U-factor (Btu/h·ft²·°F)', 'R-value (h·ft²·°F/Btu)', 'R-value (m²·K/W)']);
+    const sgn = (d, dec) => { const s = Math.abs(d).toFixed(dec); return Number(s) === 0 ? '0' : (d > 0 ? '+' : '−') + s; };
+    assert.deepEqual(both[2].slice(1), [p3(BTU / mc.U), p3(BTU / mo.U), sgn(row('Rip').d, 2)]);   // US R-value: Δ to 0.01
+    assert.deepEqual(both[3].slice(1), [p3(1 / mc.U), p3(1 / mo.U), sgn(row('Rsi').d, 3)]);       // RSI: Δ to 0.001
+    for (const view of ['open', 'classic']) {
+        const one = cells(B.tableHTML(rows, view, fmt)), m = view === 'open' ? mo : mc;
+        assert.deepEqual(one.slice(0, 4).map(x => x[1]), [p3(m.U), p3(m.U / BTU), p3(BTU / m.U), p3(1 / m.U)], view);
+    }
+});
+
+test('R-value beside U-factor: the same numbers with and without the shared units module', () => {
+    // The page loads assets/js/glazing-units.js before beta-core.js; load.all() and units.test.mjs load beta-core.js
+    // without it. Both must give the same constant, metrics and datasheet R-values, bit for bit.
+    const ctx2 = load(['assets/js/glazing-units.js'].concat(load.FILES.all));
+    const B2 = ctx2.GlazingBeta, G = ctx2.GlazingUnits;
+    assert.equal(ctx.GlazingUnits, undefined);
+    assert.equal(B.BTU, 5.678263); assert.equal(B2.BTU, 5.678263); assert.equal(G.BTU, 5.678263);
+    for (const o of [{}, { np: '1' }, { np: '3', p3c: 'single', p3s: 'front' }, { g1f: 'vacuum' }, { p1c: 'none', g1f: 'air' }]) {
+        const st = B.readState(values(o)).state, r = B.evaluateModels(st, deps());
+        for (const x of [r.classic.r, r.open.r]) {
+            const a = plain(B.metrics(x, st.np)), b = plain(B2.metrics(x, st.np));
+            assert.deepEqual(a, b);
+            assert.equal(a.Rsi, 1 / x.U); assert.equal(a.Rip, BTU / x.U);
+            const q = plain(G.fromU(x.U));
+            assert.deepEqual([a.U, a.Uip, a.Rsi, a.Rip], [q.U, q.Uip, q.Rsi, q.Rip]);
+            assert.deepEqual(plain(B.fromU(x.U)), plain(B2.fromU(x.U)));
+        }
+    }
+    const row = PUB.rows.find(x => x.id === B.DEFAULT_ROW);
+    const m = B.datasheetCompare(row, deps()).metrics;
+    assert.deepEqual(plain(B.datasheetRRows(m)), plain(B2.datasheetRRows(m)));
+});
+
+test('datasheetRRows: an R-value for each published U-factor row, converted, with metrics left alone', () => {
+    const near = (a, b, msg) => assert.ok(Math.abs(a - b) <= 1e-12 * Math.abs(b), `${msg}: ${a} vs ${b}`);
+    let n = 0;
+    for (const row of PUB.rows) {
+        const c = B.datasheetCompare(row, deps());
+        const before = JSON.stringify(c.metrics);
+        const rr = plain(B.datasheetRRows(c.metrics));
+        assert.equal(JSON.stringify(c.metrics), before, row.id + ': metrics unchanged');
+        const uRows = c.metrics.filter(m => ['Uair', 'Uar', 'U'].includes(m.key));
+        assert.deepEqual(rr.map(x => x.of), plain(uRows.map(m => m.key)), row.id);
+        assert.ok(uRows.length >= 1, row.id);
+        for (const [i, q] of rr.entries()) {
+            const m = uRows[i];
+            assert.ok(/^R-value, (air|90 % argon|monolithic) \(h·ft²·°F\/Btu\)$/.test(q.label), q.label);
+            assert.deepEqual(Object.keys(q).sort(), ['classic', 'label', 'measured', 'of', 'open', 'pub']);   // no tolerance, no pass mark
+            // published: from the U-factor as printed (Btu/h·ft²·°F); R in US units is 1/U, RSI is that over BTU
+            near(q.pub.Rip, 1 / row[m.key], row.id + ' published R'); near(q.pub.Rsi, 1 / (row[m.key] * BTU), row.id + ' published RSI');
+            for (const col of ['open', 'classic']) { near(q[col].Rip, 1 / m[col], row.id + ' ' + col); near(q[col].Rsi, 1 / (m[col] * BTU), row.id + ' ' + col + ' RSI'); }
+            if (row.igdb) near(q.measured.Rip, 1 / m.measured, row.id + ' measured'); else assert.equal(q.measured, null);
+            n++;
+        }
+    }
+    assert.equal(n, PUB.rows.reduce((s, r) => s + ['Uair', 'Uar', 'U'].filter(k => r[k] != null).length, 0));
+    assert.deepEqual(plain(B.datasheetRRows([{ key: 'VT', pub: 70, open: 69, classic: 68, measured: null }])), []);
+    const one = plain(B.datasheetRRows([{ key: 'Uair', pub: 0.25, open: null, classic: 0, measured: NaN }]));
+    assert.equal(one.length, 1);
+    assert.equal(one[0].of, 'Uair'); assert.equal(one[0].label, 'R-value, air (h·ft²·°F/Btu)');
+    near(one[0].pub.Rip, 4, 'R of U 0.25'); near(one[0].pub.Rsi, 4 / BTU, 'RSI of U 0.25');
+    assert.equal(one[0].open, null); assert.equal(one[0].classic, null); assert.equal(one[0].measured, null);
+});
+
 /* ── Hygiene (text checks on files) ─────────────────────────────────── */
 const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const PAGE = read('beta/glazing/index.html');
@@ -336,7 +441,7 @@ test('hygiene: beta page head, notice, no indexing tags, local links exist', () 
     }
     // script order of spec section 1
     const scripts = [...PAGE.matchAll(/<script[^>]*src="([^"]+)"/g)].map(m => m[1]).filter(s => !s.startsWith('http'));
-    assert.deepEqual(scripts, ['/assets/js/site.js', '/assets/js/calc.js', '/assets/js/plot.js', '/assets/js/glazing-weights.js', '/assets/js/glazing-engine.js',
+    assert.deepEqual(scripts, ['/assets/js/site.js', '/assets/js/calc.js', '/assets/js/glazing-units.js', '/assets/js/plot.js', '/assets/js/glazing-weights.js', '/assets/js/glazing-engine.js',
         '/assets/js/glazing-materials.js', '/assets/js/glazing-solar-e891.js', '/assets/js/glazing-tmm.js', '/assets/js/glazing-coatings.js', '/assets/js/glazing-open.js',
         '/assets/js/glazing-products.js', './beta-core.js', './selftest.js', './glazing-beta.js']);
     // external links open in a new tab with rel="noopener"
@@ -355,10 +460,38 @@ test('hygiene: beta page head, notice, no indexing tags, local links exist', () 
     assert.ok(read('beta/glazing/glazing-beta.js').includes("'glz-beta-imports'"));
 });
 
-// Since 2026-11 the Beta nav tab, the home page and the tools hub link to /beta/ on purpose; the beta pages stay
-// noindex and out of the sitemap and every JSON-LD block.
-test('hygiene: /beta/ stays out of the sitemap and structured data', () => {
-    assert.ok(!/\/beta\//.test(read('sitemap.xml')), 'sitemap.xml lists /beta/');
+test('hygiene: the U-factor and R-value converter is on the page, outside the form and the tool layout', () => {
+    const at = s => { const i = PAGE.indexOf(s); assert.ok(i >= 0 && PAGE.indexOf(s, i + 1) < 0, 'exactly one ' + s); return i; };
+    const conv = at('<section class="panel gl-sec" id="ru-converter" aria-labelledby="ru-h">');
+    const body = PAGE.slice(conv, PAGE.indexOf('</section>', conv));
+    // after the calculator form and the results panel (the whole .tool-layout), before the spectra panel
+    const out = at('<section class="panel" id="glzb-out" aria-labelledby="out-h">');
+    assert.ok(PAGE.indexOf('id="glzb"') < out && PAGE.indexOf('</form>') < out);
+    assert.ok(/<\/section>\s*<\/div>\s*$/.test(PAGE.slice(out, conv)), 'directly after the closing tag of .tool-layout');
+    assert.ok(conv < at('id="sp-h"'));
+    assert.ok(!/<form\b/.test(body));
+    assert.deepEqual([...body.matchAll(/<input id="ru-([a-z]+)" name="([a-z]+)" inputmode="decimal" autocomplete="off">/g)].map(m => m[1] + '=' + m[2]), ['u=u', 'uip=uip', 'rip=rip', 'rsi=rsi']);
+    assert.equal((body.match(/<input\b/g) || []).length, 4);
+    assert.deepEqual([...body.matchAll(/<span class="unit">([^<]+)<\/span>/g)].map(m => m[1]), ['W/m²·K', 'Btu/h·ft²·°F', 'h·ft²·°F/Btu', 'm²·K/W']);
+    assert.ok(body.includes('data-action="reset" data-for="ru"') && body.includes('class="calc-error"') && body.includes('data-ru-status'));
+    assert.ok(PAGE.includes('href="#ru-converter"'));
+    // the controller mounts it before Calc.create, follows the lead model's U and clears without a result
+    const js = read('beta/glazing/glazing-beta.js');
+    assert.ok(js.indexOf('GU.mountConverter(') > 0 && js.indexOf('GU.mountConverter(') < js.indexOf("Calc.create({ id: 'glzb'"));
+    assert.ok(js.includes('if (lastRun) ru.follow(lastRun.U); else ru.clear();'));
+    assert.ok(js.includes('onError: function () { lastRun = null; clearPlot(); ru.clear(); }'));
+    assert.ok(js.includes('kpis: { html: B.kpiPendingHTML() }'));
+    // one constant: the page scripts carry no private copy of the Btu factor except beta-core.js's Node fallback
+    assert.ok(!/5\.678263/.test(js) && !/5\.678263/.test(read('beta/glazing/selftest.js')));
+    assert.equal((read('beta/glazing/beta-core.js').match(/5\.678263/g) || []).length, 1);
+});
+
+// Since 2026-11 the Beta nav tab, the home page and the tools hub link to /beta/ on purpose. This tool's page stays
+// noindex and out of the sitemap, and /beta/ stays out of every JSON-LD block. Other beta pages were opened to
+// search on purpose (sitemap.xml lists /beta/thermochem/ and /beta/cross-sections/), so the sitemap check is for
+// this page only.
+test('hygiene: /beta/glazing/ stays out of the sitemap, /beta/ out of structured data', () => {
+    assert.ok(!/\/beta\/glazing/.test(read('sitemap.xml')), 'sitemap.xml lists /beta/glazing/');
     const files = ['index.html', '404.html', 'resume/index.html', 'publications/index.html'];
     for (const dir of ['tools', 'learn', 'formulas', 'games']) {
         const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true }).forEach(e => {
@@ -377,7 +510,8 @@ test('hygiene: /beta/ stays out of the sitemap and structured data', () => {
 
 test('hygiene: beta/index.html is noindex and carries the 4.13 glazing card', () => {
     const idx = read('beta/index.html');
-    assert.ok(idx.includes('<meta name="robots" content="noindex, nofollow">'));
+    // noindex either way; the hub page now lets its links be followed (the opened beta pages are reached through it)
+    assert.ok(/<meta name="robots" content="noindex, (no)?follow">/.test(idx));
     assert.ok(idx.includes('href="/beta/glazing/"'));
     // The card text of 4.13 is the coordinator's edit (this tool's builders do not edit beta/index.html). It is a hard
     // check: the old text called the coatings "measured" data, which they are not, and must not ship.

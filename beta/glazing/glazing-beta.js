@@ -6,7 +6,8 @@
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
     var E = window.GlazingEngine, Wt = window.GlazingWeights, B = window.GlazingBeta, P = window.GlazingProducts;
-    if (!E || !B || !window.Calc || !P) return;
+    var GU = window.GlazingUnits;   // U-factor and R-value conversions and the converter panel (glazing-units.js)
+    if (!E || !B || !window.Calc || !P || !GU) return;
     var fmt = Calc.fmt;
     var $ = function (id) { return document.getElementById(id); };
     var qa = function (sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); };
@@ -86,6 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
     Promise.all([manifestP, publishedP]).then(init);
 
     var calc = null, cmpCalc = null, lastRun = null;
+    var ru = null;   // the U-factor and R-value converter under the results (#ru-converter)
 
     function init() {
         try { initMain(); } catch (err) {
@@ -110,9 +112,14 @@ document.addEventListener('DOMContentLoaded', function () {
         buildStack(hash);
         // Show the right cards and fields for the state the link (or the defaults) will set, before Calc's first run.
         layout(Object.assign(formValues(), hash));
-        calc = Calc.create({ id: 'glzb', form: '#glzb', outputs: '#glzb-out', compute: safe(compute), after: function () { drawPlot(); },
+        // The converter is mounted once, before Calc.create: Calc runs the first calculation, and so after() or onError(),
+        // at once. It follows the U-factor of the model the tiles lead with and is blank without a result.
+        if (!ru) ru = GU.mountConverter({ label: 'the calculator’s center-of-glass result' });
+        calc = Calc.create({ id: 'glzb', form: '#glzb', outputs: '#glzb-out', compute: safe(compute),
+            // lastRun is null while a measured product is still loading: no result to convert yet
+            after: function () { drawPlot(); if (lastRun) ru.follow(lastRun.U); else ru.clear(); },
             // no valid result: remove the spectra of the last one, so a resize cannot redraw them (as the live page does)
-            onError: function () { lastRun = null; clearPlot(); } });
+            onError: function () { lastRun = null; clearPlot(); ru.clear(); } });
         // A link may set a select to a value it does not offer, which leaves it blank: restore those defaults.
         var fixed = false;
         if (!$('sol').value) { $('sol').value = S891 ? 'e891' : 'g173'; fixed = true; }
@@ -303,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function () {
             lastRun = null;
             return {
                 cond: cond, xsec: { html: '' }, notes: { html: '' }, swatches: { html: '' }, attrib: { html: '' },
-                kpis: { html: ['U-factor, W/m²·K', 'U-factor, Btu/h·ft²·°F', 'SHGC', 'Visible transmittance'].map(function (l) { return '<div class="kpi"><b>…</b><span>' + l + '</span></div>'; }).join('') },
+                kpis: { html: B.kpiPendingHTML() },   // the same tiles as a result, without values
                 table: { html: '<p class="muted">Loading measured data for ' + res.pending.map(function (id) { return esc(productName(id)); }).join(', ') + '…</p>' }
             };
         }
@@ -324,7 +331,10 @@ document.addEventListener('DOMContentLoaded', function () {
         Object.keys(E.FILLS).forEach(function (k) { fillLabels[k] = E.FILLS[k].label; });
         var used = [];
         st.panes.forEach(function (p) { if (p.src === 'product') used.push(products[p.id]); else if (p.src === 'import') used.push(findImport(p.id)); });
-        lastRun = { res: res, st: st, view: view };
+        // The model whose values are the large figures on the tiles (open data unless only the classic model is shown);
+        // the other one when that model has no result. Its full-precision U (W/m²·K) is what the converter follows.
+        var lead = (view === 'classic' ? mc : mo) || mm;
+        lastRun = { res: res, st: st, view: view, U: lead.U };
         return {
             cond: cond,
             xsec: { html: B.xsecSVG(st.np, main.layers, main.gaps, main.r.winter.temps, main.coat, fillLabels, esc) },
@@ -415,6 +425,12 @@ document.addEventListener('DOMContentLoaded', function () {
         var word = { ok: 'within tolerance', warn: 'within twice the tolerance', bad: 'outside twice the tolerance', info: 'report only' }[st];
         return '<td>' + fv(key, x) + '<small class="s-' + st + '" title="' + word + '">' + (MARK[st] ? MARK[st] + ' ' : '') + ds + (st === 'info' ? ' (report)' : '') + '</small></td>';
     }
+    // An R-value cell of the datasheet comparison: h·ft²·°F/Btu, with the SI value (m²·K/W) underneath. r is
+    // { Rip, Rsi } from B.datasheetRRows, or null.
+    function rCell(r, note) {
+        if (!r) return '<td>—</td>';
+        return '<td>' + r.Rip.toFixed(2) + '<small>RSI ' + r.Rsi.toFixed(3) + (note ? ', ' + note : '') + '</small></td>';
+    }
     // The measured column's tolerances, from the same table the cells use (B.tolMeasuredFor through c.metrics).
     var HINT_NAMES = { VT: 'VT', R: 'reflectance', SHGC: 'SHGC', U: 'U', UV: 'UV', Tsol: 'solar transmittance' };
     function measuredHint(row, metrics) {
@@ -455,6 +471,8 @@ document.addEventListener('DOMContentLoaded', function () {
         var measHead = row.igdb ? 'Measured record' + (ent ? ' (IGDB ' + ent.igdbId + ')' : '') : 'Measured record';
         var h = '<table class="cmp"><caption>' + esc(B.rowLabel(row)) + ': published values against the models (Δ = model − published)</caption><thead><tr>' +
             '<th scope="col">Quantity</th><th scope="col">Published</th><th scope="col">Open generic</th><th scope="col">Classic generic</th><th scope="col">' + esc(measHead) + '</th></tr></thead><tbody>';
+        var rRows = {};   // R-value equivalents of the U-factor rows, by the U row's key
+        B.datasheetRRows(c.metrics).forEach(function (q) { rRows[q.of] = q; });
         c.metrics.forEach(function (m) {
             h += '<tr><th scope="row">' + esc(m.label) + '<small>' + (m.report ? 'report only' : '± ' + m.tol) + '</small></th><td>' + pubText(m.key, m.pub) + '</td>' +
                 deltaCell(m.key, m.open, m.pub, m.tol, m.report) + deltaCell(m.key, m.classic, m.pub, m.tol, m.report);
@@ -463,6 +481,18 @@ document.addEventListener('DOMContentLoaded', function () {
             else if (m.measured == null) h += '<td>loading…</td>';
             else h += deltaCell(m.key, m.measured, m.pub, m.tolMeasured, m.reportMeasured);
             h += '</tr>';
+            // Directly under each U-factor row: the same four values as R-values. Converted, not published, so the row
+            // has no tolerance and no pass mark.
+            var q = rRows[m.key];
+            if (q) {
+                h += '<tr class="r-conv"><th scope="row">' + esc(q.label) + '<small>1 ÷ the U-factor above; converted, not published</small></th>' +
+                    rCell(q.pub, 'from the published U') + rCell(q.open) + rCell(q.classic);
+                if (!row.igdb) h += '<td>—</td>';
+                else if (measErr) h += '<td>could not load</td>';
+                else if (m.measured == null) h += '<td>loading…</td>';
+                else h += rCell(q.measured);
+                h += '</tr>';
+            }
         });
         h += '</tbody></table>';
         if (row.igdb) h += '<p class="hint">' + esc(measuredHint(row, c.metrics)) + '</p>';
@@ -518,7 +548,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderCoatings() {
         var box = $('coat-info'), C = window.GlazingCoatings, M = window.GlazingMaterials;
         if (!C || !C.coatings || !M || !M.materials) { box.innerHTML = '<p class="muted">The open-data coating files could not load.</p>'; return; }
-        var h = '<p class="hint">Generated ' + esc(C.version || '') + ' with the ' + esc(C.solar || 'E891') + ' solar spectrum. Layers are listed from the glass outward; layers thinner than about 1 nm are drawn at a minimum width. Each stack is an effective model of a coating family, not a manufacturer\'s actual design.</p><div class="coat-grid">';
+        var h = '<p class="hint">Generated ' + esc(C.version || '') + ' with the ' + esc(C.solar || 'E891') + ' solar spectrum. Layers are listed from the glass outward; layers thinner than about 1 nm are drawn at a minimum width. Each stack is an effective model of a coating family, not a manufacturer\'s actual design.' +
+            ' U-factors in the residual tables are in Btu/h·ft²·°F; the R-values of the same rows are in the datasheet comparison above.</p><div class="coat-grid">';
         ['hard', 'single', 'double', 'triple'].forEach(function (key) {
             var c = C.coatings[key];
             if (!c) return;
