@@ -19,13 +19,14 @@
    Int. J. Mass Spectrom. 261, 115 (2007); Dehmelt, Adv. At. Mol. Phys. 3,
    53 (1967); March, J. Mass Spectrom. 32, 351 (1997); Kingdon, Phys. Rev.
    21, 408 (1923); Heddle, Electrostatic Lens Systems (2000); Mason &
-   McDaniel, Transport Properties of Ions in Gases (1988); Gillig et al.,
-   Anal. Chem. 72, 3965 (2000); Gerlich, Adv. Chem. Phys. 82, 1 (1992);
-   Rama Rao & Bhutani, Int. J. Mass Spectrom. 202, 31 (2000); Dayton et al.,
-   Rev. Sci. Instrum. 25, 485 (1954); Denison, J. Vac. Sci. Technol. 8, 266
-   (1971); Shockley, J. Appl. Phys. 9, 635 (1938); Ramo, Proc. IRE 27, 584
-   (1939); Barlow, Taylor & Swanson, Int. J. Mass Spectrom. 207, 19 (2001);
-   Press et al., Numerical Recipes (Richardson extrapolation).
+   McDaniel, Transport Properties of Ions in Gases (1988); Verbeck et al.,
+   J. Am. Soc. Mass Spectrom. 15, 1320 (2004); Gerlich, Adv. Chem. Phys.
+   82, 1 (1992); Rama Rao & Bhutani, Int. J. Mass Spectrom. 202, 31 (2000);
+   Dayton et al., Rev. Sci. Instrum. 25, 485 (1954); Denison, J. Vac. Sci.
+   Technol. 8, 266 (1971); Shockley, J. Appl. Phys. 9, 635 (1938); Ramo,
+   Proc. IRE 27, 584 (1939); Barlow, Taylor & Swanson, Int. J. Mass
+   Spectrom. 207, 19 (2001); Press et al., Numerical Recipes (Richardson
+   extrapolation).
    ========================================================================== */
 
 const CODATA = { text: 'CODATA 2022 recommended values (NIST); closed-form kinematics', url: 'https://physics.nist.gov/cuu/Constants/' };
@@ -379,7 +380,7 @@ export const TARGETS = Object.freeze({
     },
     D2: {
         values: { K: '3574', damping: '0.375', vt: '1.787' }, units: { K: 'cm²/(V·s)', damping: '1/µs', vt: 'mm/µs' },
-        source: { text: 'Mobility at pressure and temperature K = K₀(760/p)(T/273.15), damping q/(mK) and drift velocity KE (Mason & McDaniel, Transport Properties of Ions in Gases (Wiley, 1988)); K₀ = 4.31 cm²/(V s) for m/z 720 in He is an assumed input, attributed to Gillig, Ruotolo, Stone, Russell, Fuhrer, Gonin & Schultz, Anal. Chem. 72, 3965–3971 (2000), whose table entry and species still need confirmation (the gate checks the conversion and the dynamics, not K₀ itself)', url: 'https://doi.org/10.1002/3527602852' },
+        source: { text: 'Mobility at pressure and temperature K = K₀(760/p)(T/273.15), damping q/(mK) and drift velocity KE (Mason & McDaniel, Transport Properties of Ions in Gases (Wiley, 1988)); K₀ = 4.31 cm²/(V s) for C₆₀⁺ (m/z 720) in He is the value used, without a stated source, by Verbeck, Ruotolo, Gillig & Russell, J. Am. Soc. Mass Spectrom. 15, 1320–1324 (2004), p. 1322; by the Mason–Schamp equation it corresponds to a collision cross section of 124 Å² at 300 K. 5 V/mm at 1 torr and 298 K is E/N = 154 Td, above the low-field range in which K₀ applies, so the gate checks the conversion and the drag dynamics, not K₀ or a physical drift velocity', url: 'https://doi.org/10.1002/3527602852' },
         note: 'Uniform 5 V/mm drift cell, 720 u from rest: K = K₀(760/p)(T/273.15) = 3573.6 cm²/(V s); damping constant K_ACC·q/(K m) = 0.37499 µs⁻¹ from the velocity after 2 µs; terminal velocity 1.7868 mm/µs after 60 µs.',
         // observed: the deviation of the row's worst check, K against the printed 3574 (cm²/(V s)); the others are in design
         calibration: { level: 'round 2', observed: { quick: -0.40, full: -0.40 }, design: { vtDigits: -1.1e-4, vtExact: -1.7e-10, dampingDigits: -1.9e-5, dampingExact: -4.8e-12, K: -0.40 } },
@@ -404,7 +405,7 @@ export const TARGETS = Object.freeze({
     },
     I2: {
         values: { rMin: 1.28 }, units: { rMin: 'mm' },
-        source: { text: 'Laminar envelope equation of a converging beam with space charge, R′² = R₀′² + 2K ln(R/R₀) (closed form; Reiser, Theory and Design of Charged Particle Beams, 2nd ed. 2008, §4.2)', url: null },
+        source: { text: 'Laminar envelope equation of a converging beam with space charge, R′² = R₀′² + 2K ln(R/R₀) (closed form; Reiser, Theory and Design of Charged Particle Beams, 2nd ed. 2008, §4.2.1, eqs. 4.26 and 4.33)', url: null },
         note: 'Informational: R_min = R₀ exp(−tan²θ/(2K)) = 1.2748 mm at the perveance-limited current 3.47 µA (K = 0.0526). Observed 1.29 mm (250 particles, ε 0.25 mm) and 1.28 mm (1000, ε 0.1 mm). The softening should be about a tenth of the mean particle spacing (πR₀²L/N)^(1/3) (1.89 mm for 250 particles, 1.19 mm for 1000; the settings here are 1/7.5 and 1/12 of it): at a tenth R_min is within 0.3 % of the laminar value, at a fifth about 3 % low, and at the spacing itself two thirds of the spread is lost (0.42 mm for 1000 particles).',
         calibration: { level: 'round 2', observed: { quick: 1.292, full: 1.283 }, design: null },
     },
@@ -433,5 +434,5 @@ export const SHORT_REFS = Object.freeze({
     L7: 'Davisson & Calbick 1932; exact aperture potential', P1: 'Langmuir 1913', P2: 'Coulomb (CODATA 2022)', P3: 'Closed form', P4: 'CODATA 2022',
     K3d: 'CODATA 2022', K6b: 'Liebl 2008; Barber’s rule', S11: 'Linear potential (closed form)', S12: 'Press et al.', S13: 'Poisson (closed form)', T8b: 'Zouros et al. 2007', T16: 'Closed form',
     T17: 'Dayton et al. 1954; Denison 1971; independent a₂', T18: 'Dehmelt 1967; March 1997', T19: 'Shockley 1938; Ramo 1939', T20: 'Kingdon 1923', L8: 'Newton’s rule; DiChio et al. 1974',
-    L9: 'Weak-lens formula (Bessel series)', D1: 'Mason & McDaniel 1988', D2: 'Mason & McDaniel 1988 (K₀ assumed)', I1: 'Gerlich 1992', I2: 'Reiser 2008, §4.2', I3: 'Barlow et al. 2001', I4: 'Chapman & Cowling 1970',
+    L9: 'Weak-lens formula (Bessel series)', D1: 'Mason & McDaniel 1988', D2: 'Mason & McDaniel 1988; Verbeck et al. 2004', I1: 'Gerlich 1992', I2: 'Reiser 2008, §4.2.1', I3: 'Barlow et al. 2001', I4: 'Chapman & Cowling 1970',
 });

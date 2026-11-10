@@ -35,12 +35,12 @@
         { id: 'h2o',  label: 'Water ion (H₂¹⁶O⁺)',          M: 2 * H1 + O16,    z: 1 },
         { id: 'n2',   label: 'Nitrogen molecular ion (¹⁴N₂⁺)', M: 2 * N14,      z: 1 },
         { id: 'o2',   label: 'Oxygen molecular ion (¹⁶O₂⁺)',  M: 2 * O16,       z: 1 },
-        { id: 'ar',   label: 'Argon ion (⁴⁰Ar⁺)',           M: 39.9623831237,   z: 1 },
+        { id: 'ar',   label: 'Argon ion (⁴⁰Ar⁺)',           M: 39.96238312204,  z: 1 },
         { id: 'co2',  label: 'Carbon dioxide ion (¹²C¹⁶O₂⁺)', M: C12 + 2 * O16, z: 1 },
         { id: 'ga',   label: 'Gallium ion (⁶⁹Ga⁺)',         M: 68.9255735,      z: 1 },
-        { id: 'kr',   label: 'Krypton ion (⁸⁴Kr⁺)',         M: 83.9114977282,   z: 1 },
-        { id: 'xe',   label: 'Xenon ion (¹³²Xe⁺)',          M: 131.9041550856,  z: 1 },
-        { id: 'cs',   label: 'Cesium ion (¹³³Cs⁺)',         M: 132.905451961,   z: 1 },
+        { id: 'kr',   label: 'Krypton ion (⁸⁴Kr⁺)',         M: 83.91149772708,  z: 1 },
+        { id: 'xe',   label: 'Xenon ion (¹³²Xe⁺)',          M: 131.90415508346, z: 1 },
+        { id: 'cs',   label: 'Cesium ion (¹³³Cs⁺)',         M: 132.905451958,   z: 1 },
         { id: 'c60',  label: 'Fullerene ion (¹²C₆₀⁺)',      M: 60 * C12,        z: 1 }
     ];
     var BY_ID = {};

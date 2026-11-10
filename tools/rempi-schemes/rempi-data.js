@@ -423,6 +423,7 @@ window.REMPI_DATA = (function () {
 
     const EV = 8065.543937;   // cm⁻¹ per eV (CODATA 2018/2022: 1 eV/hc)
     // Molecular species: IE (WebBook evaluated, eV) and resonant vibronic levels (cm⁻¹ above X, v″=0)
+    // HCl: the WebBook evaluated 12.744 ± 0.009 eV is kept. The threshold-photoelectron value, 102 802.8 ± 2 cm⁻¹ = 12.7459 eV (Tonkyn et al. 1992), lies inside it; the CRC Handbook lists 12.749 ± 0.009.
     const molecules = [
         { id: 'NO', name: 'NO (nitric oxide)', IE_eV: 9.2642, IE_unc_eV: 0.00002, IE_src: 'webbook',
           states: [{ id: 'NO:A0', label: 'A ²Σ⁺ (3sσ), v′ = 0 — γ(0,0) band', E: 44201.8, src: 'T₀ from the Huber–Herzberg constants in the NIST WebBook: Tₑ = 43965.7, ωₑ = 2374.31, ωₑxₑ = 10.106, ωₑyₑ = −0.0465; X: ωₑ = 1904.04, ωₑxₑ = 14.100 cm⁻¹' }] },
