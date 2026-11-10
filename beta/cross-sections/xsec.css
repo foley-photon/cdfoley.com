@@ -15,10 +15,93 @@
 .xs-swatch { display: inline-block; width: 0.9rem; height: 0.9rem; border-radius: 3px; border: 1px solid var(--border-strong); vertical-align: -0.12rem; }
 .xs-rec { color: var(--ok); border-color: var(--ok); }
 .xs-sets td { vertical-align: top; }
-.xs-plot { min-height: 380px; margin-top: 0.6rem; }
+.xs-plot { min-height: 230px; margin-top: 0.6rem; }   /* 230 px is the smallest chart plot.js draws: the box hugs the chart in a narrow column */
 .xs-opts { display: flex; flex-wrap: wrap; gap: 0.2rem 1.4rem; }
 .xs-prose { margin-top: 2.4rem; }
 .xs-terms { margin-top: 2rem; }
 @media (max-width: 640px) { .xs-list li { grid-template-columns: auto 1fr; } .xs-l-n { display: none; } }
 .xs-note { font-size: 0.78rem; color: var(--text-2); margin-top: 0.2rem; }
 .xs-note summary { cursor: pointer; color: var(--muted); }
+
+/* Beta callout: one sentence, the rest folded. */
+.xs-fold { margin-top: 0.4rem; }
+.xs-fold > summary { cursor: pointer; font-size: 0.86rem; font-weight: 600; color: var(--text); padding: 0.1rem 0; }
+.xs-fold > summary:hover { color: var(--accent); }
+.xs-fold > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+.xs-fold[open] > summary { margin-bottom: 0.4rem; }
+.xs-fold p { margin: 0; }
+
+/* Dataset list: a fold (closed by default on phones) around a scroll box with a sticky header and fade cues. */
+.xs-sets-fold > summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; color: var(--text-2); padding: 0.35rem 0; border-top: 1px solid var(--border); list-style-position: inside; }
+.xs-sets-fold > summary:hover { color: var(--accent); }
+.xs-sets-fold > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius-sm); }
+.xs-sets-n { font-weight: 500; color: var(--muted); font-size: 0.84rem; }
+.xs-sets-scroll { position: relative; container-type: inline-size; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.xs-sets-scroll > table.tc-table { display: table; overflow: visible; width: 100%; }     /* not the block scroller .panel-body table makes, so the header can stick to this box */
+.xs-sets-scroll thead th { position: sticky; top: 0; z-index: 1; box-shadow: 0 1px 0 var(--border); transition: box-shadow 0.15s; }
+.xs-sets-scroll:not(.xs-at-top) thead th { box-shadow: 0 1px 0 var(--border), 0 4px 8px -2px rgba(15, 23, 42, 0.22); }
+.xs-sets-scroll::after { content: ''; position: sticky; bottom: 0; display: block; height: 1.4rem; margin-top: -1.4rem; pointer-events: none;
+    background: linear-gradient(to top, var(--surface), transparent); opacity: 1; transition: opacity 0.15s; }
+.xs-sets-scroll.xs-at-end::after { opacity: 0; }
+.xs-sets-fold .hint { margin-top: 0.5rem; }
+
+/* Picker and spectrum side by side on wide screens; the spectrum stays in view while the list scrolls. */
+.xs-axes { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }   /* two selects side by side where each keeps about 200 px, so the unit labels are not cut by the arrow */
+.xs-axes .field { min-width: 0; }
+.xs-axes select.input { max-width: 100%; }
+.xs-plot-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 1rem; margin-bottom: 0.2rem; }
+.xs-plot-ctl .xs-quick, .xs-plot-ctl .field, .xs-plot-ctl .xs-opts > label { margin: 0; }
+.xs-lims { display: flex; flex-wrap: wrap; gap: 0.45rem 0.7rem; }
+.xs-lim { display: flex; align-items: center; gap: 0.4rem; }
+.xs-lim > label { margin: 0; }
+.xs-lim .input-unit { width: 7.5rem; }
+.xs-lim .input-unit input { padding-inline: 0.5rem; }
+.xs-lim .input-unit .unit { min-width: 2.2rem; }
+.xs-spectrum > .panel-body { container-type: inline-size; }
+@container (max-width: 600px) { .xs-plot-ctl .xs-quick .tc-state { display: none; } }   /* a narrow panel: the range chips show their names only; a click fills From and To */
+.xs-sets-scroll { scroll-padding-top: 2.6rem; scroll-padding-bottom: 1.6rem; }   /* a focused row is scrolled clear of the sticky header and the bottom fade */
+@media (min-width: 1024px) {
+    .xs-layout { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 1.5rem; align-items: start;
+        /* the two panels may run wider than the article column (up to 130 px each side) when the viewport has room beyond the 1140 px article; the 10 px allows for a scrollbar inside 100vw */
+        margin-inline: calc(-1 * clamp(0px, (100vw - var(--maxw)) / 2 - 10px, 130px)); }
+    .xs-layout > .panel + .panel { margin-top: 0; }
+    .xs-spectrum { position: sticky; top: calc(var(--header-h) + 16px); max-height: calc(100vh - var(--header-h) - 24px); max-height: calc(100dvh - var(--header-h) - 24px); overflow-y: auto; }   /* never taller than the viewport it sticks in (app.js shortens the chart first, so this is a backstop) */
+    .xs-spectrum .xs-plot { margin-top: 0.3rem; }
+    .xs-spectrum .tc-actions { margin-top: 0.7rem; }
+    .xs-axes > .field, .xs-axes > .field:last-child { margin-bottom: 0.7rem; }
+    .xs-spectrum .xs-plot + .hint { margin-bottom: 0.5rem; }
+    .xs-sets-scroll { max-height: clamp(320px, 100vh - 280px, 720px); }
+    .xs-sets-scroll .tc-table th, .xs-sets-scroll .tc-table td { padding: 0.4rem 0.45rem; }
+}
+@media (min-width: 1024px) and (max-height: 739.98px) {
+    .xs-spectrum { position: static; max-height: none; overflow: visible; }   /* a viewport too short to hold the panel even with the smallest chart: it scrolls with the page */
+}
+@media (max-width: 1023.98px) {
+    .xs-sets-scroll { max-height: 70vh; }
+    /* stacked: the chart comes first, right after the molecule picker; its controls follow (DOM order is unchanged, so the wide layout and the tab order keep controls first) */
+    .xs-spectrum .panel-body { display: flex; flex-direction: column; }
+    .xs-spectrum .xs-axes, .xs-spectrum .xs-plot-ctl { order: 1; }
+    .xs-spectrum .tc-actions { order: 2; }
+    .xs-spectrum .xs-plot { margin-top: 0; }
+    .xs-spectrum .xs-axes { margin-top: 0.4rem; }
+}
+@media (prefers-reduced-motion: reduce) { .xs-sets-scroll thead th, .xs-sets-scroll::after { transition: none; } }
+
+/* Narrow list box (the side column, or a phone): each dataset becomes a card row instead of six squeezed columns. */
+@container (max-width: 600px) {
+    .xs-sets-scroll > table.tc-table, .xs-sets tbody { display: block; }
+    .xs-sets thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* read by assistive tech, not shown */
+    .xs-sets tr { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.15rem 0.7rem; padding: 0.55rem 0.5rem 0.55rem 3.4rem;   /* room for the checkbox and its colour swatch */ border-bottom: 1px solid var(--border); }
+    .xs-sets td { display: block; border: 0; padding: 0; }
+    .xs-sets td:first-child { position: absolute; left: 0.5rem; top: 0.6rem; }
+    .xs-sets td:first-child .xs-chk { padding: 0.45rem; margin: -0.45rem; }   /* a larger tap target than the 13 px box and its swatch */
+    .xs-sets td:nth-child(2) { flex: 1 0 100%; overflow-wrap: anywhere; }
+    .xs-sets .xs-cite { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }   /* the full citation stays in the row for assistive tech and the DOI link; two lines keep a card short */
+    .xs-sets td.num { text-align: left; font-size: 0.78rem; color: var(--text-2); }
+    .xs-sets td.xs-c-l::after { content: ' nm'; }
+    .xs-sets td.xs-c-n br, .xs-sets td.xs-c-s br { display: none; }
+    .xs-sets td.xs-c-n .tc-state::before { content: ' '; }
+    .xs-sets td.xs-c-n::after { content: ' points'; }
+    .xs-sets .xs-med::before { content: ', '; }
+    .xs-sets-scroll .tc-table th, .xs-sets-scroll .tc-table td { padding: 0; }
+}

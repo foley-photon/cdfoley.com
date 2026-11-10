@@ -56,7 +56,7 @@ function writeURL() {
     if (state.on.length) p.set('on', state.on.join(','));
     for (const k of ['x', 'y', 'min', 'max', 'lam', 'fw']) if (state[k] && !(k === 'x' && state[k] === 'nm') && !(k === 'y' && state[k] === 'cm2')) p.set(k, state[k]);
     if (!state.log) p.set('log', '0'); if (state.lines) p.set('lines', '1');
-    try { history.replaceState(null, '', `${location.pathname}?${p.toString()}`); } catch { /* sandbox */ }
+    try { history.replaceState(null, '', `${location.pathname}?${p.toString()}${location.hash}`); } catch { /* sandbox */ }
 }
 
 /* ── species search ─────────────────────────────────────────────────── */
@@ -122,6 +122,7 @@ async function choose(k, keepOn = false) {
     state.k = k; $('xs-q').value = s.f;
     if (!keepOn) state.on = defaultSets(s);
     state.on = state.on.filter((id) => s.sets.some((x) => x.id === id));
+    if (!state.on.length) state.on = defaultSets(s);   // a link whose on= names no dataset of this molecule
     renderSets();
     await loadSets(state.on);
     renderAll();
@@ -141,15 +142,34 @@ async function loadSets(ids, quiet = false) {
         return inflight.get(x.id);
     }));
 }
+const WIDE = window.matchMedia('(min-width: 1024px)');
+/** Fade and shadow cues on the dataset list while it has more rows above or below the visible part. */
+function shadeSets() {
+    const sc = $('xs-sets').querySelector('.xs-sets-scroll'); if (!sc) return;
+    sc.classList.toggle('xs-at-top', sc.scrollTop < 2);
+    sc.classList.toggle('xs-at-end', sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 2);
+}
+$('xs-sets').addEventListener('scroll', shadeSets, true);
+WIDE.addEventListener('change', () => { const d = $('xs-sets').querySelector('.xs-sets-fold'); if (d && WIDE.matches) d.open = true; shadeSets(); });
+let resizeT; addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (state.k) renderPlot(); }, 150); });   // the chart's height cap depends on the viewport (plot.js alone redraws for the width)
 function renderSets() {
     const s = byKey.get(state.k); const root = $('xs-sets');
     if (!s) { root.innerHTML = ''; return; }
+    // The list is re-rendered on every tick: keep the fold's state (open on wide screens until the reader closes it) and its scroll position.
+    const prev = root.querySelector('.xs-sets-fold'); const open = prev ? prev.open : WIDE.matches;
+    const prevScroll = root.querySelector('.xs-sets-scroll'); const top = prevScroll && root.dataset.k === state.k ? prevScroll.scrollTop : 0;   // a new molecule starts at the top
+    const fid = root.contains(document.activeElement) ? document.activeElement.dataset.set : null;   // the checkbox that had focus is rebuilt below
     $('xs-count').textContent = `${s.sets.length} dataset${s.sets.length === 1 ? '' : 's'}`;
     const sets = s.sets.slice().sort((a, b) => (b.rec - a.rec) || (a.l[0] - b.l[0]) || ((b.y || 0) - (a.y || 0)));
     root.innerHTML = `<div class="xs-sp-head"><h3>${esc(s.n || s.f)} ${F(s.f)}</h3>${s.cas ? `<span class="tc-state">CAS ${esc(s.cas)}</span>` : ''}</div>
-    <div class="tc-table-scroll"><table class="tc-table xs-sets"><thead><tr><th>Show</th><th>Reference</th><th class="num">T</th><th class="num">λ range, nm</th><th class="num">Points</th><th>Source</th></tr></thead><tbody>
-    ${sets.map((x) => { const on = state.on.includes(x.id); const ci = state.on.indexOf(x.id); return `<tr><td><label class="xs-chk"><input type="checkbox" data-set="${esc(x.id)}"${on ? ' checked' : ''}${!on && state.on.length >= MAX_SETS ? ' disabled' : ''}><span class="xs-swatch" style="${on ? `background:${COLORS[ci % COLORS.length]}` : ''}"></span></label></td><td>${refText(x.ref)}${x.rec ? ' <span class="tc-tag xs-rec">recommended</span>' : ''}${x.ref && (x.ref.a || x.ref.t) ? `<br><span class="tc-state">${x.ref.a ? `${esc(x.ref.a.replace(/\.$/, ''))}. ` : ''}${esc(x.ref.t)}${x.ref.j ? `, ${esc(x.ref.j)}` : ''}</span>` : ''}${doiLink(x.ref)}${x.res ? `<br><span class="tc-state">resolution ${esc(x.res)}</span>` : ''}${x.note ? `<details class="xs-note"><summary>note</summary>${esc(x.note)}</details>` : ''}</td><td class="num">${esc(tText(x.T))}</td><td class="num">${x.l[0] === x.l[1] ? x.l[0] : `${x.l[0]}–${x.l[1]}`}</td><td class="num">${x.np}${x.n0 > x.np ? `<br><span class="tc-state">of ${x.n0}</span>` : ''}</td><td class="tc-state">${esc(srcName(x.src))}${x.med && x.med !== 'unknown' ? `<br>${esc(x.med)} λ` : ''}</td></tr>`; }).join('')}
-    </tbody></table></div><p class="hint">Up to ${MAX_SETS} datasets at once. “Recommended” marks the dataset an evaluation (NASA JPL or IUPAC) recommended in the source's version. Cite the original paper for any value you use.</p>`;
+    <details class="xs-sets-fold"${open ? ' open' : ''}><summary>Datasets <span class="xs-sets-n">(${state.on.length} shown of ${s.sets.length})</span></summary>
+    <div class="xs-sets-scroll"><table class="tc-table xs-sets"><thead><tr><th>Show</th><th>Reference</th><th class="num">T</th><th class="num">λ range, nm</th><th class="num">Points</th><th>Source</th></tr></thead><tbody>
+    ${sets.map((x) => { const on = state.on.includes(x.id); const ci = state.on.indexOf(x.id); return `<tr><td><label class="xs-chk"><input type="checkbox" data-set="${esc(x.id)}" aria-label="Show ${refText(x.ref)}, ${esc(tText(x.T))}"${on ? ' checked' : ''}${!on && state.on.length >= MAX_SETS ? ' disabled' : ''}><span class="xs-swatch" style="${on ? `background:${COLORS[ci % COLORS.length]}` : ''}"></span></label></td><td>${refText(x.ref)}${x.rec ? ' <span class="tc-tag xs-rec">recommended</span>' : ''}${x.ref && (x.ref.a || x.ref.t) ? `<br><span class="tc-state xs-cite">${x.ref.a ? `${esc(x.ref.a.replace(/\.$/, ''))}. ` : ''}${esc(x.ref.t)}${x.ref.j ? `, ${esc(x.ref.j)}` : ''}</span>` : ''}${doiLink(x.ref)}${x.res ? `<br><span class="tc-state">resolution ${esc(x.res)}</span>` : ''}${x.note ? `<details class="xs-note"><summary>note</summary>${esc(x.note)}</details>` : ''}</td><td class="num xs-c-T">${esc(tText(x.T))}</td><td class="num xs-c-l">${x.l[0] === x.l[1] ? x.l[0] : `${x.l[0]}–${x.l[1]}`}</td><td class="num xs-c-n">${x.np}${x.n0 > x.np ? `<br><span class="tc-state">of ${x.n0}</span>` : ''}</td><td class="tc-state xs-c-s">${esc(srcName(x.src))}${x.med && x.med !== 'unknown' ? `<br><span class="xs-med">${esc(x.med)} λ</span>` : ''}</td></tr>`; }).join('')}
+    </tbody></table></div><p class="hint">Up to ${MAX_SETS} datasets at once. “Recommended” marks the dataset an evaluation (NASA JPL or IUPAC) recommended in the source's version. Cite the original paper for any value you use.</p></details>`;
+    root.dataset.k = state.k;
+    const sc = root.querySelector('.xs-sets-scroll'); if (sc && top) sc.scrollTop = top;
+    if (fid) root.querySelector(`input[data-set="${CSS.escape(fid)}"]`)?.focus({ preventScroll: true });
+    shadeSets();
 }
 document.addEventListener('change', (e) => {
     const c = e.target.closest('input[data-set]'); if (!c) return;
@@ -178,15 +198,24 @@ function renderPlot() {
     if (!series.length) { Plot.clear(el); $('xs-plot-note').textContent = 'No data in this range.'; return; }
     const vlines = state.lines ? LASER_LINES.filter((L) => (lo == null || L.nm >= lo) && (hi == null || L.nm <= hi)).map((L) => ({ x: conv(L.nm), label: String(L.nm), color: 'var(--muted)' })) : [];
     const lam = num(state.lam); if (lam && (lo == null || lam >= lo) && (hi == null || lam <= hi)) vlines.push({ x: conv(lam), label: `${lam} nm`, color: 'var(--accent)' });
-    Plot.draw(el, {
-        height: 380,
+    const draw = (hMax) => Plot.draw(el, {
+        height: Math.floor(hMax / 1.3),   // plot.js draws the chart min(1.3 × height, max(230, 0.42 × width)) px tall
         x: { label: XLABEL[state.x] },
         y: { label: yu.label, log: state.log },
         series, vlines, includeLines: false,
         hover: { format: (x, hits) => `${state.x === 'nm' ? `${x.toFixed(2)} nm` : state.x === 'cm1' ? `${x.toFixed(0)} cm⁻¹` : `${x.toFixed(3)} eV`}${hits.map((h) => ` · ${h.series.label}: ${h.y.toExponential(3)}`).join('')}` },
     });
+    draw(380);
     const steps = sets.map((s) => medianStep(s.data)).filter(Boolean);
     $('xs-plot-note').textContent = `${series.length} dataset${series.length === 1 ? '' : 's'}${steps.length ? `; tabulated spacing ${Math.min(...steps).toPrecision(2)}–${Math.max(...steps).toPrecision(2)} nm` : ''}. Spectra may be resampled for the web (at most 2 000 points each, keeping peaks); the download gives the points as shipped.`;
+    // Beside the picker the panel sticks below the header, so it may not be taller than the viewport leaves there (8 px kept at the
+    // bottom): a chart that makes it overflow is drawn again shorter, down to the 230 px plot.js keeps. Elsewhere the panel's top is 'auto'.
+    const panel = el.closest('.xs-spectrum'); const top = parseFloat(getComputedStyle(panel).top);
+    if (Number.isFinite(top)) {
+        const over = panel.scrollHeight + panel.offsetHeight - panel.clientHeight + top + 8 - innerHeight;   // content with borders, past the viewport
+        const h = over > 0 ? el.querySelector('svg').getBoundingClientRect().height : 0;
+        if (h > 230) draw(Math.max(230, h - over));
+    }
 }
 
 /* ── values at a laser line ─────────────────────────────────────────── */
@@ -287,7 +316,7 @@ function downloadCSV() {
 /* ── render and boot ────────────────────────────────────────────────── */
 function renderAll() { renderPlot(); renderAt(); renderCalc(); renderConv(); writeURL(); }
 async function boot() {
-    readURL();
+    readURL(); const hash = location.hash;
     $('xs-y').innerHTML = Object.entries(SIGMA_UNITS).map(([k, u]) => `<option value="${k}">${esc(u.label)}</option>`).join('');
     $('xs-cu').innerHTML = Object.entries(SIGMA_UNITS).map(([k, u]) => `<option value="${k}">${esc(u.label)}</option>`).join('');
     const bind = (id, k, ev = 'input', fn = renderAll) => { const el = $(id); if (el.type === 'checkbox') el.checked = !!state[k]; else el.value = state[k]; el.addEventListener(ev, () => { state[k] = el.type === 'checkbox' ? el.checked : el.value; fn(); }); };
@@ -311,6 +340,7 @@ async function boot() {
     $('xs-link').addEventListener('click', async (e) => { try { await navigator.clipboard.writeText(location.href); e.target.textContent = 'Copied'; } catch { prompt('Copy this link:', location.href); } setTimeout(() => { e.target.textContent = 'Copy link'; }, 1500); });
     const first = byKey.has(state.k) ? state.k : (index.species.find((s) => s.f === 'O3') || index.species[0]).k;
     await choose(first, byKey.has(state.k) && state.on.length > 0);
+    const target = hash && /^#[\w-]+$/.test(hash) ? document.getElementById(hash.slice(1)) : null; if (target) target.scrollIntoView();   // the browser scrolled before the list and chart existed
     window.__xsec = { index: () => index, cache, state };
 }
 boot();
