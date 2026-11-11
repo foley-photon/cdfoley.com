@@ -1,20 +1,27 @@
 // Self-test cases. Each case recomputes a reaction energy from the loaded ATcT table and checks it twice:
 //  1. "table": against the value hand-computed from ATcT TN 1.228 on 2026-11-06 (catches data, parsing and engine errors);
+//     skipped when the loaded table names another TN version (after an automatic update), see HAND_TN;
 //  2. "reference": against a reference value, passing when |Δ| ≤ √(U_tool² + U_ref²) with both at 95 %.
 // The references are NOT independent tests of ATcT. Most are measurements that ATcT itself uses as inputs (the
 // ATcT 1.228 species pages list them), so agreement is expected; one is an ATcT-group analysis of such inputs;
-// H2CO -> H2 + CO is compared with the previous ATcT version (a version-to-version check); IE(H) is checked to
-// ATcT's printed rounding. Together they show that the tool reproduces ATcT, not that ATcT is right.
+// H2CO -> H2 + CO is compared with ATcT's own values and covariances from the API (an arithmetic and covariance-file
+// check); IE(H) is checked to ATcT's printed rounding. Together they show that the tool reproduces ATcT, not that ATcT is right.
 // The EXCITED cases (group 'excited') check excited-product and electron-attachment thresholds against thresholds quoted
 // in the literature (rounded, and partly built on older thermochemistry; each row states its tolerance) or against sums of
-// cited measurements. Plus unit, lookup, state-label, balance, covariance, diagram and version-diff checks.
+// cited measurements. Plus unit, lookup, state-label, balance, covariance, diagram and data-version checks.
 
 import {
     parseReaction, resolveReaction, resolveToken, search, balance, reactionEnthalpy, toKJ, fromKJ, kjToNm, nmToKJ,
-    excitedStates, excitedThresholds, findChannels, versionChange, stateToken, unboundAnion, uncertaintyBudget, bestU,
+    excitedStates, excitedThresholds, findChannels, stateToken, unboundAnion, uncertaintyBudget, bestU,
 } from './engine.js';
 import { photofragments, collisionFrame, collisionChannels, labForCM } from './kinematics.js';
 import { buildDiagram } from './diagram.js';
+
+/** TN version of the hand-computed values ('table' in CASES and the hand values in extraChecks). They are compared only
+ * with a table of that version or of unknown version (a CSV); a table of another version skips them and is checked
+ * against the references alone. The ATcT links below are that version's pages, where the cited inputs are listed. */
+export const HAND_TN = '1.228';
+export const handApplies = (db) => !db.meta || !db.meta.tn_version || String(db.meta.tn_version) === HAND_TN;
 
 const ATCT_H2O = 'https://atct.anl.gov/Thermochemical%20Data/version%201.228/species/?species_number=28';
 const ATCT_CH4 = 'https://atct.anl.gov/Thermochemical%20Data/version%201.228/species/?species_number=23';
@@ -24,7 +31,7 @@ const ATCT_O = 'https://atct.anl.gov/Thermochemical%20Data/version%201.228/speci
 export const KINDS = Object.freeze({
     input: 'ATcT input: agreement expected',
     atct: 'ATcT-group analysis of TN inputs: not independent',
-    version: 'Version-to-version check (TN 1.220), not independent',
+    api: 'ATcT values and covariances (TN 1.228 via the API): checks the arithmetic, not ATcT',
     rounding: 'ATcT input: checked to the printed rounding only',
     quoted: 'Threshold quoted in the literature, checked to the tolerance given in the row; partly independent',
     composed: 'Sum of cited values; the excitation term is the NIST value the tool itself adds',
@@ -52,9 +59,9 @@ export const CASES = Object.freeze([
         href: 'https://doi.org/10.1016/0009-2614(96)00705-1',
     },
     {
-        id: 'h2co-mol', title: 'Δ<sub>r</sub>H°(0 K), H₂CO → H₂ + CO (molecular channel)', rxn: 'CH2O -> H2 + CO', q: 'h0', table: -8.417, kind: 'version',
-        ref: { v: -8.417, u: 0.093, unit: 'kJ/mol' }, show: 'kJ/mol',
-        src: 'ATcT TN 1.220 (API): ΔfH°₀ CO −113.799, H₂CO −105.382 kJ/mol; ±0.093 is the TN 1.220 covariance uncertainty of the difference. No single direct measurement exists',
+        id: 'h2co-mol', title: 'Δ<sub>r</sub>H°(0 K), H₂CO → H₂ + CO (molecular channel)', rxn: 'CH2O -> H2 + CO', q: 'h0', table: -8.417, kind: 'api',
+        ref: { v: -8.417, u: 0.076, unit: 'kJ/mol' }, show: 'kJ/mol',
+        src: 'ATcT TN 1.228 via the API (2026-11-11): ΔfH°₀ CO −113.803, H₂CO −105.386 kJ/mol; ±0.076 is the uncertainty of the difference from the TN 1.228 covariance matrix (exact API values, 0.0758). No single direct measurement exists',
         href: 'https://atct.anl.gov/api/v1/',
     },
     {
@@ -145,6 +152,7 @@ export function runCase(db, c) {
     if (c.group === 'excited' && !db.exc) {
         return { ...c, value: null, u: null, ucorr: null, balanced: bal.ok, errors: ['needs the excited-state file'], refKJ, refU, diff: NaN, tol: NaN, tableOk: false, pubOk: false, nmOk: false, pass: null };
     }
+    const handOk = handApplies(db);
     const tableOk = value != null && Math.abs(value - c.table) <= 0.0015;
     const tol = c.tolKJ != null ? c.tolKJ : h ? Math.hypot(h.u, refU) : 0;
     const diff = value != null ? value - refKJ : NaN;
@@ -152,7 +160,7 @@ export function runCase(db, c) {
     const nmOk = c.nm == null || (value != null && Math.abs(kjToNm(value) - c.nm) < 0.01);
     return {
         ...c, value, u: h ? h.u : null, ucorr: h && h.ucorr ? h.ucorr.u : null, balanced: bal.ok, errors: r.errors,
-        refKJ, refU, diff, tol, tableOk, pubOk, nmOk, pass: bal.ok && tableOk && pubOk && nmOk,
+        refKJ, refU, diff, tol, tableOk, handOk, pubOk, nmOk, pass: bal.ok && (tableOk || (!handOk && value != null)) && pubOk && nmOk,
     };
 }
 
@@ -165,16 +173,22 @@ function rx(db, text) {
     return { terms: r.terms, ok: !r.errors.length && balance(r.terms).ok, h0: h ? h.h0 : null, error: r.errors[0] };
 }
 const near = (x, v) => x != null && Math.abs(x - v) <= 0.0015;
-/** The covariance part of a reaction's TN 1.220 uncertainty, without the rounding of the printed values. */
-const cov = (h) => Math.sqrt(Math.max(h.ucorr.u220 ** 2 - (h.rvar || 0), 0));
+/** The covariance part of a reaction's correlated uncertainty, without the rounding of the printed values. */
+const cov = (h) => Math.sqrt(Math.max(h.ucorr.u ** 2 - (h.rvar || 0), 0));
 
 /**
  * Unit-conversion, lookup, balance and uncertainty checks that do not depend on a single reference value.
- * `pass` is true, false, or null (not applicable to the loaded table; not counted).
+ * `pass` is true, false, or null (not applicable to the loaded table; not counted). `ctx` (shipped table only):
+ * `version` from atct-current.json, `covTN` the tn_version of the covariance file as loaded (attached or not) and
+ * `covError` why no covariances are attached.
  */
-export function extraChecks(db) {
+export function extraChecks(db, ctx = {}) {
     const out = [];
     const add = (title, pass, detail, group = 'units') => out.push({ title, pass, detail, group });
+    // hand values (TN 1.228) are compared only with a table of that version; otherwise just that a value came out
+    const handOk = handApplies(db);
+    const nearH = (x, v) => (handOk ? near(x, v) : x != null);
+    const handNote = handOk ? '' : ` (TN ${HAND_TN} hand value not compared: the table is TN ${db.meta.tn_version})`;
     // units (CODATA 2022: N_A, e, h, c and k exact)
     add('1 eV = 8065.544 cm⁻¹', Math.abs(fromKJ(toKJ(1, 'eV'), 'cm⁻¹') - 8065.543937) < 1e-6, `${fromKJ(toKJ(1, 'eV'), 'cm⁻¹').toFixed(6)} cm⁻¹ (CODATA 2022, exact: 8065.543937…)`);
     add('1 kcal/mol = 4.184 kJ/mol', Math.abs(toKJ(1, 'kcal/mol') - 4.184) < 1e-12, 'thermochemical calorie, exact');
@@ -185,7 +199,7 @@ export function extraChecks(db) {
     const o3 = rx(db, 'O3 -> O2 + O');
     const o3s = o3.terms && o3.terms[0].species;
     add('Plain formula: in “O3 -> O2 + O”, O3 is ozone (ATcT OOO) and D₀(O₂–O) = 102.434 kJ/mol',
-        !!o3s && o3s.id === '10028-15-6*0' && o3.ok && near(o3.h0, 102.434), o3s ? `${o3s.formula} (${o3s.state}) ${o3s.name}; ${o3.h0} kJ/mol` : String(o3.error), 'lookup');
+        !!o3s && o3s.id === '10028-15-6*0' && o3.ok && nearH(o3.h0, 102.434), o3s ? `${o3s.formula} (${o3s.state}) ${o3s.name}; ${o3.h0} kJ/mol${handNote}` : String(o3.error), 'lookup');
     const c2h4 = resolveToken(db, 'C2H4').species;
     add('Composition: “C2H4” is ethylene (ATcT CH2CH2)', !!c2h4 && c2h4.id === '74-85-1*0', c2h4 ? `${c2h4.formula} (${c2h4.state}) ${c2h4.name}` : 'not found', 'lookup');
     const ch3p = search(db, 'CH3+', 5)[0];
@@ -193,8 +207,8 @@ export function extraChecks(db) {
     const ohm = search(db, 'OH-', 5)[0];
     add('Ion spelling: searching “OH-” lists gas-phase hydroxide ([OH]-) first', !!ohm && ohm.id === '14280-30-9*0', ohm ? `${ohm.formula} (${ohm.state}) ${ohm.name}` : 'no hit', 'lookup');
     const half = rx(db, '1/2 O2 -> O');
-    add('Fraction: “1/2 O2 -> O” takes ν = ½ and gives D₀(O₂)/2 = 246.843 kJ/mol', !!half.ok && half.terms[0].coef === 0.5 && near(half.h0, 246.843),
-        half.ok ? `ν = ${half.terms[0].coef}; ${half.h0} kJ/mol` : String(half.error), 'lookup');
+    add('Fraction: “1/2 O2 -> O” takes ν = ½ and gives D₀(O₂)/2 = 246.843 kJ/mol', !!half.ok && half.terms[0].coef === 0.5 && nearH(half.h0, 246.843),
+        half.ok ? `ν = ${half.terms[0].coef}; ${half.h0} kJ/mol${handNote}` : String(half.error), 'lookup');
     // balance
     const unb = balance(resolveReaction(db, parseReaction('H2O -> H + O')).terms);
     add('Negative control: H₂O → H + O is flagged unbalanced', !unb.ok && unb.elements.H === -1, `net H ${unb.elements.H}`, 'balance');
@@ -203,18 +217,23 @@ export function extraChecks(db) {
     const ion = balance(resolveReaction(db, parseReaction('CH4 -> CH3+ + H + e-')).terms);
     add('Ion spelling: “CH3+” resolves to ATcT [CH3]+ and balances with e⁻', ion.ok, ion.ok ? 'balanced' : 'not balanced', 'balance');
     // correlated uncertainty: CH2O -> H + HCO. Quadrature ignores the strong H2CO/HCO correlation (both are tied by the
-    // measured D0); the ATcT covariance (TN 1.220 API) gives a far smaller uncertainty.
+    // measured D0); the ATcT covariance (same TN version as the values, from the API) gives a far smaller uncertainty.
     const h = reactionEnthalpy(db, resolveReaction(db, parseReaction('CH2O -> H + HCO')).terms);
     if (h && h.ucorr && h.ucorr.covered) {
         add('Correlation matters: U(D₀(H–HCO)) with ATcT covariances < 1/5 of the independent-error estimate',
-            h.ucorr.u < h.u / 5, `independent ±${h.u.toFixed(3)} kJ/mol; correlated (TN ${h.ucorr.tn} correlations, TN 1.228 U) ±${h.ucorr.u.toFixed(4)} kJ/mol`, 'balance');
-        // the sparse file (pairs below 0.1 % of a pair variance cut) against the exact 10 × 10 matrix the API returned for the
-        // self-test species (raw/atct_api_v1_covariance_selftest.json): √(νᵀCν) = 0.0079917 kJ/mol for H₂CO → H + HCO
-        add('Sparse covariance file reproduces the exact ATcT API matrix: U(D₀(H–HCO)) with TN 1.220 covariances = 0.00799 kJ/mol (±1 %)',
-            Math.abs(cov(h) - 0.0079917) <= 0.01 * 0.0079917, `sparse file ±${cov(h).toFixed(5)} kJ/mol (rounding of the printed values removed); exact API 10 × 10 matrix ±0.00799 kJ/mol`, 'balance');
+            h.ucorr.u < h.u / 5, `independent ±${h.u.toFixed(3)} kJ/mol; correlated (TN ${h.ucorr.tn} covariances) ±${h.ucorr.u.toFixed(4)} kJ/mol`, 'balance');
+        // the sparse file (pairs below 0.1 % of a pair variance cut) against the exact matrix the API returned (ATcT TN 1.228
+        // via the API, 2026-11-11, E:/cdfoley-data/atct/raw/api-2026-11-10): √(νᵀCν) = 0.0079880 kJ/mol for H₂CO → H + HCO
         const w = reactionEnthalpy(db, resolveReaction(db, parseReaction('H2O -> H + OH')).terms);
-        add('Same for D₀(H–OH): 0.001120 kJ/mol from the exact API matrix (±1 %)', !!(w && w.ucorr && w.ucorr.covered && Math.abs(cov(w) - 0.0011204) <= 0.01 * 0.0011204),
-            w && w.ucorr && w.ucorr.covered ? `sparse file ±${cov(w).toFixed(6)} kJ/mol (rounding of the printed values removed)` : 'not covered', 'balance');
+        if (handOk) {
+            add('Sparse covariance file reproduces the exact ATcT API matrix: U(D₀(H–HCO)) with TN 1.228 covariances = 0.00799 kJ/mol (±1 %)',
+                Math.abs(cov(h) - 0.0079880) <= 0.01 * 0.0079880, `sparse file ±${cov(h).toFixed(5)} kJ/mol (rounding of the printed values removed); exact API matrix ±0.00799 kJ/mol`, 'balance');
+            add('Same for D₀(H–OH): 0.001120 kJ/mol from the exact TN 1.228 API matrix (±1 %)', !!(w && w.ucorr && w.ucorr.covered && Math.abs(cov(w) - 0.0011203) <= 0.01 * 0.0011203),
+                w && w.ucorr && w.ucorr.covered ? `sparse file ±${cov(w).toFixed(6)} kJ/mol (rounding of the printed values removed)` : 'not covered', 'balance');
+        } else {
+            add('Sparse covariance file against the exact ATcT API matrix (hand values are TN 1.228)', null,
+                `not applicable: the table is TN ${db.meta.tn_version}; the sync job compared this version's sparse file with the full API matrix when it built it`, 'balance');
+        }
     } else {
         add('Correlated uncertainty (needs the covariance file)', null, 'not applicable: no ATcT covariances are loaded for this table', 'balance');
     }
@@ -270,21 +289,25 @@ export function extraChecks(db) {
     const yTS = dg.columns[1].y; const yR = dg.columns[0].y; const yP = dg.columns[2].y;
     add('Diagram: a TS entered as 79.2 kcal/mol sits at 331.373 kJ/mol and its height is proportional to energy', Math.abs(dg.columns[1].kj - 331.3728) < 0.001 && Math.abs((yR - yTS) / (yR - yP) - 331.3728 / 362.804) < 1e-9,
         `${dg.columns[1].kj.toFixed(4)} kJ/mol; height ratio ${((yR - yTS) / (yR - yP)).toFixed(6)}`, 'diagram');
-    // version diff (TN 1.220 values from the ATcT API /all/ dump, 2026-11-06)
-    const w2 = (db.byFormula.get('h2o') || []).find((x) => x.state === 'g');
-    if (db.diff && w2) {
-        const v = versionChange(db, w2);
-        add('Version diff: H₂O(g) was −241.808 kJ/mol at 298.15 K in TN 1.220 (−241.798 in TN 1.228)', !!v && v.h298 === -241.808, v ? `TN 1.220: ${v.h298} kJ/mol` : 'no change found', 'diagram');
+    // data version: atct-current.json, the values and the covariance file must name one TN version, and the covariances
+    // must be attached (engine.attachCov refuses a file of another version: mixing versions gives inconsistent propagated
+    // uncertainties). Fails, rather than waiting, when the file was loaded but refused or could not be loaded.
+    const covTN = ctx.covTN != null ? ctx.covTN : db.cov ? db.cov.tn : null;
+    if (covTN == null && !ctx.covError) {
+        add('Data version (needs the covariance file)', null, 'not applicable: no ATcT covariances loaded for this table', 'diagram');
     } else {
-        add('Version diff (needs the diff file)', null, 'not applicable: no TN 1.220 diff loaded for this table', 'diagram');
+        const tn = String(db.meta.tn_version);
+        add('One ATcT TN version: atct-current.json, the values and the covariances agree, and the covariances are attached',
+            !ctx.covError && !!db.cov && String(covTN) === tn && (ctx.version == null || String(ctx.version) === tn),
+            `atct-current.json TN ${ctx.version != null ? ctx.version : '—'}, values TN ${tn}, covariance file TN ${covTN != null ? covTN : '—'}${db.cov ? ` (attached, ${db.cov.ids.length} species)` : ` (not attached${ctx.covError ? `: ${ctx.covError}` : ''})`}`, 'diagram');
     }
     // kinematics: recoil, collisions, uncertainty budget (hand values from the TN 1.228 table and CODATA 2022)
     const ch3i = resolveReaction(db, parseReaction('CH3I -> CH3 + I')).terms;
     const pf = photofragments(db, ch3i, { photonKJ: nmToKJ(266) });
     const [fa, fb] = pf.frags || [];
     add('Recoil: CH₃I → CH₃ + I at 266 nm leaves 217.205 kJ/mol, of which CH₃ carries 194.198 (m_I/(m_CH₃ + m_I))',
-        !pf.error && near(pf.eAvail, 217.205) && near(fa.ke, 194.198) && Math.abs(fa.p - fb.p) / fa.p < 1e-12 && Math.abs(fa.ke + fb.ke - pf.eT) < 1e-9,
-        pf.error || `E_avail ${pf.eAvail.toFixed(3)} kJ/mol; KE ${fa.ke.toFixed(3)} + ${fb.ke.toFixed(3)}; momenta equal to ${(Math.abs(fa.p - fb.p) / fa.p).toExponential(1)}`, 'kinematics');
+        !pf.error && nearH(pf.eAvail, 217.205) && nearH(fa.ke, 194.198) && Math.abs(fa.p - fb.p) / fa.p < 1e-12 && Math.abs(fa.ke + fb.ke - pf.eT) < 1e-9,
+        pf.error || `E_avail ${pf.eAvail.toFixed(3)} kJ/mol; KE ${fa.ke.toFixed(3)} + ${fb.ke.toFixed(3)}; momenta equal to ${(Math.abs(fa.p - fb.p) / fa.p).toExponential(1)}${handNote}`, 'kinematics');
     const no = photofragments(db, resolveReaction(db, parseReaction('NO -> NO+ + e-')).terms, { photonKJ: nmToKJ(118.2) });
     const ieNO = no.h ? no.h.h0 : null;
     add('Photoelectron: NO at 118.2 nm gives the electron hν − IE(NO) to within 0.01 %', !no.error && Math.abs(no.frags[1].ke - (nmToKJ(118.2) - ieNO)) / no.frags[1].ke < 1e-4,

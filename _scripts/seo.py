@@ -202,7 +202,7 @@ put_ld('formulas/index.html', {'@context': 'https://schema.org', '@type': 'Colle
     'url': SITE + '/formulas/', 'description': meta(formulas, 'description'), 'author': AUTHOR})
 print('JSON-LD: %d tools, %d games, %d publications, tools/learn/games hubs, resume, formulas' % (len(TOOLS), len(GAMES), len(PUBS)))
 
-# 2. Sitemap: public pages only. Folders starting with . or _ (.git, .claude worktrees, _scripts), the private
+# 2. Sitemap: public pages only. Folders starting with . or _ (.git, worktrees, _scripts), the private
 #    applications/ folder are pruned, and so is any page marked noindex (the beta/ hub and the beta tools still in review).
 def indexable(f):
     return not re.search(r'<meta name="robots" content="[^"]*noindex', open(f, encoding='utf-8').read(), re.I)

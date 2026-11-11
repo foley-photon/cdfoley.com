@@ -1,21 +1,22 @@
-// Thermochemistry Lab (beta): UI. Data: ATcT TN 1.228 (./data/atct-tn1.228.json), loaded at start; the ATcT covariances
-// (TN 1.220), NIST excited states and the TN 1.220 version diff are loaded only when a view needs them. Engine: ./engine.js.
+// Thermochemistry Lab (beta): UI. Data: ./data/atct-current.json names the ATcT table and covariance files of one TN
+// version (both retrieved from the ATcT API by _scripts/atct_sync.py); the table is loaded at start, the covariances and
+// the NIST excited states only when a view needs them. Engine: ./engine.js.
 import {
     buildDB, payloadFromCSV, search, resolveToken, parseReaction, resolveReaction, balance, reactionEnthalpy,
     findChannels, ionizationEnergies, electronAffinities, protonAffinities, sameComposition, coreFormula,
-    attachCov, attachExcited, attachDiff, excitedStates, excitedThresholds, excitedTerms, versionChange, bestU, stateText,
+    attachCov, attachExcited, excitedStates, excitedThresholds, excitedTerms, bestU, stateText,
     stateToken, unboundAnion, parseNum, uncertaintyBudget, UNITS, KJ_NM, toKJ, fromKJ, kjToNm, nmToKJ,
 } from './engine.js';
 import { photofragments, vmi, dopplerShift, collisionFrame, collisionChannels, labForCM } from './kinematics.js';
 import { buildDiagram, KINDS as DKINDS } from './diagram.js';
-import { CASES, KINDS, runCase, extraChecks } from './selftest.js';
+import { CASES, KINDS, HAND_TN, runCase, extraChecks } from './selftest.js';
 
 const $ = (id) => document.getElementById(id);
-const DATA_URL = './data/atct-tn1.228.json';
-const COV_URL = './data/atct-cov-tn1.220.json';
+const CURRENT_URL = './data/atct-current.json';   // { version, fetched, doi, files: { table, cov }, ... }
 const EXC_URL = './data/excited-states.json';
-const DIFF_URL = './data/atct-tn1.220-diff.json';
-const ATCT_BASE = 'https://atct.anl.gov/Thermochemical%20Data/version%201.228/';
+let current = null;
+const dataURL = (f) => `./data/${encodeURIComponent(f)}`;
+const atctBase = () => `https://atct.anl.gov/Thermochemical%20Data/version%20${encodeURIComponent(current ? current.version : (shipped && shipped.meta.tn_version) || '')}/`;
 const TABS = ['channels', 'recoil', 'collide', 'reaction', 'diagram', 'species', 'units', 'selftest', 'data'];
 const DIGITS = { 'kJ/mol': 3, 'kcal/mol': 3, 'eV': 4, 'cm⁻¹': 1, 'K': 0, 'Eh': 6 };
 const DG_DEFAULT = { r: 'CH2O', p: ['H + HCO', 'H2 + CO', 'H + H + CO'], l: [], nm: '', c: 'fan' };
@@ -34,37 +35,44 @@ const RC_DEFAULT = Object.fromEntries(RC_KEYS.map((k) => [k, state[k]]));
 const CL_KEYS = ['cp', 'ct', 'ce'];
 
 /* ── lazy data ──────────────────────────────────────────────────────── */
-// Each extra file is fetched once, on first need. Covariances and the version diff belong to ATcT's IDs and versions,
-// so they attach to the shipped table only; the excited states attach to any table by ATcT ID.
-const extra = { cov: null, exc: null, diff: null };
+// Each extra file is fetched once, on first need. The covariances belong to ATcT's IDs and version, so they attach to
+// the shipped table only; the excited states attach to any table by ATcT ID.
+const extra = { cov: null, exc: null };
 const extraErr = {};
 const pending = {};
+let covFileTN = null;   // tn_version of the covariance file as loaded, attached or not (for the self-test)
 function need(kind) {
     if (!db || extra[kind] === false) return;
     if (kind !== 'exc' && !db.isShipped) return;
     if (extra[kind]) { if (!db[kind]) attachTo(db, kind); return; }
     if (pending[kind]) return;
-    const url = { cov: COV_URL, exc: EXC_URL, diff: DIFF_URL }[kind];
+    if (kind === 'cov' && !(current && current.files && current.files.cov)) { extra.cov = false; extraErr.cov = 'not listed in atct-current.json'; return; }
+    const url = kind === 'cov' ? dataURL(current.files.cov) : EXC_URL;
     pending[kind] = fetch(url).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
         .then((j) => { extra[kind] = j; attachTo(db, kind); rerender(); })
         .catch((err) => { extra[kind] = false; extraErr[kind] = err.message; rerender(); });
 }
 function attachTo(d, kind) {
     if (!extra[kind]) return;
-    if (kind === 'cov' && d.isShipped) attachCov(d, extra.cov);
+    if (kind === 'cov' && d.isShipped) {
+        covFileTN = extra.cov.tn_version;
+        // engine.attachCov refuses a file of another TN version than the table: say why instead of waiting for it
+        if (!attachCov(d, extra.cov)) {
+            extraErr.cov = `the covariance file is TN ${covFileTN}, the table TN ${d.meta.tn_version || '?'}, and versions are not mixed`;
+            extra.cov = false;
+        }
+    }
     if (kind === 'exc') attachExcited(d, extra.exc);
-    if (kind === 'diff' && d.isShipped) attachDiff(d, extra.diff);
 }
-// the correlated uncertainty needs the version diff too (it scales the species whose uncertainty changed)
-const covLoading = () => db && db.isShipped && ((!db.cov && extra.cov !== false) || (!db.diff && extra.diff !== false));
+const covLoading = () => db && db.isShipped && !db.cov && extra.cov === null;
 /** Files each tab needs; requested only while that tab is shown, so the default view loads just the main table. */
 function needFor(t) {
     if (!db) return;
-    if (t === 'species') { need('diff'); need('exc'); }
-    if (t === 'reaction' || t === 'diagram' || t === 'selftest') { need('cov'); need('diff'); need('exc'); }
-    if (t === 'channels') { need('cov'); need('diff'); if (state.ex) need('exc'); }
-    if (t === 'recoil') { need('cov'); need('diff'); need('exc'); }
-    if (t === 'collide') { need('cov'); need('diff'); }
+    if (t === 'species') need('exc');
+    if (t === 'reaction' || t === 'diagram' || t === 'selftest') { need('cov'); need('exc'); }
+    if (t === 'channels') { need('cov'); if (state.ex) need('exc'); }
+    if (t === 'recoil') { need('cov'); need('exc'); }
+    if (t === 'collide') need('cov');
 }
 
 /* ── formatting ─────────────────────────────────────────────────────── */
@@ -112,7 +120,7 @@ function F(f) {
 const stHTML = (st) => esc(stateText(st)).replace(/([ΣΠΔΦ])([gu])/g, '$1<sub>$2</sub>');
 const stateTag = (s) => (s.isElectron || s.excited ? '' : ` <span class="tc-state">(${esc(s.state)})</span>`);
 const sp = (s) => (s.excited && s.base ? `${F(s.base.formula)}(${stHTML(s.excited)}) <span class="tc-state">(NIST)</span>` : `${F(s.formula)}${stateTag(s)}`);
-const atctLink = (s) => (s.n && !s.isElectron ? `${ATCT_BASE}species/?species_number=${s.n}` : null);
+const atctLink = (s) => (s.n && !s.isElectron ? `${atctBase()}species/?species_number=${s.n}` : null);
 const txt = (s) => (s.isElectron ? 'e-' : `${s.formula}${s.plainState ? '' : `(${s.state})`}`);
 
 /* ── URL state ──────────────────────────────────────────────────────── */
@@ -243,14 +251,13 @@ function renderSpecies() {
     <div class="panel"><div class="panel-body">
         <div class="tc-card-head"><h2>${esc(s.name)}</h2>${sp(s)}${link ? `<a class="btn btn-secondary btn-sm" href="${link}" target="_blank" rel="noopener">Full entry and provenance on ATcT ↗</a>` : ''}</div>
         <div class="tc-results" style="margin-top:1rem">
-            <div class="tc-res"><h3>Δ<sub>f</sub>H°(0 K)</h3><div class="tc-big">${E(s.h0)}</div><div class="tc-alt">${s.h0 == null ? 'not given for this phase' : `± ${E(s.u)} (95 %)`}</div></div>
-            <div class="tc-res"><h3>Δ<sub>f</sub>H°(298.15 K)</h3><div class="tc-big">${E(s.h298)}</div><div class="tc-alt">± ${E(s.u)} (95 %)<br>${s.mass != null ? `${s.mass} g/mol` : ''}</div>${s.q ? '<p class="tc-note">Ion: stationary-electron convention at 298.15 K.</p>' : ''}</div>
+            <div class="tc-res"><h3>Δ<sub>f</sub>H°(0 K)</h3><div class="tc-big">${E(s.h0)}</div><div class="tc-alt">${s.h0 == null ? 'not given for this phase' : `± ${E(s.u)} (95 %, the 298.15 K value)`}</div></div>
+            <div class="tc-res"><h3>Δ<sub>f</sub>H°(298.15 K)</h3><div class="tc-big">${E(s.h298)}</div><div class="tc-alt">± ${E(s.u)} (95 %, 298.15 K)<br>${s.mass != null ? `${s.mass} g/mol` : ''}</div>${s.q ? '<p class="tc-note">Ion: stationary-electron convention at 298.15 K.</p>' : ''}</div>
             ${rel(ies, 'Adiabatic ionization energy', (x) => `<div class="tc-alt">→ ${sp(x.ion)}: <strong>${E(x.kj, x.u, 'eV')}</strong><br>${ieAlt(x.kj)}</div>`)}
             ${rel(eas, 'Electron affinity', (x) => `<div class="tc-alt">${sp(x.ion)}: <strong>${E(x.kj, x.u, 'eV')}</strong><br>${E(x.kj, null, 'cm⁻¹')}</div>`)}
             ${rel(pas, 'Proton affinity (298.15 K)', (x) => `<div class="tc-alt">→ ${sp(x.ion)}: <strong>${E(x.kj, x.u)}</strong></div>`)}
         </div>
-        <p class="hint">Values as printed by ATcT ${esc(db.meta.tn_version || '')}; the ionization energy, electron affinity and proton affinity are differences computed here. Names, identifiers and the measurements behind the value are on ATcT's page.</p>
-        ${versionBlock(s)}
+        <p class="hint">Values of ATcT ${esc(db.meta.tn_version || '')}${db.isShipped && current && current.fetched ? `, retrieved from the ATcT API on ${esc(current.fetched.slice(0, 10))}` : ''}. The ± is ATcT's 95 % uncertainty of Δ<sub>f</sub>H°(298.15 K); ATcT tabulates no separate 0 K uncertainty, so the same value is shown at 0 K (see “Uncertainty” below the tool). The ionization energy, electron affinity and proton affinity are differences computed here. Names, identifiers and the measurements behind the value are on ATcT's page.</p>
         <div class="tc-actions">
             ${s.gas && s.h0 != null ? '<button type="button" class="btn btn-primary btn-sm" id="sp-ch">Bonds and photolysis</button><button type="button" class="btn btn-secondary btn-sm" id="sp-cl">Collide a beam with it</button>' : ''}
             <button type="button" class="btn btn-secondary btn-sm" id="sp-rx">Use in a reaction</button>
@@ -258,29 +265,11 @@ function renderSpecies() {
         ${shareBox('species')}
     </div></div>
     ${exs.length ? `<div class="panel"><div class="panel-head"><h2>Low-lying electronic states</h2><span class="badge">${exs.length}</span></div><div class="panel-body tc-table-scroll"><table class="tc-table"><thead><tr><th>State</th><th class="num">T₀, cm⁻¹</th><th class="num">± cm⁻¹</th><th class="num">${unit}</th><th class="num">Δ<sub>f</sub>H°(0 K), ${unit}</th><th>Source</th></tr></thead><tbody>${exs.map((x) => `<tr><td>${F(x.species)}(${stHTML(x)})${x.note && !x.atom ? ` <span class="tc-state">${esc(x.note)}</span>` : ''}${x.fine ? ' <span class="tc-tag">fine structure</span>' : ''}</td><td class="num">${num(fromKJ(x.kj, 'cm⁻¹'), 1)}</td><td class="num">${x.atct ? '<span class="tc-state">ATcT</span>' : x.uCm1 ? (x.uCm1 < 0.0005 ? '&lt; 0.001' : num(x.uCm1, x.uCm1 < 0.1 ? 3 : 1)) : '—'}</td><td class="num">${num(fromKJ(x.kj, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h0, unit), DIGITS[unit])}</td><td class="tc-state">${srcHTML(x)}</td></tr>`).join('')}</tbody></table><p class="hint">Term values T₀ above the lowest level of ${esc(s.formula)}. Where ATcT lists the state, ATcT's value is used (the NIST value is shown in brackets); otherwise Δ<sub>f</sub>H°(0 K) = ATcT ground state + NIST T₀. “± cm⁻¹” is the term value's own uncertainty where the source gives one, plus an allowance where the source refers the state to a level other than the lowest (a multiplet centre, a hypothetical J = 0 level; see the notes); “—” means the source gives none, and the value is taken as exact. Sources are in the <a href="#" data-tab="data">Data &amp; citation</a> tab.</p></div></div>` : ''}
-    ${same.length ? `<div class="panel"><div class="panel-body"><details class="tc-more"><summary>Same composition: ${same.length} other isomer${same.length === 1 ? '' : 's'}, state${same.length === 1 ? '' : 's'} or phase${same.length === 1 ? '' : 's'}, with relative energies</summary><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Species</th><th>Name</th><th class="num">Δ<sub>f</sub>H°(0 K)</th><th class="num">Δ<sub>f</sub>H°(298 K)</th><th class="num">± (95 %)</th><th class="num">Relative, 0 K</th></tr></thead><tbody>${same.map((x) => `<tr><td><a href="#" data-sp="${esc(x.id)}">${sp(x)}</a></td><td>${esc(x.name)}</td><td class="num">${num(x.h0 != null ? fromKJ(x.h0, unit) : null, DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h298, unit), DIGITS[unit])}</td><td class="num">${U(x.u)}</td><td class="num">${x.h0 != null && s.h0 != null ? num(fromKJ(x.h0 - s.h0, unit), DIGITS[unit]) : '—'}</td></tr>`).join('')}</tbody></table><p class="hint">Energies in ${unit}. “Relative” is the 0 K energy above ${esc(s.formula)} (${esc(s.state)}).</p></div></details></div></div>` : ''}`;
+    ${same.length ? `<div class="panel"><div class="panel-body"><details class="tc-more"><summary>Same composition: ${same.length} other isomer${same.length === 1 ? '' : 's'}, state${same.length === 1 ? '' : 's'} or phase${same.length === 1 ? '' : 's'}, with relative energies</summary><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Species</th><th>Name</th><th class="num">Δ<sub>f</sub>H°(0 K)</th><th class="num">Δ<sub>f</sub>H°(298 K)</th><th class="num">± (95 %, 298.15 K)</th><th class="num">Relative, 0 K</th></tr></thead><tbody>${same.map((x) => `<tr><td><a href="#" data-sp="${esc(x.id)}">${sp(x)}</a></td><td>${esc(x.name)}</td><td class="num">${num(x.h0 != null ? fromKJ(x.h0, unit) : null, DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h298, unit), DIGITS[unit])}</td><td class="num">${U(x.u)}</td><td class="num">${x.h0 != null && s.h0 != null ? num(fromKJ(x.h0 - s.h0, unit), DIGITS[unit]) : '—'}</td></tr>`).join('')}</tbody></table><p class="hint">Energies in ${unit}. “Relative” is the 0 K energy above ${esc(s.formula)} (${esc(s.state)}).</p></div></details></div></div>` : ''}`;
     if ($('sp-ch')) $('sp-ch').onclick = () => { state.ch = s.id; $('ch-q').value = s.formula; renderChannels(); showTab('channels'); };
     if ($('sp-cl')) $('sp-cl').onclick = () => { state.ct = s.id; $('cl-t').value = s.formula; renderCollide(); showTab('collide'); };
     $('sp-rx').onclick = () => { state.rx = `${s.formula}${s.plainState ? '' : `(${s.state})`} -> `; $('rx-in').value = state.rx; state.rxo = {}; showTab('reaction'); $('rx-in').focus(); renderReaction(); };
     writeURL();
-}
-/** The species' TN 1.220 values when they differ from TN 1.228 (from the ATcT API dump). */
-function versionBlock(s) {
-    if (!db.isShipped) return '';
-    if (!db.diff) return extra.diff === false ? '' : '<p class="tc-note tc-ver">Checking the previous ATcT version…</p>';
-    const v = versionChange(db, s);
-    if (!v) return '<p class="tc-note tc-ver">Unchanged since ATcT TN 1.220, the version the ATcT API serves.</p>';
-    if (v.isNew) return '<p class="tc-note tc-ver"><span class="tc-tag">new in TN 1.228</span> Not in TN 1.220.</p>';
-    const d = (a, b) => {
-        if (a == null || b == null) return '';
-        const t = num(Math.abs(fromKJ(b - a, unit)), DIGITS[unit]);
-        return /^[0.]+$/.test(t) ? '' : ` (${b - a >= 0 ? '+' : '−'}${t})`;
-    };
-    return `<div class="tc-ver"><h3>Changed since TN 1.220</h3><div class="tc-table-scroll"><table class="tc-table tc-ver-table"><thead><tr><th></th><th class="num">TN 1.220</th><th class="num">TN 1.228 (shown)</th></tr></thead><tbody>
-        <tr><th>Δ<sub>f</sub>H°(0 K)</th><td class="num">${num(v.h0 != null ? fromKJ(v.h0, unit) : null, DIGITS[unit])}</td><td class="num">${num(s.h0 != null ? fromKJ(s.h0, unit) : null, DIGITS[unit])}${d(v.h0, s.h0)}</td></tr>
-        <tr><th>Δ<sub>f</sub>H°(298.15 K)</th><td class="num">${num(v.h298 != null ? fromKJ(v.h298, unit) : null, DIGITS[unit])}</td><td class="num">${num(fromKJ(s.h298, unit), DIGITS[unit])}${d(v.h298, s.h298)}</td></tr>
-        <tr><th>± (95 %)</th><td class="num">${v.u != null ? U(v.u) : '—'}</td><td class="num">${U(s.u)}</td></tr></tbody></table></div>
-        <p class="hint">${unit}. TN 1.220 values from the ATcT API (<code>/api/v1/all/</code>, downloaded 2026-11-06). ATcT solves the whole network again for each version, so values move as new measurements and calculations enter.</p></div>`;
 }
 document.addEventListener('click', (e) => {
     const a = e.target.closest('a[data-sp]'); if (!a) return;
@@ -337,17 +326,14 @@ function uncBlock(h, xterm = false) {
     }
     if (!c.covered) {
         const miss = c.missing.map((id) => db.byId.get(id)).filter(Boolean).map((s) => esc(s.formula)).join(', ');
-        return `<p class="tc-note">Used: independent errors. Correlated: not available, because ${miss || 'a species'} ${c.missing.length > 1 ? 'are' : 'is'} not in the covariance file (1874 gas-phase species of TN ${esc(c.tn)}).</p>`;
+        return `<p class="tc-note">Used: independent errors. Correlated: not available, because ${miss || 'a species'} ${c.missing.length > 1 ? 'are' : 'is'} not in the covariance file (${db.cov.ids.length} gas-phase species of TN ${esc(c.tn)}).</p>`;
     }
-    const names = (ids) => ids.map((id) => db.byId.get(id)).filter(Boolean).map((s) => esc(s.formula)).join(', ');
-    const stale = names(c.stale); const scaled = names(c.scaled || []);
     const dd = (u) => Math.max(dig, uDigits(fromKJ(u, unit)));   // as many digits as the headline value shows
     const val = (u, lt) => (u != null ? `± ${E(u, null, unit, dd(u))}` : `< ${E(lt, null, unit, dd(lt))}`);
     return `<table class="tc-utable"><tbody>
         <tr><th>Correlated <span class="tc-tag">used</span></th><td class="num">${val(c.u, c.lt)}</td></tr>
-        <tr><th>Independent errors</th><td class="num">± ${E(h.u, null, unit, dd(h.u))}</td></tr>
-        <tr><th>TN ${esc(c.tn)} covariances as served</th><td class="num">${val(c.u220, c.u220lt)}</td></tr></tbody></table>
-        <p class="tc-note">Correlated = √(νᵀCν) with ATcT's covariances from TN ${esc(c.tn)} (the version the ATcT API serves; Δ<sub>f</sub>H° at ${c.T} K)${scaled && !c.fallback ? `, with the rows of ${scaled} scaled to the TN ${esc(db.meta.tn_version || '')} uncertainty, because their printed uncertainty changed between the versions` : ''}. It is applied to the 0 K values too, as ATcT gives one uncertainty for both${xterm ? '; the term-value uncertainty of a NIST state is added independently' : ''}.${c.fallback ? ` Scaling ${scaled} to TN ${esc(db.meta.tn_version || '')} would leave less than 0.1 % of the covariance sum (the terms cancel), so the TN ${esc(c.tn)} value as served is used.` : ''}${c.u == null ? ' The terms cancel to below the precision of the stored correlations, so only a bound is given.' : ''}${stale ? ` <strong>Caution:</strong> the printed uncertainty of ${stale} changed by more than ×1.5 between TN 1.220 and 1.228, so its correlations may be out of date.` : ''}</p>`;
+        <tr><th>Independent errors</th><td class="num">± ${E(h.u, null, unit, dd(h.u))}</td></tr></tbody></table>
+        <p class="tc-note">95 % uncertainties. Correlated = √(νᵀCν) with ATcT's covariances of TN ${esc(c.tn)}, the version of the values (Δ<sub>f</sub>H° at ${c.T} K). It is applied to the 0 K values too, as ATcT tabulates only the 298.15 K uncertainty${xterm ? '; the term-value uncertainty of a NIST state is added independently' : ''}.${c.u == null ? ' The terms cancel to below the precision of the stored correlations, so only a bound is given.' : ''}</p>`;
 }
 function renderReaction() {
     const out = $('rx-out');
@@ -493,11 +479,11 @@ function renderChannels() {
         dea: 'Thresholds for AB + e⁻ → A + B⁻ at 0 K: the incident electron energy needed with a cold parent. A negative value means attachment is exothermic and the channel is open at zero energy; attachment resonances usually peak well above the threshold. The “attachment (−EA)” row is the parent anion itself. ATcT also lists some anions that lie above their neutral (negative electron affinity); rows with such an unbound anion are tagged and not counted as open.',
         ionpair: 'Ion-pair thresholds A⁺ + B⁻ at 0 K, for photons or for electron impact (AB + e⁻ → A⁺ + B⁻ + e⁻ has the same threshold).',
     }[state.mode] || '';
-    const uHint = anyCorr ? '; <sup>c</sup> marks the correlated value from ATcT covariances (TN 1.220, with species whose uncertainty changed scaled to TN 1.228), otherwise errors are taken as independent; “<” marks a correlated value that is only a bound' : covLoading() ? ' (loading ATcT covariances…)' : ', with errors taken as independent';
+    const uHint = anyCorr ? `; <sup>c</sup> marks the correlated value from ATcT's covariances (TN ${esc(db.meta.tn_version || '')}, the version of the values), otherwise errors are taken as independent; “<” marks a correlated value that is only a bound` : covLoading() ? ' (loading ATcT covariances…)' : ', with errors taken as independent';
     out.innerHTML = `<div class="panel"><div class="panel-head"><h2>${MODE_LABEL[state.mode]} of ${esc(parent.name)}</h2><span class="badge">${list.length} found</span></div><div class="panel-body">
         ${inBad}${exWait}${inMsg}
         <div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Products</th><th class="num">${dea ? 'ΔH(0 K)' : 'D₀ / ΔH(0 K)'}, ${unit}</th><th class="num">eV</th><th class="num">cm⁻¹</th>${dea ? '' : '<th class="num">λ max (nm)</th>'}<th class="num">ΔH(298 K)</th><th class="num">±</th>${ein != null ? '<th class="num">Available</th>' : ''}<th></th></tr></thead><tbody>${rows || `<tr><td colspan="${ncol}">No channels: ATcT has no matching fragments.</td></tr>`}</tbody></table></div>
-        <p class="hint">Sorted by 0 K energy, in ${unit} unless marked. ${dea ? '' : `“λ max” is the longest wavelength that can open the channel from cold ${esc(parent.formula)} without a barrier; `}“Available” is the ${dea ? 'electron' : 'photon'} energy minus the threshold. ± is the 95 % uncertainty${uHint}. ${hintMode} ${state.ex ? 'Excited products: ATcT’s own entry where ATcT lists the state, otherwise the NIST term value added to the ATcT ground state (sources in the Data &amp; citation tab).' : ''} Search took ${ms.toFixed(0)} ms.</p>
+        <p class="hint">Sorted by 0 K energy, in ${unit} unless marked. ${dea ? '' : `“λ max” is the longest wavelength that can open the channel from cold ${esc(parent.formula)} without a barrier; `}“Available” is the ${dea ? 'electron' : 'photon'} energy minus the threshold. ± is the 95 % uncertainty (ATcT's 298.15 K value, also used at 0 K)${uHint}. ${hintMode} ${state.ex ? 'Excited products: ATcT’s own entry where ATcT lists the state, otherwise the NIST term value added to the ATcT ground state (sources in the Data &amp; citation tab).' : ''} Search took ${ms.toFixed(0)} ms.</p>
         ${shareBox('channels')}</div></div>`;
     writeURL();
 }
@@ -549,10 +535,10 @@ function budgetPanel(terms) {
     }
     return `<div class="panel"><div class="panel-head"><h2>Uncertainty budget</h2><span class="badge">${b.how === 'correlated' ? 'correlated' : 'independent errors'}</span></div><div class="panel-body">
         <p class="tc-summary">${summ}</p>
-        <div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Species</th><th class="num">ν</th><th class="num">± Δ<sub>f</sub>H° (95 %)</th><th class="num">Share of variance</th><th class="tc-bar-cell"></th><th class="num">± if this species were exact</th><th></th></tr></thead><tbody>
+        <div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Species</th><th class="num">ν</th><th class="num">± Δ<sub>f</sub>H°(298.15 K) (95 %)</th><th class="num">Share of variance</th><th class="tc-bar-cell"></th><th class="num">± if this species were exact</th><th></th></tr></thead><tbody>
         ${rows.map((r) => `<tr><td><a href="#" data-sp="${esc(r.species.id)}">${sp(r.species)}</a><br><span class="tc-state">${esc(r.species.name)}</span></td><td class="num">${num(r.nu, Number.isInteger(r.nu) ? 0 : 3)}</td><td class="num">${U(r.u)}</td><td class="num">${pct(r)}</td><td class="tc-bar-cell">${bar(r)}</td><td class="num">${r.without != null ? fmtU(r.without) : '—'}</td><td>${atctLink(r.species) ? `<a class="tc-go" href="${atctLink(r.species)}" target="_blank" rel="noopener">provenance ↗</a>` : ''}</td></tr>`).join('')}
         </tbody></table></div>
-        <p class="hint">${b.how === 'correlated' ? `Shares of νᵀCν, the correlated variance (${b.h.ucorr && b.h.ucorr.fallback ? 'TN 1.220 covariances as served: the TN 1.228 rescaling would cancel too far here' : 'TN 1.220 covariances, with the TN 1.228 rescaling described below'}); they add up to 100 %.` : 'Shares of Σ(νU)², the independent-error variance, because not every species is in the ATcT covariance file.'} Each species' share includes half a last printed digit of rounding and, for a NIST excited state, its term-value uncertainty. “If exact” is the uncertainty left if a new measurement pinned that species, with the species correlated to it moving along. The provenance link shows which measurements and calculations ATcT used for that species: the place to look for what would improve this result.</p>
+        <p class="hint">${b.how === 'correlated' ? `Shares of νᵀCν, the correlated variance (ATcT covariances of TN ${esc(db.meta.tn_version || '')}); they add up to 100 %.` : 'Shares of Σ(νU)², the independent-error variance, because not every species is in the ATcT covariance file.'} Each species' share includes half a last printed digit of rounding and, for a NIST excited state, its term-value uncertainty. “If exact” is the uncertainty left if a new measurement pinned that species, with the species correlated to it moving along. The provenance link shows which measurements and calculations ATcT used for that species: the place to look for what would improve this result.</p>
     </div></div>`;
 }
 
@@ -665,7 +651,7 @@ function renderCollide() {
     <div class="panel"><div class="panel-head"><h2>Product channels</h2><span class="badge">${list.total > list.length ? `lowest ${list.length} of ${list.total}` : `${list.length} found`}${list.truncated ? '+' : ''}</span></div><div class="panel-body">
         ${f ? `<p class="tc-msg">${openText(nOpen)} E<sub>cm</sub> = ${E(f.eCM, null, 'eV')}.</p>` : ''}
         <div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Products</th><th>Kind</th><th class="num">Δ<sub>r</sub>H°(0 K), ${unit}</th><th class="num">eV</th><th class="num">Lab threshold, eV</th><th class="num">±</th>${f ? `<th class="num">Excess, ${unit}</th>` : ''}<th></th></tr></thead><tbody>${rows || '<tr><td colspan="8">No channels: ATcT has no matching products.</td></tr>'}</tbody></table></div>
-        <p class="hint">Sorted by 0 K reaction enthalpy, the centre-of-mass threshold of an endothermic channel; exothermic channels are open at any energy unless a barrier intervenes. “Lab threshold” is the projectile energy that reaches it with the target at rest; “Excess” is E<sub>cm</sub> − Δ<sub>r</sub>H°, shared by the products' translation and internal energy. Kinds: charge transfer (the charge moves, nothing else), ion pair (neutral reactants to a cation and an anion), transfer (an atom, ion or group changes partner), excitation (same fragments in another ATcT state or isomer), association (one product: needs a third body or emission), dissociation (three or more heavy products), ionization (electrons released). Ion energies follow the stationary-electron convention at 0 K. ± is the 95 % uncertainty${list.some((c) => bestU(c).how === 'correlated') ? '; <sup>c</sup> marks ATcT correlated values' : ''}. Search took ${ms.toFixed(0)} ms.</p>
+        <p class="hint">Sorted by 0 K reaction enthalpy, the centre-of-mass threshold of an endothermic channel; exothermic channels are open at any energy unless a barrier intervenes. “Lab threshold” is the projectile energy that reaches it with the target at rest; “Excess” is E<sub>cm</sub> − Δ<sub>r</sub>H°, shared by the products' translation and internal energy. Kinds: charge transfer (the charge moves, nothing else), ion pair (neutral reactants to a cation and an anion), transfer (an atom, ion or group changes partner), excitation (same fragments in another ATcT state or isomer), association (one product: needs a third body or emission), dissociation (three or more heavy products), ionization (electrons released). Ion energies follow the stationary-electron convention at 0 K. ± is the 95 % uncertainty (from ATcT's 298.15 K uncertainties, also used at 0 K)${list.some((c) => bestU(c).how === 'correlated') ? '; <sup>c</sup> marks ATcT correlated values' : ''}. Search took ${ms.toFixed(0)} ms.</p>
         ${shareBox('collide')}</div></div>`;
     writeURL();
 }
@@ -837,9 +823,9 @@ function renderSelfTest() {
     const root = $('st-root');
     if (!db) { root.innerHTML = '<p class="hint">Loading the ATcT table…</p>'; return; }
     needFor('selftest');
-    const waiting = ['cov', 'exc', 'diff'].filter((k) => (k === 'exc' || db.isShipped) && !db[k] && extra[k] !== false);
+    const waiting = ['cov', 'exc'].filter((k) => (k === 'exc' || db.isShipped) && !db[k] && extra[k] !== false);
     const res = CASES.map((c) => runCase(db, c));
-    const ext = extraChecks(db);
+    const ext = extraChecks(db, db.isShipped ? { version: current ? current.version : null, covTN: covFileTN, covError: extra.cov === false ? extraErr.cov || 'not loaded' : null } : {});
     const counted = [...res, ...ext].filter((x) => x.pass !== null);
     const nPass = counted.filter((x) => x.pass).length;
     const nAll = counted.length;
@@ -850,12 +836,12 @@ function renderSelfTest() {
         const main = r.show === 'nm' ? `${num(kjToNm(r.value), 2)} nm` : `${num(fromKJ(r.value, r.show), DIGITS[r.show] + 1)} ${r.show}`;
         return `${main}<br>${num(r.value, 3)} kJ/mol${r.nm ? `<br>${num(kjToNm(r.value), 2)} nm` : ''}`;
     };
-    const caseRow = (r) => `<tr><th scope="row">${r.title}<br><span class="tc-state tc-mono">${esc(r.rxn)}</span></th><td class="num">${showVal(r)}</td><td class="num">${minus(String(r.ref.v))} ± ${r.ref.u} ${r.ref.unit}<br>${num(r.refKJ, 4)} kJ/mol</td><td class="num">${num(r.diff, 4)}</td><td class="num">± ${num(r.tol, 4)}</td><td>${badge(r.pass)}${r.pass !== null && !r.tableOk ? '<br><span class="tc-state">table value changed</span>' : ''}</td><td class="tc-state">${r.href ? `<a href="${esc(r.href)}" target="_blank" rel="noopener">${esc(r.src)}</a>` : esc(r.src)}${r.tolNote ? `<br>Tolerance: ${esc(r.tolNote)}.` : ''}${KINDS[r.kind] ? `<br><span class="tc-tag">${esc(KINDS[r.kind])}</span>` : ''}</td></tr>`;
-    const groups = [['units', 'Unit factors (CODATA 2022)'], ['lookup', 'Formula, ion and state-label lookup'], ['balance', 'Balance and uncertainty (ATcT covariances)'], ['excited', 'Excited-state and electron-attachment bookkeeping'], ['diagram', 'Energy diagram and version diff'], ['kinematics', 'Recoil, collisions and uncertainty budget']];
+    const caseRow = (r) => `<tr><th scope="row">${r.title}<br><span class="tc-state tc-mono">${esc(r.rxn)}</span></th><td class="num">${showVal(r)}</td><td class="num">${minus(String(r.ref.v))} ± ${r.ref.u} ${r.ref.unit}<br>${num(r.refKJ, 4)} kJ/mol</td><td class="num">${num(r.diff, 4)}</td><td class="num">± ${num(r.tol, 4)}</td><td>${badge(r.pass)}${r.pass !== null && !r.tableOk ? `<br><span class="tc-state">${r.handOk ? 'table value changed' : `hand value is TN ${HAND_TN}, not compared`}</span>` : ''}</td><td class="tc-state">${r.href ? `<a href="${esc(r.href)}" target="_blank" rel="noopener">${esc(r.src)}</a>` : esc(r.src)}${r.tolNote ? `<br>Tolerance: ${esc(r.tolNote)}.` : ''}${KINDS[r.kind] ? `<br><span class="tc-tag">${esc(KINDS[r.kind])}</span>` : ''}</td></tr>`;
+    const groups = [['units', 'Unit factors (CODATA 2022)'], ['lookup', 'Formula, ion and state-label lookup'], ['balance', 'Balance and uncertainty (ATcT covariances)'], ['excited', 'Excited-state and electron-attachment bookkeeping'], ['diagram', 'Energy diagram and data version'], ['kinematics', 'Recoil, collisions and uncertainty budget']];
     root.innerHTML = `<div class="panel"><div class="panel-head"><h2>Self-test</h2><span class="badge ${nPass === nAll ? 'badge-ok' : 'badge-bad'}">${nPass} / ${nAll}</span></div><div class="panel-body">
         <p class="tc-st-summary">${nPass} of ${nAll} checks passed with the loaded table (ATcT TN ${esc(db.meta.tn_version || '?')})${nNA ? `; ${nNA} not applicable to this table` : ''}${waiting.length ? ` (still loading: ${waiting.join(', ')})` : ''}.</p>
-        <p class="hint">Each reaction is recomputed from the loaded table and checked twice. First against the value hand-computed from ATcT TN 1.228 (plus, for excited products, the NIST term value) to 0.0015 kJ/mol, which catches data, parsing and arithmetic errors. Then against a reference value, passing when |Δ| ≤ √(U<sub>tool</sub>² + U<sub>ref</sub>²) at 95 %; for a threshold quoted to a rounded wavelength or energy, U<sub>ref</sub> is that rounding.</p>
-        <p class="hint"><strong>Most references are not independent tests of ATcT.</strong> Seven are measurements that ATcT itself uses as inputs (its 1.228 species pages list them), and D₀(H–CH₃) comes from an ATcT-group analysis of such inputs, so agreement is expected. H₂CO → H₂ + CO is compared with the previous ATcT version (TN 1.220). IE(H) can agree only to ATcT's printed rounding. The “quoted” thresholds (O₃ at ≈310 nm, N₂O at 341 nm, and all three H₂O + e⁻ asymptotes of Haxton et al.: 3.56, 4.35 and 8.38 eV) come from other groups, who computed them from older thermochemistry and quote them rounded; each row states the tolerance used and why, so they test the bookkeeping of excited products and attached electrons, not the last digit. H₂O → H + OH(A) adds the same NIST term value the tool adds, so it checks bookkeeping only. The checks show that this tool reproduces ATcT and its sources, not that they are right.</p>
+        <p class="hint">Each reaction is recomputed from the loaded table and checked twice. First against the value hand-computed from ATcT TN 1.228 on 2026-11-06 (plus, for excited products, the NIST term value) to 0.0015 kJ/mol, which catches data, parsing and arithmetic errors; with a table of another TN version that first check is skipped and marked.${String(db.meta.tn_version || HAND_TN) !== HAND_TN ? ` <strong>The loaded table is TN ${esc(db.meta.tn_version)}</strong>, so only the reference checks count.` : ''} Then against a reference value, passing when |Δ| ≤ √(U<sub>tool</sub>² + U<sub>ref</sub>²) at 95 %; for a threshold quoted to a rounded wavelength or energy, U<sub>ref</sub> is that rounding.</p>
+        <p class="hint"><strong>Most references are not independent tests of ATcT.</strong> Seven are measurements that ATcT itself uses as inputs (its 1.228 species pages list them), and D₀(H–CH₃) comes from an ATcT-group analysis of such inputs, so agreement is expected. H₂CO → H₂ + CO is compared with ATcT's own values and covariances (TN 1.228 via the API), so it checks the arithmetic and the covariance file only. IE(H) can agree only to ATcT's printed rounding. The “quoted” thresholds (O₃ at ≈310 nm, N₂O at 341 nm, and all three H₂O + e⁻ asymptotes of Haxton et al.: 3.56, 4.35 and 8.38 eV) come from other groups, who computed them from older thermochemistry and quote them rounded; each row states the tolerance used and why, so they test the bookkeeping of excited products and attached electrons, not the last digit. H₂O → H + OH(A) adds the same NIST term value the tool adds, so it checks bookkeeping only. The checks show that this tool reproduces ATcT and its sources, not that they are right.</p>
         <div class="tc-table-scroll"><table class="tc-table tc-st-table"><thead><tr><th>Check</th><th class="num">This tool</th><th class="num">Reference</th><th class="num">Δ</th><th class="num">Tolerance</th><th>Result</th><th>Source</th></tr></thead><tbody>
         <tr class="tc-st-group"><th colspan="7">Bond, ionization and appearance energies (0 K)</th></tr>
         ${res.filter((r) => r.group !== 'excited').map(caseRow).join('')}
@@ -869,9 +855,10 @@ function renderSelfTest() {
 /* ── Data tab ───────────────────────────────────────────────────────── */
 function renderData() {
     const m = db.meta;
-    $('dt-meta').innerHTML = `${esc(m.source || '')}, Thermochemical Network version <strong>${esc(m.tn_version || '?')}</strong>${m.as_of ? ` (as of ${esc(m.as_of)})` : ''}${m.downloaded ? `, downloaded ${esc(m.downloaded)}` : ''}. ${db.species.length} species; ${db.species.filter((s) => s.gas).length} in the gas phase. ${m.url ? `Source: <a href="${esc(m.url)}" target="_blank" rel="noopener">ATcT table</a>.` : ''}`;
+    const cur = db.isShipped && current ? current : null;
+    $('dt-meta').innerHTML = `${esc(m.source || '')}, Thermochemical Network version <strong>${esc(m.tn_version || '?')}</strong>${m.as_of ? ` (as of ${esc(m.as_of)})` : ''}${cur && cur.fetched ? `, retrieved from the ATcT API on ${esc(cur.fetched.slice(0, 10))} at ${esc(cur.fetched.slice(11, 16))} UTC` : m.downloaded ? `, downloaded ${esc(m.downloaded)}` : ''}. ${db.species.length} species; ${db.species.filter((s) => s.gas).length} in the gas phase${cur && cur.cov_species ? `; covariances for ${cur.cov_species} of them, from the same version` : ''}. ${m.url ? `ATcT's <a href="${esc(m.url)}" target="_blank" rel="noopener">table of this version</a>${cur && cur.doi ? `; dataset <a href="https://doi.org/${esc(cur.doi)}" target="_blank" rel="noopener">doi:${esc(cur.doi)}</a>` : ''}.` : ''}`;
     $('dt-cite').innerHTML = (m.citation || []).map((c) => `<li>${esc(c).replace(/doi:(\S+)/, (x, d) => `<a href="https://doi.org/${esc(d)}" target="_blank" rel="noopener">doi:${esc(d)}</a>`)}</li>`).join('') || '<li>Cite the source of the table you loaded.</li>';
-    $('tc-source').innerHTML = `Values: <strong>ATcT ${esc(m.tn_version || '')}</strong>${m.as_of ? ` (${esc(m.as_of)})` : ''}, Argonne National Laboratory. Uncertainties are 95 %. <a href="#" id="tc-cite-link">How to cite</a>`;
+    $('tc-source').innerHTML = `Values: <strong>ATcT ${esc(m.tn_version || '')}</strong>${cur && cur.fetched ? `, retrieved from the ATcT API ${esc(cur.fetched.slice(0, 10))}` : m.as_of ? ` (${esc(m.as_of)})` : ''}, Argonne National Laboratory. Uncertainties are 95 %, those of Δ<sub>f</sub>H°(298.15 K). <a href="#" id="tc-cite-link">How to cite</a>`;
     $('tc-cite-link').onclick = (e) => { e.preventDefault(); showTab('data', true); };
     renderExcitedRefs();
 }
@@ -902,16 +889,16 @@ function initData() {
             db = buildDB(payload);
             attachTo(db, 'exc');
             const skip = payload.meta.skipped ? ` Skipped ${payload.meta.skipped} row(s) whose composition, charge or ΔfH°(298.15 K) could not be read.` : '';
-            $('dt-status').textContent = `Loaded ${payload.rows.length} species from ${f.name}.${skip} Results now use your table (without ATcT covariances or the version diff); the citation is yours to supply.`;
+            $('dt-status').textContent = `Loaded ${payload.rows.length} species from ${f.name}.${skip} Results now use your table (without ATcT covariances); the citation is yours to supply.`;
 
             $('dt-reset').hidden = false; rerender();
         } catch (err) { $('dt-status').textContent = `Could not read ${f.name}: ${err.message}.`; }
     });
-    $('dt-reset').addEventListener('click', () => { db = shippedDB(); $('dt-reset').hidden = true; $('dt-status').textContent = 'Back to the shipped ATcT TN 1.228 table.'; rerender(); });
+    $('dt-reset').addEventListener('click', () => { db = shippedDB(); $('dt-reset').hidden = true; $('dt-status').textContent = `Back to the shipped ATcT TN ${shipped.meta.tn_version || ''} table.`; rerender(); });
 }
 function shippedDB() {
     const d = buildDB(shipped); d.isShipped = true;
-    for (const k of ['cov', 'exc', 'diff']) attachTo(d, k);
+    for (const k of ['cov', 'exc']) attachTo(d, k);
     return d;
 }
 
@@ -919,6 +906,21 @@ function rerender() {
     renderData(); renderSpecies(); renderReaction(); renderChannels(); renderUnits(); renderRecoil(); renderCollide();
     if (state.tab === 'selftest') renderSelfTest();
     if (state.tab === 'diagram') renderDiagram();
+}
+
+/** Version, retrieval date, counts and dataset DOI from atct-current.json into the page's static text. */
+function fillCurrent() {
+    if (!current) return;
+    const all = (k) => document.querySelectorAll(`[data-atct="${k}"]`);
+    const set = (k, v) => { if (v != null && v !== '') for (const el of all(k)) el.textContent = String(v); };
+    set('version', current.version); set('fetched', (current.fetched || '').slice(0, 10));
+    set('species', current.species); set('cov_species', current.cov_species); set('cov_target', current.cov_target);
+    for (const el of all('year')) el.textContent = current.dataset_year ? ` (${current.dataset_year})` : '';
+    for (const el of all('doi-wrap')) el.hidden = !current.doi;
+    if (current.doi) for (const a of all('doi')) { a.href = `https://doi.org/${current.doi}`; a.textContent = `doi:${current.doi}`; }
+    for (const a of all('page')) a.href = `${atctBase()}index.php`;
+    // text with numbers of a fixed TN version (examples, typical values) says so once the data have moved on
+    for (const el of document.querySelectorAll('[data-atct-pinned]')) el.hidden = String(current.version) === el.dataset.atctPinned;
 }
 
 /* ── boot ───────────────────────────────────────────────────────────── */
@@ -962,7 +964,11 @@ async function boot() {
     initDiagram();
     showTab(state.tab);
     try {
-        const r = await fetch(DATA_URL);
+        const rc = await fetch(CURRENT_URL);
+        if (!rc.ok) throw new Error(`atct-current.json: HTTP ${rc.status}`);
+        current = await rc.json();
+        fillCurrent();
+        const r = await fetch(dataURL(current.files.table));
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         shipped = await r.json();
         db = shippedDB();
@@ -981,6 +987,6 @@ async function boot() {
     const s0 = db.byId.get(state.sp); $('sp-q').value = s0 ? s0.formula : '';
     const c0 = db.byId.get(state.ch); $('ch-q').value = c0 ? c0.formula : '';
     rerender();
-    window.__thermochem = { db: () => db, CASES, runCase, extraChecks, extra: () => extra, state };
+    window.__thermochem = { db: () => db, CASES, runCase, extraChecks, extra: () => extra, current: () => current, state };
 }
 boot();

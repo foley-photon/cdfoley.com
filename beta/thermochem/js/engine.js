@@ -1,7 +1,6 @@
 // Thermochemistry engine: ATcT species database, reaction parsing and balance, reaction enthalpies,
 // uncertainty (independent errors and, where available, ATcT covariances), dissociation-channel search (neutral,
-// ionic and electron-attachment channels, with excited products from NIST), the TN 1.220 -> 1.228 version diff,
-// and energy unit conversion. Pure functions, no DOM; usable from Node for tests.
+// ionic and electron-attachment channels, with excited products from NIST) and energy unit conversion. Pure functions, no DOM; usable from Node for tests.
 
 /* ── Units ─────────────────────────────────────────────────────────────── */
 // CODATA 2022 (Mohr et al., Rev. Mod. Phys. 97, 025002 (2025)). N_A, e, h, c and k are exact in the SI, so every
@@ -84,8 +83,8 @@ export function buildDB(payload) {
         const g = plainByCas.get(`${s.cas}|${s.q}`);
         if (g && g !== s && g.h0 != null && Math.abs(s.h0 - g.h0) <= 0.001) aliasOf.set(s.id, g);
     }
-    // cov, exc and diff come from lazy-loaded files: attachCov, attachExcited, attachDiff
-    return { meta: payload.meta || {}, species, byId, byNum, byFormula, byKey, byName, aliasOf, cov: null, exc: null, diff: null };
+    // cov and exc come from lazy-loaded files: attachCov, attachExcited
+    return { meta: payload.meta || {}, species, byId, byNum, byFormula, byKey, byName, aliasOf, cov: null, exc: null };
 }
 function push(map, k, v) { const a = map.get(k); if (a) { if (!a.includes(v)) a.push(v); } else map.set(k, [v]); }
 
@@ -323,13 +322,15 @@ export function printRounding(s) {
     return 0.5 * 10 ** -Math.min(m[1].length, 3);
 }
 
-/* ── ATcT covariances (sparse file: TN 1.220, ΔfH° at 298.15 K) ─────────── */
+/* ── ATcT covariances (sparse file, ΔfH° at 298.15 K, same TN version as the table) ─ */
 /**
- * Attach the sparse covariance file (data/atct-cov-tn1.220.json): `ids`, `sd` (√ of the API diagonal, which approximates
- * the printed TN 1.220 95 % uncertainty: median ratio 0.988) and `rows` of "dj:r" correlation items for j > i (dj = j minus
- * the previous j; the first item is j − i). Pairs not listed have r = 0.
+ * Attach the sparse covariance file (data/atct-cov-tn<version>.json): `ids`, `sd` (√ of the API diagonal, the 95 %
+ * uncertainty of ΔfH°(298.15 K)) and `rows` of "dj:r" correlation items for j > i (dj = j minus the previous j; the
+ * first item is j − i). Pairs not listed have r = 0. A file of another TN version than the table is not attached:
+ * mixing versions would give inconsistent uncertainties.
  */
 export function attachCov(db, cov) {
+    if (String(cov.tn_version) !== String(db.meta.tn_version || '')) return null;
     db.cov = {
         tn: cov.tn_version, T: cov.temperature_K, ids: cov.ids, sd: cov.sd, rows: cov.rows, cut: cov.cut,
         pos: new Map(cov.ids.map((id, i) => [id, i])), cache: new Map(),
@@ -350,82 +351,52 @@ export function corr(c, i, j) {
     if (i === j) return 1;
     return (i < j ? corrRow(c, i).get(j) : corrRow(c, j).get(i)) || 0;
 }
-/** Species whose TN 1.220 and TN 1.228 uncertainties differ by more than this factor are flagged. */
-export const STALE_FACTOR = 1.5;
 
 /** A correlated variance below this fraction of Σ|terms| has lost three digits to cancellation. */
 const CANCEL = 1e-3;
 
 /**
- * Correlated 95 % uncertainty √(νᵀ C ν) of a reaction from the ATcT covariances (TN 1.220, the version the ATcT API
- * serves; ΔfH° at 298.15 K). `u220` is the sum with the TN 1.220 covariances exactly as served. `u` is the value shown:
- * the same sum, except that a species whose printed uncertainty changed between TN 1.220 and TN 1.228 (the version diff)
- * has its row and column scaled by U₁.₂₂₈ / U₁.₂₂₀ (printed values), so its own uncertainty is the TN 1.228 one while
- * its correlations stay those of TN 1.220. When that scaling leaves less than 0.1 % of Σ|terms| (heavy cancellation, as
- * in X₂ → 2 X), the scaled correlations are no longer meaningful and `u` falls back to `u220` (fallback = true). A
- * variance that still comes out ≤ 0 is not shown as 0: `u` is null and `lt` is the bound √(0.001 Σ|terms|).
- * `xvar` adds independent variance (term values of NIST states). Exact species (reference elements, e⁻) contribute
- * nothing; a species with U ≤ 0.0005 kJ/mol that is not in the file is added as independent. Returns null while no
- * covariance file is attached, else { covered, u, lt, u220, u220lt, fallback, clamped, scaled, tn, T, missing, stale }.
- * stale lists species whose printed uncertainty changed by more than STALE_FACTOR between the two versions.
+ * Correlated 95 % uncertainty √(νᵀ C ν) of a reaction from the ATcT covariances (ΔfH° at 298.15 K, from the same TN
+ * version as the values). A variance that comes out ≤ 0 is not shown as 0: `u` is null and `lt` is the bound
+ * √(0.001 Σ|terms|). `xvar` adds independent variance (term values of NIST states). Exact species (reference elements,
+ * e⁻) contribute nothing; a species with U ≤ 0.0005 kJ/mol that is not in the file is added as independent. Returns null
+ * while no covariance file is attached, else { covered, u, lt, clamped, tn, T, missing }.
  */
 export function covarianceU(db, nus, xvar = 0) {
     const k = covSetup(db, nus, xvar); if (!k) return null;
-    const { c, idx, v, f, missing, stale, scaled } = k;
-    if (missing.length) return { covered: false, u: null, lt: null, u220: null, tn: c.tn, T: c.T, missing, stale, scaled };
-    let a = k.extra; let b = k.extra; let ta = k.extra; let tb = k.extra;
+    const { c, idx, v, missing } = k;
+    if (missing.length) return { covered: false, u: null, lt: null, tn: c.tn, T: c.T, missing };
+    let a = k.extra; let ta = k.extra;
     for (let x = 0; x < idx.length; x++) {
         for (let y = 0; y < idx.length; y++) {
             const r = corr(c, idx[x], idx[y]);
             if (!r) continue;
             const t = v[x] * v[y] * r * c.sd[idx[x]] * c.sd[idx[y]];
-            b += t; tb += Math.abs(t);
-            a += t * f[x] * f[y]; ta += Math.abs(t * f[x] * f[y]);
+            a += t; ta += Math.abs(t);
         }
     }
-    let used = a; let tu = ta; let fallback = false;
-    if (scaled.length && a <= CANCEL * ta) { used = b; tu = tb; fallback = true; }
-    const clamped = used <= 0 && tu > 0;   // tu = 0: every species cancels (an identity), u is exactly 0
-    return {
-        covered: true, u: clamped ? null : Math.sqrt(used), lt: clamped ? Math.sqrt(CANCEL * tu) : null,
-        u220: b > 0 || tb === 0 ? Math.sqrt(Math.max(b, 0)) : null, u220lt: b > 0 || tb === 0 ? null : Math.sqrt(CANCEL * tb),
-        fallback, clamped, scaled, tn: c.tn, T: c.T, missing, stale,
-    };
+    const clamped = a <= 0 && ta > 0;   // ta = 0: every species cancels (an identity), u is exactly 0
+    return { covered: true, u: clamped ? null : Math.sqrt(a), lt: clamped ? Math.sqrt(CANCEL * ta) : null, clamped, tn: c.tn, T: c.T, missing };
 }
 /**
- * The pieces of √(νᵀCν): covariance-matrix indices `idx`, coefficients `v` and TN 1.228 scale factors `f` of the covered
- * species (`ids`), independent variance `extra` (xvar plus tiny-uncertainty species outside the file, `extraById` per
- * species), and the `missing`, `stale` and `scaled` ID lists. Null while no covariance file is attached.
+ * The pieces of √(νᵀCν): covariance-matrix indices `idx` and coefficients `v` of the covered species (`ids`),
+ * independent variance `extra` (xvar plus tiny-uncertainty species outside the file, `extraById` per species), and the
+ * `missing` ID list. Null while no covariance file is attached.
  */
 function covSetup(db, nus, xvar = 0) {
     const c = db.cov; if (!c) return null;
-    const idx = []; const v = []; const f = []; const ids = []; const missing = []; const stale = []; const scaled = [];
+    const idx = []; const v = []; const ids = []; const missing = [];
     let extra = xvar; const extraById = new Map();
     for (const [id, nu] of nus) {
         if (Math.abs(nu) < 1e-12) continue;
         const s = db.byId.get(id);
         const u = s ? s.u || 0 : 0;
-        if (c.pos.has(id)) {
-            const i = c.pos.get(id);
-            idx.push(i); v.push(nu); ids.push(id);
-            let fi = 1;
-            const old = db.diff && s ? versionChange(db, s) : null;
-            if (old && !old.isNew && old.u != null && s.uPrinted != null && Math.abs(old.u - s.uPrinted) > 5e-7) {
-                // printed "± 0.000" means below 0.0005: use the smaller of that bound and the API value
-                const u228 = s.uPrinted > 0 ? s.uPrinted : Math.min(0.0005, c.sd[i]);
-                const u220 = old.u > 0 ? old.u : Math.min(0.0005, c.sd[i]);
-                if (u220 > 0 && u228 > 0) fi = u228 / u220;
-                if (fi !== 1) scaled.push(id);
-                if (u228 > 0.001 && u220 > 0.001 && (fi > STALE_FACTOR || 1 / fi > STALE_FACTOR)) stale.push(id);
-            }
-            f.push(fi);
-            continue;
-        }
+        if (c.pos.has(id)) { idx.push(c.pos.get(id)); v.push(nu); ids.push(id); continue; }
         if (u === 0) continue;
         if (u <= 0.0005) { extra += (nu * u) ** 2; extraById.set(id, (nu * u) ** 2); continue; }
         missing.push(id);
     }
-    return { c, idx, v, f, ids, extra, extraById, missing, stale, scaled };
+    return { c, idx, v, ids, extra, extraById, missing };
 }
 
 /**
@@ -476,10 +447,9 @@ export function uncertaintyBudget(db, terms) {
     const nus = new Map();
     for (const t of terms) { const s = t.species; if (!s) continue; const k = s.base ? s.base.id : s.id; nus.set(k, (nus.get(k) || 0) + t.nu); }
     const k = covSetup(db, nus, [...extraById.values()].reduce((a, x) => a + x, 0));
-    const useF = !h.ucorr.fallback;
     const T = (x, y) => {
         const r = corr(k.c, k.idx[x], k.idx[y]);
-        return r ? k.v[x] * k.v[y] * r * k.c.sd[k.idx[x]] * k.c.sd[k.idx[y]] * (useF ? k.f[x] * k.f[y] : 1) : 0;
+        return r ? k.v[x] * k.v[y] * r * k.c.sd[k.idx[x]] * k.c.sd[k.idx[y]] : 0;
     };
     const n = k.idx.length; let total = k.extra; const rowSum = new Array(n).fill(0);
     for (let x = 0; x < n; x++) for (let y = 0; y < n; y++) { const t = T(x, y); rowSum[x] += t; total += t; }
@@ -690,19 +660,6 @@ export function excitedThresholds(db, channel, opts = {}) {
     const seen = new Set();
     return combos.filter((c) => { if (!c.states.some(Boolean)) return false; const k = key(c); if (seen.has(k)) return false; seen.add(k); return true; })
         .sort((a, b) => a.kj - b.kj).slice(0, limit).map((c) => ({ ...c, h0: round(channel.h0 + c.kj) }));
-}
-
-/* ── Version diff (TN 1.220 values of the species that changed) ─────────── */
-export function attachDiff(db, payload) {
-    db.diff = { meta: payload.meta || {}, rows: new Map(Object.entries(payload.rows || {})), newIds: new Set(payload.new || []) };
-    return db.diff;
-}
-/** TN 1.220 values of a species where they differ from TN 1.228: {h0, h298, u}, or {isNew: true}, or null. */
-export function versionChange(db, s) {
-    if (!db.diff || !s || s.isElectron) return null;
-    if (db.diff.newIds.has(s.id)) return { isNew: true };
-    const r = db.diff.rows.get(s.id);
-    return r ? { h0: r[0], h298: r[1], u: r[2] } : null;
 }
 
 /* ── Channel search (bond dissociation, photolysis, dissociative ionization) ── */
