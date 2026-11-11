@@ -1,0 +1,122 @@
+# Copy the latest release of each tool repository into the site.
+# Some tools live in their own public repositories, with tests and a release for every change of code or data; each
+# release's site/ folder is exactly what the site serves for that tool. Once a day (and on demand) this job reads the
+# latest release of every repository in TOOLS, runs that release's own tests, replaces the tool's folder here with the
+# release's site/ folder, runs the tool's check against the folder, and commits to main only when files changed and
+# both passed. A tool that fails is put back as it was and the job fails after the others are done. A repository the
+# job cannot read (an API error, a renamed or private repository) fails the job too; only "no release yet" is a notice.
+# The page's JSON-LD block (written by _scripts/seo.py) stays the site's own; its dateModified moves to the time of the
+# copy when the page itself changed, and seo.py then updates the block and the sitemap's lastmod as it does for any edit.
+# Public repositories need no secrets: the workflow's own token reads them.
+name: Sync tool repositories
+
+on:
+  schedule:
+    - cron: '41 12 * * *'    # daily; a Tuesday ATcT release usually exists by then, and the next day's run picks it up if not
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-tool-repos
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # repository | folder in this site | the release's own tests, run in the release before copying |
+      # check of the copied folder, run from the release's root with $TARGET set to the folder
+      TOOLS: |
+        foley-photon/thermochemistry-lab|beta/thermochem|node --test "tests/*.test.mjs"|node scripts/selftest.mjs "$TARGET"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Copy the latest releases
+        id: copy
+        run: |
+          set -uo pipefail
+          copied=""; failed=""; targets=()
+          # the list is read on file descriptor 3, so that no command in the loop can read the rest of it
+          while IFS='|' read -r -u 3 repo target pretest test; do
+            [ -z "$repo" ] && continue
+            if ! tag=$(gh release view --repo "$repo" --json tagName --jq .tagName 2>&1 < /dev/null); then
+              case "$tag" in
+                *"release not found"*) echo "::notice::$repo has no release yet; $target stays as it is" ;;
+                *) echo "::error::$repo: cannot read its latest release: $tag"; failed="$failed $repo" ;;
+              esac
+              continue
+            fi
+            work="$RUNNER_TEMP/release-${repo//\//-}"; rm -rf "$work"; mkdir -p "$work"
+            if ! gh release download "$tag" --repo "$repo" --archive tar.gz --output "$work.tar.gz" < /dev/null \
+                || ! tar -xzf "$work.tar.gz" -C "$work" --strip-components=1 || [ ! -f "$work/site/index.html" ]; then
+              echo "::error::$repo $tag: could not download the release or it has no site/index.html"; failed="$failed $repo"; continue
+            fi
+            if ! (cd "$work" && bash -c "$pretest" < /dev/null); then
+              echo "::error::$repo $tag: its own tests fail; $target stays as it is"; failed="$failed $repo"; continue
+            fi
+            # keep this site's JSON-LD block; move its dateModified when the page itself changed
+            python3 - "$target/index.html" "$work/site/index.html" <<'PY'
+          import datetime, re, sys
+          site, new = sys.argv[1], sys.argv[2]
+          ld = re.compile(r'<script type="application/ld\+json" id="ld-page">.*?</script>\n', re.S)
+          try:
+              old = open(site, encoding='utf-8').read()
+          except FileNotFoundError:
+              sys.exit(0)
+          t = open(new, encoding='utf-8').read()
+          m = ld.search(old)
+          if not m or not ld.search(t):
+              sys.exit(0)
+          block = m.group(0)
+          if ld.sub('', t, count=1) != ld.sub('', old, count=1):
+              now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
+              block = re.sub(r'("dateModified": ?")[^"]*(")', lambda x: x.group(1) + now + x.group(2), block)
+          open(new, 'w', encoding='utf-8', newline='\n').write(ld.sub(lambda _: block, t, count=1))
+          PY
+            rm -rf "$target"; mkdir -p "$target"; cp -R "$work/site/." "$target/"
+            if [ -z "$(git status --porcelain -- "$target")" ]; then echo "$repo $tag: $target is up to date"; continue; fi
+            echo "$repo $tag: checking $target"
+            if (cd "$work" && TARGET="$GITHUB_WORKSPACE/$target" bash -c "$test" < /dev/null); then
+              targets+=("$target"); copied="$copied ${repo#*/} $tag,"
+            else
+              echo "::error::$repo $tag failed its check; $target is left as it was"
+              git checkout -- "$target"; git clean -fdq -- "$target"; failed="$failed $repo"
+            fi
+          done 3<<< "$TOOLS"
+          if [ ${#targets[@]} -gt 0 ]; then
+            # the site's SEO upkeep, as after any page edit: JSON-LD from the page, and the sitemap's lastmod
+            python3 _scripts/seo.py
+            git add -A -- "${targets[@]}" sitemap.xml
+            other=$(git status --porcelain --untracked-files=no | grep -v '^[MADR] ' || true)
+            if [ -n "$other" ]; then
+              echo "::warning::seo.py also changed files outside the copied tools; not committed here:"; echo "$other"
+              git checkout -- .
+            fi
+          fi
+          echo "copied=${copied%,}" >> "$GITHUB_OUTPUT"
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+      - name: Commit
+        if: steps.copy.outputs.copied != ''
+        env:
+          COPIED: ${{ steps.copy.outputs.copied }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Tools from their repositories:$COPIED"
+          git pull --rebase origin main
+          git push origin HEAD:main
+      - name: Report failures
+        if: steps.copy.outputs.failed != ''
+        env:
+          FAILED: ${{ steps.copy.outputs.failed }}
+        run: |
+          echo "::error::Not copied:$FAILED"
+          exit 1

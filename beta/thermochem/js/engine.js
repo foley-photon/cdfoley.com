@@ -750,17 +750,27 @@ export const coreFormula = (f) => f.replace(/(\+\d?|-\d?|\+\+|--)$/, '').replace
 /** Ion with the same structural formula as the neutral (an IE or EA, not an energy to an isomeric ion). */
 const sameStructure = (ion, s) => coreFormula(ion.formula) === coreFormula(s.formula);
 
-/** Adiabatic ionization energies to every gas cation of the same composition (0 K): ΔfH0(M⁺) − ΔfH0(M). */
+/**
+ * A difference of ATcT values written as the reaction it is, with the uncertainty the Reaction tab shows for that
+ * reaction: { ion, kj, u, how, lt, terms }. `how` is 'correlated' (ATcT covariances, with the rounding of the printed
+ * values) when every species is in the covariance file, else 'independent'; see reactionEnthalpy and bestU.
+ */
+function asReaction(db, ion, terms, q) {
+    const h = reactionEnthalpy(db, terms);
+    const bu = bestU(h);
+    return { ion, kj: h[q], u: bu.u, how: bu.how, lt: !!bu.lt, terms };
+}
+/** Adiabatic ionization energies to every gas cation of the same composition (0 K): M → M⁺ + e⁻, ΔfH0(M⁺) − ΔfH0(M). */
 export function ionizationEnergies(db, s) {
     if (!s.gas || s.h0 == null) return [];
     return (db.byKey.get(compKey(s.comp, s.q + 1)) || []).filter((c) => c.gas && c.h0 != null && !EXCLUDE_STATE.test(c.state) && sameStructure(c, s))
-        .map((c) => ({ ion: c, kj: c.h0 - s.h0, u: Math.hypot(c.u || 0, s.u || 0) })).sort((a, b) => a.kj - b.kj);
+        .map((c) => asReaction(db, c, [{ nu: -1, species: s }, { nu: 1, species: c }, { nu: 1, species: ELECTRON }], 'h0')).sort((a, b) => a.kj - b.kj);
 }
-/** Adiabatic electron affinities from every gas anion of the same composition (0 K): ΔfH0(M) − ΔfH0(M⁻). */
+/** Adiabatic electron affinities from every gas anion of the same composition (0 K): M⁻ → M + e⁻, ΔfH0(M) − ΔfH0(M⁻). */
 export function electronAffinities(db, s) {
     if (!s.gas || s.h0 == null) return [];
     return (db.byKey.get(compKey(s.comp, s.q - 1)) || []).filter((a) => a.gas && a.h0 != null && !EXCLUDE_STATE.test(a.state) && sameStructure(a, s))
-        .map((a) => ({ ion: a, kj: s.h0 - a.h0, u: Math.hypot(a.u || 0, s.u || 0) })).sort((a, b) => b.kj - a.kj);
+        .map((a) => asReaction(db, a, [{ nu: -1, species: a }, { nu: 1, species: s }, { nu: 1, species: ELECTRON }], 'h0')).sort((a, b) => b.kj - a.kj);
 }
 /**
  * True for an anion that ATcT lists above its neutral of the same structure (negative adiabatic electron affinity):
@@ -784,14 +794,17 @@ export function parseNum(text) {
     const x = Number(t);
     return Number.isFinite(x) ? x : NaN;
 }
-/** Proton affinities at 298.15 K: ΔfH298(M) + ΔfH298(H⁺) − ΔfH298(MH⁺) (the stationary-electron convention cancels). */
+/**
+ * Proton affinities at 298.15 K: MH⁺ → M + H⁺, ΔfH298(M) + ΔfH298(H⁺) − ΔfH298(MH⁺) (the stationary-electron convention
+ * cancels). The uncertainty includes that of H⁺.
+ */
 export function protonAffinities(db, s) {
-    if (!s.gas) return [];
+    if (!s.gas || s.h298 == null) return [];
     const hp = (db.byFormula.get('h+') || []).find((x) => x.gas);
     if (!hp) return [];
     const comp = { ...s.comp, H: (s.comp.H || 0) + 1 };
-    return (db.byKey.get(compKey(comp, s.q + 1)) || []).filter((x) => x.gas && !EXCLUDE_STATE.test(x.state))
-        .map((x) => ({ ion: x, kj: s.h298 + hp.h298 - x.h298, u: Math.hypot(x.u || 0, s.u || 0) })).sort((a, b) => b.kj - a.kj);
+    return (db.byKey.get(compKey(comp, s.q + 1)) || []).filter((x) => x.gas && x.h298 != null && !EXCLUDE_STATE.test(x.state))
+        .map((x) => asReaction(db, x, [{ nu: -1, species: x }, { nu: 1, species: s }, { nu: 1, species: hp }], 'h298')).sort((a, b) => b.kj - a.kj);
 }
 
 /* ── Search ────────────────────────────────────────────────────────────── */

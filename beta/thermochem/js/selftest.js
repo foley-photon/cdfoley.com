@@ -1,7 +1,8 @@
 // Self-test cases. Each case recomputes a reaction energy from the loaded ATcT table and checks it twice:
 //  1. "table": against the value hand-computed from ATcT TN 1.228 on 2026-11-06 (catches data, parsing and engine errors);
 //     skipped when the loaded table names another TN version (after an automatic update), see HAND_TN;
-//  2. "reference": against a reference value, passing when |Δ| ≤ √(U_tool² + U_ref²) with both at 95 %.
+//  2. "reference": against a reference value, passing when |Δ| ≤ √(U_tool² + U_ref²) with both at 95 %. U_tool is the
+//     uncertainty the tool shows for the reaction (bestU: correlated when every species is in the covariance file).
 // The references are NOT independent tests of ATcT. Most are measurements that ATcT itself uses as inputs (the
 // ATcT 1.228 species pages list them), so agreement is expected; one is an ATcT-group analysis of such inputs;
 // H2CO -> H2 + CO is compared with ATcT's own values and covariances from the API (an arithmetic and covariance-file
@@ -154,12 +155,14 @@ export function runCase(db, c) {
     }
     const handOk = handApplies(db);
     const tableOk = value != null && Math.abs(value - c.table) <= 0.0015;
-    const tol = c.tolKJ != null ? c.tolKJ : h ? Math.hypot(h.u, refU) : 0;
+    // the uncertainty the tool shows for this reaction: correlated when the covariance file covers it, else independent
+    const bu = bestU(h);
+    const tol = c.tolKJ != null ? c.tolKJ : h ? Math.hypot(bu.u != null ? bu.u : h.u, refU) : 0;
     const diff = value != null ? value - refKJ : NaN;
     const pubOk = value != null && Math.abs(diff) <= tol;
     const nmOk = c.nm == null || (value != null && Math.abs(kjToNm(value) - c.nm) < 0.01);
     return {
-        ...c, value, u: h ? h.u : null, ucorr: h && h.ucorr ? h.ucorr.u : null, balanced: bal.ok, errors: r.errors,
+        ...c, value, u: h ? h.u : null, ucorr: h && h.ucorr ? h.ucorr.u : null, uTool: h ? bu.u : null, uHow: h ? bu.how : null, balanced: bal.ok, errors: r.errors,
         refKJ, refU, diff, tol, tableOk, handOk, pubOk, nmOk, pass: bal.ok && (tableOk || (!handOk && value != null)) && pubOk && nmOk,
     };
 }
@@ -223,7 +226,7 @@ export function extraChecks(db, ctx = {}) {
         add('Correlation matters: U(D₀(H–HCO)) with ATcT covariances < 1/5 of the independent-error estimate',
             h.ucorr.u < h.u / 5, `independent ±${h.u.toFixed(3)} kJ/mol; correlated (TN ${h.ucorr.tn} covariances) ±${h.ucorr.u.toFixed(4)} kJ/mol`, 'balance');
         // the sparse file (pairs below 0.1 % of a pair variance cut) against the exact matrix the API returned (ATcT TN 1.228
-        // via the API, 2026-11-11, E:/cdfoley-data/atct/raw/api-2026-11-10): √(νᵀCν) = 0.0079880 kJ/mol for H₂CO → H + HCO
+        // via the API, 2026-11-11 run; raw responses in my data archive): √(νᵀCν) = 0.0079880 kJ/mol for H₂CO → H + HCO
         const w = reactionEnthalpy(db, resolveReaction(db, parseReaction('H2O -> H + OH')).terms);
         if (handOk) {
             add('Sparse covariance file reproduces the exact ATcT API matrix: U(D₀(H–HCO)) with TN 1.228 covariances = 0.00799 kJ/mol (±1 %)',
