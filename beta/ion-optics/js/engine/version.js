@@ -8,7 +8,7 @@
    No external sources (plain constants).
    ========================================================================== */
 
-/** Working product name (final name to be approved). */
+/** Product name, written only here and in the two page titles. */
 export const PRODUCT_NAME = 'Ion Optics Workbench';
 /** Engine version: bump on any numerics or layout change. */
 export const ENGINE_VERSION = '0.2.3';

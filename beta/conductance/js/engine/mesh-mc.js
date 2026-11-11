@@ -1,9 +1,9 @@
 // Mesh test-particle Monte Carlo (spec §2.12, §3.6.3) and its post-processing: wall pressure from hit density
-// and the axial pressure profile (§3.6.6). Ported from our design prototype cond-proto/mesh-proto.mjs.
+// and the axial pressure profile (§3.6.6). First written as a standalone prototype.
 // Particles start uniformly on a port (area CDF, folded barycentric point), with a cosine direction about the
 // port's inward normal; walls re-emit diffusely on the arrival side, so wall normals need no consistent
 // orientation; a port absorbs with its sticking probability; a ray that hits nothing is a leak.
-// Pure module: no DOM; runs in the page, in workers and in Node (H7, H8). SI units (metres).
+// Pure module: no DOM; runs in the page, in workers and in Node (H7, H8). SI units (meters).
 import { makeRng, getSampler } from './rng.js';
 import { buildBVH, makeTracer } from './bvh.js';
 
@@ -186,7 +186,7 @@ export function profileAxis(scene, axis = null) {
 /**
  * Axial pressure profile (§3.6.6): bins of equal length along the axis, by wall-triangle centroid;
  * per bin p/p_in = Σh/(ΣA·Σ_i N_i/A_i) with a ±1.96/√Σh relative interval.
- * Returns { s (bin centres, m from the axis origin), value, lo, hi, hits, axis: { origin, dir, length, s0 } }.
+ * Returns { s (bin centers, m from the axis origin), value, lo, hi, hits, axis: { origin, dir, length, s0 } }.
  */
 export function axialProfile(scene, hitsBySlot, inletLaunches, { bins = 40, axis = null } = {}) {
   const ax = profileAxis(scene, axis);
@@ -246,7 +246,7 @@ export function toPreparedOrder(scene, arrBySlot, ArrayType = null) {
 
 /**
  * A MeshScene (§2.12) from a triangle soup with given port ids, for tests and controls (the CAD tab builds its
- * scenes with ports.buildScene). tri: Float32Array(9n) in metres; triPort: Int16Array(n), −1 for walls;
+ * scenes with ports.buildScene). tri: Float32Array(9n) in meters; triPort: Int16Array(n), −1 for walls;
  * ports: [{ id, name, role, stick, inward: [x, y, z] }] (index = port id). The port centroid is computed.
  */
 export function makeScene(tri, triPort, ports) {

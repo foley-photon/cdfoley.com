@@ -2,7 +2,7 @@
 // coplanar regions and the automatic grouping of loops into ports.
 //
 //   weldMesh       hash the vertices on a grid of cell size weldTol (default 1e-6 × the bounding-box diagonal),
-//                  merge vertices within the tolerance (27 neighbouring cells), drop degenerate triangles (area
+//                  merge vertices within the tolerance (27 neighboring cells), drop degenerate triangles (area
 //                  < 1e-12·diag², or two equal indices) and exact duplicates (the same three indices in any order).
 //   validateMesh   edge map from sorted vertex pairs; boundary (1 triangle), manifold (2) and non-manifold (> 2)
 //                  edges; consistent winding; boundary loops chained vertex to vertex (Newell's method for the
@@ -11,11 +11,11 @@
 //   regionFrom     flood fill across manifold edges from a seed triangle within angleDeg of its plane.
 //   prepareMesh    weld + validate + automatic ports.
 //
-// A Mesh is { vertices: Float64Array (xyz per vertex, metres), tris: Uint32Array (3 per triangle) }; meshes made
+// A Mesh is { vertices: Float64Array (xyz per vertex, meters), tris: Uint32Array (3 per triangle) }; meshes made
 // here also carry weldTol. Triangle order is kept ("prepared order"): the triangles that survive the clean-up keep
 // their input order, and vertices are numbered in order of first use. Loop ids follow the triangle order, so the
 // same triangles in the same order always give the same loops, whatever the vertex numbering.
-// Pure module: no DOM; runs in the page, in workers and in Node (H7, H8). SI units (metres).
+// Pure module: no DOM; runs in the page, in workers and in Node (H7, H8). SI units (meters).
 import { FACETING } from './tables.js';
 
 const COS_HALF_DEG = Math.cos(0.5 * Math.PI / 180);
@@ -45,7 +45,7 @@ const heEnd = (tris, h) => tris[nextHe(h)];
 // ---------------------------------------------------------------- weld
 
 /**
- * Welds a triangle soup (positions in metres, 9 numbers per triangle).
+ * Welds a triangle soup (positions in meters, 9 numbers per triangle).
  * Returns { mesh: { vertices, tris, weldTol }, merged, degenerate, duplicate, weldTol }:
  *   merged      distinct input positions that were merged into another one (closer than weldTol);
  *   degenerate  triangles dropped for two equal vertices or an area below 1e-12·diag²;
@@ -617,7 +617,7 @@ export function validateMesh(mesh, weldInfo) {
   if (nonManifoldEdges) add('warn', 'nonmanifold-edges', plural(nonManifoldEdges, 'edge is', 'edges are') + ' shared by more than two triangles (non-manifold). If these are internal or doubled faces, results may be wrong; check the mesh.');
   if (nonManifoldVertices) add('warn', 'nonmanifold-vertices', plural(nonManifoldVertices, 'vertex joins', 'vertices join') + ' surfaces that touch at a single point (non-manifold "bow-tie" vertices).');
   const slivers = props.filter((l) => l.sliver);
-  if (slivers.length) add('warn', 't-junction', plural(slivers.length, 'edge loop encloses', 'edge loops enclose') + ' no area: vertices lie on the edges of neighbouring triangles (T-junctions) or the surface has a crack. Particles may leak there; export a watertight mesh.');
+  if (slivers.length) add('warn', 't-junction', plural(slivers.length, 'edge loop encloses', 'edge loops enclose') + ' no area: vertices lie on the edges of neighboring triangles (T-junctions) or the surface has a crack. Particles may leak there; export a watertight mesh.');
   if (!windingConsistent) add('warn', 'winding', plural(inconsistent, 'edge has', 'edges have') + ' triangles wound in opposite directions, so the inside of each opening is found by casting rays.');
   for (const l of props) {
     if (!l.circular) continue;
@@ -698,7 +698,7 @@ function flood(mesh, T, seed, cosTol, distTol, mark, value) {
 }
 
 /**
- * The coplanar region around triangle seedTri (§3.6.4 step 6): neighbours across manifold edges whose normal is
+ * The coplanar region around triangle seedTri (§3.6.4 step 6): neighbors across manifold edges whose normal is
  * within angleDeg of the seed plane's normal (either orientation) and whose vertices lie within distTol
  * (default 1e-4·diag) of the seed plane. Returns { tris: Uint32Array (ascending), plane: { n, d }, area }.
  */

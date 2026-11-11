@@ -1,5 +1,5 @@
-// Analytic coaxial-chain test-particle Monte Carlo (spec §2.11, §3.6.2). Ported from our design prototype
-// cond-proto2/chain-proto.mjs: cells with analytic walls (cylinder, cone, annulus rod, rectangle planes, a 90°
+// Analytic coaxial-chain test-particle Monte Carlo (spec §2.11, §3.6.2). First written as a standalone
+// prototype: cells with analytic walls (cylinder, cone, annulus rod, rectangle planes, a 90°
 // mitered elbow traced as two legs), junction plates, cosine emission, diffuse re-emission, and an outlet that
 // absorbs with a sticking probability (a pump). Intersections use numerically stable quadratic roots.
 // Each block is traced in normalized units (lengths divided by its largest transverse half-size): transmission
@@ -12,7 +12,7 @@ const EPS = 1e-12;                       // smallest accepted root (normalized u
 const T_TUBE = 0, T_CONE = 1, T_ANN = 2, T_RECT = 3, T_ELBOW = 4;
 const TYPE_CODE = { tube: T_TUBE, cone: T_CONE, annulus: T_ANN, rect: T_RECT, elbow: T_ELBOW };
 
-// ---------------------------------------------------------------- apertures (centred on the axis)
+// ---------------------------------------------------------------- apertures (centered on the axis)
 
 /** True when (u, v) lies inside the aperture; a null aperture does not restrict. */
 export function apInside(ap, u, v) {
@@ -40,7 +40,7 @@ function quarterDiscRect(r, X, Y) {
 }
 function discRectArea(r, a, b) { return 4 * quarterDiscRect(r, a / 2, b / 2); }
 
-/** Area of the intersection of two centred apertures (either may be null = no restriction). */
+/** Area of the intersection of two centered apertures (either may be null = no restriction). */
 export function apIntersectArea(p, q) {
   if (!p && !q) return Infinity;
   if (!q) return apArea(p);
@@ -232,7 +232,7 @@ export function runChainBlock(cb, n, seed, opts = {}) {
     for (let b = 0; ; b++) {
       if (b > maxB) { stuck++; break; }
       casts++;
-      // ---- elbow leg from the position (robust at the miter plane)
+      // ---- elbow leg from the position (stable at the miter plane)
       if (c.t === T_ELBOW) {
         const sd0 = px + pz - c.A, tiny = 1e-12 * (1 + c.A);
         leg = sd0 > tiny ? 1 : sd0 < -tiny ? 0 : (dx + dz > 0 ? 1 : 0);

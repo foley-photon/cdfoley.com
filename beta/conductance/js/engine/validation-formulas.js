@@ -1,10 +1,10 @@
 // Formula validation cases (spec 5.2): published and "this work" reference values, embedded with their sources
-// because the browser cannot read _tests/. wp1-validation-data.test.mjs checks every embedded number against
-// _tests/conductance/fixtures/*.json (refFrom: file 'v' = validation-cases-v2.json, 't' = conductance-tables.json).
+// because the browser cannot read the test fixtures. tests/wp1-validation-data.test.mjs checks every embedded number
+// against tests/fixtures/*.json (refFrom: file 'v' = validation-cases-v2.json, 't' = conductance-tables.json).
 
-import { gasState, orificeC } from './gas.js';
+import { gasState, orificeC, meanFreePath } from './gas.js';
 import { tubeAlpha, slotAlpha, rectAlpha, annulusAlpha, coneAlpha, elbowAlpha, bermanSlotAlpha, bermanAnnulusAlpha } from './molecular.js';
-import { GP, edgeG } from './flow.js';
+import { GP, edgeG, rStar } from './flow.js';
 import { compileItem } from './elements.js';
 import { buildNetwork, molecularLimit, errorBand, analyze, sweep } from './network.js';
 
@@ -16,7 +16,7 @@ const SRC = {
     leybold130: { label: 'Leybold, Fundamentals of Vacuum Technology, eq. 1.30', url: 'https://archive.org/details/FundamentalsOfVacuumTechnology/page/n15' },
     leybold126: { label: 'Leybold, Fundamentals of Vacuum Technology, eq. 1.26', url: 'https://archive.org/details/FundamentalsOfVacuumTechnology/page/n15' },
     matuda: { label: 'Matuda 2015, Table 1 (integral equation)', url: 'https://doi.org/10.3131/jvsj2.58.311' },
-    jpcrd29: { label: 'Sharipov & Seleznev 1998 (JPCRD), Table 29', url: JPCRD },
+    jpcrd29: { label: 'Berman slot formula (eq. 5.8) as tabulated in Sharipov & Seleznev 1998 (JPCRD), Table 29, column a', url: JPCRD },
     sb: { label: 'Santeler & Boeckmann 1991, in Livesey Table 2.6', url: LIVESEY },
     cole: { label: 'Cole, in Livesey Table 2.7', url: LIVESEY },
     bermanAnn: { label: 'Berman, in Livesey Table 2.9', url: LIVESEY },
@@ -28,11 +28,14 @@ const SRC = {
     liveseyPump: { label: 'Livesey p. 100, pump on a tube (Oatley/Ho)', url: LIVESEY },
     cern: { label: 'Sharipov, CERN-2007-003, Table 1', url: CERN },
     jpcrd7: { label: 'Sharipov & Seleznev 1998 (JPCRD), Table 7, column b', url: JPCRD },
+    jpcrd7bgk: { label: 'Sharipov & Seleznev 1998 (JPCRD), Table 7, column a (BGK)', url: JPCRD },
     jpcrd3: { label: 'Sharipov & Seleznev 1998 (JPCRD), Table 3 (plane channel, Cercignani & Pagani)', url: JPCRD },
     chainMc: { label: 'Chain Monte Carlo of this work (10⁷ particles; an independent TPMC agrees)', url: '#how' },
     fu: { label: 'Fujimoto & Usami, in JPCRD eq. 4.14', url: JPCRD },
     liepmann: { label: 'Liepmann, in JPCRD Table 28', url: JPCRD },
-    wong: { label: 'Square-duct Poiseuille constant (Wong 2020)', url: '#how' },
+    shahLondon: { label: 'Square duct, laminar: f Re = 14.227 (Shah and London 1978)', url: '#how' },
+    cengel: { label: 'Cengel, Boles and Kanoglu, Thermodynamics, Table 17-2 (k = 1.4)', url: '#how' },
+    leyboldMfp: { label: 'Leybold, Fundamentals of Vacuum Technology, Table III (air at 20 °C)', url: 'https://archive.org/details/FundamentalsOfVacuumTechnology/page/n15' },
     jpcrd516: { label: 'JPCRD eq. 5.16: L + 3πR/8 end correction', url: JPCRD },
     berman: { label: 'Berman 1965 (Livesey eqs. 2.28 and 2.36)', url: 'https://doi.org/10.1063/1.1702984' },
 };
@@ -57,8 +60,10 @@ const LIEPMANN = [['N2', 1.414], ['Ar', 1.476], ['CO2', 1.388]];
 const GP_TABLE = { '1.0': 1.4758, '10.0': 3.5749 };
 // off-node values of the long-tube G_P (between the engine's 14 nodes): JPCRD Table 7, column b (S model)
 const GP_OFFNODE = [['0.3', 0.3, 1.3876], ['3', 3, 1.9014], ['7', 7, 2.8455]];
+// above the last node, where the engine follows the slip limit: JPCRD Table 7, column a (BGK)
+const GP_BGK = [['50', 50, 13.5269], ['100', 100, 26.0214]];
 // long plane channel G_P^ch(delta), delta on the full gap: JPCRD Table 3 (Cercignani & Pagani, BGK)
-const GP_CHANNEL = [['0.1', 0.1, 2.0314], ['1', 1, 1.5389], ['10', 10, 2.7638]];
+const GP_CHANNEL = [['0.01', 0.01, 3.0489], ['0.1', 0.1, 2.0314], ['1', 1, 1.5389], ['10', 10, 2.7638]];
 const T20 = 293.15;
 const gas = (id) => gasState(id, T20);
 
@@ -204,6 +209,14 @@ export const FORMULA_CASES = [
             return coreG(2 * a, L, p, G) * 2 * L / (PI * a ** 3 * G.vm);
         },
     })),
+    ...GP_BGK.map(([key, delta, ref]) => formula({
+        id: `gp-bgk-${key}`, title: `Long tube core above the table, δ = ${key}: reduced flow rate G_P`, source: SRC.jpcrd7bgk,
+        ref, tol: { rel: 0.003 },
+        run: () => {
+            const G = gas('air'), a = 1e-3, L = 1e5 * a, p = delta * G.eta * G.vm / a;
+            return coreG(2 * a, L, p, G) * 2 * L / (PI * a ** 3 * G.vm);
+        },
+    })),
     ...GP_CHANNEL.map(([key, delta, ref]) => formula({
         id: `slit-channel-${key}`, title: `Slit 0.1 × 100 mm, 100 mm deep (L/h = 1000) at δ = ${key}: plane-channel flow rate G_P`, source: SRC.jpcrd3,
         ref, tol: { rel: 0.01 },
@@ -218,6 +231,21 @@ export const FORMULA_CASES = [
         id: 'gp-sharipov-slip200', title: 'G_P(200) against the slip limit δ/4 + 1.018', source: SRC.cern,
         ref: 200 / 4 + 1.018, tol: { rel: 0.001 }, refFrom: { file: 'v', path: ['transitional', 'sharipov_GP_long_tube', 'hydrodynamic'], text: 'delta/4 + 1.018' },
         run: () => GP(200),
+    }),
+    formula({
+        id: 'gp-slip-coefficient', title: 'Velocity slip coefficient: G_P(δ) − δ/4 at δ = 10⁴', source: SRC.cern,
+        ref: 1.018, tol: { rel: 0.001 }, refFrom: { file: 'v', path: ['transitional', 'sharipov_GP_long_tube', 'hydrodynamic'], text: '1.018' },
+        run: () => GP(1e4) - 1e4 / 4,
+    }),
+    formula({
+        id: 'mean-free-path-air', title: 'Mean free path of air at 20 °C and 1 Pa, from the viscosity', source: SRC.leyboldMfp, unit: 'mm',
+        ref: 6.67, tol: { rel: 0.02 },
+        run: () => meanFreePath(gas('air'), 1) * 1e3,
+    }),
+    formula({
+        id: 'critical-ratio-diatomic', title: 'Critical pressure ratio of a choked orifice, air (γ = 1.4)', source: SRC.cengel,
+        ref: 0.5283, tol: { rel: 0.0005 },
+        run: () => rStar(gas('air').gamma),
     }),
     ...FU.map(([key, delta, ref]) => formula({
         id: `orifice-fu-${key}`, title: `Orifice into vacuum, N₂, δ = ${key}: reduced flow W`, source: SRC.fu,
@@ -245,7 +273,7 @@ export const FORMULA_CASES = [
         run: () => coreG(0.01, 1, 1e5, gas('air')) * 1e3,
     }),
     formula({
-        id: 'square-duct-kv', title: 'Square duct: laminar coefficient kv η L / a⁴', source: SRC.wong,
+        id: 'square-duct-kv', title: 'Square duct: laminar coefficient kv η L / a⁴', source: SRC.shahLondon,
         ref: 0.035144, tol: { rel: 1e-4 }, refFrom: { file: 'v', path: ['viscous', 'square_duct'], text: '0.035144 a^4' },
         run: () => { const G = gas('air'), a = 0.01, L = 0.1; return compileItem({ t: 'rect', a, b: a, L }, G).kv * G.eta * L / a ** 4; },
     }),

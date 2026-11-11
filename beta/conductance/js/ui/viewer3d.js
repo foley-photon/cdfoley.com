@@ -8,16 +8,16 @@
 //              renderNow(), info(), webgl }                         (the last three are additions for tests)
 //
 // setMesh(positions, triPort, portColors)
-//   positions:  Float32Array, 9 numbers per triangle (metres): the prepared mesh followed by the port caps. Kept by
-//               reference (not copied): pass the same array again to recolour without rebuilding the geometry.
+//   positions:  Float32Array, 9 numbers per triangle (meters): the prepared mesh followed by the port caps. Kept by
+//               reference (not copied): pass the same array again to recolor without rebuilding the geometry.
 //   triPort:    Int16Array, one entry per triangle: a port id, or −1 for walls. Any value listed in portColors is
-//               drawn in that colour (cad-ui uses −2 for a pending selection); other values are walls.
-//   portColors: { [id]: colour } where colour is a CSS custom property name ('--c3'), a hex colour, or [r, g, b]
+//               drawn in that color (cad-ui uses −2 for a pending selection); other values are walls.
+//   portColors: { [id]: color } where color is a CSS custom property name ('--c3'), a hex color, or [r, g, b]
 //               (0–255). Tokens are re-read on theme changes.
 // setColors(rgbPerTri)
-//   Float32Array(3·nTri) of sRGB components in 0–1 (the pressure map), or null for the role colours. Port triangles
-//   keep their port colour; a NaN red component draws the triangle in --border ("not enough hits").
-// setPaths(paths): array of Float32Array xyz polylines (metres), drawn as one LineSegments in --c6 at 60 % opacity.
+//   Float32Array(3·nTri) of sRGB components in 0–1 (the pressure map), or null for the role colors. Port triangles
+//   keep their port color; a NaN red component draws the triangle in --border ("not enough hits").
+// setPaths(paths): array of Float32Array xyz polylines (meters), drawn as one LineSegments in --c6 at 60 % opacity.
 // setClip(axis, offset01, flip): axis 'x' | 'y' | 'z' or null; the plane sits at offset01 across the bounding box
 //   and keeps the low side (or the high side with flip).
 // resetView(dir): '+x', '−x' (or '-x'), '+y', '-y', '+z', '-z' or 'iso' (default).
@@ -89,7 +89,7 @@ function resolveColor(spec, fallbackToken) {
   return linearColor(readToken(fallbackToken));
 }
 
-// sRGB (0–1) → linear through a 256-entry table (the pressure colours are 8-bit viridis anyway)
+// sRGB (0–1) → linear through a 256-entry table (the pressure colors are 8-bit viridis anyway)
 const SRGB_LIN = (() => {
   const t = new Float32Array(256);
   for (let i = 0; i < 256; i++) { const c = i / 255; t[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
@@ -229,7 +229,7 @@ export async function createViewer(container, { onPick, onReady } = {}) {
     pathMat.color.copy(th.paths);
   }
 
-  // ---------------------------------------------------------------- colours
+  // ---------------------------------------------------------------- colors
   function fillColors() {
     if (!state.colors || !state.triPort) return;
     const C = state.colors, tp = state.triPort, n = state.nTri, map = state.map;

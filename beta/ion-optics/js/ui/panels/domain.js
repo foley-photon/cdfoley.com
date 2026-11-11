@@ -245,7 +245,7 @@ export function mountDomain(host, ctx, app) {
             const lead = leadSpecies(r);
             const n = r ? r.particleCount || 0 : 0;
             scInfo.hidden = !sc;
-            if (sc) scInfo.textContent = `${n.toLocaleString('en-US')} particle${n === 1 ? '' : 's'} traced together${n > cap ? ` — above the cap of ${cap.toLocaleString('en-US')}: reduce the sources` : ''}; the run cost grows with the square of the count.`;
+            if (sc) scInfo.textContent = `${n.toLocaleString('en-US')} particle${n === 1 ? '' : 's'} traced together${n > cap ? `, above the cap of ${cap.toLocaleString('en-US')}: reduce the sources` : ''}; the run cost grows with the square of the count.`;
             gasInfo.hidden = !gs;
             if (gs) { clear(gasInfo); for (const line of gasReadout(r && r.tracer ? r.tracer.gas : null, lead)) gasInfo.appendChild(h('p', { text: line })); }
             dragInfo.hidden = !dr;

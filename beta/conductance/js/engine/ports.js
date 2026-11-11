@@ -255,7 +255,7 @@ export function buildScene(mesh, ports, G) {
         let lo = 0, hi = sp.cdf.length - 1;
         while (lo < hi) { const m = (lo + hi) >> 1; if (sp.cdf[m] < u) lo = m + 1; else hi = m; }
         const s = sp.slots[lo], o = 9 * s;
-        // a uniform point of the triangle, pulled 10 % towards its centroid (away from the edges)
+        // a uniform point of the triangle, pulled 10 % toward its centroid (away from the edges)
         let a = rnd(), b = rnd();
         if (a + b > 1) { a = 1 - a; b = 1 - b; }
         a = 0.9 * a + 0.1 / 3; b = 0.9 * b + 0.1 / 3;

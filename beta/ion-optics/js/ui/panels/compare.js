@@ -1,10 +1,10 @@
 /* ==========================================================================
-   Ion optics UI: panels/compare.js — the Compare tab (spec §4.7)
+   Ion optics UI: panels/compare.js: the Compare tab (spec §4.7)
    Up to 8 pinned runs. A pin keeps a snapshot of the project and the metrics
    of its run (analysis-jobs.js); the trajectories are never stored. After a
-   reload every pinned run is regenerated from its snapshot through
+   reload every pinned run is recomputed from its snapshot through
    jobs.withTemporaryProject (the sources carry their seeds, so the same
-   particles fly again), and the regenerated metrics are compared with the
+   particles fly again), and the recomputed metrics are compared with the
    stored ones. Pinned trajectories are drawn as dashed ghosts on the canvas
    through the view's overlay hook, with a numbered tick at each waist, but
    only while the current project has the pin's geometry (geometry key); a
@@ -76,13 +76,13 @@ export function pinSummary(m) {
 export function mount(el, ctx) {
     const { h } = ctx.ui.dom;
     const store = ctx.store, view = ctx.view;
-    // regenerated results by pin id: { ghost (thinned trajectories), geomKey, metrics, engineVersion, error }
+    // recomputed results by pin id: { ghost (thinned trajectories), geomKey, metrics, engineVersion, error }
     const results = new Map();
     const paths = new Map();          // Path2D of a pin's trajectories, keyed by pin id, for one projection
     let theme = themeColors();
     let regenerating = false, destroyed = false, storageWarned = false;
 
-    const intro = h('p', { class: 'io-note', text: `Pin the current run to keep its project and results (up to ${MAX_PINS}). Pinned trajectories are drawn as dashed ghosts on the canvas and their metrics are listed side by side. Pins stay in this browser; after a reload each run is regenerated from its stored project and seed.` });
+    const intro = h('p', { class: 'io-note', text: `Pin the current run to keep its project and results (up to ${MAX_PINS}). Pinned trajectories are drawn as dashed ghosts on the canvas and their metrics are listed side by side. Pins stay in this browser; after a reload each run is recomputed from its stored project and seed.` });
     const pinBtn = h('button', { type: 'button', class: 'btn btn-sm btn-primary', text: 'Pin current run' });
     const csvBtn = h('button', { type: 'button', class: 'btn btn-sm btn-secondary', text: 'CSV', disabled: true });
     const clearBtn = h('button', { type: 'button', class: 'btn btn-sm btn-ghost', text: 'Unpin all', disabled: true });
@@ -133,7 +133,7 @@ export function mount(el, ctx) {
                 const all = pins();
                 const p = all.find((q) => !results.has(q.id));
                 if (!p || destroyed) break;
-                status.textContent = `Regenerating pinned run ${all.indexOf(p) + 1} of ${all.length}: ${p.label}…`;
+                status.textContent = `Recomputing pinned run ${all.indexOf(p) + 1} of ${all.length}: ${p.label}…`;
                 const entry = { ghost: null, geomKey: null, metrics: null, engineVersion: ctx.version ? ctx.version.ENGINE_VERSION : null, error: null };
                 try {
                     const project = ctx.engine.schema && typeof ctx.engine.schema.migrate === 'function' ? ctx.engine.schema.migrate(p.project) : p.project;
@@ -154,9 +154,9 @@ export function mount(el, ctx) {
                 render();
                 view.requestRender();
             }
-            if (!destroyed && /^Regenerating/.test(status.textContent)) {
+            if (!destroyed && /^Recomputing/.test(status.textContent)) {
                 const n = pins().length, bad = pins().filter((q) => { const r = results.get(q.id); return r && r.error; }).length;
-                status.textContent = bad ? `${bad} pinned run${bad === 1 ? '' : 's'} could not be regenerated (see the list).` : (n ? `${n} pinned run${n === 1 ? '' : 's'} regenerated.` : '');
+                status.textContent = bad ? `${bad} pinned run${bad === 1 ? '' : 's'} could not be recomputed (see the list).` : (n ? `${n} pinned run${n === 1 ? '' : 's'} recomputed.` : '');
             }
         } finally { regenerating = false; }
     }
@@ -202,8 +202,8 @@ export function mount(el, ctx) {
             const unpinBtn = h('button', { type: 'button', class: 'btn btn-sm btn-ghost', text: 'Unpin' });
             unpinBtn.addEventListener('click', () => { results.delete(p.id); paths.delete(p.id); store.unpinRun(p.id); say(`Unpinned "${p.label}".`); });
             const state = h('p', { class: 'io-note io-cmp-state' });
-            if (!r) state.textContent = 'Regenerating…';
-            else if (r.error) { state.textContent = `Could not be regenerated: ${r.error}`; state.classList.add('io-warn-text'); }
+            if (!r) state.textContent = 'Recomputing…';
+            else if (r.error) { state.textContent = `Could not be recomputed: ${r.error}`; state.classList.add('io-warn-text'); }
             else {
                 state.textContent = pinSummary(r.metrics);
                 if (metricsDiffer(p.metrics, r.metrics)) {
@@ -222,7 +222,7 @@ export function mount(el, ctx) {
         if (other) list.appendChild(h('p', { class: 'io-note', text: `${other === 1 ? '1 pinned run belongs' : `${other} pinned runs belong`} to another geometry and ${other === 1 ? 'is' : 'are'} not drawn on this canvas (Open loads a pinned project with its ghost).` }));
         const t = percentRows(compareTable(ps, metricsOf));
         tableBox.appendChild(dataTable({ columns: t.columns, rows: t.rows, caption: 'Pinned runs side by side' }));
-        if (changed) tableBox.appendChild(h('p', { class: 'io-note io-warn-text', text: 'The table shows the regenerated values. Where they differ from the values stored when the run was pinned, the engine or a preset has changed since; pin the run again to refresh the stored values.' }));
+        if (changed) tableBox.appendChild(h('p', { class: 'io-note io-warn-text', text: 'The table shows the recomputed values. Where they differ from the values stored when the run was pinned, the engine or a preset has changed since; pin the run again to refresh the stored values.' }));
         if (ps.some((p) => { const r = results.get(p.id); return r && r.metrics && r.metrics.trajectories === false; })) tableBox.appendChild(h('p', { class: 'io-note', text: 'A pinned run without stored trajectories (Recording ▸ trajectories off) has no ghost on the canvas; its metrics are still listed.' }));
     }
 

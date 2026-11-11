@@ -2,7 +2,7 @@
    Ion optics engine: nuclides.js
    Isotope masses and labels, and the preset species groups of the particle
    picker. The masses come from the AME2020 atomic mass table (data/nuclides.js,
-   generated from the IAEA Atomic Mass Data Center file mass_1.mas20.txt):
+   built from the IAEA Atomic Mass Data Center file mass_1.mas20.txt):
 
      Huang, Wang, Kondev, Audi and Naimi, "The AME 2020 atomic mass evaluation
      (I)", Chin. Phys. C 45, 030002 (2021), doi:10.1088/1674-1137/abddb0;

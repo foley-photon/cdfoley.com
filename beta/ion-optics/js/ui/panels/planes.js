@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ion optics UI: panels/planes.js — the Planes tab (spec §4.7)
+   Ion optics UI: panels/planes.js: the Planes tab (spec §4.7)
    Plane picker; detector image (y–z, cylindrical x planes) or u–u′ phase
    space with the 2σ rms ellipse; histograms of position, angle, kinetic
    energy and time; statistics with rms emittance and Twiss parameters

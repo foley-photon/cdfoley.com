@@ -1,7 +1,7 @@
 // Network of a pumping line (spec 2.7, 3.5): expansion of the items into nodes and edges (Haefer-consistent),
 // the linear (molecular) solve, Newton on ln p with backtracking and pressure continuation, the operating-point
 // analysis, the error band of the molecular formula result and the pressure sweeps. Pure module, SI units.
-// Robustness beyond the design reference (lines whose conductances span many decades, caps that bind at ppm drops):
+// Hardening beyond the design reference (lines whose conductances span many decades, caps that bind at ppm drops):
 // cancellation-free GTH elimination for every linear solve, analytic edge derivatives (flow.js), Newton steps scaled
 // as a whole, a line search at a fixed flow scale with each node's rounding floor taken off its residual, line flows
 // read from the best-resolved section of the line, and iteration budgets so that a failure is quick.
@@ -257,7 +257,7 @@ const NOISE = 16 * 2.220446049250313e-16;
 // Newton on u = ln p of the free nodes at boundary conditions bc, at most maxIt iterations; p is updated in place.
 // Returns { ok, nrm, it }. nrm = max over free nodes of max(0, |F_j| - floor_j)/q_s: the plain criterion of spec 3.5.5
 // (max|F|/q_s, converged at 1e-11, usable at 1e-9) with each node's rounding floor taken off its residual.
-// polish: after converging, refine towards the plain criterion as far as rounding allows (final continuation step).
+// polish: after converging, refine toward the plain criterion as far as rounding allows (final continuation step).
 function newton(net, G, bc, p, maxIt = 60, polish = false) {
     const n = net.nodes.length, dpMode = bc.mode === 'dp';
     p[0] = bc.p0;
@@ -540,7 +540,7 @@ export function gapTransmission(S, T, r0, r1, L) {
 }
 
 // A coaxial opening as a ring { ri, ro }; a rectangle of aspect at least 0.2 as the disc of the same area; null for a
-// flatter rectangle (not modelled).
+// flatter rectangle (not modeled).
 const ringOf = (x) => (x.kind === 'disc' ? { ri: 0, ro: x.r } : x.kind === 'ring' ? { ri: x.ri, ro: x.ro }
     : Math.min(x.a, x.b) >= 0.2 * Math.max(x.a, x.b) ? { ri: 0, ro: Math.sqrt(x.a * x.b / PI) } : null);
 const ringMeet = (a, b) => (a && b ? { ri: Math.max(a.ri, b.ri), ro: Math.min(a.ro, b.ro) } : null);
@@ -576,7 +576,7 @@ export function lineOfSight(net) {
             if (ann && !(bore0.ri <= 0.9 * Math.min(S.ri, T.ri))) return;
             if (!ann && S.ri === 0 && T.ri === 0 && S.ro >= r0 * (1 - 1e-9) && T.ro >= r1 * (1 - 1e-9)) return;
             const AS = S.ro ** 2 - S.ri ** 2, AT = T.ro ** 2 - T.ri ** 2, A0 = r0 * r0, A1 = r1 * r1;
-            // Haefer's piece: entrance into S, core (normalised by the same view-factor model), contraction into T
+            // Haefer's piece: entrance into S, core (normalized by the same view-factor model), contraction into T
             const core = ann ? PI * (1 - e.alpha) / (e.alpha * e.Ain) : 1 / (A0 * gapTransmission(bore0, bore1, r0, r1, e.length)) - 1 / A0;
             const Aout = ann ? e.Aout / PI : A1;
             const dR = (1 / (AS * gapTransmission(S, T, r0, r1, e.length)) - (1 / AS + core + Math.max(0, 1 / AT - 1 / Aout))) / PI;
@@ -678,7 +678,7 @@ function analyzeValid(model) {
         if (!e.aperture && e.length / e.Dh < 1 && Kn < 0.01) flags.push('short-element');
         for (const f of e.flags) if (!flags.includes(f)) flags.push(f);
         const Cop = dp > 1e-12 * pIn ? Qel / dp : null;
-        // Kn > 0.5 is labelled transitional instead of molecular when the element's operating conductance already
+        // Kn > 0.5 is labeled transitional instead of molecular when the element's operating conductance already
         // differs from its molecular-limit value in the same line by more than 2 % (an orifice at Kn = 1.3 is 9 % up)
         let regime = regimeOf(Kn);
         if (regime === 'molecular' && Cop !== null && molQ) {

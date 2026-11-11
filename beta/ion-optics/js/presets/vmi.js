@@ -7,7 +7,8 @@
    whatever its starting position, so fragments of one kinetic energy form a
    sharp ring of radius R ∝ √E. Our dimensions are generic, not those of the
    paper: plates 1 mm thick at x = 0, 15 and 30 mm, holes of radius 10 mm,
-   O⁺ fragments at 1 and 2 eV from a 1 × 2 mm source volume, a detector
+   O⁺ fragments (the ¹⁶O atom less one electron, 15.994366 u) at 1 and 2 eV
+   from a 1 × 2 mm source volume, a detector
    400 mm away (field-free drift beyond the solved region).
    ========================================================================== */
 import { newProject } from '../engine/schema.js';
@@ -46,7 +47,7 @@ function build() {
     p.idealFields = [];
     p.sources = [{
         id: 'b1', name: 'O⁺ fragments, 1 and 2 eV', enabled: true, color: 'auto', count: 360, sampling: 'grid', seed: 1,
-        species: [{ label: 'O⁺', mass: 15.995, charge: 1, fraction: 1 }],
+        species: [{ label: 'O⁺', mass: 15.994366, charge: 1, fraction: 1 }],
         position: { type: 'rect', center: [7.5, 0, 0], u: [1, 0, 0], v: [0, 1, 0], halfU: 0.5, halfV: 1.0, n: [3, 5] },
         direction: { type: 'fan', axis: [1, 0, 0], normal: [0, 0, 1], from: 0, to: 330, n: 12 },
         energy: { type: 'list', values: [1, 2] }, time: { type: 'fixed', t: 0 },

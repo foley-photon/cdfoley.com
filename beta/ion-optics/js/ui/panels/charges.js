@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ion optics UI: panels/charges.js — the "Charges & multipoles" tab
+   Ion optics UI: panels/charges.js: the "Charges & multipoles" tab
    Three tools on the solved fields (engine/fieldanalysis.js):
    1. Charge on every electrode by Gauss's law on a discrete contour around
       it, the capacitance matrix from the 1 V basis solutions, and the

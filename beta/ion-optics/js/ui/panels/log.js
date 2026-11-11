@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ion optics UI: panels/log.js — the Log tab (spec §4.7)
+   Ion optics UI: panels/log.js: the Log tab (spec §4.7)
    Solver paths per basis field (method chain, cycles, estimated error,
    residual, time), the estimated error against cycle as reported by solve
    progress, geometry and project warnings (click one to select the shape

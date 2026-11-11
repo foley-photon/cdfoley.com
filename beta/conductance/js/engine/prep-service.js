@@ -4,7 +4,7 @@
 //
 //   request                                                          reply
 //   { type: 'parse', id, name, buffer, format: 'auto'|'stl'|'obj',   { type: 'parsed', id, nTri, format, warnings,
-//     scale }  (buffer transferred; scale = metres per file unit;      bbox (metres) }
+//     scale }  (buffer transferred; scale = meters per file unit;      bbox (meters) }
 //     a parse without a buffer re-scales the last file)
 //   { type: 'prepare', id, weldTol: null | m, scale? }               { type: 'prepared', id, positions (Float32Array,
 //     (uses the last parse; scale, when given, re-scales it)           transferred, prepared order), report, autoPorts }

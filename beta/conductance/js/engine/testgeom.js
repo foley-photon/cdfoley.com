@@ -2,7 +2,7 @@
 // (n = 64 by default) with the area-preserving radius R_p = R·√(2π/(n·sin(2π/n))), so the polygon has the area of
 // the round tube; axial segments are about as long as the circumferential ones (2πR/n). All walls are wound with
 // their normals pointing out of the gas, and shared seams reuse the same computed vertices, so each mesh is
-// watertight by construction and only its openings are open. Positions are in metres (Float32Array, 9 numbers
+// watertight by construction and only its openings are open. Positions are in meters (Float32Array, 9 numbers
 // per triangle). The suggested ports name each built-in's own roles (for the cone, the small end is the inlet,
 // as its reference value is referred to the small end).
 // Pure module: no DOM; runs in the page, in workers and in Node (H7, H8).
@@ -34,7 +34,7 @@ const REF = {
   },
 };
 
-/** The built-in geometries: name → { label, params (metres), reference: { alpha, sigma, source }, testOnly? }. */
+/** The built-in geometries: name → { label, params (meters), reference: { alpha, sigma, source }, testOnly? }. */
 export const BUILTINS = Object.freeze({
   tube: Object.freeze({ label: 'Tube Ø40 × 200 mm', params: Object.freeze({ d: 0.04, L: 0.2, n: 64 }), reference: Object.freeze(REF.tube) }),
   elbow: Object.freeze({ label: '90° elbow, Ø40 mm, legs 60 mm', params: Object.freeze({ d: 0.04, A: 0.06, B: 0.06, n: 64 }), reference: Object.freeze(REF.elbow) }),
@@ -162,7 +162,7 @@ const GEN = {
     if (!(Ri < Ro)) fail('The rod must be thinner than the bore.');
     const out = soup();
     band(out, tubeRings(Ro, L, n, true));
-    band(out, tubeRings(Ri, L, n, true), true);          // the rod: normals towards the axis (out of the gas)
+    band(out, tubeRings(Ri, L, n, true), true);          // the rod: normals toward the axis (out of the gas)
     return { positions: out.done(), hints: [{ name: 'Inlet', role: 'inlet', at: [0, 0, 0] }, { name: 'Outlet', role: 'outlet', at: [0, 0, L] }] };
   },
   coneConv(p, d) { return GEN.cone(p, d); },
@@ -227,8 +227,8 @@ export function prepareBuiltin(name, params = {}) {
 }
 
 /**
- * A built-in geometry (§7.4): { positions: Float32Array (metres), suggestedPorts: PortSpec[], reference }.
- * params override the defaults in BUILTINS[name].params (metres); the reference is null for non-default params.
+ * A built-in geometry (§7.4): { positions: Float32Array (meters), suggestedPorts: PortSpec[], reference }.
+ * params override the defaults in BUILTINS[name].params (meters); the reference is null for non-default params.
  */
 export function makeBuiltin(name, params = {}) {
   const b = prepareBuiltin(name, params);

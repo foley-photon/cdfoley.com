@@ -9,13 +9,16 @@ const SQRT_PI = Math.sqrt(Math.PI), G0 = 8 / (3 * SQRT_PI), K_SAMPSON = 2 / (3 *
 const GPD = GP_SHARIPOV.delta, NG = GPD.length, D_LO = GPD[0], D_HI = GPD[NG - 1];
 const ZV = GP_SHARIPOV.GP.map((g, i) => (g - GPD[i] / 4) / G0);
 const zLn = makePchip(GPD.map(Math.log), ZV);
+// above the last node, the slip limit G_P = delta/4 + 1.018 + c/delta, with c set so that G_P is continuous there
+// (c = 0.72 at delta = 40; the BGK solution of JPCRD Table 7 approaches the same limit from above in the same way)
+const SLIP = 1.018, C_SLIP = D_HI * (GP_SHARIPOV.GP[NG - 1] - D_HI / 4 - SLIP);
 
-/** Z(delta) = (G_P(delta) - delta/4)/G0: PCHIP in ln delta through Sharipov's nodes; Z(0) = 1; slip limit above 50. */
+/** Z(delta) = (G_P(delta) - delta/4)/G0: PCHIP in ln delta through Sharipov's nodes; Z(0) = 1; slip limit above 40. */
 export function Z(delta) {
     if (delta <= 0) return 1;
     if (delta < D_LO) return 1 + (ZV[0] - 1) * delta / D_LO;
     if (delta <= D_HI) return zLn(Math.log(delta));
-    return (1.018 - 1.15 / delta) / G0;
+    return (SLIP + C_SLIP / delta) / G0;
 }
 
 // 5-point Gauss-Legendre in ln t over [a, b] of Z(t) dt
@@ -36,7 +39,7 @@ export function IZ(delta) {
     if (delta <= 0) return 0;
     if (delta <= D_LO) return delta + (ZV[0] - 1) * delta * delta / (2 * D_LO);
     if (delta <= D_HI) { let i = 0; while (GPD[i + 1] < delta) i++; return CUM[i] + intZ(GPD[i], delta); }
-    return CUM[NG - 1] + (1.018 * (delta - D_HI) - 1.15 * Math.log(delta / D_HI)) / G0;
+    return CUM[NG - 1] + (SLIP * (delta - D_HI) + C_SLIP * Math.log(delta / D_HI)) / G0;
 }
 
 /** Long-tube reduced flow rate G_P(delta) = delta/4 + G0 Z(delta). */

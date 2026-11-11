@@ -1,5 +1,5 @@
-// To-scale schematic of a pumping line as an SVG string (spec 4.4). Pure: no DOM, deterministic output, no colour
-// literals (every colour is a CSS variable, a color-mix() of variables, or a class styled in conductance.css).
+// To-scale schematic of a pumping line as an SVG string (spec 4.4). Pure: no DOM, deterministic output, no color
+// literals (every color is a CSS variable, a color-mix() of variables, or a class styled in conductance.css).
 //   renderSchematic(analysis, { mode: 'scale' | 'compressed', basis: 'op' | 'mol', fmtLen, fmtP, fmtSpeed, items })
 //     -> { svg, width, height, items: [{ path, x0, x1 }] }
 // items (the model's Item[]) is required for the geometry, which the AnalysisResult does not carry.

@@ -111,7 +111,7 @@ function lineOf(cells) {
  * CSV of a run (columns: spec §4.7).
  * @param {object} result TraceResult
  * @param {'hits'|'crossings'|'trajectories'|'markers'} which
- * @param {object} resolved the resolved project of the run (ids, labels; start positions are regenerated)
+ * @param {object} resolved the resolved project of the run (ids, labels; start positions are recomputed)
  * @returns {string}
  */
 export function runToCSV(result, which, resolved) {

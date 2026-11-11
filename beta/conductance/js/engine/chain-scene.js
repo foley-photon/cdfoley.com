@@ -164,7 +164,7 @@ export function chainPlan(items, G, opts) {
           const last = run.cells[run.cells.length - 1];
           const apOut = cellApertures(last).apOut, Aout = apArea(apOut);
           // A plate smaller than the pump bore right at the pump would send the particles the pump reflects back
-          // into the line, although in reality they bounce between the plate and the pump: not modelled.
+          // into the line, although in reality they bounce between the plate and the pump: not modeled.
           const plate = run.plates[run.cells.length];
           if (plate && apIntersectArea(plate, apOut) < Math.min(Ap, Aout) * (1 - 1e-9)) {
             unsupported.push('An orifice directly on the pump inlet cannot be simulated; put a short duct (the flange) between them.');

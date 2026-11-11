@@ -1,4 +1,4 @@
-// Validation case runner and tolerance logic (spec 2.8, 5.1), shared by Node (run-validation.mjs) and the
+// Validation case runner and tolerance logic (spec 2.8, 5.1), shared by Node (scripts/run-validation.mjs) and the
 // Self-test tab. Pure module.
 //
 // Case = { id, group: 'formula' | 'chain-mc' | 'mesh-mc' | 'negative', title, source: { label, url }, ref, refSigma,

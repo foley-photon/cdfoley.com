@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ion optics UI: panels/scan.js — the "Scan & tune" tab (spec §4.7)
+   Ion optics UI: panels/scan.js: the "Scan & tune" tab (spec §4.7)
    A 1D scan of a parameter, electrode voltage or source energy against a
    metric (transmission, spot rms, waist position, mean TOF, TOF FWHM,
    resolving power, mean KE, grouped blur) with a live plot, a table and

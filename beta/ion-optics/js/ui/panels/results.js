@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ion optics UI: panels/results.js — the Summary tab (spec §4.7)
+   Ion optics UI: panels/results.js: the Summary tab (spec §4.7)
    Cards: launched, status breakdown, transmission per detector, hits per
    electrode, mean TOF and rms spot per plane, waist, energy diagnostics,
    solver path and timings; warnings; "Copy Methods text"; "Accuracy check"

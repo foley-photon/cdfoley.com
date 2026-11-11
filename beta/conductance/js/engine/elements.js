@@ -194,7 +194,7 @@ function base(item, extra) {
 }
 
 // ---------------------------------------------------------------- coaxial openings
-// Inlet and outlet openings of compiled elements, all centred on the line axis: { kind: 'disc', r },
+// Inlet and outlet openings of compiled elements, all centered on the line axis: { kind: 'disc', r },
 // { kind: 'ring', ri, ro } or { kind: 'rect', a, b } (a <= b; every rectangle has its short side along the same
 // transverse axis, as in the Monte Carlo chain). Used to find where consecutive openings only partly overlap.
 const disc = (r) => ({ kind: 'disc', r });

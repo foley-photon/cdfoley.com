@@ -328,7 +328,7 @@ export function buildField(resolved, solved) { return P.buildField(resolved, sol
 export function displayPotential(fieldObj, t = 0, out = null) { return P.displayPotential(fieldObj, t, out); }
 
 /**
- * Traces particles i0 ≤ id < i1 (generated from the sources) or the given particle rows.
+ * Traces particles i0 ≤ id < i1 (drawn from the sources) or the given particle rows.
  * @param {object} resolved @param {object} fieldObj from buildField
  * @param {{ i0?: number, i1?: number, particles?: Float64Array|null, overrides?: object, total?: number }} [range]
  * @param {object} [hooks] onProgress({ done, total }), shouldStop(), progressEveryMs

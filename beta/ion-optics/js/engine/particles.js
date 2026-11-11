@@ -3,7 +3,7 @@
    Particle sources: species table, particle counts and the generator.
 
    Every particle i of source s uses only uniform01/normal01(seed_s, s, i, c)
-   (rng.js), so any index range can be generated independently and batching
+   (rng.js), so any index range can be drawn independently and batching
    never changes a particle. Random sampling: cone with cos θ uniform in
    [cos α, 1] (solid), θ uniform (angle) or sin²θ uniform (Lambert); disc
    r = R√U; Gaussians by Box-Muller truncated at ±4σ; anisotropic emission

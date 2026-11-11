@@ -2,7 +2,7 @@
 // flow axis, r ≥ 0 the radius) becomes a Components item list: constant-radius stretches are tubes, sloped ones
 // cones, stretches over a rod of constant radius annuli, and a down-step followed at once by an up-step (a plate of
 // zero thickness) a thin orifice. Steps in radius need no item (the network and the chain handle contractions and
-// expansions). Our own small readers: SVG elements path (M L H V Z C S Q T A, absolute and relative), polyline,
+// expansions). My own small readers: SVG elements path (M L H V Z C S Q T A, absolute and relative), polyline,
 // polygon, line and rect, with transforms; DXF entities LINE, LWPOLYLINE (with bulges), POLYLINE/VERTEX and ARC,
 // with $INSUNITS. Curves are flattened to chords that turn by at most 0.5°.
 // Pure module: no DOM; runs in the page, in workers and in Node (H7, H8).
@@ -62,7 +62,7 @@ function parseTransform(s) {
   return m;
 }
 
-// Flattening of Bézier curves by subdivision until neighbouring chords turn by at most 0.5°.
+// Flattening of Bézier curves by subdivision until neighboring chords turn by at most 0.5°.
 function turn(ax, ay, bx, by, cx, cy) {
   const u = Math.atan2(by - ay, bx - ax), w = Math.atan2(cy - by, cx - bx);
   let d = Math.abs(w - u);
@@ -82,7 +82,7 @@ function flattenCubic(out, p0, p1, p2, p3, depth = 0) {
   flattenCubic(out, mid, b, m23, p3, depth + 1);
 }
 
-// SVG elliptical arc (endpoint parameterization → centre parameterization, SVG 1.1 implementation notes F.6.5).
+// SVG elliptical arc (endpoint parameterization → center parameterization, SVG 1.1 implementation notes F.6.5).
 function flattenArc(out, x1, y1, rx, ry, phiDeg, large, sweep, x2, y2) {
   if (x1 === x2 && y1 === y2) return;
   rx = Math.abs(rx); ry = Math.abs(ry);
@@ -212,7 +212,7 @@ function parseLength(s) {
 /**
  * Reads an SVG drawing of an axisymmetric profile. Returns { paths: Float64Array[] (z, r pairs: z = x, r = −y, so
  * up on screen is +r), unitHint: 'mm' | 'in' | null, warnings }. With width and height in absolute units and a
- * viewBox, user units are converted to millimetres (mm, cm) or inches (in, pt, pc, px); otherwise the paths stay
+ * viewBox, user units are converted to millimeters (mm, cm) or inches (in, pt, pc, px); otherwise the paths stay
  * in user units and unitHint is null.
  */
 export function parseSVGProfile(text) {
@@ -286,7 +286,7 @@ function flattenBulge(out, x1, y1, x2, y2, bulge) {
   const r = c / (2 * Math.sin(Math.abs(theta) / 2));
   const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
   const h = r * Math.cos(Math.abs(theta) / 2);            // negative for an arc longer than a half circle
-  // centre lies to the left of the chord for a counterclockwise arc
+  // center lies to the left of the chord for a counterclockwise arc
   const ux = (x2 - x1) / c, uy = (y2 - y1) / c;
   const s = theta > 0 ? 1 : -1;
   const cx = mx - s * uy * h, cy = my + s * ux * h;
@@ -395,8 +395,8 @@ const round = (x) => Number(x.toPrecision(10));
 
 /**
  * Converts profile paths (z, r pairs in file units) into Components items (SI): { items, lathe }.
- *   scale: metres per file unit; axis: 'min' (the axis is the lowest r in the drawing) or 'zero' (the axis is r = 0).
- *   lathe: Float64Array of (r, z) pairs in metres for display, z from the inlet: the outer wall from the inlet to
+ *   scale: meters per file unit; axis: 'min' (the axis is the lowest r in the drawing) or 'zero' (the axis is r = 0).
+ *   lathe: Float64Array of (r, z) pairs in meters for display, z from the inlet: the outer wall from the inlet to
  *          the outlet, then, after a (NaN, NaN) separator, each inner body.
  * The axis line and the end faces (vertical lines at the first and last z) are the openings and are dropped. The
  * rest must be one outer wall running from the inlet to the outlet without turning back in z, plus optional inner

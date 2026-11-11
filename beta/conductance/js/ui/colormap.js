@@ -1,15 +1,15 @@
-// Viridis colour scale and legend helpers for the CAD tab's pressure map (spec §4.5, §7.5). Pure: no DOM, no three.
-// This is the one module allowed to hold colour literals (H10): viridis is the same in light and dark mode.
+// Viridis color scale and legend helpers for the CAD tab's pressure map (spec §4.5, §7.5). Pure: no DOM, no three.
+// This is the one module allowed to hold color literals (H10): viridis is the same in light and dark mode.
 //
 // The anchors are viridis (CC0, by Stéfan van der Walt and Nathaniel Smith) sampled at t = k/15 from matplotlib
-// 3.10; between anchors the colour is interpolated linearly in sRGB.
+// 3.10; between anchors the color is interpolated linearly in sRGB.
 
 export const VIRIDIS_ANCHORS = ['#440154', '#481a6c', '#472f7d', '#414487', '#39568c', '#31688e', '#2a788e', '#23888e',
                                 '#1f988b', '#22a884', '#35b779', '#54c568', '#7ad151', '#a5db36', '#d2e21b', '#fde725'];
 
 const N_SEG = VIRIDIS_ANCHORS.length - 1;          // 15 segments
 
-/** '#rrggbb' or '#rgb' → [r, g, b] (0–255), or null when the text is not a hex colour. */
+/** '#rrggbb' or '#rgb' → [r, g, b] (0–255), or null when the text is not a hex color. */
 export function hexToRgb(hex) {
   const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(hex).trim());
   if (!m) return null;
@@ -22,7 +22,7 @@ export function hexToRgb(hex) {
 const ANCHORS = VIRIDIS_ANCHORS.map(hexToRgb);
 
 /**
- * Viridis colour at t ∈ [0, 1] (clamped) as [r, g, b] with values 0–255 (not rounded, so the lightness rises
+ * Viridis color at t ∈ [0, 1] (clamped) as [r, g, b] with values 0–255 (not rounded, so the lightness rises
  * monotonically; 8-bit rounding would add steps of about 0.1 L*). t = k/15 returns anchor k exactly.
  * NaN gives [NaN, NaN, NaN].
  */
@@ -101,7 +101,7 @@ export function formatDecade(v) {
   return '10' + String(e).split('').map((c) => SUP[c] || c).join('');
 }
 
-/** CSS gradient of the colour bar, from t = 0 (left) to 1 (right). */
+/** CSS gradient of the color bar, from t = 0 (left) to 1 (right). */
 export function viridisGradient(direction = 'to right') {
   const stops = VIRIDIS_ANCHORS.map((c, k) => c + ' ' + (100 * k / N_SEG).toFixed(2) + '%');
   return 'linear-gradient(' + direction + ', ' + stops.join(', ') + ')';
@@ -125,7 +125,7 @@ const LIN = (() => {
   return t;
 })();
 
-/** sRGB component (0–1) → linear light (0–1), through the 8-bit table (exact for 8-bit colours). */
+/** sRGB component (0–1) → linear light (0–1), through the 8-bit table (exact for 8-bit colors). */
 export function srgbToLinear(c) {
   if (!(c > 0)) return 0;
   if (c >= 1) return 1;
@@ -133,7 +133,7 @@ export function srgbToLinear(c) {
 }
 
 /**
- * Per-triangle sRGB colours (Float32Array 3·n, components 0–1) for a scale's t values; NaN t gives NaN colours
+ * Per-triangle sRGB colors (Float32Array 3·n, components 0–1) for a scale's t values; NaN t gives NaN colors
  * (drawn as "not enough hits" by the viewer).
  */
 export function colorsFromT(t) {

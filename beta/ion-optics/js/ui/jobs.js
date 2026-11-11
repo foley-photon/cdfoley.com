@@ -8,7 +8,7 @@
      own field model (cursor, profiles, lens tool); trace workers receive the
      bases once per geometry (when K·8N ≤ 64 MB) and recombine locally, so a
      voltage change sends only the resolved project;
-   - runs: particles generated in the workers by index range, chunks of
+   - runs: particles drawn in the workers by index range, chunks of
      clamp(ceil(n/(4W)), 16, 512), merged in index order (bitwise independent
      of worker count and chunking); Stop keeps finished chunks as "partial";
    - live preview: the first particles of each source on the reserved worker

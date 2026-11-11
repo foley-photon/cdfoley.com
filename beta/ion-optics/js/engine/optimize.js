@@ -377,7 +377,7 @@ export function groupedBlurMetric(result, resolved, planeIdx, metric = null) {
 }
 
 /**
- * Direction and energy class indices per particle id, regenerated from the sources (counter-based, so exact).
+ * Direction and energy class indices per particle id, recomputed from the sources (counter-based, so exact).
  * A list frozen from a sampled source ("Freeze to list") stores the original class indices (`classes`: one triple per
  * row, or 'random'), so it groups exactly as the source did. For other particle lists (typed, imported, or edited to
  * another row count) the classes are the distinct directions and the distinct kinetic energies of the list, per source,

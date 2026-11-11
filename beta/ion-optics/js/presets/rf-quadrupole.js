@@ -7,7 +7,7 @@
    Quadrupole Mass Spectrometry (1976); McLachlan, Theory and Application of
    Mathieu Functions (1947)). V = 136.783 V and U/V = 0.15945 put m/z 100 at
    the center of the stable band at a/q = 0.95 × the apex ratio (masses
-   96.7–103.5 pass); m/z 90 and 110 grow by ×100 within 7 and 13 RF cycles.
+   96.7–103.5 pass); m/z 90 and 110 grow by ×100 in about 7.3 and 12.8 RF cycles.
    The quarter domain with two mirror planes holds one quadrant of each rod;
    ions travel along z (free in the planar model) for 320 mm, about 80 cycles.
    ========================================================================== */

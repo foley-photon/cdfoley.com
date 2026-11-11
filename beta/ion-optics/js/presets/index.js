@@ -7,7 +7,7 @@
    benchmark worker and the page load them the same way. Dimensions are our
    own choices for generic device types.
 
-   Check (data interpreted by _tests/ionoptics/wp6-presets.test.mjs):
+   Check (data interpreted by tests/wp6-presets.test.mjs of the repository):
      { id, label, metric, …metric arguments,
        set?: { params?, electrodes?, shapes?: { id: patch }, add?: { electrodes?, shapes? } },
        target?, tol?, rel?, min?, max?, unit?, check (design-phase value),

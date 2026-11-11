@@ -1,12 +1,21 @@
 # Copy the latest release of each tool repository into the site.
-# Some tools live in their own public repositories, with tests and a release for every change of code or data; each
-# release's site/ folder is exactly what the site serves for that tool. Once a day (and on demand) this job reads the
-# latest release of every repository in TOOLS, runs that release's own tests, replaces the tool's folder here with the
-# release's site/ folder, runs the tool's check against the folder, and commits to main only when files changed and
-# both passed. A tool that fails is put back as it was and the job fails after the others are done. A repository the
-# job cannot read (an API error, a renamed or private repository) fails the job too; only "no release yet" is a notice.
+# Some tools live in their own public repositories, with tests and a release for every change of their code; each
+# release's site/ folder is exactly what the site serves for that tool, apart from the names a tool keeps as the site's
+# own (below). Once a day (and on demand) this workflow reads the latest release of every repository in TOOLS, runs that
+# release's own tests, replaces the tool's folder here with the release's site/ folder, runs the tool's check against
+# the folder, and commits to main only when files changed and both passed. A tool that fails is put back as it was and
+# the run fails after the others are done. A repository the workflow cannot read (an API error, a renamed or private
+# repository) fails the run too; only "no release yet" is a notice.
 # The page's JSON-LD block (written by _scripts/seo.py) stays the site's own; its dateModified moves to the time of the
 # copy when the page itself changed, and seo.py then updates the block and the sitemap's lastmod as it does for any edit.
+# A tool can name folders or files inside its folder that the site keeps as its own (the Absorption Cross-Section
+# Atlas's data/, which its repository does not publish): the copy replaces everything else and never touches them, and a
+# release that carries one of them is not copied. Data the site keeps are not checked by this workflow when they change;
+# they are checked when a new release is copied onto them.
+# Release code never runs where a token can write. The copy job runs every release's tests and checks with a read-only
+# token, each command with an empty environment apart from PATH, HOME and TARGET, and stops if a command changed the
+# workspace, its .git or the runner's command files. It hands the commit job a patch; the commit job runs no release
+# code, applies the patch only if every path in it lies in a tool's folder or is sitemap.xml, and pushes.
 # Public repositories need no secrets: the workflow's own token reads them.
 name: Sync tool repositories
 
@@ -16,36 +25,72 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: sync-tool-repos
   cancel-in-progress: false
 
+env:
+  # repository | folder in this site | the release's own tests, run in the release before copying |
+  # check of the copied folder, run from the release's root with $TARGET set to the folder |
+  # optional: names directly inside the folder that stay the site's own, separated by spaces
+  TOOLS: |
+    foley-photon/thermochemistry-lab|beta/thermochem|node --test "tests/*.test.mjs"|node scripts/selftest.mjs "$TARGET"
+    foley-photon/ion-optics-workbench|beta/ion-optics|node --test --test-timeout=300000 "tests/*.test.mjs"|node scripts/selftest.mjs "$TARGET"
+    foley-photon/conductance-lab|beta/conductance|node --test "tests/*.test.mjs"|node scripts/selftest.mjs "$TARGET"
+    foley-photon/cross-section-atlas|beta/cross-sections|node --test "tests/*.test.mjs"|node scripts/selftest.mjs "$TARGET" --data|data
+
 jobs:
-  sync:
+  copy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      GH_TOKEN: ${{ github.token }}
-      # repository | folder in this site | the release's own tests, run in the release before copying |
-      # check of the copied folder, run from the release's root with $TARGET set to the folder
-      TOOLS: |
-        foley-photon/thermochemistry-lab|beta/thermochem|node --test "tests/*.test.mjs"|node scripts/selftest.mjs "$TARGET"
+    # each tool may take 10 minutes for its tests and 10 for its check; with four tools that is 80 minutes at most
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    outputs:
+      copied: ${{ steps.copy.outputs.copied }}
+      failed: ${{ steps.copy.outputs.failed }}
+      base: ${{ steps.copy.outputs.base }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: main
+          # no token in .git/config: a release's own commands run in this workspace (they get $TARGET)
+          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
       - name: Copy the latest releases
         id: copy
+        env:
+          # read-only in this job; used by gh, and not passed to any command of a release
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
           copied=""; failed=""; targets=()
+          echo "base=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          # what a release's command must leave as it found it: every file of the workspace (with .git, but not git's
+          # object store, which only grows) and the runner's command files
+          state() {
+            { find . \( -path ./.git/objects -prune \) -o -type f -print0 | sort -z | xargs -0 -r sha256sum
+              for f in "$GITHUB_ENV" "$GITHUB_PATH" "$GITHUB_OUTPUT" "${GITHUB_STEP_SUMMARY:-}"; do [ -f "$f" ] && sha256sum "$f"; done
+              find . -type l -print0 | sort -z | xargs -0 -r ls -l; } 2>&1 | sha256sum
+          }
+          # run one command of a release in $1 (with TARGET=$2 when given); it gets 10 minutes, so that a stuck release
+          # fails on its own and the others still run. Stops the job if the command changed the workspace.
+          release_cmd() {
+            local dir=$1 tgt=$2 cmd=$3 before rc
+            before=$(state)
+            (cd "$dir" && env -i PATH="$PATH" HOME="$HOME" LANG=C.UTF-8 ${tgt:+TARGET="$tgt"} timeout 600 bash -c "$cmd" < /dev/null); rc=$?
+            if [ "$(state)" != "$before" ]; then
+              echo "::error::$repo $tag: a command of the release changed files outside its own folder, .git or the runner's command files; nothing is committed"
+              exit 1
+            fi
+            return $rc
+          }
           # the list is read on file descriptor 3, so that no command in the loop can read the rest of it
-          while IFS='|' read -r -u 3 repo target pretest test; do
+          while IFS='|' read -r -u 3 repo target pretest test keep; do
             [ -z "$repo" ] && continue
             if ! tag=$(gh release view --repo "$repo" --json tagName --jq .tagName 2>&1 < /dev/null); then
               case "$tag" in
@@ -59,8 +104,12 @@ jobs:
                 || ! tar -xzf "$work.tar.gz" -C "$work" --strip-components=1 || [ ! -f "$work/site/index.html" ]; then
               echo "::error::$repo $tag: could not download the release or it has no site/index.html"; failed="$failed $repo"; continue
             fi
-            if ! (cd "$work" && bash -c "$pretest" < /dev/null); then
-              echo "::error::$repo $tag: its own tests fail; $target stays as it is"; failed="$failed $repo"; continue
+            # a release's site/ holds plain files and folders only: a link could point anywhere once copied
+            if [ -n "$(find "$work/site" -type l -print -quit)" ]; then
+              echo "::error::$repo $tag: its site/ folder holds a symbolic link; $target stays as it is"; failed="$failed $repo"; continue
+            fi
+            if ! release_cmd "$work" "" "$pretest"; then
+              echo "::error::$repo $tag: its own tests fail or ran past 10 minutes; $target stays as it is"; failed="$failed $repo"; continue
             fi
             # keep this site's JSON-LD block; move its dateModified when the page itself changed
             python3 - "$target/index.html" "$work/site/index.html" <<'PY'
@@ -81,10 +130,26 @@ jobs:
               block = re.sub(r'("dateModified": ?")[^"]*(")', lambda x: x.group(1) + now + x.group(2), block)
           open(new, 'w', encoding='utf-8', newline='\n').write(ld.sub(lambda _: block, t, count=1))
           PY
-            rm -rf "$target"; mkdir -p "$target"; cp -R "$work/site/." "$target/"
+            # the names the site keeps: plain names directly inside the folder, which the release must not carry
+            spare=(); clash=""; odd=""; set -f       # split the names on spaces, without expanding them as patterns
+            for k in $keep; do
+              case "$k" in */*|.|..|*[\*?[]*) odd="$odd $k"; continue ;; esac
+              { [ -e "$work/site/$k" ] || [ -L "$work/site/$k" ]; } && clash="$clash $k"
+              spare+=(! -name "$k")
+            done; set +f
+            if [ -n "$odd$clash" ]; then
+              echo "::error::$repo $tag: ${odd:+kept names that are not plain names:$odd; }${clash:+the release carries what this site keeps as its own:$clash; }$target stays as it is"
+              failed="$failed $repo"; continue
+            fi
+            # replace everything in the folder but the kept names, which are never moved or deleted
+            if ! { { [ ! -d "$target" ] || find "$target" -mindepth 1 -maxdepth 1 "${spare[@]}" -exec rm -rf {} +; } \
+                && mkdir -p "$target" && cp -R "$work/site/." "$target/"; }; then
+              echo "::error::$repo $tag: could not replace $target; it is put back as it was"
+              git checkout -- "$target"; git clean -fdq -- "$target"; failed="$failed $repo"; continue
+            fi
             if [ -z "$(git status --porcelain -- "$target")" ]; then echo "$repo $tag: $target is up to date"; continue; fi
             echo "$repo $tag: checking $target"
-            if (cd "$work" && TARGET="$GITHUB_WORKSPACE/$target" bash -c "$test" < /dev/null); then
+            if release_cmd "$work" "$GITHUB_WORKSPACE/$target" "$test"; then
               targets+=("$target"); copied="$copied ${repo#*/} $tag,"
             else
               echo "::error::$repo $tag failed its check; $target is left as it was"
@@ -100,19 +165,18 @@ jobs:
               echo "::warning::seo.py also changed files outside the copied tools; not committed here:"; echo "$other"
               git checkout -- .
             fi
+            # the change, for the commit job (no renames, so that every path is spelled out)
+            git diff --cached --binary --no-renames > "$RUNNER_TEMP/sync.patch"
           fi
           echo "copied=${copied%,}" >> "$GITHUB_OUTPUT"
           echo "failed=$failed" >> "$GITHUB_OUTPUT"
-      - name: Commit
+      - name: Hand the change to the commit job
         if: steps.copy.outputs.copied != ''
-        env:
-          COPIED: ${{ steps.copy.outputs.copied }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Tools from their repositories:$COPIED"
-          git pull --rebase origin main
-          git push origin HEAD:main
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-patch
+          path: ${{ runner.temp }}/sync.patch
+          retention-days: 1
       - name: Report failures
         if: steps.copy.outputs.failed != ''
         env:
@@ -120,3 +184,48 @@ jobs:
         run: |
           echo "::error::Not copied:$FAILED"
           exit 1
+
+  commit:
+    needs: copy
+    # also when the copy job failed for another tool: the tools that passed are committed
+    if: always() && needs.copy.outputs.copied != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.copy.outputs.base }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: sync-patch
+          path: ${{ runner.temp }}/sync
+      - name: Commit
+        env:
+          COPIED: ${{ needs.copy.outputs.copied }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          patch="$RUNNER_TEMP/sync/sync.patch"
+          # the patch may touch only the folders of the tools in TOOLS, and sitemap.xml; no links, no submodules
+          allowed=()
+          while IFS='|' read -r repo target rest; do [ -n "$repo" ] && allowed+=("$target/"); done <<< "$TOOLS"
+          bad=""
+          while IFS=$'\t' read -r added deleted path; do
+            ok=""; [ "$path" = sitemap.xml ] && ok=1
+            for a in "${allowed[@]}"; do case "$path" in "$a"*) ok=1 ;; esac; done
+            case "$path" in *..*|/*|\"*) ok="" ;; esac
+            [ -n "$ok" ] || bad="$bad $path"
+          done < <(git apply --numstat "$patch")
+          if grep -qE '^(new file mode|new mode|deleted file mode|old mode) 1[26]0000' "$patch"; then bad="$bad (a symbolic link or submodule)"; fi
+          if [ -n "$bad" ]; then echo "::error::the change from the copy job touches more than the tool folders:$bad"; exit 1; fi
+          git -c core.hooksPath=/dev/null apply --index "$patch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -c core.hooksPath=/dev/null commit -m "Tools from their repositories:$COPIED"
+          # the checkout keeps no credentials, so the token is given here only, for this pull and push
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git -c core.hooksPath=/dev/null pull --rebase "$remote" main
+          git -c core.hooksPath=/dev/null push "$remote" HEAD:main

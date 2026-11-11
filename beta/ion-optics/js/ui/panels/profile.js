@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ion optics UI: panels/profile.js — the Profile tab (spec §4.7)
+   Ion optics UI: panels/profile.js: the Profile tab (spec §4.7)
    Potential φ and the field along the symmetry axis (one click in
    cylindrical projects), along a line drawn with the Probe tool, or along a
    line typed in; values from the main-thread field model at the display

@@ -5,9 +5,10 @@
    Units: length mm, time µs, velocity mm/µs (= km/s), potential V, field V/mm,
    flux density T, mass u, charge e (signed), kinetic energy eV.
 
-   Sources: CODATA 2022 recommended values (NIST, Tiesinga et al., 2024) for the
-   elementary charge, atomic mass constant, electron mass, vacuum permittivity
-   and permeability; c is exact (SI 2019). Every derived constant below is
+   Sources: CODATA 2022 recommended values (NIST; Mohr, Newell, Taylor and
+   Tiesinga, Rev. Mod. Phys. 97, 025002 (2025)) for the atomic mass constant,
+   electron mass, vacuum permittivity and permeability; the elementary charge
+   and c are exact (SI 2019). Every derived constant below is
    computed at load time, never typed in. Relativistic kinematics:
    gamma = 1 + KE/(m c^2), proper velocity w = gamma v (Jackson, Classical
    Electrodynamics, 3rd ed., ch. 11-12).

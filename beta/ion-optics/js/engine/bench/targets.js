@@ -42,7 +42,7 @@ export const TARGETS = Object.freeze({
     },
     K2: {
         values: { m1: '2.28532', m28: '12.04574', m100: '22.7643', m1000: '71.98705' }, units: { m1: 'µs', m28: 'µs', m100: 'µs', m1000: 'µs' },
-        source: CODATA, note: 'Field-free drift of 1 m at 1000 eV, t = L/√(2KE/m), masses 1.00782503223 (¹H atom, AME2020), 28, 100, 1000 u.',
+        source: CODATA, note: 'Field-free drift of 1 m at 1000 eV, t = L/√(2KE/m), masses 1.00782503223 (the ¹H atom in AME2012; AME2020 gives 1.007825031898, 3.3e-10 u lower, which no printed digit shows), 28, 100, 1000 u.',
         calibration: { level: 'integration', observed: { quick: -3.7e-6, full: -3.7e-6 }, design: null },
     },
     K3: {
@@ -99,7 +99,7 @@ export const TARGETS = Object.freeze({
     S3: {
         values: { 0.1: '0.370599', 0.2: '0.258334', 0.3: '0.171921', 0.4: '0.110938', 0.5: '0.070253', 0.6: '0.044009', 0.8: '0.017006', 1.0: '0.006520', 1.5: '0.000589', 2.0: '0.000053' },
         units: { V: 'V/V' }, source: NBS1972,
-        note: 'Two zero-gap tubes (0 V | 1 V), axial potential at z/D into the 0 V tube; the table equals the Bessel series Σ exp(−jₙζ)/(jₙJ₁(jₙ)), ζ = 2z/D (the 0 V side of S = 1 − Σ).',
+        note: 'Two zero-gap tubes (0 V | 1 V), axial potential at z/D into the 0 V tube; the table agrees with the Bessel series Σ exp(−jₙζ)/(jₙJ₁(jₙ)), ζ = 2z/D (the 0 V side of S = 1 − Σ), to one unit in its last digit.',
         calibration: { level: 'integration', observed: { quick: -4.6e-5, full: -1.1e-5 }, design: { quick: 4.7e-5, full: 1.2e-5 } },
     },
     S4: {
@@ -279,10 +279,10 @@ export const TARGETS = Object.freeze({
         calibration: { level: 'integration', observed: { quick: 0.056, full: 0.068 }, design: { range: [0.035, 0.068] } },
     },
     L7: {
-        values: { f: 81.62, thinLens: 80 }, units: { f: 'mm', thinLens: 'mm' },
-        source: { text: 'Davisson & Calbick, Phys. Rev. 42, 580 (1932): thin aperture f = 4V/(E2 − E1) = 80 mm to first order; reference f = 81.62 mm from paraxial rays traced (independent calculation) through the exact axial potential of a circular hole of radius a in a conducting plane with a uniform field on one side, V = V₀ + Ez/2 + (E/π)(a + z·atan(z/a)) (Jackson, Classical Electrodynamics, 3rd ed., §3.13)', url: 'https://doi.org/10.1103/PhysRev.42.580' },
+        values: { f: 81.63, thinLens: 80 }, units: { f: 'mm', thinLens: 'mm' },
+        source: { text: 'Davisson & Calbick, Phys. Rev. 42, 580 (1932): thin aperture f = 4V/(E2 − E1) = 80 mm to first order; reference f = 81.63 mm from paraxial rays started parallel at x = −9.8 mm and traced (independent calculation) through the exact axial potential of a circular hole of radius a in a conducting plane with a uniform field on one side, V = V₀ + Ez/2 + (E/π)(a + z·atan(z/a)) (Jackson, Classical Electrodynamics, 3rd ed., §3.13)', url: 'https://doi.org/10.1103/PhysRev.42.580' },
         note: 'Hole of radius 1 mm in a grounded plate between a field-free region and a 50 V/mm accelerating field, 1000 eV; f measured between the planes at ±5 mm, as in the independent calculation (81.40 mm asymptotically). The +2% against 4V/E = 80 mm is the next-order term of the thin-lens formula, not a numerical error.',
-        calibration: { level: 'integration', observed: { quick: -1.5e-4, full: -1.5e-4 }, design: { thinLens: 0.0201 } },
+        calibration: { level: 'integration', observed: { quick: -2.7e-4, full: -2.7e-4 }, design: { thinLens: 0.0201 } },
     },
     P1: {
         values: { J: 738.06 }, units: { J: 'A/m²' },
@@ -291,7 +291,7 @@ export const TARGETS = Object.freeze({
     },
     P2: {
         values: { energy: 0.719982 }, units: { energy: 'meV' }, source: CODATA,
-        note: 'Promoted in round 2: two protons released from rest 1 µm apart share the Coulomb energy k e²/d = 1.439964 meV (CODATA 2022); traced through the pipeline with the direct pair force (coulomb.js, space-charge onset estimator), ε = 1e-7 mm, pair step 0.005.',
+        note: 'two protons released from rest 1 µm apart share the Coulomb energy k e²/d = 1.439964 meV (CODATA 2022); traced through the pipeline with the direct pair force (coulomb.js, space-charge onset estimator), ε = 1e-7 mm, pair step 0.005.',
         calibration: { level: 'round 2', observed: { quick: 5.1e-7, full: 5.1e-7 }, design: null },
     },
     P3: {
@@ -301,7 +301,7 @@ export const TARGETS = Object.freeze({
     P4: {
         values: { coax: '80.2607', sphere: '26.7036' }, units: { coax: 'pF/m', sphere: 'pF' },
         source: { text: 'Capacitance of coaxial cylinders 2πε₀/ln(b/a) and of concentric spheres 4πε₀/(1/R₁ − 1/R₂) with CODATA 2022 ε₀ (e.g. Griffiths, Introduction to Electrodynamics, ch. 2); charge by Gauss\'s law on a discrete contour', url: 'https://physics.nist.gov/cuu/Constants/' },
-        note: 'Promoted in round 2: coax a 10, b 20 mm (S1 field, planar quarter with mirrors) and spheres 80/120 mm (S2 field); the capacitance matrix from the unit solutions and its reciprocity; the inner sphere\'s charge at +500 / −333.333 V (2.22530e-8 C). The charges of one field sum to zero by construction of the contours, so that sum is not checked.',
+        note: 'coax a 10, b 20 mm (S1 field, planar quarter with mirrors) and spheres 80/120 mm (S2 field); the capacitance matrix from the unit solutions and its reciprocity; the inner sphere\'s charge at +500 / −333.333 V (2.22530e-8 C). The charges of one field sum to zero by construction of the contours, so that sum is not checked.',
         calibration: { level: 'round 2', observed: { quick: 1.3e-5, full: 3.4e-6 }, design: { coaxQuick: -1.2e-7, coaxFull: -1.8e-8, spheresQuick: 1.3e-5, spheresFull: 3.4e-6, reciprocity: 3.6e-14 } },
     },
     // ---- round 2 (benchmark plan §2.1, §2.2). calibration.observed: deviations of the worst check measured on this engine
@@ -351,7 +351,7 @@ export const TARGETS = Object.freeze({
     T18: {
         values: { dzOverDr: 2 }, units: { dz: 'eV', dr: 'eV' },
         source: { text: 'Pseudopotential well depth of the Paul trap, D̄_z = q_z V/8 and D̄_r = D̄_z/2 for r₀² = 2z₀² (Dehmelt, Adv. At. Mol. Phys. 3, 53 (1967); March, J. Mass Spectrom. 32, 351 (1997))', url: 'https://doi.org/10.1016/S0065-2199(08)60170-0' },
-        note: 'P9 trap (r₀ 7.07, z₀ 5 mm, 500 V at 1 MHz). Ions launched from the center along z or r with energies around D̄ over 8 or 16 RF phases. Adiabatic ion (m 3000, q_z 0.033): the escape threshold lies at 0.93–0.98 D̄ in both directions, ratio 2. At q_z 0.33 (m 300) losses start at 0.55 D̄ and are complete by 1.1 D̄; at q_z 0.815 (m 120) the axial depth is meaningless (5 eV of 51 eV already escape for some phases).',
+        note: 'The Paul trap of T12 (r₀ 7.07, z₀ 5 mm, 500 V at 1 MHz). Ions launched from the center along z or r with energies around D̄ over 8 or 16 RF phases. Adiabatic ion (m 3000, q_z 0.033): the escape threshold lies at 0.93–0.98 D̄ in both directions, ratio 2. At q_z 0.33 (m 300) losses start at 0.55 D̄ and are complete by 1.1 D̄; at q_z 0.815 (m 120) the axial depth is meaningless (5 eV of 51 eV already escape for some phases).',
         calibration: { level: 'round 2', observed: { quick: 0, full: 0 }, design: { adiabaticZ: [0.9, 1.05], adiabaticR: [0.95, 1.0], q033z: [0.5, 1.1], q033r: [0.55, 1.1], q0815z: [0.05, 1.1], q0815r: [0.4, 1.1] } },
     },
     T20: {
@@ -394,13 +394,13 @@ export const TARGETS = Object.freeze({
     T17: {
         values: { a2Denison: 1.0028664, a2Dayton: 1.0029450, a6overA2: 0, qEdge: 0.908046 }, units: { a2Denison: '', a2Dayton: '', a6overA2: '', qEdge: '' },
         source: { text: 'Round-rod quadrupoles: rods of radius 1.148 r₀ (Dayton, Shoemaker & Mozley, Rev. Sci. Instrum. 25, 485–489 (1954)) or 1.1468 r₀ in a cage of 3.54 r₀ (Denison, J. Vac. Sci. Technol. 8, 266–269 (1971), doi:10.1116/1.1316304) approximate the hyperbolic field; reference a₂ = 1.0028664 (Denison geometry) and 1.0029450 (Dayton geometry) on r = 0.5 r₀ from an independent converged charge-simulation solve (100–400 line charges per rod, boundary residual 2e-14); stability edge q* = 0.908046 (NIST DLMF §28.17)', url: 'https://doi.org/10.1063/1.1771107' },
-        note: 'Promoted in round 2: Fourier multipoles of the ±1 V rod potential on r = 0.5 r₀ (Denison a₂ = 1.00289 at r₀/25 cells and 1.00287 at r₀/50 against the independent 1.0028664; |a₆/a₂| 2.3e-4 and 1.4e-4 against the independent 1.10e-4; a₁₀ −2.5e-3) and the practical stability edge of 16 ions from 0.01 r₀ (bounded at nominal 0.99 q*, lost at 1.01 q*; the effective parameter is a₂·q).',
+        note: 'Fourier multipoles of the ±1 V rod potential on r = 0.5 r₀ (Denison a₂ = 1.00289 at r₀/25 cells and 1.00287 at r₀/50 against the independent 1.0028664; |a₆/a₂| 2.3e-4 and 1.4e-4 against the independent 1.10e-4; a₁₀ −2.5e-3) and the practical stability edge of 16 ions from 0.01 r₀ (bounded at nominal 0.99 q*, lost at 1.01 q*; the effective parameter is a₂·q).',
         calibration: { level: 'round 2', observed: { quick: 2.1e-5, full: 5.6e-6 }, design: { a2Quick: 1.0028873, a2Full: 1.0028720, a2Converged: 1.0028679, a6overA2Quick: -2.26e-4, a6overA2Full: -1.39e-4, daytonA2: 1.0029654, odd: 2e-14, edge: 'first losses between 0.995 and 1.0 q* (0.01 r₀ start)' } },
     },
     T19: {
         values: { r: '1.000', Q: 9.61305980e-20, i: 1.34385091e-11 }, units: { r: 'mm', Q: 'C', i: 'A' },
         source: { text: 'Shockley, J. Appl. Phys. 9, 635 (1938) and Ramo, Proc. IRE 27, 584 (1939): induced charge Q = −q·φ_w(x) and current i = q·v·E_w from the weighting potential; closed forms with CODATA 2022 constants', url: 'https://doi.org/10.1063/1.1710367' },
-        note: 'Promoted in round 2: 2 eV electron in −4.7688984 mT ẑ between plates 10 mm apart (electrode A at y = 0) circles with r = 1.0000 mm about (0, 4); on the y = 4 crossings Q_A = 0.6 e and i = q·v·E_w = 1.34385e-11 A (CODATA 2022), compared with these closed forms at rel 1e-9 / 1e-8.',
+        note: '2 eV electron in −4.7688984 mT ẑ between plates 10 mm apart (electrode A at y = 0) circles with r = 1.0000 mm about (0, 4); on the y = 4 crossings Q_A = 0.6 e and i = q·v·E_w = 1.34385e-11 A (CODATA 2022), compared with these closed forms at rel 1e-9 / 1e-8.',
         calibration: { level: 'round 2', observed: { quick: 2.4e-6, full: 2.4e-6 }, design: { Q: 1.5e-13, i: 9.6e-11, r: 1.2e-9, constancy: 4.0e-8, totalCurrent: 2.4e-6, spectrum: 2.3e-8 } },
     },
     I2: {
@@ -418,7 +418,7 @@ export const TARGETS = Object.freeze({
     I3: {
         values: { C2: -1.001, C0: 0.5, C4: 1.05e-3, C6: 1.24e-3 }, units: { C: '' },
         source: { text: 'Barlow, Taylor & Swanson, "Determination of analytic potentials from finite element computations," Int. J. Mass Spectrom. 207, 19–29 (2001): multipole (Legendre) coefficients of truncated hyperbolic traps', url: 'https://doi.org/10.1016/S1387-3806(00)00452-8' },
-        note: 'Informational, promoted in round 2: the P9 trap with its hyperbolic surfaces continued to 15 mm gives c₀ = 0.50007, c₂ = −0.99985 (the reference truncated trap: 0.49969, −1.00113), c₄ = 1.2e-5 and c₆ = −7.5e-6 against the reference 1.05e-3 and 1.24e-3 for a truncation that is not stated; odd coefficients vanish by symmetry.',
+        note: 'Informational: the Paul trap of T12 with its hyperbolic surfaces continued to 15 mm gives c₀ = 0.50007, c₂ = −0.99985 (the reference truncated trap: 0.49969, −1.00113), c₄ = 1.2e-5 and c₆ = −7.5e-6 against the reference 1.05e-3 and 1.24e-3 for a truncation that is not stated; odd coefficients vanish by symmetry.',
         calibration: { level: 'round 2', observed: { quick: 1.15e-3, full: 1.15e-3 }, design: { c0: 0.500071, c2: -0.999847, c4: 1.19e-5, c6: -7.5e-6, odd: 1e-13 } },
     },
 });

@@ -18,7 +18,8 @@
      finite half-maximum width (the FWHM shrinks with the bin width), so the
      rms-based R = t̄/(2·2.3548σ) and the narrowest interval holding 76.1% of
      the values (the FWHM fraction of a Gaussian) are reported too; the
-     rms-based value is the robust one used for scans and tuning. Whether
+     rms-based value, which does not depend on the bin width, is the one used
+     for scans and tuning. Whether
      the FWHM is converged is decided over a deterministic bootstrap of the
      values (median change on halving the bin width, 16-84% spread).
    - Beam waist of a run: per (source, species) group, so a dispersive
@@ -552,7 +553,7 @@ function bootstrapHalfMax(values, lo, hi, nb, reps) {
 
 /**
  * Peak statistics of a set of times (or any values): mean, std, FWHM, peak position and resolving power t̄/(2·FWHM),
- * plus the robust widths: the rms-based FWHM equivalent 2.3548σ with R = t̄/(2·2.3548σ) (resolvingPowerRms), and the
+ * plus two widths that do not depend on the bin width: the rms-based FWHM equivalent 2.3548σ with R = t̄/(2·2.3548σ) (resolvingPowerRms), and the
  * narrowest interval holding 76.1% of the values (w76, the FWHM of a Gaussian) with R = t̄/(2·w76) (resolvingPower76).
  * The half-maximum width comes from a histogram padded by empty bins (so both crossings exist) and re-binned (keeping
  * ≥ 5 values per bin on average) until it spans ≥ 5 bins; it is then corrected in quadrature for the bin and smoothing

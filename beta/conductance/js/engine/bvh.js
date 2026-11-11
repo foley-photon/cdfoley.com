@@ -1,5 +1,5 @@
-// Flat bounding-volume hierarchy and watertight closest-hit ray tracing (spec §2.12, §3.6.3). Ported from our
-// design prototype cond-proto/mesh-proto.mjs; algorithms from the open literature:
+// Flat bounding-volume hierarchy and watertight closest-hit ray tracing (spec §2.12, §3.6.3). First written
+// as a standalone prototype; algorithms from the open literature:
 //   - binned SAH build: I. Wald, "On fast construction of SAH-based bounding volume hierarchies" (2007);
 //   - watertight ray/triangle test: S. Woop, C. Benthin and I. Wald, JCGT 2(1), 2013;
 //   - conservative slab test with t_max·(1 + 2γ₃): T. Ize, "Robust BVH ray traversal", JCGT 2(2), 2013.

@@ -15,7 +15,7 @@ export function binomial(k, n) {
 }
 
 /**
- * Wilson score interval: centre (k + z²/2)/(n + z²), half-width z·√(k(n − k)/n + z²/4)/(n + z²).
+ * Wilson score interval: center (k + z²/2)/(n + z²), half-width z·√(k(n − k)/n + z²/4)/(n + z²).
  * Returns { lo, hi, center, half }; n = 0 gives the whole [0, 1].
  */
 export function wilson(k, n, z = Z95) {

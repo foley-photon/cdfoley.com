@@ -1,5 +1,5 @@
 // Worker-side message handler of the test-particle Monte Carlo (spec §2.13). The worker file wires it to
-// self.postMessage / self.onmessage; Node tests drive it directly or through _tests/conductance/node-worker.mjs.
+// self.postMessage / self.onmessage; Node tests drive it directly or through scripts/node-worker.mjs.
 //
 //   main → worker                                                        worker → main
 //   { type: 'load', job, kind: 'chain', blocks }                         { type: 'loaded', job, ms }

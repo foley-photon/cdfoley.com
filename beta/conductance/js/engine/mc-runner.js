@@ -1,6 +1,6 @@
 // Main-thread Monte Carlo runner (spec §2.14, §3.6.5): a pool of TPMC workers, batching, allocation, stopping
 // rules, tallies and results. DOM-free: the worker factory is injected (browser module workers, or Node threads
-// through _tests/conductance/node-worker.mjs). One run at a time.
+// through scripts/node-worker.mjs of the conductance-lab repository). One run at a time.
 //
 // opts (both kinds): { target: 0.01, maxTime: 60 (s; Infinity or null = unlimited), maxParticles: 1e9,
 //   seed: (Date.now() >>> 0), deterministic: false, fixedN: null, batch: 20000, onProgress, sampler: 'cosine',

@@ -604,8 +604,8 @@ export function statusLabel(code) {
 
 // ---------------------------------------------------------------- pinned runs (Compare tab, §4.7)
 // A pin is a plain record { id, label, createdAt, engineVersion, runKey, project, metrics, color, visible }: a deep copy of
-// the project (the sources carry their seeds, so the run is regenerated from it bitwise) and the metrics of the run as it
-// was pinned. Results (trajectories) are never stored; the Compare tab regenerates them through jobs.withTemporaryProject.
+// the project (the sources carry their seeds, so the run is recomputed from it bitwise) and the metrics of the run as it
+// was pinned. Results (trajectories) are never stored; the Compare tab recomputes them through jobs.withTemporaryProject.
 export const PINS_STORAGE_KEY = 'ionopt.pins.v1';
 export const MAX_PINS = 8;
 /** Colour tokens of the pin ghosts (the site's series colours c1–c6; the panel reads their current values from CSS). */
@@ -733,7 +733,7 @@ export function writePins(pins, storage = defaultStorage(), now = Date.now()) {
 
 /**
  * True when two metric sets of the same pin disagree beyond rounding (1e-9 relative) in transmission, waist, spot
- * rms or mean TOF: the regenerated run differs from the one pinned (another engine version, or a changed preset).
+ * rms or mean TOF: the recomputed run differs from the one pinned (another engine version, or a changed preset).
  */
 export function metricsDiffer(a, b) {
     if (!a || !b) return false;
@@ -749,7 +749,7 @@ export function metricsDiffer(a, b) {
 /**
  * The side-by-side table of pinned runs: one column per pin and a row for every metric at least one pin has (NaN where
  * a pin lacks it). metricsOf(pin) chooses the metrics shown (default: those stored with the pin; the panel passes the
- * regenerated ones).
+ * recomputed ones).
  * @returns {{ columns: string[], keys: string[], rows: Array<Array<string|number>> }}
  */
 export function compareTable(pins, metricsOf = (p) => p.metrics) {

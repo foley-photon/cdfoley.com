@@ -60,7 +60,7 @@ export function medianStep(d) {
     return s.length ? s[s.length >> 1] : null;
 }
 /**
- * σ averaged over a laser line: a Gaussian of FWHM `fwhm` (nm) centred on x, integrated over the tabulated points
+ * σ averaged over a laser line: a Gaussian of FWHM `fwhm` (nm) centered on x, integrated over the tabulated points
  * (trapezoid rule on the product σ·g, with the Gaussian evaluated at the data points and at fine sub-steps).
  * fwhm ≤ 0 gives the point value. Returns { sigma, covered (fraction of the line's weight inside the data), points
  * (data points inside ±FWHM), coarse (true when the data are coarser than the line: the average is an interpolation) }.
@@ -118,18 +118,19 @@ export function resample(d, max = 2000) {
 /* ── Temperature ───────────────────────────────────────────────────────── */
 /**
  * σ(λ, T) from datasets of one series measured at several temperatures: linear in T between the two nearest
- * temperatures that both cover λ (no extrapolation). sets: [{ T, data }]. Returns { sigma, T0, T1 } or null.
+ * temperatures that both cover λ (no extrapolation). sets: [{ T, data }]. `value(set)` gives one set's σ at λ, by
+ * default the point value sigmaAt(set.data, x); the page passes its table value (a line average, or the full-resolution
+ * value of a thinned spectrum), so that the two agree. Returns { sigma, T0, T1 } or null.
  */
-export function sigmaAtT(sets, x, T) {
-    const ok = sets.filter((s) => Number.isFinite(s.T) && sigmaAt(s.data, x) != null).sort((a, b) => a.T - b.T);
+export function sigmaAtT(sets, x, T, value = (s) => sigmaAt(s.data, x)) {
+    const ok = sets.filter((s) => Number.isFinite(s.T)).map((s) => ({ s, v: value(s) })).filter((p) => p.v != null).sort((a, b) => a.s.T - b.s.T);
     if (!ok.length) return null;
-    const exact = ok.find((s) => Math.abs(s.T - T) < 1e-9);
-    if (exact) return { sigma: sigmaAt(exact.data, x), T0: exact.T, T1: exact.T };
+    const exact = ok.find((p) => Math.abs(p.s.T - T) < 1e-9);
+    if (exact) return { sigma: exact.v, T0: exact.s.T, T1: exact.s.T };
     let lo = null; let hi = null;
-    for (const s of ok) { if (s.T < T) lo = s; else if (!hi) hi = s; }
+    for (const p of ok) { if (p.s.T < T) lo = p; else if (!hi) hi = p; }
     if (!lo || !hi) return null;
-    const s0 = sigmaAt(lo.data, x); const s1 = sigmaAt(hi.data, x);
-    return { sigma: s0 + ((s1 - s0) * (T - lo.T)) / (hi.T - lo.T), T0: lo.T, T1: hi.T };
+    return { sigma: lo.v + ((hi.v - lo.v) * (T - lo.s.T)) / (hi.s.T - lo.s.T), T0: lo.s.T, T1: hi.s.T };
 }
 
 /* ── Absorption and photolysis ─────────────────────────────────────────── */
@@ -143,18 +144,92 @@ export function beerLambert(sigma, n, L) {
 }
 /**
  * One laser pulse of fluence F (J cm⁻²) at λ (nm) on an optically thin sample: photon fluence Φ = F/(hc/λ),
- * fraction excited 1 − exp(−σΦ), fraction photolysed 1 − exp(−σΦφ) with quantum yield φ. Saturation is included by the
+ * fraction excited 1 − exp(−σΦ), fraction photolyzed 1 − exp(−σΦφ) with quantum yield φ. Saturation is included by the
  * exponential, stimulated emission and multiphoton steps are not.
  */
 export function pulsePhotolysis(sigma, fluenceJcm2, nm, phi = 1) {
     const photons = fluenceJcm2 / photonJ(nm);
     // saturation fluence hν/σ (J cm⁻²): the fluence at which a fraction 1 − 1/e of the molecules absorbs a photon
-    return { photons, excited: -Math.expm1(-sigma * photons), photolysed: -Math.expm1(-sigma * photons * phi), saturation: sigma > 0 ? photonJ(nm) / sigma : null };
+    return { photons, excited: -Math.expm1(-sigma * photons), photolyzed: -Math.expm1(-sigma * photons * phi), saturation: sigma > 0 ? photonJ(nm) / sigma : null };
 }
-/** Common laser lines, nominal wavelengths in nm as usually quoted (the difference between air and vacuum, ≈0.06 nm at 250 nm, is below the resolution of most cross-section data). */
+/**
+ * Common laser lines, wavelengths in nm as usually quoted (the Nd:YAG harmonics from 1064.2 nm: 532.1, 354.7, 266.0
+ * and 212.8 nm). The difference between air and vacuum, ≈0.075 nm at 250 nm, is below the resolution of most
+ * cross-section data. scripts/build_data.py stores the full-resolution σ of every thinned spectrum at these lines
+ * (its LASER_NM must match).
+ */
 export const LASER_LINES = Object.freeze([
     { nm: 118.2, label: '118.2 nm (9th harmonic of 1064, VUV)' }, { nm: 121.567, label: '121.6 nm (Lyman-α)' }, { nm: 157.6, label: '157.6 nm (F₂)' },
-    { nm: 193.3, label: '193 nm (ArF)' }, { nm: 213, label: '213 nm (Nd:YAG 5th)' }, { nm: 222, label: '222 nm (KrCl)' }, { nm: 248.4, label: '248 nm (KrF)' },
-    { nm: 266, label: '266 nm (Nd:YAG 4th)' }, { nm: 308, label: '308 nm (XeCl)' }, { nm: 351, label: '351 nm (XeF)' }, { nm: 355, label: '355 nm (Nd:YAG 3rd)' },
-    { nm: 405, label: '405 nm (diode)' }, { nm: 532, label: '532 nm (Nd:YAG 2nd)' },
+    { nm: 193.3, label: '193 nm (ArF)' }, { nm: 212.8, label: '212.8 nm (Nd:YAG 5th)' }, { nm: 222, label: '222 nm (KrCl)' }, { nm: 248.4, label: '248 nm (KrF)' },
+    { nm: 266, label: '266 nm (Nd:YAG 4th)' }, { nm: 308, label: '308 nm (XeCl)' }, { nm: 351.1, label: '351.1 nm (XeF)' }, { nm: 354.7, label: '354.7 nm (Nd:YAG 3rd)' },
+    { nm: 405, label: '405 nm (diode)' }, { nm: 532.1, label: '532.1 nm (Nd:YAG 2nd)' },
 ]);
+
+/* ── What the page shows ───────────────────────────────────────────────── */
+// The steps between the form and the numbers on the page, kept here so that the tests and the site's check cover them.
+
+/** The x axes of the plot: the wavelength as given, 10⁷/λ, or hc/λ. */
+export const X_AXES = Object.freeze({
+    nm: Object.freeze({ label: 'Wavelength (nm)', of: (nm) => nm }),
+    cm1: Object.freeze({ label: 'Wavenumber (cm⁻¹)', of: nmToCm1 }),
+    eV: Object.freeze({ label: 'Photon energy (eV)', of: nmToEV }),
+});
+/** Number density (cm⁻³) from the form: a pressure p in a unit worth `unitPa` pascal, at T (K). */
+export const densityFromForm = (p, unitPa, T) => density(p * unitPa, T);
+/** One pulse from the form: the fluence in mJ cm⁻², and the saturation fluence also in mJ cm⁻² (saturationmJ). */
+export function pulseFromForm(sigma, fluencemJcm2, nm, phi = 1) {
+    const r = pulsePhotolysis(sigma, fluencemJcm2 / 1000, nm, phi);
+    return { ...r, saturationmJ: r.saturation == null ? null : r.saturation * 1000 };
+}
+/** A dataset the build thinned for the web (more points in the source than on the page). */
+export const isThinned = (meta) => !!meta && Number.isFinite(meta.n0) && Number.isFinite(meta.np) && meta.n0 > meta.np;
+/** The full-resolution σ the build stored for a thinned dataset at a laser line (meta.at, keyed by the line's nm), or null. */
+export function storedAt(meta, x) {
+    const v = meta && meta.at ? meta.at[String(x)] : undefined;
+    return Number.isFinite(v) ? v : null;
+}
+/**
+ * σ of one dataset at λ = x as the table at a laser line shows it: { sigma, covered, coarse, at (the wavelength of the
+ * point used, for a dataset of one or two points), full (the value is the build's full-resolution one), thinned (the
+ * value comes from a thinned spectrum) }. A dataset of one or two points gives its nearest point within 1 nm, not an
+ * interpolation. A point value (fwhm ≤ 0) at a laser line of a thinned dataset is the full-resolution value.
+ */
+export function tableValue(meta, data, x, fwhm = 0) {
+    if (data.length < 3) {
+        const p = data.reduce((b, q) => (Math.abs(q[0] - x) < Math.abs(b[0] - x) ? q : b));
+        const near = Math.abs(p[0] - x) <= 1;
+        return { sigma: near ? p[1] : null, covered: near ? 1 : 0, coarse: false, at: p[0], full: false, thinned: false };
+    }
+    if (!(fwhm > 0)) { const s = storedAt(meta, x); if (s != null) return { sigma: s, covered: 1, coarse: false, at: null, full: true, thinned: false }; }
+    const r = sigmaLine(data, x, fwhm);
+    return { ...r, at: null, full: false, thinned: r.sigma != null && isThinned(meta) };
+}
+/**
+ * A number for the page: plain, with d + 1 significant figures, from 10⁻³ up to 10^(d+1) where that needs no
+ * exponent; otherwise "m × 10<sup>e</sup>" (HTML). '—' for a missing or non-finite value.
+ */
+export function formatSci(x, d = 3) {
+    if (x == null || !Number.isFinite(x)) return '—';
+    if (x === 0) return '0';
+    const minus = (s) => String(s).replace(/^-/, '−');
+    const a = Math.abs(x);
+    if (a >= 1e-3 && a < 10 ** (d + 1)) {
+        const p = x.toPrecision(d + 1);
+        if (!/e/.test(p)) return minus(p.includes('.') ? p.replace(/0+$/, '').replace(/\.$/, '') : p);
+    }
+    const [m, e] = x.toExponential(d).split('e');
+    return `${minus(m)} × 10<sup>${minus(String(+e))}</sup>`;
+}
+/**
+ * The series a dataset belongs to, for temperature interpolation: its id without the temperature and the wavelength
+ * range of the file name, so that one paper's versions (resolution, pressure, air or vacuum, a later revision) stay
+ * apart. 'mainz2013:O3_Bass(1984)_203K_245-340nm' → 'mainz2013:O3_Bass(1984)', 'bremen:O3_Serdyuchenko2014_v2013FFT_293K'
+ * → 'bremen:O3_Serdyuchenko2014_v2013FFT'.
+ */
+export const seriesKey = (id) => String(id).replace(/_\d+(?:\.\d+)?(?:-\d+(?:\.\d+)?)?K(?=_|\(|$)/g, '').replace(/_[\d.]+(?:\s*[-,]\s*[\d.]+)*\s?nm/g, '');
+/** The lowest σ a log plot draws: 10⁻¹² of the largest σ in the spectra shown ([[λ, σ], …] each); 0 when there is none. */
+export function logFloor(spectra, decades = 12) {
+    let top = 0;
+    for (const d of spectra) for (const p of d) if (p[1] > top && Number.isFinite(p[1])) top = p[1];
+    return top > 0 ? top * 10 ** -decades : 0;
+}

@@ -1,6 +1,6 @@
 /* ==========================================================================
    Ion optics UI: forms.js
-   Numeric forms generated from the schema's UI descriptors
+   Numeric forms built from the schema's UI descriptors
    ({ key, label, dim, kind, options?, min?, max?, help }, spec §2.2.5 META).
    Every numeric input accepts a number, a number with a unit ("2 kV") or an
    expression over parameters; invalid entries are flagged (aria-invalid, red

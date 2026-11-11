@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ion optics UI: panels/hits.js — the Hits tab (spec §4.7)
+   Ion optics UI: panels/hits.js: the Hits tab (spec §4.7)
    A virtualised, sortable and filterable table of the run's summary rows
    (status, source, species, electrode/plane); a row click (or Enter on the
    focused row) highlights the trajectory on the canvas; CSV with the

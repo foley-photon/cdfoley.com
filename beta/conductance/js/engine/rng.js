@@ -70,7 +70,7 @@ export function sourceKeyOf(source) {
  * Seed of one batch (§3.6.1): depends only on (jobSeed, sourceKey, seq), so a batch gives the same counts
  * whichever worker runs it. Never 0.
  *
- * Deviation from the formula printed in §3.6.1 (recorded in the WP2 report): that formula XORs two hashed terms,
+ * Deviation from the formula in my design notes (§3.6.1): that formula XORs two hashed terms,
  * so different (sourceKey, seq) pairs collide at the birthday rate (72 to 224 collisions measured over 10⁶ pairs
  * spread over 2 to 1000 sources). Here sourceKey (12 bits) and seq (20 bits) are packed into one 32-bit word,
  * which is XORed with a hash of the job seed and passed through the bijective splitmix32 finalizer. The map is

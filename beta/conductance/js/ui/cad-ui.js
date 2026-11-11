@@ -6,7 +6,7 @@
 //
 // Layers (all in this file):
 //   1. Pure helpers, exported for tests (Node): run-enable rule, stick ↔ speed, clearing rules, counts → C and
-//      S_eff, matrix and number formatting, pressure-map colours, coplanar patches, status and reference lines.
+//      S_eff, matrix and number formatting, pressure-map colors, coplanar patches, status and reference lines.
 //   2. CadController: DOM-free state machine over the prep-worker protocol (§2.13, WP3), McRunner.runMesh (§2.14,
 //      WP2) and the project file (§2.10, WP3). Tests drive it with a stub prep worker and a stub runner.
 //   3. mount(): the markup, event wiring and rendering, the three.js viewer (loaded on demand) and the plots.
@@ -266,7 +266,7 @@ export function formatMatrix(summary, ports, perSource) {
   return { columns: names, rows };
 }
 
-/** Bounding-box line (§3.6.7): '150.0 × 40.0 × 40.0 mm · 8192 triangles' (bbox in metres, unit a FILE_UNITS key). */
+/** Bounding-box line (§3.6.7): '150.0 × 40.0 × 40.0 mm · 8192 triangles' (bbox in meters, unit a FILE_UNITS key). */
 export function bboxText(bbox, unit, nTri) {
   if (!bbox || bbox.length < 6) return '';
   const s = FILE_UNITS[unit] || 1e-3;
@@ -276,7 +276,7 @@ export function bboxText(bbox, unit, nTri) {
   return d.map((x) => x.toFixed(dec)).join(' × ') + ' ' + unit + ' · ' + fmtInt(nTri) + ' ' + (nTri === 1 ? 'triangle' : 'triangles');
 }
 
-/** Size line of a profile: '140.0 mm long, Ø69.12 mm · 2 elements' (bbox [−r, −r, z0, r, r, z1] in metres). */
+/** Size line of a profile: '140.0 mm long, Ø69.12 mm · 2 elements' (bbox [−r, −r, z0, r, r, z1] in meters). */
 export function profileBboxText(bbox, unit, nItems) {
   const sc = FILE_UNITS[unit] || 1e-3;
   const L = (bbox[5] - bbox[2]) / sc, D = (bbox[3] - bbox[0]) / sc;
@@ -284,7 +284,7 @@ export function profileBboxText(bbox, unit, nItems) {
   return L.toFixed(dec(L)) + ' ' + unit + ' long, Ø' + D.toFixed(dec(D)) + ' ' + unit + ' · ' + plural(nItems, 'element', 'elements');
 }
 
-/** Size-plausibility warning (§3.6.7) for a bounding box in metres: '' or the sentence. */
+/** Size-plausibility warning (§3.6.7) for a bounding box in meters: '' or the sentence. */
 export function sizeWarning(bbox) {
   if (!bbox || bbox.length < 6) return '';
   const ext = Math.max(bbox[3] - bbox[0], bbox[4] - bbox[1], bbox[5] - bbox[2]);
@@ -416,7 +416,7 @@ export function trianglePatches(positions, { angleDeg = 0.5, cells = PATCH_CELLS
       h = (h + 1) & mask;
     }
   }
-  // manifold edge neighbours
+  // manifold edge neighbors
   let ecap = 1; while (ecap < 2 * nV) ecap <<= 1;
   const emask = ecap - 1, eA = new Int32Array(ecap).fill(-1), eB = new Int32Array(ecap), eT = new Int32Array(ecap), eN = new Int32Array(ecap);
   const nbr = new Int32Array(nV).fill(-1);
@@ -539,7 +539,7 @@ export function wallPressureValues({ hits, areas, triPort, inletLaunches, portAr
   return { p, valid, norm };
 }
 
-/** Pressure-map colours: { rgb (Float32Array 3·n, NaN = not enough hits), scale (logScale) }. */
+/** Pressure-map colors: { rgb (Float32Array 3·n, NaN = not enough hits), scale (logScale) }. */
 export function pressureColors(p) {
   const scale = logScale(p, { floor: 1e-9 });
   return { rgb: colorsFromT(scale.t), scale };
@@ -571,7 +571,7 @@ export function profileFormat(name, text) {
   return /<svg[\s>]/i.test(String(text || '').slice(0, 4096)) ? 'svg' : 'dxf';
 }
 
-/** Metres per drawing unit: the file's own unit when it states one ('mm' or 'in'), else the unit select's. */
+/** Meters per drawing unit: the file's own unit when it states one ('mm' or 'in'), else the unit select's. */
 export function profileScale(unitHint, unit) {
   if (unitHint === 'mm') return 1e-3;
   if (unitHint === 'in') return 0.0254;
@@ -579,7 +579,7 @@ export function profileScale(unitHint, unit) {
 }
 
 /**
- * Display mesh of a profile's lathe (profile2d: (r, z) pairs in metres, NaN pairs between the outer wall and each
+ * Display mesh of a profile's lathe (profile2d: (r, z) pairs in meters, NaN pairs between the outer wall and each
  * inner body), revolved about the z axis with `segments` facets. The ends become caps: the inlet (port 0) at the
  * first point of the outer wall and the outlet (port 1) at its last, as rings when a rod reaches the end.
  * Returns { positions: Float32Array (9 per triangle), triPort: Int16Array, inletArea, outletArea }.
@@ -937,7 +937,7 @@ export class CadController {
       const gen = this.beginLoad();
       try { await this.parseAndPrepare(gen); } catch (err) { this.failLoad(gen, err); }
     } else if (src && src.kind === 'file' && this.s.projectMesh) {
-      // a mesh from a project is stored in metres: reinterpret its numbers in the new unit
+      // a mesh from a project is stored in meters: reinterpret its numbers in the new unit
       const f = FILE_UNITS[unit] / FILE_UNITS[was];
       const m = this.s.projectMesh;
       const vertices = new Float32Array(m.vertices.length);
@@ -1665,7 +1665,7 @@ const TEMPLATE = `
 const VIEW_DIRS = [['iso', 'Iso'], ['+x', '+X'], ['-x', '−X'], ['+y', '+Y'], ['-y', '−Y'], ['+z', '+Z'], ['-z', '−Z']];
 const CHECK_HELP = {
   openings: ['Openings', 'Open edges that form flat loops become openings, closed by flat caps. A closed solid has none: select its end faces as regions.', 'If an opening is missing, check that the model is exported as the gas volume or the inner walls.'],
-  winding: ['Winding', 'Neighbouring triangles should be wound the same way. If they are not, the inside of each opening is found by casting rays instead.', 'Re-export the model, or recalculate the normals in the CAD program.'],
+  winding: ['Winding', 'Neighboring triangles should be wound the same way. If they are not, the inside of each opening is found by casting rays instead.', 'Re-export the model, or recalculate the normals in the CAD program.'],
   chains: ['Open edge chains', 'Open edges that do not close into a loop leave a gap that particles can escape through.', 'Close the gap in the CAD program, or raise the merge tolerance under Advanced if the gap is a rounding error.'],
   nonmanifold: ['Non-manifold edges', 'Edges shared by more than two triangles mean internal or doubled faces.', 'Remove internal faces and export a single closed surface.'],
   degenerate: ['Degenerate or duplicate triangles', 'Zero-area and repeated triangles are removed before tracing.', 'Usually harmless; many of them suggest a poor export.'],
@@ -1911,7 +1911,7 @@ export function mount(root, ctx = {}) {
       const box = el('div', { class: 'cl-legend-pressure' });
       box.appendChild(el('span', { class: 'cl-legend-title' }, 'p/p_in (log scale)'));
       const barWrap = el('div', { class: 'cl-legend-barwrap' });
-      barWrap.appendChild(el('div', { class: 'cl-legend-bar', style: 'background: ' + lg.gradient, role: 'img', 'aria-label': 'Colour scale from ' + lg.ticks.map((t) => t.label).join(' to ') }));
+      barWrap.appendChild(el('div', { class: 'cl-legend-bar', style: 'background: ' + lg.gradient, role: 'img', 'aria-label': 'Color scale from ' + lg.ticks.map((t) => t.label).join(' to ') }));
       const ticks = el('div', { class: 'cl-legend-ticks', 'aria-hidden': 'true' });
       for (const t of lg.ticks) ticks.appendChild(el('span', { style: 'left: ' + (100 * t.pos).toFixed(2) + '%' }, t.label));
       barWrap.appendChild(ticks);

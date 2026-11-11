@@ -1,6 +1,6 @@
 // Monte Carlo validation cases (spec §2.8, §5.3): analytic-chain cases, mesh cases on the built-in geometries,
-// and negative controls. Every reference number is embedded with its source (the browser cannot read _tests/);
-// wp2-validation-data.test.mjs checks each one against fixtures/validation-cases-v2.json and the spec.
+// and negative controls. Every reference number is embedded with its source (the browser cannot read tests/);
+// tests/wp2-validation-data.test.mjs checks each one against tests/fixtures/validation-cases-v2.json and the spec.
 //
 // Case = { id, group, title, source: { label, url }, ref, refSigma, tol, quick, seed, n, nQuick, unit,
 //          catchRel?, nodeOnly?, refFrom?, run: async (ctx) => { value, sigma, pass?, caught? } }

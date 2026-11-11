@@ -1,7 +1,7 @@
 /* ==========================================================================
-   Ion optics engine: data/nuclides.js (generated; do not edit by hand)
+   Ion optics engine: data/nuclides.js (written by a script; do not edit by hand)
    AME2020 atomic masses of all 3558 nuclides, Z = 0 (neutron) to 118, built by
-   E:/cdfoley-data/ame2020/scripts/build_nuclides.py from mass_1.mas20.txt as served
+   scripts/build_nuclides.py from mass_1.mas20.txt as served
    by the IAEA Atomic Mass Data Center (https://www-nds.iaea.org/amdc/ame2020/).
 
    W. J. Huang, M. Wang, F. G. Kondev, G. Audi and S. Naimi, "The AME 2020 atomic

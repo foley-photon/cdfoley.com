@@ -1,8 +1,9 @@
 /* ==========================================================================
    Ion optics presets: einzel.js
    P1 Einzel lens, the default project (spec §2.2.1, §4.14). Three coaxial
-   tubes of inner diameter D = 20 mm with gaps of 0.1 D and a center tube of
-   length 0.5 D (generic dimensions of our own choosing); outer tubes at 0 V,
+   tubes of inner diameter D = 20 mm with gaps of 0.1 D and a center tube
+   0.4 D long (A = 0.5 D between the gap centers, as in Adams and Read's A/D;
+   generic dimensions of our own choosing); outer tubes at 0 V,
    center tube at Vc = +850 V; a parallel beam of 21 rays of m/z 100 at
    1000 eV. Three-element cylinder lenses of this kind are tabulated by
    Adams & Read, J. Phys. E 5, 150 (1972); the spherical aberration that puts

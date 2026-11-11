@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ion optics UI: panels/benchmarks.js — the Benchmarks tab (spec §4.9)
+   Ion optics UI: panels/benchmarks.js: the Benchmarks tab (spec §4.9)
    Runs the validation suite in this browser (one low-priority worker job
    per case, results streaming in), shows each case against its published
    or analytic reference with tolerance, typical calibrated deviation and a

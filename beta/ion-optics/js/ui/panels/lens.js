@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ion optics UI: panels/lens.js — the Lens tab (spec §4.7, §3.11(3))
+   Ion optics UI: panels/lens.js: the Lens tab (spec §4.7, §3.11(3))
    Wizard (reference plane, D, field-free start and end, species, kinetic
    energy, ray heights) → F1, F2, f1, f2, H1, H2 in units of D and in mm with
    the signs of DiChio, Natali & Kuyatt (Rev. Sci. Instrum. 45, 559 (1974)),
