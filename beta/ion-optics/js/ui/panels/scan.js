@@ -23,6 +23,24 @@ export function variableOptions(project) {
 }
 
 /**
+ * Whether the best sampled point of a scan lies at the edge of the scanned range (pure, for tests): the best value is
+ * the smallest or the largest value sampled, and the metric there differs from the metric at the next point inward.
+ * A flat metric (a transmission of 100% over the whole range) has no optimum to bracket and gives false, as does a
+ * scan of fewer than three finite points.
+ * @param {number[]} xs sampled values  @param {number[]} ys metric at each  @param {number} best the best sampled value
+ */
+export function scanBestAtEdge(xs, ys, best) {
+    const pts = xs.map((x, i) => [x, ys[i]]).filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y)).sort((a, b) => a[0] - b[0]);
+    if (pts.length < 3) return false;
+    const n = pts.length;
+    if (best === pts[0][0]) return pts[0][1] !== pts[1][1];
+    if (best === pts[n - 1][0]) return pts[n - 1][1] !== pts[n - 2][1];
+    return false;
+}
+/** The sentence added to the scan result when the best sampled point is at the edge of the range. */
+export const SCAN_EDGE_NOTE = ' It is at the edge of the scanned range; widen the range to bracket the optimum.';
+
+/**
  * Default variable of a tuning row (pure, for tests): the first voltage- or energy-type parameter, else the first electrode voltage,
  * else the first variable. A voltage needs no new field solve per evaluation, a geometry parameter does.
  * @returns {number} index into variableOptions(project)
@@ -201,7 +219,7 @@ export function mount(el, ctx) {
             scanRes.runKey = runKeyNow();
             if (scanRes.best) {
                 // the best of the sampled values only; the optimum between grid points can be better (Tune refines it)
-                status.textContent = `Best sampled point: ${v.label} = ${fmtNum(scanRes.best.value)} (${mdef.label} ${fmtNum(scanRes.best.metric)}).${stop ? ' Stopped.' : ''}`;
+                status.textContent = `Best sampled point: ${v.label} = ${fmtNum(scanRes.best.value)} (${mdef.label} ${fmtNum(scanRes.best.metric)}).${scanBestAtEdge(xs, ys, scanRes.best.value) ? SCAN_EDGE_NOTE : ''}${stop ? ' Stopped.' : ''}`;
                 applyBtn.disabled = false;
                 scanBlock.update({ plot: linePlot({ series: [{ label: mdef.label, x: xs, y: ys, type: 'points', line: true }], xLabel: v.label, yLabel: mdef.label, vlines: [{ x: scanRes.best.value, label: 'best sampled' }] }) });
             } else status.textContent = 'No finite metric values (check the plane and the metric).';

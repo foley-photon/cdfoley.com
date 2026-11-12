@@ -60,6 +60,8 @@ const mounted = { cad: null, selftest: null };
 // true when any number in v is not finite (a field that does not parse holds NaN until it is fixed)
 const hasNaN = (v) => (typeof v === 'number' ? !Number.isFinite(v) : v && typeof v === 'object' ? Object.values(v).some(hasNaN) : false);
 let lastHash = null;
+// the hash of the line the page opens with: that state needs no hash, so Reset leaves a clean address
+const DEFAULT_HASH = '#' + encode(decode('').state);
 function writeHash() {
     clearTimeout(hashTimer);
     if (!comp) return;
@@ -67,7 +69,8 @@ function writeHash() {
     const model = { ...m, gas: { id: s.gas, T: s.T, custom: s.gas === 'custom' ? s.custom : null }, Cd: s.Cd };
     // an unreadable field keeps the last good link (encode would write NaN, which a shared link turns into a default)
     if (hasNaN(model)) { if (lastHash) history.replaceState(null, '', lastHash); return; }
-    lastHash = '#' + encode({ tab, model, units: { lu: s.lu, su: s.su, pu: s.pu } });
+    const h = '#' + encode({ tab, model, units: { lu: s.lu, su: s.su, pu: s.pu } });
+    lastHash = h === DEFAULT_HASH ? location.pathname + location.search : h;
     history.replaceState(null, '', lastHash);
 }
 const scheduleHash = () => { clearTimeout(hashTimer); hashTimer = setTimeout(writeHash, 300); };

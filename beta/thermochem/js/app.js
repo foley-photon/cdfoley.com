@@ -10,6 +10,7 @@ import {
 import { photofragments, vmi, dopplerShift, collisionFrame, collisionChannels, labForCM } from './kinematics.js';
 import { buildDiagram, KINDS as DKINDS } from './diagram.js';
 import { CASES, KINDS, HAND_TN, runCase, extraChecks } from './selftest.js';
+import { resetTab, shareWhat, searchNote, geoSummary, channelSummary, splitReaction, diagramHandoff } from './view.js';
 
 const $ = (id) => document.getElementById(id);
 const CURRENT_URL = './data/atct-current.json';   // { version, fetched, doi, files: { table, cov }, ... }
@@ -30,6 +31,7 @@ const state = {
     rc: 'CH3I -> CH3 + I', rnm: '266', rn: '1', rpi: '', rpp: '', rL: '500', rV: '3000', rN: '1', rE: '', rpr: '',
     cp: '14158-23-7*0', ct: '7782-44-7*0', ce: '10', cthree: false, cion: false, clab: false,
 };
+const DEFAULTS = { ...structuredClone(state), sp: '50-00-0*0' };   // what each tab's Reset button restores
 const RC_KEYS = ['rc', 'rnm', 'rn', 'rpi', 'rpp', 'rL', 'rV', 'rN', 'rE', 'rpr'];
 const RC_DEFAULT = Object.fromEntries(RC_KEYS.map((k) => [k, state[k]]));
 const CL_KEYS = ['cp', 'ct', 'ce'];
@@ -100,8 +102,18 @@ function flagHTML(notes) {
     const id = `tc-note-${++noteSeq}`;
     return ` <button type="button" class="tc-flag" aria-expanded="false" aria-controls="${id}">note</button><span class="tc-flagtext" id="${id}" hidden>${esc(notes.join('; '))}</span>`;
 }
+/** The ± column header as a button that shows what the column is, and the one-line note it opens. */
+function pmHead(text) {
+    const id = `tc-pm-${++noteSeq}`;
+    return {
+        th: `<th class="num"><button type="button" class="tc-pm" aria-expanded="false" aria-controls="${id}" aria-label="±: what this column shows">± <span class="tc-pm-q" aria-hidden="true">?</span></button></th>`,
+        note: `<p class="hint tc-pmtext" id="${id}" hidden>${text}</p>`,
+    };
+}
+const PM_ROW = '± is the 95 % uncertainty of the energy in that row. <sup>c</sup> means it was computed from ATcT’s covariances, which usually shrink it; without the mark the errors are taken as independent.';
+const PM_SPECIES = '± is ATcT’s 95 % uncertainty of Δ<sub>f</sub>H°(298.15 K) for that species, the only one ATcT tabulates. The result below combines them.';
 document.addEventListener('click', (e) => {
-    const b = e.target.closest('button.tc-flag'); if (!b) return;
+    const b = e.target.closest('button.tc-flag, button.tc-pm'); if (!b) return;
     const t = document.getElementById(b.getAttribute('aria-controls')); if (!t) return;
     const open = b.getAttribute('aria-expanded') !== 'true';
     b.setAttribute('aria-expanded', String(open)); t.hidden = !open;
@@ -165,10 +177,9 @@ function urlFor(tab) {
     return `${location.pathname}?${p.toString()}`;
 }
 const writeURL = () => { try { history.replaceState(null, '', urlFor(state.tab)); } catch { /* file:// or sandbox */ } };
-function shareBox(tab) {
+function shareBox(tab, extra = '') {
     const url = new URL(urlFor(tab), location.href).href;
-    const what = { channels: 'channel list', diagram: 'diagram', recoil: 'recoil calculation', collide: 'collision', species: 'lookup' }[tab] || tab;
-    return `<div class="tc-share"><button type="button" class="btn btn-secondary btn-sm" data-copy="${esc(url)}">Copy link</button><span class="hint">Opens this ${what} with the same inputs.</span></div>`;
+    return `<div class="tc-share"><button type="button" class="btn btn-secondary btn-sm" data-copy="${esc(url)}">Copy link</button><span class="hint">Opens this ${shareWhat(tab)} with the same inputs.</span>${extra}</div>`;
 }
 document.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-copy]'); if (!b) return;
@@ -182,7 +193,8 @@ function showTab(t, focus = false) {
     for (const x of TABS) {
         const btn = $(`tabbtn-${x}`); const pnl = $(`tab-${x}`);
         const on = x === t; btn.setAttribute('aria-selected', on); btn.tabIndex = on ? 0 : -1; pnl.hidden = !on;
-        if (on && focus) btn.focus();
+        if (on && focus) btn.focus({ preventScroll: true });
+        if (on) tabIntoView(btn);
     }
     needFor(t);
     if (t === 'selftest') renderSelfTest();
@@ -191,7 +203,22 @@ function showTab(t, focus = false) {
     if (t === 'collide' && db) renderCollide();
     writeURL();
 }
+/** On a narrow screen the tab strip scrolls sideways: bring the chosen tab into it without moving the page. */
+function tabIntoView(btn) {
+    const s = $('tc-tabs'); const pad = 28;
+    if (btn.offsetLeft < s.scrollLeft + pad) s.scrollLeft = Math.max(0, btn.offsetLeft - pad);
+    else if (btn.offsetLeft + btn.offsetWidth > s.scrollLeft + s.clientWidth - pad) s.scrollLeft = btn.offsetLeft + btn.offsetWidth - s.clientWidth + pad;
+    tabFades();
+}
+/** Fade the edge of the strip where more tabs lie beyond it. */
+function tabFades() {
+    const s = $('tc-tabs'); const max = s.scrollWidth - s.clientWidth;
+    s.classList.toggle('tc-fade-l', s.scrollLeft > 2);
+    s.classList.toggle('tc-fade-r', s.scrollLeft < max - 2);
+}
 function initTabs() {
+    $('tc-tabs').addEventListener('scroll', tabFades, { passive: true });
+    window.addEventListener('resize', tabFades);
     for (const t of TABS) $(`tabbtn-${t}`).addEventListener('click', () => showTab(t));
     document.querySelector('.tc-tabs').addEventListener('keydown', (e) => {
         const i = TABS.indexOf(state.tab);
@@ -270,7 +297,7 @@ function renderSpecies() {
         </div>
         ${shareBox('species')}
     </div></div>
-    ${exs.length ? `<div class="panel"><div class="panel-head"><h2>Low-lying electronic states</h2><span class="badge">${exs.length}</span></div><div class="panel-body tc-table-scroll"><table class="tc-table"><thead><tr><th>State</th><th class="num">T₀, cm⁻¹</th><th class="num">± cm⁻¹</th><th class="num">${unit}</th><th class="num">Δ<sub>f</sub>H°(0 K), ${unit}</th><th>Source</th></tr></thead><tbody>${exs.map((x) => `<tr><td>${F(x.species)}(${stHTML(x)})${x.note && !x.atom ? ` <span class="tc-state">${esc(x.note)}</span>` : ''}${x.fine ? ' <span class="tc-tag">fine structure</span>' : ''}</td><td class="num">${num(fromKJ(x.kj, 'cm⁻¹'), 1)}</td><td class="num">${x.atct ? '<span class="tc-state">ATcT</span>' : x.uCm1 ? (x.uCm1 < 0.0005 ? '&lt; 0.001' : num(x.uCm1, x.uCm1 < 0.1 ? 3 : 1)) : '—'}</td><td class="num">${num(fromKJ(x.kj, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h0, unit), DIGITS[unit])}</td><td class="tc-state">${srcHTML(x)}</td></tr>`).join('')}</tbody></table><p class="hint">Term values T₀ above the lowest level of ${esc(s.formula)}. Where ATcT lists the state, ATcT's value is used (the NIST value is shown in brackets); otherwise Δ<sub>f</sub>H°(0 K) = ATcT ground state + NIST T₀. “± cm⁻¹” is the term value's own uncertainty where the source gives one, plus an allowance where the source refers the state to a level other than the lowest (a multiplet centre, a hypothetical J = 0 level) or where ATcT's value for another state of the molecule disagrees with the source (see the notes); “—” means the source gives none, and the value is taken as exact. Sources are in the <a href="#" data-tab="data">Data &amp; citation</a> tab.</p></div></div>` : ''}
+    ${exs.length ? `<div class="panel"><div class="panel-head"><h2>Low-lying electronic states</h2><span class="badge">${exs.length}</span></div><div class="panel-body tc-table-scroll"><table class="tc-table"><thead><tr><th>State</th><th class="num">T₀, cm⁻¹</th><th class="num">± cm⁻¹</th><th class="num">${unit}</th><th class="num">Δ<sub>f</sub>H°(0 K), ${unit}</th><th>Source</th></tr></thead><tbody>${exs.map((x) => `<tr><td>${F(x.species)}(${stHTML(x)})${x.note && !x.atom ? ` <span class="tc-state">${esc(x.note)}</span>` : ''}${x.fine ? ' <span class="tc-tag">fine structure</span>' : ''}</td><td class="num">${num(fromKJ(x.kj, 'cm⁻¹'), 1)}</td><td class="num">${x.atct ? '<span class="tc-state">ATcT</span>' : x.uCm1 ? (x.uCm1 < 0.0005 ? '&lt; 0.001' : num(x.uCm1, x.uCm1 < 0.1 ? 3 : 1)) : '—'}</td><td class="num">${num(fromKJ(x.kj, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h0, unit), DIGITS[unit])}</td><td class="tc-state">${srcHTML(x)}</td></tr>`).join('')}</tbody></table><p class="hint">Term values T₀ above the lowest level of ${esc(s.formula)}. Where ATcT lists the state, ATcT's value is used (the NIST value is shown in brackets); otherwise Δ<sub>f</sub>H°(0 K) = ATcT ground state + NIST T₀. “± cm⁻¹” is the term value's own uncertainty where the source gives one, plus an allowance where the source refers the state to a level other than the lowest (a multiplet centre, a hypothetical J = 0 level) or where ATcT's value for another state of the molecule disagrees with the source (see the notes); “—” means the source gives none, and the value is taken as exact. Sources are in the <a href="#" data-tab="data">Data</a> tab.</p></div></div>` : ''}
     ${same.length ? `<div class="panel"><div class="panel-body"><details class="tc-more"><summary>Same composition: ${same.length} other isomer${same.length === 1 ? '' : 's'}, state${same.length === 1 ? '' : 's'} or phase${same.length === 1 ? '' : 's'}, with relative energies</summary><div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Species</th><th>Name</th><th class="num">Δ<sub>f</sub>H°(0 K)</th><th class="num">Δ<sub>f</sub>H°(298 K)</th><th class="num">± (95 %, 298.15 K)</th><th class="num">Relative, 0 K</th></tr></thead><tbody>${same.map((x) => `<tr><td><a href="#" data-sp="${esc(x.id)}">${sp(x)}</a></td><td>${esc(x.name)}</td><td class="num">${num(x.h0 != null ? fromKJ(x.h0, unit) : null, DIGITS[unit])}</td><td class="num">${num(fromKJ(x.h298, unit), DIGITS[unit])}</td><td class="num">${U(x.u)}</td><td class="num">${x.h0 != null && s.h0 != null ? num(fromKJ(x.h0 - s.h0, unit), DIGITS[unit]) : '—'}</td></tr>`).join('')}</tbody></table><p class="hint">Energies in ${unit}. “Relative” is the 0 K energy above ${esc(s.formula)} (${esc(s.state)}).</p></div></details></div></div>` : ''}`;
     if ($('sp-ch')) $('sp-ch').onclick = () => { state.ch = s.id; $('ch-q').value = s.formula; renderChannels(); showTab('channels'); };
     if ($('sp-cl')) $('sp-cl').onclick = () => { state.ct = s.id; $('cl-t').value = s.formula; renderCollide(); showTab('collide'); };
@@ -382,12 +409,23 @@ function renderReaction() {
             <div class="tc-res"><h3>${eIn ? 'Electron-energy threshold' : 'One-photon threshold'}</h3><div class="tc-big">${thrBig}</div><div class="tc-alt">${thrAlt}</div>${thrNote}</div>
         </div>${nist ? '<p class="tc-note">A product state comes from the NIST excited-state list: its energy is the ATcT ground state plus the NIST term value. Its uncertainty combines the ground state’s ATcT uncertainty with the term value’s own (where the source gives one) and, where the source refers the state to a level other than the lowest, an allowance for that offset (see the note on the species row).</p>' : ''}`;
     }
-    out.innerHTML = `<div class="panel"><div class="panel-head"><h2>Species</h2></div><div class="panel-body tc-table-scroll"><table class="tc-table"><thead><tr><th class="num">ν</th><th>Species</th><th class="num">Δ<sub>f</sub>H°(0 K)</th><th class="num">Δ<sub>f</sub>H°(298 K)</th><th class="num">±</th></tr></thead><tbody>${rows}</tbody></table><p class="hint">Energies in ${unit}. Where ATcT lists several states of a formula, pick one; the gas-phase ground state is the default.</p></div></div>
-    <div class="panel"><div class="panel-head"><h2>Result</h2></div><div class="panel-body">${res}${shareBox('reaction')}</div></div>
+    const pm = pmHead(PM_SPECIES);
+    // a balanced reaction with 0 K values can be drawn; not offered while an isomer was picked by hand, which the diagram would not keep
+    const sides = h && bal.ok && h.h0 != null && !Object.keys(state.rxo).length ? splitReaction(state.rx) : null;
+    const toDiagram = sides ? `<button type="button" class="btn btn-ghost btn-sm" id="rx-dg" data-l="${esc(sides[0])}" data-r="${esc(sides[1])}">Show in a diagram ›</button>` : '';
+    out.innerHTML = `<div class="panel"><div class="panel-head"><h2>Species</h2></div><div class="panel-body tc-table-scroll"><table class="tc-table"><thead><tr><th class="num">ν</th><th>Species</th><th class="num">Δ<sub>f</sub>H°(0 K)</th><th class="num">Δ<sub>f</sub>H°(298 K)</th>${pm.th}</tr></thead><tbody>${rows}</tbody></table>${pm.note}<p class="hint">Energies in ${unit}. Where ATcT lists several states of a formula, pick one; the gas-phase ground state is the default.</p></div></div>
+    <div class="panel"><div class="panel-head"><h2>Result</h2></div><div class="panel-body">${res}${shareBox('reaction', toDiagram)}</div></div>
     ${h && bal.ok ? budgetPanel(r.terms) : ''}`;
     out.querySelectorAll('select[data-key]').forEach((sel) => sel.addEventListener('change', () => { state.rxo[sel.dataset.key] = sel.value; renderReaction(); }));
     writeURL();
 }
+document.addEventListener('click', (e) => {
+    const b = e.target.closest('#rx-dg'); if (!b || !db) return;
+    state.dg = diagramHandoff(state.dg, b.dataset.l, b.dataset.r);
+    renderDiagramInputs(); showTab('diagram', true);
+});
+/** Two other units for a tile whose headline is in the chosen unit. */
+const altUnits = (kj) => ['eV', 'cm⁻¹', 'kJ/mol'].filter((u) => u !== unit).slice(0, 2).map((u) => E(kj, null, u)).join('<br>');
 
 /* ── Channels ───────────────────────────────────────────────────────── */
 const MODE_LABEL = {
@@ -479,8 +517,19 @@ function renderChannels() {
         }
         return `<tr class="${open === false ? 'tc-closed' : ''}"><td>${c.products.map(sp).join(' + ')}${tag}</td><td class="num">${num(fromKJ(c.h0, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(c.h0, 'eV'), 4)}</td><td class="num">${num(fromKJ(c.h0, 'cm⁻¹'), 0)}</td>${dea ? '' : `<td class="num">${thr ? num(thr, 1) : '—'}</td>`}<td class="num">${num(fromKJ(c.h298, unit), DIGITS[unit])}</td><td class="num">${uCell}</td>${ein != null ? `<td class="num">${open ? num(fromKJ(ein - c.h0, unit), DIGITS[unit]) : 'closed'}</td>` : ''}<td><a class="tc-go" href="?tab=reaction&amp;rx=${encodeURIComponent(rx)}" data-rx="${esc(rx)}">reaction ›</a>${rcLink(c, rx, c.h0)}</td></tr>${exRow}`;
     }).join('');
-    const nUnb = ein == null ? 0 : list.filter((c) => c.h0 <= ein && unbound(c)).length;
-    const inMsg = ein != null ? `<p class="tc-msg">${dea ? `${num(inNum, 3)} eV electron` : `${num(inNum, inNum < 10 ? 3 : 1)} nm photon`}: ${E(ein)} = ${E(ein, null, 'eV')} = ${E(ein, null, 'cm⁻¹')}. ${openText(list.filter((c) => c.h0 <= ein && !unbound(c)).length)}${nUnb ? ` (Not counted: ${nUnb} with an unbound anion.)` : ''}${state.ex && db.exc ? ` ${nOpenEx === 1 ? '1 excited-product threshold is' : `${nOpenEx} excited-product thresholds are`} open.` : ''}</p>` : '';
+    let inMsg = '';
+    if (ein != null) {
+        const sm = channelSummary(list, ein, unbound);
+        const lo = sm.lowest; const nx = sm.next;
+        const lam = (c) => (dea ? `${num(fromKJ(c.h0, 'eV'), 3)} eV` : `${num(kjToNm(c.h0), 1)} nm`);
+        const nxLine = nx ? `Next to open: ${nx.products.map(sp).join(' + ')}, ${dea ? `at ${lam(nx)}` : `below ${lam(nx)}`}.` : 'Every listed channel is open.';
+        inMsg = `<div class="tc-results tc-kpi">
+            <div class="tc-res"><h3>${dea ? `Electron, ${num(inNum, 3)} eV` : `Photon, ${num(inNum, inNum < 10 ? 3 : 1)} nm`}</h3><div class="tc-big">${E(ein)}</div><div class="tc-alt">${altUnits(ein)}</div></div>
+            <div class="tc-res"><h3>Channels open</h3><div class="tc-big">${sm.nOpen} of ${sm.total}</div>${state.ex && db.exc ? `<div class="tc-alt">${nOpenEx === 1 ? '1 excited-product threshold' : `${nOpenEx} excited-product thresholds`} open</div>` : ''}<p class="tc-note">${sm.nOpen ? 'Energetically open at 0 K; a barrier or a selection rule can still close a channel.' : 'The energy is below every threshold listed.'}${sm.nSkipped ? ` Not counted: ${sm.nSkipped} with an unbound anion.` : ''}</p></div>
+            <div class="tc-res"><h3>${lo ? 'Lowest open channel' : 'First channel to open'}</h3>${lo ? `<div class="tc-big tc-big-sp">${lo.products.map(sp).join(' + ')}</div><div class="tc-alt">threshold ${E(lo.h0)}${!dea && lo.h0 > 0 ? `<br>λ max ${lam(lo)}` : ''}<br>leaves ${E(ein - lo.h0)}</div><p class="tc-note">${nxLine}</p>`
+        : nx ? `<div class="tc-big tc-big-sp">${nx.products.map(sp).join(' + ')}</div><div class="tc-alt">threshold ${E(nx.h0)}<br>${dea ? `opens at ${lam(nx)}` : `opens below ${lam(nx)}`}</div>` : '<div class="tc-big">—</div>'}</div>
+        </div>`;
+    }
     const anyCorr = list.some((c) => bestU(c).how === 'correlated');
     const hintMode = {
         dpi: 'Rows tagged IE are the adiabatic ionization energy of the parent; “isomeric ion” rows lead to a cation of the same composition but a different structure (for example [HCOH]⁺ from CH₂O), so they are not the IE; rows tagged AE are appearance energies of a fragment ion.',
@@ -488,10 +537,11 @@ function renderChannels() {
         ionpair: 'Ion-pair thresholds A⁺ + B⁻ at 0 K, for photons or for electron impact (AB + e⁻ → A⁺ + B⁻ + e⁻ has the same threshold).',
     }[state.mode] || '';
     const uHint = anyCorr ? `; <sup>c</sup> marks the correlated value from ATcT's covariances (TN ${esc(db.meta.tn_version || '')}, the version of the values), otherwise errors are taken as independent; “<” marks a correlated value that is only a bound` : covLoading() ? ' (loading ATcT covariances…)' : ', with errors taken as independent';
+    const pmCh = pmHead(PM_ROW);
     out.innerHTML = `<div class="panel"><div class="panel-head"><h2>${MODE_LABEL[state.mode]} of ${esc(parent.name)}</h2><span class="badge">${list.length} found</span></div><div class="panel-body">
         ${inBad}${exWait}${inMsg}
-        <div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Products</th><th class="num">${dea ? 'ΔH(0 K)' : 'D₀ / ΔH(0 K)'}, ${unit}</th><th class="num">eV</th><th class="num">cm⁻¹</th>${dea ? '' : '<th class="num">λ max (nm)</th>'}<th class="num">ΔH(298 K)</th><th class="num">±</th>${ein != null ? '<th class="num">Available</th>' : ''}<th></th></tr></thead><tbody>${rows || `<tr><td colspan="${ncol}">No channels: ATcT has no matching fragments.</td></tr>`}</tbody></table></div>
-        <p class="hint">Sorted by 0 K energy, in ${unit} unless marked. ${dea ? '' : `“λ max” is the longest wavelength that can open the channel from cold ${esc(parent.formula)} without a barrier; `}“Available” is the ${dea ? 'electron' : 'photon'} energy minus the threshold. ± is the 95 % uncertainty (ATcT's 298.15 K value, also used at 0 K)${uHint}. ${hintMode} ${state.ex ? 'Excited products: ATcT’s own entry where ATcT lists the state, otherwise the NIST term value added to the ATcT ground state (sources in the Data &amp; citation tab).' : ''} Search took ${ms.toFixed(0)} ms.</p>
+        <div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Products</th><th class="num">${dea ? 'ΔH(0 K)' : 'D₀ / ΔH(0 K)'}, ${unit}</th><th class="num">eV</th><th class="num">cm⁻¹</th>${dea ? '' : '<th class="num">λ max (nm)</th>'}<th class="num">ΔH(298 K)</th>${pmCh.th}${ein != null ? '<th class="num">Available</th>' : ''}<th></th></tr></thead><tbody>${rows || `<tr><td colspan="${ncol}">No channels: ATcT has no matching fragments.</td></tr>`}</tbody></table></div>${pmCh.note}
+        <p class="hint">Sorted by 0 K energy, in ${unit} unless marked. ${dea ? '' : `“λ max” is the longest wavelength that can open the channel from cold ${esc(parent.formula)} without a barrier; `}“Available” is the ${dea ? 'electron' : 'photon'} energy minus the threshold. ± is the 95 % uncertainty (ATcT's 298.15 K value, also used at 0 K)${uHint}. ${hintMode} ${state.ex ? 'Excited products: ATcT’s own entry where ATcT lists the state, otherwise the NIST term value added to the ATcT ground state (sources in the Data tab).' : ''}${searchNote(ms)}</p>
         ${shareBox('channels')}</div></div>`;
     writeURL();
 }
@@ -515,8 +565,6 @@ document.addEventListener('click', (e) => {
     const a = e.target.closest('a[data-rc]'); if (!a) return;
     e.preventDefault(); state.rc = a.dataset.rc; state.rnm = String(state.nm || '').trim(); state.rn = '1'; state.rpi = ''; state.rpp = ''; renderRecoil(); showTab('recoil');
 });
-
-const openText = (n) => (n === 0 ? 'No channel is open.' : n === 1 ? '1 channel is open.' : `${n} channels are open.`);
 
 /* ── Uncertainty budget (Reaction tab) ─────────────────────────────── */
 function budgetPanel(terms) {
@@ -564,6 +612,7 @@ function renderRecoil() {
     const out = $('rc-out');
     for (const [id, k] of [['rc-in', 'rc'], ['rc-nm', 'rnm'], ['rc-pi', 'rpi'], ['rc-pp', 'rpp'], ['rc-L', 'rL'], ['rc-V', 'rV'], ['rc-N', 'rN'], ['rc-E', 'rE'], ['rc-pr', 'rpr']]) if ($(id).value !== state[k]) $(id).value = state[k];
     $('rc-n').value = state.rn;
+    $('rc-geo-sum').textContent = geoSummary({ L: parseNum(state.rL), V: parseNum(state.rV), N: parseNum(state.rN), F: parseNum(state.rE), pr: parseNum(state.rpr) });
     if (state.tab === 'recoil') needFor('recoil');
     const p = parseReaction(state.rc);
     if (p.error) { out.innerHTML = `<div class="tc-msg tc-bad">${esc(p.error)}</div>`; writeURL(); return; }
@@ -641,7 +690,6 @@ function renderCollide() {
     const list = collisionChannels(db, P, T, { three: state.cthree, ionize: state.cion, labeled: state.clab, limit: 300 });
     const ms = performance.now() - t0;
     const lhs = `${txt(P)} + ${txt(T)}`;
-    const nOpen = f ? list.filter((c) => c.h0 <= f.eCM).length : 0;
     const rows = list.map((c) => {
         const open = f ? c.h0 <= f.eCM : null;
         const bu = bestU(c);
@@ -649,17 +697,28 @@ function renderCollide() {
         const lab = c.h0 > 0 ? num(fromKJ(labForCM(c.h0, P.mass, T.mass), 'eV'), 3) : '0';
         return `<tr class="${open === false ? 'tc-closed' : ''}"><td>${c.products.map(sp).join(' + ')}</td><td><span class="tc-tag">${esc(c.kind)}</span></td><td class="num">${num(fromKJ(c.h0, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(c.h0, 'eV'), 3)}</td><td class="num">${lab}</td><td class="num">${PM(bu).replace(/^± /, '')}${bu.how === 'correlated' ? CMARK : ''}</td>${f ? `<td class="num">${open ? num(fromKJ(f.eCM - c.h0, unit), DIGITS[unit]) : 'closed'}</td>` : ''}<td><a class="tc-go" href="?tab=reaction&amp;rx=${encodeURIComponent(rx)}" data-rx="${esc(rx)}">reaction ›</a></td></tr>`;
     }).join('');
+    let kpi = '';
+    if (f) {
+        const sm = channelSummary(list, f.eCM);
+        const lo = sm.lowest; const nx = sm.next;
+        kpi = `<div class="tc-results tc-kpi">
+            <div class="tc-res"><h3>Channels open</h3><div class="tc-big">${sm.nOpen} of ${sm.total}</div><div class="tc-alt">at E<sub>cm</sub> = ${E(f.eCM, null, 'eV')}</div>${list.total > list.length ? `<p class="tc-note">Of the lowest ${list.length} channels; ATcT has ${list.total} in all.</p>` : ''}</div>
+            <div class="tc-res"><h3>${lo ? 'Lowest channel' : 'No channel open'}</h3>${lo ? `<div class="tc-big tc-big-sp">${lo.products.map(sp).join(' + ')}</div><div class="tc-alt">Δ<sub>r</sub>H°(0 K) ${E(lo.h0)}<br>${esc(lo.kind)}${lo.h0 < 0 ? ', exothermic' : ''}</div>` : '<div class="tc-big">—</div><div class="tc-alt">E<sub>cm</sub> is below every threshold listed</div>'}</div>
+            <div class="tc-res"><h3>Next to open</h3>${nx ? `<div class="tc-big tc-big-sp">${nx.products.map(sp).join(' + ')}</div><div class="tc-alt">lab threshold ${num(fromKJ(labForCM(nx.h0, P.mass, T.mass), 'eV'), 3)} eV<br>${esc(nx.kind)}</div>` : '<div class="tc-big">—</div><div class="tc-alt">every listed channel is open</div>'}</div>
+        </div>`;
+    }
     const frame = f ? `<div class="tc-results">
             <div class="tc-res"><h3>Centre-of-mass energy</h3><div class="tc-big">${E(f.eCM, null, 'eV')}</div><div class="tc-alt">${E(f.eCM)}${unit !== 'cm⁻¹' ? `<br>${E(f.eCM, null, 'cm⁻¹')}` : ''}<br>${num(100 * T.mass / (P.mass + T.mass), 1)} % of E<sub>lab</sub></div></div>
             <div class="tc-res"><h3>Speeds</h3><dl class="tc-kv"><dt>Projectile</dt><dd>${num(f.vp, 0)} m/s</dd><dt>Centre of mass</dt><dd>${num(f.vcm, 0)} m/s</dd></dl></div>
             <div class="tc-res"><h3>Masses</h3><dl class="tc-kv"><dt>${F(P.formula)}</dt><dd>${num(P.mass, 3)} u</dd><dt>${F(T.formula)}</dt><dd>${num(T.mass, 3)} u</dd><dt>Reduced mass μ</dt><dd>${num(f.mu, 3)} u</dd></dl></div>
             <div class="tc-res"><h3>Largest elastic transfer</h3><div class="tc-big">${E(f.tMax, null, 'eV')}</div><div class="tc-alt">to ${F(T.formula)} in a head-on collision, 4m<sub>p</sub>m<sub>t</sub>/(m<sub>p</sub> + m<sub>t</sub>)²·E<sub>lab</sub></div></div>
         </div>` : `<p class="tc-msg tc-bad">${eRaw ? `“${esc(eRaw)}” is not a usable energy: enter electronvolts from 0 to 1 000 000.` : 'Enter the lab kinetic energy to see which channels are open.'}</p>`;
+    const pmCl = pmHead(PM_ROW);
     out.innerHTML = `<div class="panel"><div class="panel-head"><h2>${esc(P.name)} + ${esc(T.name)}${f ? ` at ${num(eV, eV < 10 ? 3 : 1)} eV (lab)` : ''}</h2></div><div class="panel-body">${frame}</div></div>
     <div class="panel"><div class="panel-head"><h2>Product channels</h2><span class="badge">${list.total > list.length ? `lowest ${list.length} of ${list.total}` : `${list.length} found`}${list.truncated ? '+' : ''}</span></div><div class="panel-body">
-        ${f ? `<p class="tc-msg">${openText(nOpen)} E<sub>cm</sub> = ${E(f.eCM, null, 'eV')}.</p>` : ''}
-        <div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Products</th><th>Kind</th><th class="num">Δ<sub>r</sub>H°(0 K), ${unit}</th><th class="num">eV</th><th class="num">Lab threshold, eV</th><th class="num">±</th>${f ? `<th class="num">Excess, ${unit}</th>` : ''}<th></th></tr></thead><tbody>${rows || '<tr><td colspan="8">No channels: ATcT has no matching products.</td></tr>'}</tbody></table></div>
-        <p class="hint">Sorted by 0 K reaction enthalpy, the centre-of-mass threshold of an endothermic channel; exothermic channels are open at any energy unless a barrier intervenes. “Lab threshold” is the projectile energy that reaches it with the target at rest; “Excess” is E<sub>cm</sub> − Δ<sub>r</sub>H°, shared by the products' translation and internal energy. Kinds: charge transfer (the charge moves, nothing else), ion pair (neutral reactants to a cation and an anion), transfer (an atom, ion or group changes partner), excitation (same fragments in another ATcT state or isomer), association (one product: needs a third body or emission), dissociation (three or more heavy products), ionization (electrons released). Ion energies follow the stationary-electron convention at 0 K. ± is the 95 % uncertainty (from ATcT's 298.15 K uncertainties, also used at 0 K)${list.some((c) => bestU(c).how === 'correlated') ? '; <sup>c</sup> marks ATcT correlated values' : ''}. Search took ${ms.toFixed(0)} ms.</p>
+        ${kpi}
+        <div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Products</th><th>Kind</th><th class="num">Δ<sub>r</sub>H°(0 K), ${unit}</th><th class="num">eV</th><th class="num">Lab threshold, eV</th>${pmCl.th}${f ? `<th class="num">Excess, ${unit}</th>` : ''}<th></th></tr></thead><tbody>${rows || '<tr><td colspan="8">No channels: ATcT has no matching products.</td></tr>'}</tbody></table></div>${pmCl.note}
+        <p class="hint">Sorted by 0 K reaction enthalpy, the centre-of-mass threshold of an endothermic channel; exothermic channels are open at any energy unless a barrier intervenes. “Lab threshold” is the projectile energy that reaches it with the target at rest; “Excess” is E<sub>cm</sub> − Δ<sub>r</sub>H°, shared by the products' translation and internal energy. Kinds: charge transfer (the charge moves, nothing else), ion pair (neutral reactants to a cation and an anion), transfer (an atom, ion or group changes partner), excitation (same fragments in another ATcT state or isomer), association (one product: needs a third body or emission), dissociation (three or more heavy products), ionization (electrons released). Ion energies follow the stationary-electron convention at 0 K. ± is the 95 % uncertainty (from ATcT's 298.15 K uncertainties, also used at 0 K)${list.some((c) => bestU(c).how === 'correlated') ? '; <sup>c</sup> marks ATcT correlated values' : ''}.${searchNote(ms)}</p>
         ${shareBox('collide')}</div></div>`;
     writeURL();
 }
@@ -740,7 +799,8 @@ function renderDiagram() {
     $('dg-msgs').innerHTML = msgs;
     $('dg-dl-svg').disabled = false; $('dg-dl-png').disabled = false;
     const u2 = unit === 'eV' ? 'cm⁻¹' : 'eV'; const d2 = unit === 'eV' ? 1 : 4;
-    $('dg-table').innerHTML = `<div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Level</th><th>Kind</th><th class="num">${unit}</th><th class="num">${u2}</th><th class="num">±</th><th>Source</th></tr></thead><tbody>${m.levels.map((l) => `<tr><td>${esc(l.label)}</td><td>${esc(DKINDS[l.kind])}</td><td class="num">${num(fromKJ(l.kj, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(l.kj, u2), d2)}</td><td class="num">${l.u != null ? PM({ u: l.u, lt: l.lt }).replace(/^± /, '') + (l.how === 'correlated' ? CMARK : '') : '—'}</td><td class="tc-state">${l.kind === 'reactant' ? 'zero of the scale' : l.user ? 'your input' : `ATcT ${esc(db.meta.tn_version || '')}${l.nist ? ' + NIST term value' : ''}, 0 K`}</td></tr>`).join('')}${m.photon ? `<tr><td>${esc(m.photon.label)}</td><td>Photon</td><td class="num">${num(fromKJ(m.photon.kj, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(m.photon.kj, u2), d2)}</td><td></td><td class="tc-state">N<sub>A</sub>hc/λ</td></tr>` : ''}</tbody></table></div>${m.levels.some((l) => l.how === 'correlated') ? '<p class="hint"><sup>c</sup> correlated uncertainty from ATcT covariances; “<” a correlated value that is only a bound.</p>' : ''}`;
+    const pmDg = pmHead(PM_ROW);
+    $('dg-table').innerHTML = `<div class="tc-table-scroll"><table class="tc-table"><thead><tr><th>Level</th><th>Kind</th><th class="num">${unit}</th><th class="num">${u2}</th>${pmDg.th}<th>Source</th></tr></thead><tbody>${m.levels.map((l) => `<tr><td>${esc(l.label)}</td><td>${esc(DKINDS[l.kind])}</td><td class="num">${num(fromKJ(l.kj, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(l.kj, u2), d2)}</td><td class="num">${l.u != null ? PM({ u: l.u, lt: l.lt }).replace(/^± /, '') + (l.how === 'correlated' ? CMARK : '') : '—'}</td><td class="tc-state">${l.kind === 'reactant' ? 'zero of the scale' : l.user ? 'your input' : `ATcT ${esc(db.meta.tn_version || '')}${l.nist ? ' + NIST term value' : ''}, 0 K`}</td></tr>`).join('')}${m.photon ? `<tr><td>${esc(m.photon.label)}</td><td>Photon</td><td class="num">${num(fromKJ(m.photon.kj, unit), DIGITS[unit])}</td><td class="num">${num(fromKJ(m.photon.kj, u2), d2)}</td><td></td><td class="tc-state">N<sub>A</sub>hc/λ</td></tr>` : ''}</tbody></table></div>${pmDg.note}${m.levels.some((l) => l.how === 'correlated') ? '<p class="hint"><sup>c</sup> correlated uncertainty from ATcT covariances; “<” a correlated value that is only a bound.</p>' : ''}`;
     writeURL();
 }
 function download(name, blob) {
@@ -795,7 +855,7 @@ function initDiagram() {
     $('dg-fill').addEventListener('click', () => {
         if (!db) return;
         const r = resolveToken(db, state.dg.r.trim());
-        if (!r.species || !r.species.gas || r.species.h0 == null) { $('dg-msgs').innerHTML = '<p class="tc-msg tc-bad">“Add the lowest channels” needs a single gas-phase reactant.</p>'; return; }
+        if (!r.species || !r.species.gas || r.species.h0 == null) { $('dg-msgs').innerHTML = '<p class="tc-msg tc-bad">“Add the lowest ATcT channels” needs a single gas-phase reactant.</p>'; return; }
         const have = new Set(state.dg.p.map((x) => x.trim()).filter(Boolean));
         const add = findChannels(db, r.species, 'neutral', { limit: 8 }).map((c) => c.products.map(txt).join(' + ')).filter((x) => !have.has(x)).slice(0, 4);
         state.dg.p = [...have, ...add];
@@ -849,7 +909,7 @@ function renderSelfTest() {
     root.innerHTML = `<div class="panel"><div class="panel-head"><h2>Self-test</h2><span class="badge ${nPass === nAll ? 'badge-ok' : 'badge-bad'}">${nPass} / ${nAll}</span></div><div class="panel-body">
         <p class="tc-st-summary">${nPass} of ${nAll} checks passed with the loaded table (ATcT TN ${esc(db.meta.tn_version || '?')})${nNA ? `; ${nNA} not applicable to this table` : ''}${waiting.length ? ` (still loading: ${waiting.join(', ')})` : ''}.</p>
         <p class="hint">Each reaction is recomputed from the loaded table and checked twice. First against the value hand-computed from ATcT TN 1.228 on 2026-11-06 (plus, for excited products, the NIST term value) to 0.0015 kJ/mol, which catches data, parsing and arithmetic errors; with a table of another TN version that first check is skipped and marked.${String(db.meta.tn_version || HAND_TN) !== HAND_TN ? ` <strong>The loaded table is TN ${esc(db.meta.tn_version)}</strong>, so only the reference checks count.` : ''} Then against a reference value, passing when |Δ| ≤ √(U<sub>tool</sub>² + U<sub>ref</sub>²) at 95 %, where U<sub>tool</sub> is the uncertainty the tool shows for that reaction (correlated when the ATcT covariances cover it); for a threshold quoted to a rounded wavelength or energy, U<sub>ref</sub> is that rounding.</p>
-        <p class="hint"><strong>Most references are not independent tests of ATcT.</strong> Seven are measurements that ATcT itself uses as inputs (its 1.228 species pages list them), and D₀(H–CH₃) comes from an ATcT-group analysis of such inputs, so agreement is expected. H₂CO → H₂ + CO is compared with ATcT's own values and covariances (TN 1.228 via the API), so it checks the arithmetic and the covariance file only. IE(H) can agree only to ATcT's printed rounding. The “quoted” thresholds (O₃ at ≈310 nm, N₂O at 341 nm, and all three H₂O + e⁻ asymptotes of Haxton et al.: 3.56, 4.35 and 8.38 eV) come from other groups, who computed them from older thermochemistry and quote them rounded; each row states the tolerance used and why, so they test the bookkeeping of excited products and attached electrons, not the last digit. H₂O → H + OH(A) adds the same NIST term value the tool adds, so it checks bookkeeping only. The checks show that this tool reproduces ATcT and its sources, not that they are right.</p>
+        <details class="tc-fold"><summary><strong>Most references are not independent tests of ATcT:</strong> what these checks can and cannot show</summary><p class="hint">Seven are measurements that ATcT itself uses as inputs (its 1.228 species pages list them), and D₀(H–CH₃) comes from an ATcT-group analysis of such inputs, so agreement is expected. H₂CO → H₂ + CO is compared with ATcT's own values and covariances (TN 1.228 via the API), so it checks the arithmetic and the covariance file only. IE(H) can agree only to ATcT's printed rounding. The “quoted” thresholds (O₃ at ≈310 nm, N₂O at 341 nm, and all three H₂O + e⁻ asymptotes of Haxton et al.: 3.56, 4.35 and 8.38 eV) come from other groups, who computed them from older thermochemistry and quote them rounded; each row states the tolerance used and why, so they test the bookkeeping of excited products and attached electrons, not the last digit. H₂O → H + OH(A) adds the same NIST term value the tool adds, so it checks bookkeeping only. The checks show that this tool reproduces ATcT and its sources, not that they are right.</p></details>
         <div class="tc-table-scroll"><table class="tc-table tc-st-table"><thead><tr><th>Check</th><th class="num">This tool</th><th class="num">Reference</th><th class="num">Δ</th><th class="num">Tolerance</th><th>Result</th><th>Source</th></tr></thead><tbody>
         <tr class="tc-st-group"><th colspan="7">Bond, ionization and appearance energies (0 K)</th></tr>
         ${res.filter((r) => r.group !== 'excited').map(caseRow).join('')}
@@ -866,7 +926,7 @@ function renderData() {
     const cur = db.isShipped && current ? current : null;
     $('dt-meta').innerHTML = `${esc(m.source || '')}, Thermochemical Network version <strong>${esc(m.tn_version || '?')}</strong>${m.as_of ? ` (as of ${esc(m.as_of)})` : ''}${cur && cur.fetched ? `, retrieved from the ATcT API on ${esc(cur.fetched.slice(0, 10))} at ${esc(cur.fetched.slice(11, 16))} UTC` : m.downloaded ? `, downloaded ${esc(m.downloaded)}` : ''}. ${db.species.length} species; ${db.species.filter((s) => s.gas).length} in the gas phase${cur && cur.cov_species ? `; covariances for ${cur.cov_species} of them, from the same version` : ''}. ${m.url ? `ATcT's <a href="${esc(m.url)}" target="_blank" rel="noopener">table of this version</a>${cur && cur.doi ? `; dataset <a href="https://doi.org/${esc(cur.doi)}" target="_blank" rel="noopener">doi:${esc(cur.doi)}</a>` : ''}.` : ''}`;
     $('dt-cite').innerHTML = (m.citation || []).map((c) => `<li>${esc(c).replace(/doi:(\S+)/, (x, d) => `<a href="https://doi.org/${esc(d)}" target="_blank" rel="noopener">doi:${esc(d)}</a>`)}</li>`).join('') || '<li>Cite the source of the table you loaded.</li>';
-    $('tc-source').innerHTML = `Values: <strong>ATcT ${esc(m.tn_version || '')}</strong>${cur && cur.fetched ? `, retrieved from the ATcT API ${esc(cur.fetched.slice(0, 10))}` : m.as_of ? ` (${esc(m.as_of)})` : ''}, Argonne National Laboratory. Uncertainties are 95 %, those of Δ<sub>f</sub>H°(298.15 K). <a href="#" id="tc-cite-link">How to cite</a>`;
+    $('tc-source').innerHTML = `Values: <strong>ATcT ${esc(m.tn_version || '')}</strong>, Argonne National Laboratory${cur && cur.fetched ? `, retrieved from the ATcT API ${esc(cur.fetched.slice(0, 10))}` : m.as_of ? ` (${esc(m.as_of)})` : ''}. 95 % uncertainties. <a href="#" id="tc-cite-link">How to cite</a>`;
     $('tc-cite-link').onclick = (e) => { e.preventDefault(); showTab('data', true); };
     renderExcitedRefs();
 }
@@ -909,6 +969,22 @@ function shippedDB() {
     for (const k of ['cov', 'exc']) attachTo(d, k);
     return d;
 }
+
+/** A tab's Reset button: that tab's inputs back to the defaults the page opens with. The energy unit stays. */
+function resetInputs(tab) {
+    if (!db && tab !== 'units') return;
+    resetTab(state, DEFAULTS, tab);
+    const f = (id) => { const s = db.byId.get(id); return s ? s.formula : ''; };
+    if (tab === 'channels') { exAll.clear(); $('ch-q').value = f(state.ch); renderChannels(); }
+    else if (tab === 'recoil') { $('rc-geo').open = false; renderRecoil(); }
+    else if (tab === 'collide') { $('cl-p').value = f(state.cp); $('cl-t').value = f(state.ct); renderCollide(); }
+    else if (tab === 'reaction') { $('rx-in').value = state.rx; renderReaction(); }
+    else if (tab === 'species') { $('sp-q').value = f(state.sp); renderSpecies(); }
+    else if (tab === 'units') { $('un-v').value = state.uv; $('un-u').value = state.uu; renderUnits(); }
+}
+document.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-reset]'); if (b) resetInputs(b.dataset.reset);
+});
 
 function rerender() {
     renderData(); renderSpecies(); renderReaction(); renderChannels(); renderUnits(); renderRecoil(); renderCollide();
@@ -981,7 +1057,7 @@ async function boot() {
         shipped = await r.json();
         db = shippedDB();
     } catch (err) {
-        $('tc-source').innerHTML = `Could not load the ATcT table (${esc(err.message)}). Load a CSV in the <a href="?tab=data">Data &amp; citation</a> tab.`;
+        $('tc-source').innerHTML = `Could not load the ATcT table (${esc(err.message)}). Load a CSV in the <a href="?tab=data">Data</a> tab.`;
         return;
     }
     combo($('sp-q'), $('sp-list'), (s) => { state.sp = s.id; $('sp-q').value = s.formula; renderSpecies(); },

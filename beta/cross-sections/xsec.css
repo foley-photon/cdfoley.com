@@ -105,3 +105,54 @@
     .xs-sets .xs-med::before { content: ', '; }
     .xs-sets-scroll .tc-table th, .xs-sets-scroll .tc-table td { padding: 0; }
 }
+
+/* Search with no match: one line that says so. */
+.xs-list li.xs-l-none { display: block; color: var(--muted); cursor: default; }
+.xs-list li.xs-l-none:hover { background: none; }
+
+/* Panel head of the spectrum: Copy link and Reset at the right. */
+.xs-head { padding-block: 0.5rem; }
+.xs-head-btns { display: inline-flex; gap: 0.15rem; margin-right: -0.5rem; }
+
+/* Filter chips above the dataset list. */
+.xs-filter { margin: 0.1rem 0 0.5rem; }
+.xs-quick button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.xs-quick button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.xs-filter-note { margin: -0.2rem 0 0.5rem; }
+
+/* A symbol inside an upper-case result heading keeps its case (τ, not T). */
+.tc-res h3 .xs-sym { text-transform: none; font-size: 1.15em; letter-spacing: 0; }
+
+/* Unit converter: the value keeps room to type, the unit list does not push it out. */
+#xs-cv { min-width: 7rem; }
+#xs-cu { min-width: 0; max-width: 100%; }
+@media (max-width: 480px) { .panel .input-unit select#xs-cu { max-width: 11rem; } }
+table.xs-conv th { font-weight: 500; color: var(--text-2); white-space: normal; }
+
+/* Values at a laser line. Wide: a table. Narrow (a phone): one card per dataset, so that σ is never cut off. */
+.xs-at-wrap { container-type: inline-size; }
+.xs-at-wrap > table.tc-table { display: table; overflow: visible; width: 100%; }
+.xs-at .xs-a-more { white-space: nowrap; }
+.xs-at .xs-a-use { text-align: right; white-space: nowrap; }
+.xs-scale { margin-top: 0.5rem; }
+@container (max-width: 600px) {
+    .xs-at-wrap > table.tc-table, .xs-at tbody { display: block; }
+    .xs-at thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* read by assistive tech, not shown */
+    .xs-at tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.1rem 0.6rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+    .xs-at td { display: block; border: 0; padding: 0; min-width: 0; grid-column: 1 / -1; }
+    .xs-at td.xs-a-ref { grid-column: 1; grid-row: 1; overflow-wrap: anywhere; }
+    .xs-at td.xs-a-use { grid-column: 2; grid-row: 1; }
+    .xs-at td.xs-a-sig { text-align: left; font-size: 1.2rem; color: var(--text); white-space: normal; }
+    .xs-at td.xs-a-sig::after { content: ' cm²'; font-size: 0.8rem; color: var(--text-2); }
+    .xs-at td.xs-a-alt { text-align: left; white-space: normal; color: var(--text-2); }
+    .xs-at td.xs-a-alt:not(:empty)::after { content: ' ' attr(data-u); font-family: var(--font, inherit); font-size: 0.78rem; color: var(--muted); }
+    .xs-at td.xs-a-T { text-align: left; font-size: 0.78rem; color: var(--text-2); }
+    .xs-at td.xs-a-note:empty { display: none; }
+}
+
+/* Typical values: three columns that fit a phone without scrolling sideways. */
+@media (max-width: 480px) { .prose table.xs-typ { font-size: 0.84rem; } .prose table.xs-typ th, .prose table.xs-typ td { padding-inline: 0.45rem; } }
+
+/* The count badge stays on one line; on a phone it wraps under the panel title. */
+.xs-pick .panel-head { flex-wrap: wrap; row-gap: 0.3rem; }
+#xs-count { white-space: nowrap; }

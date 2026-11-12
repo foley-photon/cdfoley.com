@@ -10,13 +10,16 @@
 .cl-f-gas select { width: 100%; }
 .cl-f-t { flex: 0 1 10rem; }
 .cl-f-cd { flex: 1 1 15rem; max-width: 24rem; }
+/* the label is as wide as the input under it, so the symbol sits over the input's right edge */
+.cl-f-cd > label { max-width: 11rem; position: relative; }
 .cl-f-cd .input-unit { max-width: 11rem; }
 .cl-f-cd .hint { margin: 0.3rem 0 0; }
 .cl-f-units { flex: 0 1 auto; }
 .cl-units { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .cl-units .input { width: auto; padding-right: 1.6rem; }
 .cl-custom .field { flex: 1 1 9rem; max-width: 12rem; }
-.cl-cd-assumed { font-weight: 400; color: var(--muted); font-size: 0.8rem; margin-left: auto; }
+/* "(assumed)" sits just right of the label, outside its width, so the label does not wrap */
+.cl-cd-assumed { position: absolute; left: 100%; bottom: 0; margin-left: 0.5rem; white-space: nowrap; font-weight: 400; color: var(--muted); font-size: 0.8rem; }
 .cl-cd-assumed[hidden] { display: none; }
 .cl-linkbtn { font: inherit; font-size: 0.8rem; color: var(--accent); background: none; border: 0; border-left: 1px solid var(--border); padding: 0 0.6rem; cursor: pointer; text-decoration: underline; }
 .cl-linkbtn:hover { color: var(--accent-hover); }
@@ -174,7 +177,11 @@
 .cl-plot { min-height: 240px; }
 .cl-plots .panel-head h2 { text-transform: none; letter-spacing: 0; font-size: 0.9rem; color: var(--text); }
 .cl-plots .hint { margin: 0.5rem 0 0; }
-.cl-range { margin-top: 1rem; max-width: 26rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cl-range { margin-top: 1.2rem; max-width: 28rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 0.8rem 1.1rem; }
+.cl-range .field-row { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 0.35rem; }
+.cl-range .field { margin: 0; }
+.cl-range .field > label { font-size: 0.82rem; font-weight: 500; color: var(--text-2); }
+.cl-range .hint { margin: 0.45rem 0 0; }
 
 /* ── Self-test ──────────────────────────────────────────────────────── */
 .cl-selftest { display: grid; gap: 0.8rem; }
@@ -186,10 +193,22 @@
 .cl-st-device { font-family: var(--mono); font-size: 0.8rem; }
 .cl-st-group th { background: var(--bg-soft); color: var(--muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 650; }
 .cl-st-table tbody th { font-weight: 500; min-width: 14rem; }
+/* a group is folded to its header line; the header is a button */
+.cl-st-table .cl-st-group th { padding: 0; font-weight: 650; }
+.cl-st-toggle { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.15rem 0.6rem; position: sticky; left: 0; width: 100%; max-width: calc(100vw - 2.5rem); padding: 0.55rem 0.6rem; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; text-align: left; background: none; border: 0; cursor: pointer; }
+.cl-st-toggle > span:nth-child(2) { max-width: calc(100% - 1.1rem); }
+.cl-st-toggle:hover { color: var(--accent); }
+.cl-st-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cl-st-caret { flex: none; align-self: center; width: 0; height: 0; border-style: solid; border-width: 0.3rem 0 0.3rem 0.42rem; border-color: transparent transparent transparent currentColor; transition: transform 0.12s; }
+.cl-st-toggle[aria-expanded="true"] .cl-st-caret { transform: rotate(90deg); }
+.cl-st-count { color: var(--ok); }
+.cl-st-count.cl-st-bad { color: var(--danger); }
+.cl-st-closed tr:not(.cl-st-group) { display: none; }
 .cl-st-src { min-width: 10rem; font-size: 0.8rem; }
 
 /* ── Prose ──────────────────────────────────────────────────────────── */
 .cl-prose { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.cl-typical td:first-child { min-width: 11rem; }
 
 /* ── Phone and motion ───────────────────────────────────────────────── */
 @media (max-width: 860px) {

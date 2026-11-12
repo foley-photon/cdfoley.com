@@ -235,6 +235,37 @@ export function bandBadge(mc, formula, band, approx = false) {
     };
 }
 
+/**
+ * The note under the molecular-flow line conductance, in plain words: "Formula accuracy for this line: ±1.3 %. The
+ * Monte Carlo button below checks it." The engine's own sentence (band.note, which names Haefer and Oatley and the
+ * number of junctions) becomes the tooltip; its warnings about partly blocked or facing openings are kept.
+ */
+export function bandNote(band) {
+    if (!band) return '';
+    if (band.lo === 0 && band.hi === 0) return 'The formula is exact for this line.';
+    const pc = (x) => (Math.round(Math.abs(x) * 1000) / 10).toFixed(1) + ' %';   // as the engine rounds it
+    const lo = pc(band.lo), hi = pc(band.hi);
+    const range = lo === hi ? `±${hi}` : `${band.lo < 0 ? '−' : ''}${lo} to ${band.hi > 0 ? '+' : ''}${hi}`;
+    const m = /junctions?\)\.(.*)$/.exec(band.note || '');
+    const extra = m ? m[1] : '';
+    let text = `Formula accuracy for this line: ${range}.${extra}`;
+    if (!/Monte Carlo check/.test(extra)) {
+        text += band.hi > 0.15 || band.lo < -0.15 ? ' The band is wide: run the Monte Carlo check below.' : ' The Monte Carlo button below checks it.';
+    }
+    return text;
+}
+
+/**
+ * Where a Knudsen number sits: "molecular above Kn = 0.5", "transitional from Kn = 0.01 to 0.5" or "viscous below
+ * Kn = 0.01". An element above Kn = 0.5 whose conductance already departs from its molecular value is transitional;
+ * the text then only names the limit.
+ */
+export function knAnchor(Kn, regime) {
+    if (!Number.isFinite(Kn)) return '';
+    if (Kn > 0.5) return regime && regime !== 'molecular' ? 'the molecular limit is Kn = 0.5' : 'molecular above Kn = 0.5';
+    return Kn > 0.01 ? 'transitional from Kn = 0.01 to 0.5' : 'viscous below Kn = 0.01';
+}
+
 /** "Monte Carlo is 0.36 % lower" style comparison text. */
 export function compareText(diff) {
     if (!Number.isFinite(diff)) return '';
@@ -342,24 +373,29 @@ export function mount(root, ctx = {}) {
     // a preset replaces the whole line; when the line was the user's own (no preset), it can be restored once
     let undo = null;
     const isPreset = () => { const k = keyOf(fullModel()); return PRESETS.some((_, j) => keyOf(presetModel(j)) === k); };
-    el.presets.addEventListener('click', (ev) => {
-        const b = ev.target.closest('[data-preset]');
-        if (!b) return;
+    function loadPreset(k, what = 'Example loaded') {
         const own = !isPreset(), st = store.get();
         const before = { items: clone(model.items), bc: clone(model.bc), range: clone(model.range), gas: { gas: st.gas, T: st.T, custom: st.custom, Cd: st.Cd } };
-        const m = presetModel(Number(b.dataset.preset));
+        const m = presetModel(k);
         model = { items: m.items, bc: m.bc, range: m.range };
         pumpMemo = null; schMode = null;
         store.set({ gas: m.gas.id, T: m.gas.T, custom: null, Cd: null });
         hideNotice();
         if (own && el.notice) {
             undo = before;
-            el.notice.innerHTML = 'Example loaded; it replaced your line. <button type="button" class="btn btn-ghost btn-sm" data-undo>Undo</button>';
+            el.notice.innerHTML = what + '; it replaced your line. <button type="button" class="btn btn-ghost btn-sm" data-undo>Undo</button>';
             el.notice.hidden = false;
         }
         renderAll(true);
         changed();
+    }
+    el.presets.addEventListener('click', (ev) => {
+        const b = ev.target.closest('[data-preset]');
+        if (b) loadPreset(Number(b.dataset.preset));
     });
+    // Reset: back to the line the page opens with (the first example); a line of your own can be restored with Undo
+    const resetBtn = $('cl-reset');
+    if (resetBtn) resetBtn.addEventListener('click', () => loadPreset(0, 'Reset to the first example'));
     if (el.notice) el.notice.addEventListener('click', (ev) => {
         if (!ev.target.closest('[data-undo]') || !undo) return;
         const u = undo;
@@ -666,31 +702,30 @@ export function mount(root, ctx = {}) {
             setRow('cl-r-primary', 'Effective pumping speed <span class="sym">S<sub>eff</sub></span>', v('speed', a.Seff),
                 noConv || !a.pump ? '' : `(${fmtPct(a.pump.fraction)} of the pump's speed)`);
             setRow('cl-r-cline', 'Line conductance at this pressure <span class="sym">C = Q/(p₀ − p<sub>pump</sub>)</span>', pumpOnly ? 'pump on the chamber' : v('speed', a.Cline));
-            setRow('cl-r-cmol', 'Molecular-flow line conductance <span class="sym">C<sub>mol</sub></span>', pumpOnly ? 'pump on the chamber' : fmt('speed', a.mol.Cline), pumpOnly ? '' : a.mol.band.note);
+            setRow('cl-r-cmol', 'Molecular-flow line conductance <span class="sym">C<sub>mol</sub></span>', pumpOnly ? 'pump on the chamber' : fmt('speed', a.mol.Cline), pumpOnly ? '' : bandNote(a.mol.band));
             setRow('cl-r-smol', 'Molecular-flow <span class="sym">S<sub>eff</sub></span>', fmt('speed', a.mol.Seff));
             setRow('cl-r-q', 'Throughput <span class="sym">Q</span>', v('pv', a.Q));
             setRow('cl-r-pn', 'Pressure at the pump inlet <span class="sym">p<sub>N</sub></span>', v('pressure', a.pN));
         } else {
             setRow('cl-r-primary', 'Throughput <span class="sym">Q</span>', v('pv', a.Q));
             setRow('cl-r-cline', 'Line conductance at this pressure <span class="sym">C = Q/(p₁ − p₂)</span>', v('speed', a.Cline));
-            setRow('cl-r-cmol', 'Molecular-flow line conductance <span class="sym">C<sub>mol</sub></span>', fmt('speed', a.mol.Cline), a.mol.band.note);
+            setRow('cl-r-cmol', 'Molecular-flow line conductance <span class="sym">C<sub>mol</sub></span>', fmt('speed', a.mol.Cline), bandNote(a.mol.band));
             setRow('cl-r-smol', '', null);
             setRow('cl-r-q', '', null);
             setRow('cl-r-pn', '', null);
         }
         const cls = a.regime === 'transitional' ? 'badge badge-warn' : 'badge';
         const word = a.regime.charAt(0).toUpperCase() + a.regime.slice(1);
-        let note = ci >= 0 ? `Set by element ${num1(a.elements[ci].path)} (Kn = ${fmtNum(a.elements[ci].Kn, 3)}).` : '';
+        let note = ci >= 0 ? `Set by element ${num1(a.elements[ci].path)} (Kn = ${fmtNum(a.elements[ci].Kn, 3)}; ${knAnchor(a.elements[ci].Kn, a.elements[ci].regime)}).` : '';
         if (ci >= 0 && a.elements[ci].Kn > 0.5 && Number.isFinite(a.Cline) && a.mol.Cline > 0 && a.converged) {
             const dev = a.Cline / a.mol.Cline - 1;   // rarefaction effects already show above Kn = 0.5
             if (Math.abs(dev) > 0.02) note += ` The line conductance is ${fmtNum(Math.abs(dev) * 100, 2)} % ${dev > 0 ? 'above' : 'below'} its molecular value.`;
         }
         setRow('cl-r-regime', 'Flow regime', { html: `<span class="${cls}">${esc(word)}</span>` }, note);
         if (el.regimeBadge) { el.regimeBadge.className = cls; el.regimeBadge.textContent = word; el.regimeBadge.hidden = false; }
-        if ((a.mol.band.hi > 0.15 || a.mol.band.lo < -0.15) && !/Monte Carlo check/.test(a.mol.band.note)) {
-            const row = root.querySelector('#cl-r-cmol .result-note');
-            if (row) row.textContent = a.mol.band.note + ' The band is wide: run the Monte Carlo check below.';
-        }
+        // the full statement (the method and the number of junctions) stays one hover away
+        const bn = root.querySelector('#cl-r-cmol .result-note');
+        if (bn) { if (bn.hidden) bn.removeAttribute('title'); else bn.title = a.mol.band.note; }
     }
 
     function renderChecks(a) {

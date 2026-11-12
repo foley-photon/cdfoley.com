@@ -56,7 +56,7 @@
     "url": "https://cdfoley.com/"
    },
    "dateCreated": "2026-11-07T09:16:59-05:00",
-   "dateModified": "2026-11-11T21:40:17+00:00"
+   "dateModified": "2026-11-12T06:36:37+00:00"
   },
   {
    "@type": "BreadcrumbList",
@@ -89,8 +89,8 @@
 
     <header class="page-head">
         <span class="eyebrow">Beta</span>
-        <h1>Absorption Cross-Section Atlas <span class="badge badge-warn">BETA</span></h1>
-        <p class="lede">Gas-phase absorption cross sections σ(λ) of about 1000 molecules, from the vacuum ultraviolet to the near infrared, gathered from five public collections: the MPI-Mainz UV/VIS Spectral Atlas (2013 snapshot), NCAR's TUV-x photolysis data, the Leiden photodissociation and photoionization database, IUP Bremen's molecular spectroscopy data, and the Harvard CfA molecular database. Every dataset is listed with the reference its source gives for it: authors and title where the source has them, its citation text where it does not. Overlay datasets on one plot, read σ at your laser line (point value or averaged over the line width), interpolate between measurement temperatures, convert between cm², Mb, molar absorptivity and base-e or base-10 coefficients, and turn a cross section into an absorbance, an optical depth, or the fraction of molecules a pulse photolyzes.</p>
+        <h1>Absorption Cross-Section Atlas</h1>
+        <p class="lede">Gas-phase absorption cross sections σ(λ) of about 1000 molecules, from the vacuum ultraviolet to the near infrared, overlaid from five public collections on one plot. Read σ at your laser line, interpolate between measurement temperatures, convert units, and turn a cross section into an absorbance, an optical depth, or the fraction of molecules a pulse photolyzes.</p>
         <details class="key-terms"><summary>Key terms</summary><dl>
             <dt>Cross section σ</dt><dd>The effective area a molecule presents to a photon: the fraction of light absorbed by a thin layer is σ times the number of molecules per unit area. Units cm² molecule⁻¹.</dd>
             <dt>Molar absorptivity ε</dt><dd>The same quantity per mole and in base 10, as used in solution spectroscopy: ε = σN<sub>A</sub>/(1000 ln 10) in L mol⁻¹ cm⁻¹.</dd>
@@ -122,7 +122,7 @@
     </section>
 
     <section class="panel xs-spectrum" aria-labelledby="xs-plot-h">
-        <div class="panel-head"><h2 id="xs-plot-h">Spectrum</h2></div>
+        <div class="panel-head xs-head"><h2 id="xs-plot-h">Spectrum</h2><span class="xs-head-btns"><button type="button" class="btn btn-ghost btn-sm" id="xs-link" title="Copy a link that restores this molecule, these datasets and this view">Copy link</button><button type="button" class="btn btn-ghost btn-sm" id="xs-reset" title="Back to the page as it first opens">Reset</button></span></div>
         <div class="panel-body">
             <div class="field-row xs-axes">
                 <div class="field">
@@ -138,11 +138,11 @@
                 <div class="xs-lims">
                     <div class="field xs-lim">
                         <label for="xs-min">From</label>
-                        <div class="input-unit"><input id="xs-min" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="auto"><span class="unit">nm</span></div>
+                        <div class="input-unit"><input id="xs-min" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="auto"><span class="unit" id="xs-min-u">nm</span></div>
                     </div>
                     <div class="field xs-lim">
                         <label for="xs-max">To</label>
-                        <div class="input-unit"><input id="xs-max" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="auto"><span class="unit">nm</span></div>
+                        <div class="input-unit"><input id="xs-max" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="auto"><span class="unit" id="xs-max-u">nm</span></div>
                     </div>
                 </div>
                 <div class="xs-quick" id="xs-ranges" aria-label="Wavelength ranges"></div>
@@ -153,7 +153,7 @@
             </div>
             <div id="xs-plot" class="xs-plot" role="img" aria-label="Absorption cross section against wavelength"></div>
             <p class="hint" id="xs-plot-note"></p>
-            <div class="tc-actions"><button type="button" class="btn btn-secondary btn-sm" id="xs-csv">Download the shown datasets (CSV)</button> <button type="button" class="btn btn-ghost btn-sm" id="xs-link">Copy link</button></div>
+            <div class="tc-actions"><button type="button" class="btn btn-secondary btn-sm" id="xs-csv">Download the shown datasets (CSV)</button></div>
         </div>
     </section>
     </div>
@@ -173,6 +173,7 @@
             </div>
             <div class="xs-quick" id="xs-laser" aria-label="Laser lines"></div>
             <div id="xs-at"></div>
+            <p class="hint xs-scale">For scale, over 10&nbsp;cm at 1&nbsp;Torr and 296&nbsp;K: σ = 10⁻¹⁷&nbsp;cm² absorbs 96&nbsp;% of the light, 10⁻¹⁹&nbsp;cm² absorbs 3.2&nbsp;%, and 10⁻²¹&nbsp;cm² absorbs 0.033&nbsp;%. Strong allowed bands reach about 10⁻¹⁷&nbsp;cm²; <a href="#typical">typical values</a> are listed below.</p>
         </div>
     </section>
 
@@ -235,6 +236,30 @@
             <li><strong>Photolysis per pulse.</strong> Photon fluence Φ = F/(hc/λ); fraction excited 1 − e<sup>−σΦ</sup>, fraction photolyzed 1 − e<sup>−σΦφ</sup>, for an optically thin sample and one-photon absorption. The saturation fluence hν/σ is where a fraction 1 − 1/e of the molecules has absorbed. The photolyzed fraction assumes that a molecule which absorbs and does not dissociate is back in the ground state within the pulse; if it is not, the fraction is φ(1 − e<sup>−σΦ</sup>), the same at low fluence and smaller near saturation.</li>
             <li><strong>Temperature.</strong> Where one series (one paper's files of the same resolution, pressure and version) was measured at several temperatures, σ at an intermediate temperature is interpolated linearly in T from the same values the table shows, never extrapolated.</li>
         </ul>
+        <h2 id="typical">Typical values</h2>
+        <p>The rows below span almost seven orders of magnitude. Each row can be reproduced above: pick the molecule, press the laser line, and read the first row of the table. The last column is the share of the light absorbed by 1&nbsp;Torr of the gas at 296&nbsp;K over 10&nbsp;cm, from the absorption calculator.</p>
+        <table class="xs-typ">
+            <thead><tr><th>Molecule and line</th><th>σ, cm²</th><th>Absorbed</th></tr></thead>
+            <tbody>
+                <tr><td>H₂O at 121.567&nbsp;nm (Lyman-α)</td><td>1.471&nbsp;×&nbsp;10⁻¹⁷</td><td>99.18&nbsp;%</td></tr>
+                <tr><td>O₃ at 248.4&nbsp;nm (Hartley band)</td><td>1.079&nbsp;×&nbsp;10⁻¹⁷</td><td>97.04&nbsp;%</td></tr>
+                <tr><td>CH₃I at 266&nbsp;nm</td><td>9.750&nbsp;×&nbsp;10⁻¹⁹</td><td>27.25&nbsp;%</td></tr>
+                <tr><td>Cl₂ at 351.1&nbsp;nm</td><td>1.825&nbsp;×&nbsp;10⁻¹⁹</td><td>5.78&nbsp;%</td></tr>
+                <tr><td>HNO₃ at 248.4&nbsp;nm</td><td>1.994&nbsp;×&nbsp;10⁻²⁰</td><td>0.6484&nbsp;%</td></tr>
+                <tr><td>O₃ at 532.1&nbsp;nm (Chappuis band)</td><td>2.754&nbsp;×&nbsp;10⁻²¹</td><td>0.0898&nbsp;%</td></tr>
+                <tr><td>O₂ at 222&nbsp;nm (Herzberg continuum)</td><td>4.090&nbsp;×&nbsp;10⁻²⁴</td><td>1.334&nbsp;×&nbsp;10⁻⁴&nbsp;%</td></tr>
+            </tbody>
+        </table>
+        <p>Sources: the recommended datasets of Sander et al. (2011), the NASA JPL evaluation, as given in the MPI-Mainz atlas (298&nbsp;K, or 293 to 298&nbsp;K for O₃, 210 to 365&nbsp;K for CH₃I). Files marked as upper limits (H₂SO₄, for one) are labeled as such in the dataset list.</p>
+        <h2>Worked example</h2>
+        <p>The page as it opens: ozone at the KrF line, 248.4&nbsp;nm, then 1&nbsp;Torr of ozone at 296&nbsp;K over 10&nbsp;cm and a pulse of 10&nbsp;mJ/cm².</p>
+        <ul>
+            <li>The first row of the laser-line table is the recommended dataset, Sander et al. (2011) at 293–298&nbsp;K: σ = 1.079&nbsp;×&nbsp;10⁻¹⁷&nbsp;cm² at 248.4&nbsp;nm (40257.6&nbsp;cm⁻¹, 4.9913&nbsp;eV). The other two datasets shown give 1.064 and 1.045&nbsp;×&nbsp;10⁻¹⁷&nbsp;cm², 1 to 3&nbsp;% lower; that spread is how far the sources disagree here. Press “use&nbsp;›” on the first row.</li>
+            <li>Number density: n = p/k<sub>B</sub>T = 133.322&nbsp;Pa / (1.380649&nbsp;×&nbsp;10⁻²³&nbsp;J/K × 296&nbsp;K) = 3.262&nbsp;×&nbsp;10¹⁶&nbsp;cm⁻³.</li>
+            <li>Optical depth: τ = σnL = 1.079&nbsp;×&nbsp;10⁻¹⁷ × 3.262&nbsp;×&nbsp;10¹⁶ × 10 = 3.52, an absorbance of 1.529. The cell transmits e<sup>−3.52</sup> = 2.96&nbsp;% and absorbs 97.04&nbsp;%.</li>
+            <li>One pulse: a 248.4&nbsp;nm photon carries hc/λ = 7.997&nbsp;×&nbsp;10⁻¹⁹&nbsp;J, so 10&nbsp;mJ/cm² is Φ = 1.250&nbsp;×&nbsp;10¹⁶ photons&nbsp;cm⁻². Then σΦ = 0.1349 and the fraction excited is 1 − e<sup>−0.1349</sup> = 0.1262. With φ = 1 the same fraction is photolyzed.</li>
+            <li>Saturation fluence: hν/σ = 7.997&nbsp;×&nbsp;10⁻¹⁹&nbsp;J / 1.079&nbsp;×&nbsp;10⁻¹⁷&nbsp;cm² = 74.11&nbsp;mJ&nbsp;cm⁻², so this pulse is well below saturation.</li>
+        </ul>
         <h2>Assumptions and limits</h2>
         <ul>
             <li>Data are shown as their sources give them, including the wavelength scale (air or vacuum, where stated) and the spectral resolution of the measurement. Above 200 nm, air and vacuum wavelengths differ by about 0.075 nm at 250 nm and 0.11 nm at 400 nm. The wavenumber and photon-energy axes are 10⁷/λ and hc/λ of the wavelength as given, so an air wavelength lands about 3 parts in 10⁴ high (12 cm⁻¹ at 250 nm).<!-- 0.075 nm at 250 nm (was 0.06 nm, which is the 200 nm value): CRC Handbook of Chemistry and Physics, 97th ed., p. 10-255, Birch-Downs table, 0.07535 nm; Misra and Dubinskii (eds.), Ultraviolet Spectroscopy and UV Lasers (2002), p. 47, eq. 26, Edlen formula, 0.0753 nm; Ciddor 1996 with the coefficients used on the energy converter, 0.0753 nm; NIST Engineering Metrology Toolbox documentation. --></li>
@@ -254,7 +279,9 @@
 
     <section class="panel xs-terms" id="sources" aria-labelledby="xs-src-h">
         <div class="panel-head"><h2 id="xs-src-h">Data sources and terms</h2></div>
-        <div class="panel-body prose"><div id="xs-src"></div>
+        <div class="panel-body prose">
+            <p>The atlas gathers five public collections: the MPI-Mainz UV/VIS Spectral Atlas (2013 snapshot), NCAR’s TUV-x photolysis data, the Leiden photodissociation and photoionization database, IUP Bremen’s molecular spectroscopy data, and the Harvard CfA molecular database. Their terms and the citation each one asks for are listed below.</p>
+            <div id="xs-src"></div>
             <p><strong>Source code.</strong> The page, its tests and the script that builds these data files from the archived sources are public at <a href="https://github.com/foley-photon/cross-section-atlas" target="_blank" rel="noopener">github.com/foley-photon/cross-section-atlas</a>; questions and corrections go to its <a href="https://github.com/foley-photon/cross-section-atlas/issues" target="_blank" rel="noopener">issues</a>. The code is MIT-licensed. The data are not in that repository: they are served only here, under the terms of each source above.</p></div>
     </section>
 

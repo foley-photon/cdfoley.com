@@ -1,11 +1,27 @@
 /* Thermochemistry Lab (beta). Uses the site tokens from /assets/css/site.css. */
-.tc-bar { margin: 0 0 0.4rem; }
-.tc-bar-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.6rem 1.2rem; padding: 0.8rem 1.2rem; }
-.tc-source { margin: 0; font-size: 0.86rem; color: var(--text-2); max-width: 46rem; }
-.tc-unit-field { margin: 0; min-width: 10rem; }
+/* compact top of the page, so the tabs and the first input show without scrolling on a laptop */
+.page-head.tc-head { margin-bottom: 1rem; max-width: 880px; }
+.callout.tc-beta { margin: 0 0 0.7rem; padding: 0.55rem 1rem; }
+.tc-bar { margin: 0; }
+.tc-bar-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1.2rem; padding: 0.55rem 1.2rem; }
+.tc-source { margin: 0; font-size: 0.86rem; color: var(--text-2); flex: 1 1 24rem; }
+.field.tc-unit-field { margin: 0; display: flex; align-items: center; gap: 0.6rem; flex: 0 0 auto; }
+.field.tc-unit-field > label { margin: 0; white-space: nowrap; }
+.field.tc-unit-field > select { width: auto; min-width: 8.5rem; }
 
-.tc-tabs { display: flex; gap: 0.25rem; margin: 1.2rem 0 1.2rem; box-shadow: inset 0 -1px 0 var(--border-strong); overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
-.tc-tabs [role="tab"] { flex: 0 0 auto; background: none; border: 0; border-bottom: 2px solid transparent; padding: 0.6rem 0.95rem 0.55rem; font: inherit; font-size: 0.95rem; font-weight: 600; color: var(--text-2); cursor: pointer; }
+/* Nine tabs. From 861 px up they all show and wrap to a second row if the window is narrow; below that the strip
+   scrolls sideways, snaps to a tab and fades at the edge where more tabs lie (classes set in app.js tabFades). */
+.tc-tabs { position: relative; display: flex; flex-wrap: wrap; gap: 0 0.25rem; margin: 0.7rem 0 1rem; box-shadow: inset 0 -1px 0 var(--border-strong); }
+@media (max-width: 860px) {
+    .tc-tabs { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding: 0 1.75rem; overscroll-behavior-x: contain; }
+    .tc-tabs::-webkit-scrollbar { display: none; }
+    .tc-tabs [role="tab"] { scroll-snap-align: start; }
+    .tc-tabs.tc-fade-r { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent); }
+    .tc-tabs.tc-fade-l { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent); }
+    .tc-tabs.tc-fade-l.tc-fade-r { -webkit-mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent); mask-image: linear-gradient(to right, transparent, #000 2.5rem, #000 calc(100% - 2.5rem), transparent); }
+}
+.tc-tabs [role="tab"] { flex: 0 0 auto; white-space: nowrap; background: none; border: 0; border-bottom: 2px solid transparent; padding: 0.6rem 0.95rem 0.55rem; font: inherit; font-size: 0.95rem; font-weight: 600; color: var(--text-2); cursor: pointer; }
+@media (min-width: 861px) and (max-width: 1023px) { .tc-tabs [role="tab"] { padding: 0.55rem 0.5rem 0.5rem; font-size: 0.9rem; } }   /* nine in one row on a small laptop or a tablet */
 .tc-tabs [role="tab"]:hover { color: var(--accent); }
 .tc-tabs [role="tab"][aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
 .tc-tabs [role="tab"]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
@@ -31,6 +47,9 @@
 .tc-res h3 sub, .panel-head h2 sub, .tc-st-group sub { text-transform: none; }
 .tc-res .tc-big { font-family: var(--mono); font-size: 1.35rem; color: var(--text); font-variant-numeric: tabular-nums; }
 .tc-res .tc-alt { font-family: var(--mono); font-size: 0.8rem; color: var(--text-2); margin-top: 0.3rem; line-height: 1.55; }
+.tc-res .tc-big.tc-big-sp { font-family: inherit; font-size: 1.1rem; font-weight: 600; line-height: 1.35; }
+.tc-res .tc-big-sp .tc-state { font-weight: 400; }
+.tc-kpi { margin-bottom: 1rem; }
 .tc-res .tc-note { font-size: 0.8rem; color: var(--muted); margin-top: 0.4rem; line-height: 1.45; }
 
 .tc-table-scroll { overflow-x: auto; }
@@ -120,3 +139,19 @@
     .tc-table tr.tc-exrow > td { padding-left: 0.6rem; }
 }
 @media (prefers-reduced-motion: reduce) { .tc-panel * { transition: none !important; animation: none !important; } }
+
+/* folded detail, a column header that explains itself, button rows */
+.tc-fold { margin: 0.35rem 0 0.6rem; }
+.tc-fold > summary { cursor: pointer; font-size: 0.86rem; color: var(--text-2); padding: 0.15rem 0; }
+.tc-fold > summary:hover { color: var(--accent); }
+.tc-fold > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+.tc-fold[open] > summary { margin-bottom: 0.4rem; }
+.tc-fold > .hint { margin-top: 0.3rem; }
+.tc-pm { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap; }
+.tc-pm-q { display: inline-block; width: 1.05rem; height: 1.05rem; line-height: 1.05rem; text-align: center; font-size: 0.7rem; font-weight: 700; font-family: var(--font, inherit); color: var(--accent); border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); }
+.tc-pm:hover .tc-pm-q, .tc-pm[aria-expanded="true"] .tc-pm-q { background: var(--accent-soft); border-color: var(--accent); }
+.tc-pm:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+.tc-pmtext { margin: 0.5rem 0 0; padding: 0.45rem 0.7rem; border-left: 2px solid var(--accent); background: var(--surface-2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.tc-btnrow { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0; }
+.tc-panel > .panel:first-child > .panel-head { padding-top: 0.55rem; padding-bottom: 0.55rem; }
+.tc-panel .panel-head .btn { margin: -0.2rem -0.4rem -0.2rem 0; flex: 0 0 auto; }

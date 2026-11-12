@@ -164,16 +164,102 @@ export const LASER_LINES = Object.freeze([
     { nm: 266, label: '266 nm (Nd:YAG 4th)' }, { nm: 308, label: '308 nm (XeCl)' }, { nm: 351.1, label: '351.1 nm (XeF)' }, { nm: 354.7, label: '354.7 nm (Nd:YAG 3rd)' },
     { nm: 405, label: '405 nm (diode)' }, { nm: 532.1, label: '532.1 nm (Nd:YAG 2nd)' },
 ]);
+/** The lines whose labels the plot keeps first where the marked lines crowd: the most used ones. */
+export const LINE_RANK = Object.freeze([248.4, 193.3, 266, 532.1, 354.7, 308, 157.6, 121.567, 212.8, 351.1, 222, 405, 118.2]);
 
 /* ── What the page shows ───────────────────────────────────────────────── */
 // The steps between the form and the numbers on the page, kept here so that the tests and the site's check cover them.
 
 /** The x axes of the plot: the wavelength as given, 10⁷/λ, or hc/λ. */
 export const X_AXES = Object.freeze({
-    nm: Object.freeze({ label: 'Wavelength (nm)', of: (nm) => nm }),
-    cm1: Object.freeze({ label: 'Wavenumber (cm⁻¹)', of: nmToCm1 }),
-    eV: Object.freeze({ label: 'Photon energy (eV)', of: nmToEV }),
+    nm: Object.freeze({ label: 'Wavelength (nm)', unit: 'nm', of: (nm) => nm }),
+    cm1: Object.freeze({ label: 'Wavenumber (cm⁻¹)', unit: 'cm⁻¹', of: nmToCm1 }),
+    eV: Object.freeze({ label: 'Photon energy (eV)', unit: 'eV', of: nmToEV }),
 });
+/** The wavelength (nm) of a value on an x axis. 10⁷/λ and hc/λ are their own inverses, so `of` goes both ways. */
+export const axisToNm = (axis, v) => (X_AXES[axis] || X_AXES.nm).of(v);
+/** A wavelength (nm) as text in the unit of an x axis, for the plot limits and the line labels: 248.4, 40258, 4.991. */
+export function axisText(axis, nm) {
+    if (!(nm > 0)) return '';
+    if (axis === 'cm1') return String(Math.round(nmToCm1(nm)));
+    if (axis === 'eV') return String(+nmToEV(nm).toPrecision(4));
+    return String(+(+nm).toPrecision(7));
+}
+/**
+ * The plot limits from the From and To fields, which are in the unit of the x axis: { min, max } as wavelengths in nm
+ * (text, '' for an open end). On the wavenumber and photon-energy axes a larger value is a shorter wavelength, so From
+ * gives the longest wavelength and To the shortest. A field that is not a positive number leaves its end open.
+ */
+export function limitsToNm(axis, from, to) {
+    const nm = (v) => { const x = parseNum(v); return x != null && x > 0 ? String(+axisToNm(axis, x).toPrecision(7)) : ''; };
+    return axis === 'cm1' || axis === 'eV' ? { min: nm(to), max: nm(from) } : { min: nm(from), max: nm(to) };
+}
+/** The reverse: what the From and To fields show for limits kept in nm. */
+export function limitsFromNm(axis, min, max) {
+    const tx = (v) => { const x = parseNum(v); return x != null && x > 0 ? axisText(axis, x) : ''; };
+    return axis === 'cm1' || axis === 'eV' ? { from: tx(max), to: tx(min) } : { from: tx(min), to: tx(max) };
+}
+
+/* ── Numbers typed into the form ───────────────────────────────────────── */
+// The same rules as the site's calculators (assets/js/calc.js): a number is read whole or not at all. parseFloat would
+// read "1,5" as 1 and "12abc" as 12 and compute with that.
+const AMBIGUOUS_COMMA = /^[-+]?[1-9]\d{0,2},\d{3}([eE][-+]?\d+)?$/;
+const SUPD = { '⁻': '-', '⁺': '+', '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9' };
+const normNum = (s) => String(s ?? '').trim().replace(/[−‒–]/g, '-').replace(/\s+/g, '')
+    .replace(/[×x*]10([⁻⁺⁰¹²³⁴⁵⁶⁷⁸⁹]+)$/, (m, e) => `e${[...e].map((c) => SUPD[c]).join('')}`)
+    .replace(/[×x*]10\^?([-+]?\d+)$/i, 'e$1');
+/**
+ * A typed number, or null when the text is not one number. Accepted: 248.4, 1e-17, 1.079 × 10⁻¹⁷ (as the page writes
+ * it), a decimal comma (1,5 is 1.5; 0,532 is 0.532) and thousands separators (1,234,567). One comma followed by exactly
+ * three digits ("1,064") could be 1064 or 1.064 and is refused, as is any text with something left over ("12abc").
+ */
+export function parseNum(x) {
+    let s = normNum(x);
+    if (!s) return null;
+    if (s.includes(',')) {
+        if (AMBIGUOUS_COMMA.test(s)) return null;
+        if (/^[-+]?[1-9]\d{0,2}(,\d{3})+(\.\d*)?([eE][-+]?\d+)?$/.test(s)) s = s.replace(/,/g, '');
+        else if (/^[-+]?\d*,\d+([eE][-+]?\d+)?$/.test(s)) s = s.replace(',', '.');
+        else return null;
+    }
+    if (!/^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(s)) return null;
+    const v = parseFloat(s);
+    return Number.isFinite(v) ? v : null;
+}
+/**
+ * Why a field's text is not a number, as a sentence for the page, or '' when it is one or the field is empty:
+ * “abc” is not a number (wavelength). “1,064” is ambiguous (wavelength): enter 1064 or 1.064 (decimal comma: 1,0640).
+ */
+export function numError(x, label) {
+    const raw = String(x ?? '').trim();
+    if (!raw || parseNum(raw) != null) return '';
+    const s = normNum(raw);
+    if (/^[-+]?(\d+[.,]?\d*|[.,]\d+)[eE][-+]?$/.test(s)) return '';   // an exponent still being typed: no number yet, and no complaint
+    if (/^[-+]?(\d+\.?\d*|\.\d+)[eE][-+]?\d+$/.test(s)) return `That value is out of range (${label}).`;
+    if (AMBIGUOUS_COMMA.test(s)) {
+        const m = s.match(/^([^eE]*)(.*)$/);
+        return `“${raw}” is ambiguous (${label}): enter ${s.replace(',', '')} or ${s.replace(',', '.')} (decimal comma: ${m[1]}0${m[2]}).`;
+    }
+    return `“${raw}” is not a number (${label}).`;
+}
+
+/* ── Line labels on the plot ───────────────────────────────────────────── */
+/**
+ * Which of the marked lines keep their text. `lines` are [{ px (position along the axis in pixels), w (width of the
+ * label in pixels), keep (true for a label that must stay), rank (lower is kept first; default: the order given) }].
+ * A label is dropped (its line stays) when a kept label already lies within one label width of it, so that no label
+ * is drawn across its neighbor's line or text. Returns an array of booleans in the order given.
+ */
+export function keepLabels(lines) {
+    const rank = (i) => (lines[i].keep ? -1 : lines[i].rank ?? i);
+    const order = lines.map((l, i) => i).sort((a, b) => rank(a) - rank(b) || a - b);
+    const kept = []; const out = lines.map(() => false);
+    for (const i of order) {
+        const l = lines[i];
+        if (l.keep || !kept.some((k) => Math.abs(k.px - l.px) < Math.max(k.w, l.w))) { out[i] = true; kept.push(l); }
+    }
+    return out;
+}
 /** Number density (cm⁻³) from the form: a pressure p in a unit worth `unitPa` pascal, at T (K). */
 export const densityFromForm = (p, unitPa, T) => density(p * unitPa, T);
 /** One pulse from the form: the fluence in mJ cm⁻², and the saturation fluence also in mJ cm⁻² (saturationmJ). */

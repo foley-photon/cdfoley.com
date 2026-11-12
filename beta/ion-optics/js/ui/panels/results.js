@@ -88,6 +88,51 @@ export function sigFig(v, digits = 5) {
     return /e/.test(s) ? fmtNum(v, digits) : s.replace(/^-/, '−');
 }
 
+/**
+ * Significant digits per column of the accuracy-check table (pure, for tests): the metric name and the two computed
+ * values (current and finer grid) keep the table default; every later column is a difference, an order or an error
+ * estimate and is shown to 3 digits.
+ */
+export function accuracyDigits(nCols) {
+    return Array.from({ length: nCols }, (x, c) => (c < 3 ? undefined : 3));
+}
+
+/**
+ * Rows of one plane in the Planes card (pure, for tests): crossings, rms spot and the mean time of flight. With several
+ * species the mean of each is its own row (a mean over ions and electrons together describes neither).
+ * @param {{ crossings: number, spotRms: number, meanTof: number }} p  @param {{ label: string, mean: number }[]} species
+ * @returns {[string, string][]}
+ */
+export function planeLines(p, species = []) {
+    const rows = [['crossings', p.crossings.toLocaleString('en-US')], ['rms spot', `${fmtNum(p.spotRms, 4)} mm`]];
+    if (species.length > 1) for (const g of species) rows.push([`mean TOF ${g.label}`, `${sigFig(g.mean)} µs`]);
+    else rows.push(['mean TOF', `${sigFig(p.meanTof)} µs`]);
+    return rows;
+}
+
+/**
+ * The headline tiles above the Summary cards (pure, for tests): transmission to the first detector, the waist position
+ * and the rms radius there (only for a single common waist, the rule of the Waist card), and the largest end-energy
+ * error (marked when particles exceeded the tolerance). A number that the run does not have gives no tile.
+ * @param {object} s run summary (runOverview(...).summary)  @param {object|null} bw beamWaist(...) of the run
+ * @returns {{ label: string, value: string, sub?: string, cls?: string }[]}
+ */
+export function kpiTiles(s, bw) {
+    const out = [];
+    const dets = (s && s.transmission && s.transmission.byPlane) || [];
+    const pct = (f) => `${(100 * f).toFixed(f === 1 || f === 0 ? 0 : 1)}%`;
+    // one detector: its own line of the Transmission card; several: the fraction detected on any of them
+    if (dets.length === 1) out.push({ label: 'Transmission', value: pct(dets[0].fraction), sub: `${dets[0].detected.toLocaleString('en-US')} of ${s.launched.toLocaleString('en-US')} detected` });
+    else if (dets.length > 1 && Number.isFinite(s.transmission.overall)) out.push({ label: 'Transmission', value: pct(s.transmission.overall), sub: `on ${dets.length} detectors` });
+    if (bw && bw.ok && !waistSplit(bw)) {
+        out.push({ label: `Waist ${bw.axis}`, value: `${fmtNum(bw.position, 4)} mm` });
+        out.push({ label: 'rms at waist', value: `${fmtNum(bw.rms, 3)} mm` });
+    }
+    const en = s && s.energy;
+    if (en && Number.isFinite(en.maxEnd)) out.push({ label: 'max |ΔE|', value: `${fmtNum(en.maxEnd, 3)} eV`, sub: en.warned ? 'over the tolerance' : `${fmtNum(en.maxEndRel, 2)} relative`, cls: en.warned ? 'io-warn-text' : '' });
+    return out;
+}
+
 /** Why no waist is shown, as a sentence for the Waist card (the engine's reason, `ok` false). */
 export function noWaistText(reason) {
     const r = String(reason || '');
@@ -104,6 +149,7 @@ export function mount(el, ctx) {
     const { h } = ctx.ui.dom;
     const root = h('div', { class: 'io-results io-summary' });
     const head = h('div', { class: 'io-results-head' });
+    const kpis = h('div', { class: 'io-kpis', role: 'group', 'aria-label': 'Key results', hidden: true });
     const cards = h('div', { class: 'io-cards', 'aria-live': 'off' });
     const warnBox = h('div', { class: 'io-warnings' });
     const btnMethods = h('button', { type: 'button', class: 'btn btn-sm btn-secondary', text: 'Copy Methods text' });
@@ -111,7 +157,7 @@ export function mount(el, ctx) {
     const accBox = h('div', { class: 'io-accuracy' });
     const methodsBox = h('div', { class: 'io-methods-box' });
     const actions = h('div', { class: 'io-btnrow io-results-actions' }, btnMethods, btnAcc);
-    root.append(head, cards, warnBox, actions, methodsBox, accBox);
+    root.append(head, kpis, cards, warnBox, actions, methodsBox, accBox);
     el.appendChild(root);
     let accRunning = false;
     // which project (and state of it) the shown accuracy report and Methods text belong to
@@ -134,6 +180,7 @@ export function mount(el, ctx) {
         const st = ctx.store.get();
         const run = st.run || {}, res = run.result, resolved = (res && res.resolvedSnapshot) || st.resolved;
         head.replaceChildren();
+        kpis.replaceChildren(); kpis.hidden = true;
         cards.replaceChildren();
         warnBox.replaceChildren();
         checkStale(st);
@@ -190,10 +237,9 @@ export function mount(el, ctx) {
         if (pl.length) {
             const c = card('Planes');
             for (const p of pl) {
-                // several species: the mean of each (a mean over ions and electrons together describes neither)
-                const sp = tofBySpecies(res, resolved, p.index);
-                const tof = sp.length > 1 ? `mean TOF ${sp.map((g) => `${g.label} ${sigFig(g.mean)}`).join(', ')} µs` : `mean TOF ${sigFig(p.meanTof)} µs`;
-                c.appendChild(line(p.name, `${p.crossings} crossing${p.crossings === 1 ? '' : 's'} · rms spot ${fmtNum(p.spotRms, 4)} mm · ${tof}`));
+                // one short row per number under the plane's name (one long line wrapped mid-phrase in a narrow card)
+                c.appendChild(h('p', { class: 'io-card-sub', text: p.name }));
+                for (const [k, v] of planeLines(p, tofBySpecies(res, resolved, p.index))) c.appendChild(line(k, v));
             }
             cards.appendChild(c);
         }
@@ -236,6 +282,9 @@ export function mount(el, ctx) {
             if (en.warnedHit) ec.appendChild(h('p', { class: 'io-note', text: `${en.warnedHit} particle${en.warnedHit === 1 ? '' : 's'} that ended on an electrode also exceeded it (not counted above).` }));
         } else ec.appendChild(h('p', { class: 'io-note', text: energyUncheckedReason(resolved) }));
         cards.appendChild(ec);
+        // the headline numbers in one row above the cards (the cards keep the detail)
+        for (const t of kpiTiles(s, bw)) kpis.appendChild(h('div', { class: 'io-kpi' }, h('span', { class: 'io-kpi-k', text: t.label }), h('span', { class: `io-kpi-v${t.cls ? ` ${t.cls}` : ''}`, text: t.value }), t.sub ? h('span', { class: 'io-kpi-sub', text: t.sub }) : null));
+        kpis.hidden = !kpis.children.length;
         renderSolver();
         // warnings
         const ws = [];
@@ -306,7 +355,8 @@ export function mount(el, ctx) {
             h('h3', { class: 'io-card-title', text: `Accuracy check: ${accFor ? accFor.name : projectName(ctx.store.get())}` }),
             h('p', { class: 'io-note', text: `First ${rep.particles} particles re-run on a grid with cell ${fmtNum(rep.fineCell, 4)} mm (current ${fmtNum(rep.cell, 4)} mm${rep.coarseCell ? `; ${fmtNum(rep.coarseCell, 4)} mm for the observed order` : ''}) ${rep.tightening === 'steps' ? 'and with the lockstep steps shortened to 1/√10 (space charge)' : `and at rtol ${fmtNum(rep.rtol / 100, 2)}`}. Largest end-point shift: ${fmtNum(rep.endShift.grid, 3)} mm (grid), ${fmtNum(rep.endShift.rtol, 3)} mm (trajectory accuracy).` }),
             h('p', { class: 'io-note', text: 'Grid errors are Richardson estimates (signed; add them to the value): Δ·2^p/(2^p − 1) for the current cell and Δ/(2^p − 1) for the finer one, with p the observed order clamped to 1–2, or 1 when it could not be measured. Electrodes with sharp corners converge with p ≈ 4/3.' }),
-            dataTable({ columns: cols, rows, caption: 'Per-metric differences' }));
+            // differences, orders and error estimates to 3 significant digits (the values keep 7; the CSV keeps everything)
+            dataTable({ columns: cols, rows, caption: 'Per-metric differences', colDigits: accuracyDigits(cols.length) }));
         for (const n of rep.notes) box.appendChild(h('p', { class: 'io-note io-warn-text', text: n }));
         const csv = h('button', { type: 'button', class: 'btn btn-sm btn-ghost', text: 'CSV' });
         csv.addEventListener('click', () => download(csvText(cols, rows), 'accuracy-check.csv'));

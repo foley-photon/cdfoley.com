@@ -334,6 +334,19 @@ export function clone(v) {
     return typeof structuredClone === 'function' ? structuredClone(v) : JSON.parse(JSON.stringify(v));
 }
 
+/** Help-page sections the panels link to at the point of use: anchor -> what the section explains (pure data, for tests). */
+export const HELP_TOPICS = Object.freeze({
+    units: 'units, signs, mirror and anti-mirror planes',
+    geometry: 'geometry rules and meshes',
+    physics: 'space charge, gas collisions and drag',
+    accuracy: 'accuracy levels and the energy check',
+});
+/** A small "?" link to a section of the help page (opens in a new tab, so the project on screen stays as it is). */
+export function helpLink(anchor) {
+    const what = HELP_TOPICS[anchor] || anchor;
+    return h('a', { class: 'io-help-q', href: `help/#${anchor}`, target: '_blank', rel: 'noopener', title: `Help: ${what} (opens in a new tab)`, 'aria-label': `Help: ${what} (opens in a new tab)` }, '?');
+}
+
 /** Rounds a coordinate to a clean value (12 significant digits) so handle edits give tidy JSON. */
 export function tidy(v) {
     if (typeof v !== 'number' || !Number.isFinite(v)) return v;
@@ -367,7 +380,9 @@ export function createMenu(button, items, { layer = null, label = '' } = {}) {
     function place() {
         const r = button.getBoundingClientRect(), hr = host.getBoundingClientRect();
         menu.style.left = Math.max(4, Math.min(r.left - hr.left, hr.width - menu.offsetWidth - 4)) + 'px';
-        menu.style.top = (r.bottom - hr.top + 4) + 'px';
+        // below the button; above it when the menu would run past the bottom of the layer and there is room above
+        const below = r.bottom - hr.top + 4, above = r.top - hr.top - 4 - menu.offsetHeight;
+        menu.style.top = (below + menu.offsetHeight > hr.height - 4 && above >= 4 ? above : below) + 'px';
     }
     function openMenu() {
         build();

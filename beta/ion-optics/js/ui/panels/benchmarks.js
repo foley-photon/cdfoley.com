@@ -59,6 +59,17 @@ export function summarise(results) {
     const failed = gates.filter((b) => by.get(b.id) && (by.get(b.id).status === 'fail' || by.get(b.id).status === 'error')).length;
     return { gates: gates.length, passed, failed, run: results.filter((r) => r.status !== 'cancelled').length, info: results.filter((r) => r.status === 'info' && !(r.details && r.details.planned)).length };
 }
+/**
+ * The verdict shown as a status pill above the table (pure, for tests): green "56/56 gates passed" when every gate
+ * passed, red "N failed" when any gate failed or stopped with an error, and a neutral count while gates are still
+ * running or were stopped.
+ * @returns {{ text: string, cls: string }}
+ */
+export function verdict(s) {
+    if (s.failed) return { text: `${s.failed} failed`, cls: 'badge-bad' };
+    if (s.gates > 0 && s.passed === s.gates) return { text: `${s.passed}/${s.gates} gates passed`, cls: 'badge-ok' };
+    return { text: `${s.passed}/${s.gates} gates passed`, cls: '' };
+}
 /** Markdown report (pure, for tests). */
 export function markdownReport(results, { level, env = '', date = new Date().toISOString() } = {}) {
     const by = new Map(results.map((r) => [r.id, r]));
@@ -147,7 +158,11 @@ export function mount(el, ctx) {
         table.classList.toggle('io-dim', S.stale);
         const results = [...S.results.values()];
         const s = summarise(results);
-        sumLine.textContent = results.length ? `Gates passed: ${s.passed}/${s.gates}${s.failed ? ` · failed ${s.failed}` : ''} · informational ${s.info} · planned ${countKind('planned')}${S.wallMs ? ` · ${(S.wallMs / 1000).toFixed(1)} s` : ''}${S.running ? ` · running ${S.runningIds.size} case${S.runningIds.size === 1 ? '' : 's'}…` : ''}` : 'Not run yet in this browser.';
+        if (results.length) {
+            const v = verdict(s);
+            const rest = `${s.failed ? `${s.passed}/${s.gates} gates passed · ` : ''}informational ${s.info} · planned ${countKind('planned')}${S.wallMs ? ` · ${(S.wallMs / 1000).toFixed(1)} s` : ''}${S.running ? ` · running ${S.runningIds.size} case${S.runningIds.size === 1 ? '' : 's'}…` : ''}`;
+            sumLine.replaceChildren(h('span', { class: `badge ${v.cls}`, text: v.text }), h('span', { text: rest }));
+        } else sumLine.replaceChildren(h('span', { text: 'Not run yet in this browser. Run quick takes a few seconds on a desktop computer.' }));
         tbody.replaceChildren();
         for (const [g, gname] of GROUPS) {
             tbody.appendChild(h('tr', { class: 'io-bench-group' }, h('th', { scope: 'rowgroup', colspan: '11', text: `${g} · ${gname}` })));

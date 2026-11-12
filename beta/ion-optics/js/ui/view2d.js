@@ -38,6 +38,17 @@ const STATUS_COLOR = { [STATUS.DETECTED]: 'ok', [STATUS.HIT]: 'c2', [STATUS.EXIT
 const FALLBACK_COLORS = ['#64748b', '#2563eb', '#ea580c', '#059669', '#7c3aed', '#dc2626', '#0891b2', '#ca8a04'];
 
 /**
+ * Left edge (px) of a plane's name on the canvas (pure, for tests): 4 px to the right of the plane line, or, when the
+ * text would run past the right edge of a canvas W px wide, right-aligned 4 px to the left of the line. Kept on the
+ * canvas either way.
+ */
+export function planeLabelX(lineX, textWidth, W) {
+    let x = lineX + 4;
+    if (x + textWidth > W - 4) x = lineX - 4 - textWidth;
+    return Math.min(Math.max(4, W - 4 - textWidth), Math.max(4, x));
+}
+
+/**
  * Per-particle summary rows (Float64Array, S_STRIDE per particle) of a run result, or null. A job manager may
  * replace `summary` by its statistics object; the rows are then looked up under `summaryRows` or `rows`.
  */
@@ -737,7 +748,7 @@ export function createView(canvas, { store, onError = null } = {}) {
                 const [a, b, e, f] = segs[0];
                 const tx = Math.max(X(a), X(e)), ty = Math.min(Y(b), Y(f));
                 c.fillStyle = c.strokeStyle;
-                c.fillText(p.name, clamp(tx + 4, 4, W - 80), clamp(ty + 14, 14, H - 4));
+                c.fillText(p.name, planeLabelX(tx, c.measureText(p.name).width, W), clamp(ty + 14, 14, H - 4));
             }
         }
         c.setLineDash([]);

@@ -8,7 +8,7 @@
    electrode is listed but locked. The "~" button opens the waveform editor
    (term list and a preview drawn from the engine's sampleWave).
    ========================================================================== */
-import { h, icon, clear, rafThrottle } from '../dom.js';
+import { h, icon, clear, rafThrottle, helpLink } from '../dom.js';
 import { createField, bindForm, locate, nextId, storeEvalExpr, displayValue } from '../forms.js';
 import { formatPretty } from '../units.js';
 import { sampleWave } from '../../engine/waveform.js';
@@ -242,7 +242,7 @@ export function electrodeEditor(host, ctx, app, id) {
     const isGnd = id === 'gnd';
     const title = h('h3', { text: '' });
     const sw = h('span', { class: 'io-swatch' });
-    host.appendChild(h('div', { class: 'io-insp-head' }, sw, title));
+    host.appendChild(h('div', { class: 'io-insp-head' }, sw, title, helpLink('geometry')));
     const form = bindForm(ctx, {
         kind: 'electrode', label: 'Edit electrode', idPrefix: 'io-el',
         locate: (p) => locate(p, 'electrode', id),

@@ -11,7 +11,7 @@
    (labeled an onset estimator), hard-sphere collisions with a background
    gas, and Stokes drag with a K₀ → K mobility helper (gas.js).
    ========================================================================== */
-import { h, icon, clear, fmtCount, fmtMs } from '../dom.js';
+import { h, icon, clear, fmtCount, fmtMs, helpLink } from '../dom.js';
 import { bindForm, metaFor, normaliseDescriptor, createField, refOptions, storeEvalExpr } from '../forms.js';
 import { formatPretty } from '../units.js';
 import { createGasModel, mobilityFromReduced, dragTimeConstant } from '../../engine/gas.js';
@@ -141,10 +141,10 @@ export function mountDomain(host, ctx, app) {
         h('div', { class: 'field io-field-select' }, h('label', { for: 'io-dom-type', text: 'Domain type' }), typeSel),
         gridForm.el, stats, aperture, sugg,
         h('h3', { class: 'io-group-title', text: 'Edges' }), h('p', { class: 'io-note', text: 'Each edge is held at an electrode\'s voltage, has zero normal field (Neumann), is the symmetry axis, or follows a profile of segments and linear ramps.' }), edgesBox,
-        h('h3', { class: 'io-group-title', text: 'Mirror and anti-mirror planes' }), mirrorForm.el,
+        h('h3', { class: 'io-group-title' }, 'Mirror and anti-mirror planes', helpLink('units')), mirrorForm.el,
         h('h3', { class: 'io-group-title', text: 'Leaving the domain' }), beyondForm.el,
         h('details', { class: 'io-card' }, h('summary', { text: 'Field solver' }), solverForm.el, h('p', { class: 'hint', text: 'Automatic runs multigrid, then multigrid-preconditioned BiCGSTAB, then adaptive SOR if needed; the path is shown in the Fields pill.' })),
-        h('details', { class: 'io-card', open: true }, h('summary', { text: 'Particle tracing' }), tracerForm.el, interpNote, customBox),
+        h('details', { class: 'io-card', open: true }, h('summary', null, h('span', null, 'Particle tracing', helpLink('accuracy'))), tracerForm.el, interpNote, customBox),
         physics.el);
 
     // ---- physics plug-ins: space charge (onset estimator), background gas, Stokes drag. Each is null in the project when
@@ -227,7 +227,7 @@ export function mountDomain(host, ctx, app) {
         const dragInfo = h('p', { class: 'io-note' });
         const dragNote = h('p', { class: 'hint', text: 'Qualitative Stokes drag a = −(v − v_gas)/τ with τ = K m/|q| from the mobility K: the terminal velocity in a field E is K·E, the relaxation length (m/q) E K². Spherical ions in a dense gas; no diffusion. Turning drag on starts from the rigid-sphere mobility of the lead species in the gas of the Background gas card (with the gas off: its defaults, helium at 0.1 Pa and 293.15 K, where drag is negligible); enter a measured mobility, or use the K₀ helper below for a real buffer-gas pressure.' });
         const open0 = scOn(store.get().project) || gasIsOn(store.get().project) || dragIsOn(store.get().project);
-        const el = h('details', { class: 'io-card io-physics', open: open0 }, h('summary', { text: 'Physics: space charge, gas, drag' }),
+        const el = h('details', { class: 'io-card io-physics', open: open0 }, h('summary', null, h('span', null, 'Physics: space charge, gas, drag', helpLink('physics'))),
             h('p', { class: 'io-note', text: 'Optional plug-ins of the particle tracer; all off by default. They change the run, never the field solution.' }),
             h('div', { class: 'io-card' }, h('div', { class: 'io-card-title', text: 'Space charge' }), scToggle.el, scForm.el, scInfo, scNote),
             h('div', { class: 'io-card' }, h('div', { class: 'io-card-title', text: 'Background gas' }), gasToggle.el, gasForm.el, gasInfo, gasNote),

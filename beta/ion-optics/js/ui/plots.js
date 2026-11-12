@@ -82,9 +82,11 @@ export function onThemeChange(fn) {
 
 /**
  * Accessible data table. columns: string[]; rows: any[][]; maxRows: cap (a note states the remainder).
+ * digits: significant digits of the numbers; colDigits: optional per-column override (an array by column index;
+ * columns without an entry use `digits`), for difference and error columns that would otherwise print noise digits.
  * @returns {HTMLElement}
  */
-export function dataTable({ columns, rows, caption = '', maxRows = 2000, digits = 7 }) {
+export function dataTable({ columns, rows, caption = '', maxRows = 2000, digits = 7, colDigits = null }) {
     const wrap = el('div', { class: 'io-table-scroll' });
     const t = el('table', { class: 'io-table' });
     if (caption) t.appendChild(el('caption', { text: caption }));
@@ -96,7 +98,7 @@ export function dataTable({ columns, rows, caption = '', maxRows = 2000, digits 
     const n = Math.min(rows.length, maxRows);
     for (let i = 0; i < n; i++) {
         const r = el('tr');
-        for (const v of rows[i]) r.appendChild(el('td', { text: typeof v === 'number' ? fmtNum(v, digits) : (v === null || v === undefined ? '' : String(v)) }));
+        rows[i].forEach((v, c) => r.appendChild(el('td', { text: typeof v === 'number' ? fmtNum(v, (colDigits && colDigits[c]) || digits) : (v === null || v === undefined ? '' : String(v)) })));
         tb.appendChild(r);
     }
     t.appendChild(tb);

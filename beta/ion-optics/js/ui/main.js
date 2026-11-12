@@ -102,6 +102,9 @@ export function createContext({ store, jobs, persist, pool, view, platform, ui }
     };
 }
 
+/** What a share link is, in the words of the help page (shown under the link in the Share dialog). */
+export const SHARE_NOTE = 'The link carries the whole project after the #; anyone with the link can open a copy. Nothing is uploaded.';
+
 // ---------------------------------------------------------------- dialogs, toasts, live region
 let dialogLayer = null;
 
@@ -413,12 +416,13 @@ async function defaultProject(platform) {
     return platform.schema.newProject('cyl2d');
 }
 
+/** The height above the workbench (the beta notice and the name strip) goes into --io-banner-h, so the workbench fills the rest of the window. */
 function measureBanner() {
-    const b = document.querySelector('.io-beta');
-    if (!b) return;
-    const set = () => document.documentElement.style.setProperty('--io-banner-h', Math.ceil(b.getBoundingClientRect().height) + 'px');
+    const parts = [document.querySelector('.io-beta'), document.getElementById('io-ident')].filter(Boolean);
+    if (!parts.length) return;
+    const set = () => document.documentElement.style.setProperty('--io-banner-h', Math.ceil(parts.reduce((a, b) => a + b.getBoundingClientRect().height, 0)) + 'px');
     set();
-    if (typeof ResizeObserver === 'function') new ResizeObserver(set).observe(b);
+    if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(set); for (const b of parts) ro.observe(b); }
 }
 
 // ---------------------------------------------------------------- application helpers
@@ -563,7 +567,26 @@ function createApp(ctx, platform, log) {
             }
             const ok = await dom.copyText(url);
             if (ok) { toast('Link copied. It opens this project as a new copy; nothing is uploaded.', { kind: 'ok' }); announce('Link copied.'); }
-            else openDialog({ title: 'Share link', body: (el) => { const ta = h('textarea', { class: 'input io-textarea', rows: '5', readonly: true, 'aria-label': 'Share link' }); ta.value = url; el.appendChild(ta); setTimeout(() => ta.select(), 0); }, actions: [{ label: 'Close', value: null }] });
+            else {
+                // the clipboard was not available (no permission, or the page is not focused): show the link with its own Copy button
+                // (a toast would sit under the dialog's backdrop, so the result is shown in the dialog itself)
+                let ta = null;
+                const said = h('p', { class: 'io-note io-share-status', role: 'status' });
+                openDialog({ title: 'Share link',
+                    body: (el) => {
+                        ta = h('textarea', { class: 'input io-textarea', rows: '5', readonly: true, 'aria-label': 'Share link' });
+                        ta.value = url;
+                        el.append(ta, h('p', { class: 'io-note io-share-note', text: SHARE_NOTE }), said);
+                        setTimeout(() => ta.select(), 0);
+                    },
+                    actions: [{ label: 'Close', value: null }, { label: 'Copy link', primary: true, onClick: () => {
+                        dom.copyText(url).then((done) => {
+                            said.textContent = done ? 'Copied.' : 'Copy failed. The link is selected: press Ctrl+C (⌘C on a Mac).';
+                            if (!done) { ta.focus(); ta.select(); }
+                        });
+                        return false;   // the dialog stays open, so the link can still be read or copied by hand
+                    } }] });
+            }
         },
         /** Opens the preset gallery (presets package), else a simple list. */
         async openPresets({ firstVisit = false } = {}) {
@@ -923,6 +946,28 @@ export function togglePopover(btn, pop) {
     return close;
 }
 
+/**
+ * Which dock tabs fit on the strip (pure, for tests). widths: the tabs' widths in px, in order; avail: the width of the
+ * strip; moreW: the width of the "More" button; selected: the index of the open tab (-1: none). All tabs when they fit;
+ * otherwise the leading tabs that fit beside the "More" button, and always the open tab, so the tab of the panel on
+ * screen is never in the menu.
+ * @returns {number[]} indices of the tabs to show, in order
+ */
+export function dockTabsFit(widths, avail, moreW, selected = -1) {
+    const all = widths.map((w, i) => i);
+    if (widths.reduce((a, b) => a + b, 0) <= avail) return all;
+    let room = avail - moreW - (selected >= 0 && selected < widths.length ? widths[selected] : 0);
+    const out = [];
+    for (const i of all) {
+        if (i === selected) continue;
+        if (widths[i] > room) break;
+        room -= widths[i];
+        out.push(i);
+    }
+    if (selected >= 0 && selected < widths.length) out.push(selected);
+    return out.sort((a, b) => a - b);
+}
+
 // ---------------------------------------------------------------- dock with the lazy panel registry
 function mountDock(ctx, app) {
     const tabsEl = document.getElementById('io-dock-tabs');
@@ -947,6 +992,24 @@ function mountDock(ctx, app) {
         });
     });
     let current = -1;
+    // tabs that do not fit on the strip go into a "More" menu at its end (the open tab always stays on the strip)
+    const moreBtn = h('button', { type: 'button', class: 'io-docktab io-dock-more', hidden: true, 'aria-label': 'More result tabs' }, h('span', { text: 'More' }), h('span', { 'aria-hidden': 'true', text: ' ▾' }));
+    tabsEl.after(moreBtn);
+    dom.createMenu(moreBtn, () => entries.map((p, i) => ({ p, i })).filter(({ i }) => tabs[i].hidden).map(({ i }) => ({ label: tabs[i].textContent, onSelect: () => { show(i, true); tabs[i].focus(); } })), { label: 'More result tabs' });
+    function fitTabs() {
+        const head = tabsEl.parentElement;
+        if (!head || !head.clientWidth) return;   // the dock is not shown (phone layout)
+        for (const b of tabs) b.hidden = false;
+        moreBtn.hidden = false;
+        const widths = tabs.map((b) => b.getBoundingClientRect().width), moreW = moreBtn.getBoundingClientRect().width;
+        const toggle = document.getElementById('io-dock-toggle');
+        const avail = head.clientWidth - (toggle ? toggle.offsetWidth + 12 : 0);   // the collapse button and its margins
+        const keep = new Set(dockTabsFit(widths, avail, moreW, current));
+        tabs.forEach((b, i) => { b.hidden = !keep.has(i); });
+        moreBtn.hidden = keep.size === tabs.length;
+    }
+    if (typeof ResizeObserver === 'function') new ResizeObserver(dom.rafThrottle(fitTabs)).observe(tabsEl.parentElement);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTabs, () => {});
     async function load(i) {
         const p = entries[i];
         if (inst.has(p.id) || loading.has(p.id)) return loading.get(p.id);
@@ -963,7 +1026,7 @@ function mountDock(ctx, app) {
                 const mod = await import(p.path);
                 if (!mod || typeof mod.mount !== 'function') throw new Error('no mount()');
                 dom.clear(host);
-                if (mod.meta && mod.meta.title && mod.meta.title !== p.title) tabs[i].firstChild.textContent = mod.meta.title;
+                if (mod.meta && mod.meta.title && mod.meta.title !== p.title) { tabs[i].firstChild.textContent = mod.meta.title; fitTabs(); }
                 const r = await mod.mount(host, ctx);
                 inst.set(p.id, r || {});
             } catch (e) {
@@ -978,6 +1041,7 @@ function mountDock(ctx, app) {
     function show(i, user = false) {
         current = i;
         tabs.forEach((b, k) => { b.setAttribute('aria-selected', k === i ? 'true' : 'false'); b.tabIndex = k === i ? 0 : -1; panels[k].hidden = k !== i; });
+        fitTabs();
         if (dockEl.classList.contains('io-dock-collapsed') && user) setCollapsed(false);
         load(i).then(() => {
             const id = entries[i].id, x = inst.get(id);

@@ -57,6 +57,21 @@ export function summaryLine(rows, stop = null) {
     return parts.length ? parts.join(' · ') + '.' : 'No checks have run yet.';
 }
 
+/**
+ * One group's header line and whether the group opens by itself: { text, open }. "97 of 97 passed"; "4 of 5 caught,
+ * 1 missed"; "26 of 27 passed, 1 failed, 2 stopped". A group opens by itself only when a check failed or a negative
+ * control was missed; stopped checks did not run and are counted apart.
+ */
+export function groupSummary(group, rows) {
+    const mine = rows.filter((r) => r.group === group), live = mine.filter((r) => !r.stopped);
+    const neg = group === 'negative';
+    const good = live.filter((r) => (neg ? r.caught : r.pass)).length, bad = live.length - good, stopped = mine.length - live.length;
+    const parts = [`${good} of ${live.length} ${neg ? 'caught' : 'passed'}`];
+    if (bad) parts.push(`${bad} ${neg ? 'missed' : 'failed'}`);
+    if (stopped) parts.push(`${stopped} stopped`);
+    return { text: parts.join(', '), open: bad > 0 };
+}
+
 /** Browser name and major version from navigator data: "Microsoft Edge 141". */
 export function browserName(ua = '', brands = null) {
     const known = ['Microsoft Edge', 'Google Chrome', 'Opera', 'Brave', 'Chromium'];
@@ -126,8 +141,10 @@ const TEMPLATE = `
     <caption class="visually-hidden">Validation checks and their results</caption>
     <thead><tr><th scope="col">Check</th><th scope="col">Source</th><th scope="col" class="num">Reference</th><th scope="col" class="num">This tool</th>
     <th scope="col" class="num">Deviation</th><th scope="col">Tolerance</th><th scope="col">Result</th></tr></thead>
-    ${GROUPS.map(([g, label]) => `<tbody data-group="${g}" hidden><tr class="cl-st-group"><th scope="colgroup" colspan="7">${esc(label)}</th></tr></tbody>`).join('')}
+    ${GROUPS.map(([g, label]) => `<tbody data-group="${g}" class="cl-st-closed" hidden><tr class="cl-st-group"><th scope="colgroup" colspan="7">`
+        + `<button type="button" class="cl-st-toggle" aria-expanded="false"><span class="cl-st-caret" aria-hidden="true"></span><span>${esc(label)}</span><span class="cl-st-count"></span></button></th></tr></tbody>`).join('')}
   </table></div>
+  <p class="hint">Each group is folded to one line; select it to list its checks. A group with a failed check opens by itself. Copy as CSV and Download JSON always include every check.</p>
   <p class="hint">Monte Carlo checks use fixed seeds and particle counts, so a run is reproducible in a given browser engine. Other engines may round some functions differently and give slightly different counts; the tolerances are statistical, so they still pass. "This tool" shows Monte Carlo values as value ± 2σ.</p>
 </div>`;
 
@@ -157,6 +174,26 @@ export function mount(root, ctx = {}) {
         return `<tr data-id="${esc(r.id)}"><th scope="row">${esc(r.title)}</th><td class="cl-st-src">${link}</td><td class="num">${esc(refText(r))}</td>`
             + `<td class="num">${esc(valueText(r))}</td><td class="num">${esc(r.devText || '—')}</td><td>${esc(r.tolText)}</td><td><span class="${v.cls}">${esc(v.text)}</span></td></tr>`;
     }
+    // groups are folded to their header line; one opens by itself when a check in it fails, until the visitor chooses
+    const chosen = new Map();
+    function setOpen(body, open) {
+        body.classList.toggle('cl-st-closed', !open);
+        const t = body.querySelector('.cl-st-toggle');
+        if (t) t.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function syncGroup(body) {
+        const g = body.dataset.group, s = groupSummary(g, [...rows.values()]);
+        const count = body.querySelector('.cl-st-count');
+        if (count) { count.textContent = s.text; count.classList.toggle('cl-st-bad', s.open); }
+        setOpen(body, chosen.has(g) ? chosen.get(g) : s.open);
+    }
+    root.addEventListener('click', (ev) => {
+        const t = ev.target.closest('.cl-st-toggle');
+        if (!t) return;
+        const body = t.closest('tbody'), open = t.getAttribute('aria-expanded') !== 'true';
+        chosen.set(body.dataset.group, open);
+        setOpen(body, open);
+    });
     function show(r) {
         rows.set(r.id, r);
         const body = q(`tbody[data-group="${r.group}"]`);
@@ -164,6 +201,7 @@ export function mount(root, ctx = {}) {
         body.hidden = false;
         const old = body.querySelector(`tr[data-id="${CSS.escape(r.id)}"]`);
         if (old) old.outerHTML = rowHTML(r); else body.insertAdjacentHTML('beforeend', rowHTML(r));
+        syncGroup(body);
         summary.textContent = summaryLine([...rows.values()], stopInfo);
         csvBtn.disabled = jsonBtn.disabled = false;
     }

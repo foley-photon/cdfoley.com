@@ -1636,9 +1636,9 @@ const TEMPLATE = `
     <div class="panel-body">
       <p class="hint" data-el="resultsEmpty">Run the simulation to see the transmission matrix, the conductance and the pressure map.</p>
       <div class="results" data-el="rows">
-        <div class="result primary" hidden aria-live="polite" data-row="primary"><span class="result-label"></span><span class="result-value"></span><span class="result-note"></span></div>
-        <div class="result" hidden data-row="alpha"><span class="result-label"></span><span class="result-value"></span><span class="result-note"></span></div>
-        <div class="result" hidden data-row="reference"><span class="result-label">Built-in reference</span><span class="result-value"></span><span class="result-note"></span></div>
+        <div class="result primary" hidden aria-live="polite" data-row="primary"><span class="result-label"></span><span class="result-value" tabindex="0" title="Click to copy"></span><span class="result-note"></span></div>
+        <div class="result" hidden data-row="alpha"><span class="result-label"></span><span class="result-value" tabindex="0" title="Click to copy"></span><span class="result-note"></span></div>
+        <div class="result" hidden data-row="reference"><span class="result-label">Built-in reference</span><span class="result-value" tabindex="0" title="Click to copy"></span><span class="result-note"></span></div>
       </div>
       <div data-el="matrixBlock" hidden>
         <h4 class="cl-cad-h4">Transmission matrix</h4>
@@ -2325,9 +2325,11 @@ export function mount(root, ctx = {}) {
       vals.leaks = Number.isFinite(live.leaksPerMillion) ? String(Number(live.leaksPerMillion.toPrecision(2))) : '–';
       vals.stuck = '–';
     }
+    // a finished run's values are tab stops (click or Enter copies); live values are redrawn on every update
+    const copy = r ? { tabindex: '0', title: 'Click to copy' } : {};
     for (const [k, label] of STAT_ROWS) {
       const row = el('div', { class: 'result' });
-      row.append(el('span', { class: 'result-label' }, label), el('span', { class: 'result-value' }, vals[k] ?? '–'));
+      row.append(el('span', { class: 'result-label' }, label), el('span', { class: 'result-value', ...copy }, vals[k] ?? '–'));
       E.stats.appendChild(row);
     }
   }

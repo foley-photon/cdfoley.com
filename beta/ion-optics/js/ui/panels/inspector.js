@@ -5,7 +5,7 @@
    particle's record), and quick run settings. Invalid input is flagged and
    never reaches the project. On tablets the inspector is an overlay drawer.
    ========================================================================== */
-import { h, icon, clear, fmt } from '../dom.js';
+import { h, icon, clear, fmt, helpLink } from '../dom.js';
 import { bindForm, metaFor, normaliseDescriptor } from '../forms.js';
 import { formatPretty } from '../units.js';
 import { shapeEditor, shapeTitle } from './shapes.js';
@@ -20,13 +20,45 @@ import { S_STRIDE, S_ID, S_STATUS, S_WHERE, S_TOF, S_X, S_Y, S_Z, S_KE, S_KE0, S
 const EDITORS = { shape: shapeEditor, electrode: electrodeEditor, source: sourceEditor, plane: planeEditor, magnet: magnetEditor, idealField: idealEditor, param: paramEditor };
 const STATUS_WORDS = ['flying', 'hit an electrode', 'detected', 'left the domain', 'reached the time limit', 'reached the step limit', 'absorbed by a mesh', 'drifted to the limit', 'numerical error', 'started inside an electrode', 'cancelled'];
 
+/** The first-visit card of the inspector: [lead, text] per step, in the order of the tour (pure data, for tests). */
+export const START_STEPS = Object.freeze([
+    ['Drag a voltage.', 'Each electrode in the Electrodes tab has a slider; the trajectories follow while you drag.'],
+    ['Pick a preset.', 'Presets in the top bar opens ten more devices, each with a suggestion to try.'],
+    ['Read the Summary.', 'The dock under the canvas gives the transmission, the waist and the energy check.'],
+]);
+
+/** localStorage key of the inspector's own choices: { quickOpen: boolean, startClosed: boolean }. */
+export const INSPECTOR_PREFS_KEY = 'ionopt.inspector.v1';
+/** Reads the stored choices; anything unreadable gives the defaults (run settings folded, first-visit card shown). */
+export function readPrefs(storage = defaultStorage()) {
+    try {
+        const o = storage ? JSON.parse(storage.getItem(INSPECTOR_PREFS_KEY) || 'null') : null;
+        return { quickOpen: !!(o && o.quickOpen === true), startClosed: !!(o && o.startClosed === true) };
+    } catch (e) { return { quickOpen: false, startClosed: false }; }
+}
+/** Stores the choices; a blocked or full storage is ignored (the choice then lasts for this visit only). */
+export function writePrefs(prefs, storage = defaultStorage()) {
+    try { if (storage) storage.setItem(INSPECTOR_PREFS_KEY, JSON.stringify({ quickOpen: prefs.quickOpen === true, startClosed: prefs.startClosed === true })); } catch (e) { /* blocked or full */ }
+}
+function defaultStorage() { try { return globalThis.localStorage || null; } catch (e) { return null; } }
+
 /** Mounts the inspector into its body element. */
 export function mountInspector(el, ctx, app) {
     const { store } = ctx;
     const wb = document.getElementById('io-workbench');
     const sel = h('div', { class: 'io-insp-sel' });
-    const quick = h('details', { class: 'io-card io-insp-quick', open: true }, h('summary', { text: 'Quick run settings' }));
-    el.append(sel, quick);
+    // choices of this panel kept in the browser: whether the run settings are unfolded, and whether the first-visit card was closed
+    const prefs = readPrefs();
+    const quick = h('details', { class: 'io-card io-insp-quick', open: prefs.quickOpen === true }, h('summary', null, h('span', null, 'Quick run settings', helpLink('accuracy'))));
+    quick.addEventListener('toggle', () => { if (quick.open !== (prefs.quickOpen === true)) { prefs.quickOpen = quick.open; writePrefs(prefs); } });
+    // first visit: three things to try, in the order of the tour; closing the card hides it for good
+    const startX = h('button', { type: 'button', class: 'icon-btn io-insp-start-x', 'aria-label': 'Close the getting started card' }, '×');
+    const start = h('section', { class: 'io-card io-insp-start', 'aria-label': 'Getting started', hidden: prefs.startClosed === true },
+        h('h3', { class: 'io-card-title', text: 'Getting started' }), startX,
+        h('ol', null, ...START_STEPS.map(([lead, text]) => h('li', null, h('strong', { text: lead }), ' ' + text))),
+        h('p', null, h('a', { href: 'help/#quick-start', target: '_blank', rel: 'noopener', text: 'Quick start in the help' })));
+    startX.addEventListener('click', () => { start.hidden = true; prefs.startClosed = true; writePrefs(prefs); const c = document.getElementById('io-canvas'); if (c) c.focus(); });
+    el.append(sel, start, quick);
     let curKey = null, ed = null;
 
     // quick run settings: trajectory accuracy, interpolation, integrator, relativistic + live toggle

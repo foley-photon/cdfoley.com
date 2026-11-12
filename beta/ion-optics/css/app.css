@@ -11,13 +11,22 @@
     padding: 0.42rem var(--gutter); font-size: 0.84rem; line-height: 1.45;
 }
 .io-beta a { white-space: nowrap; }
+/* the name of the tool and what it does, on one line between the beta notice and the app bar */
+.io-ident {
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.1rem 0.75rem;
+    padding: 0.34rem var(--gutter); background: var(--surface); border-bottom: 1px solid var(--border);
+    font-size: 0.84rem; line-height: 1.45;
+}
+.io-ident-name { font-size: 0.98rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; margin: 0; color: var(--text); }
+.io-ident-line { margin: 0; color: var(--text-2); max-width: none; }
+.io-ident-line a { white-space: nowrap; margin-left: 0.35rem; }
 .io-workbench {
-    --io-rail-w: 300px;
+    --io-rail-w: 308px;
     --io-insp-w: 320px;
     --io-dock-h: 34%;
     position: relative;
-    height: calc(100vh - var(--header-h) - var(--io-banner-h, 40px));
-    height: calc(100dvh - var(--header-h) - var(--io-banner-h, 40px));
+    height: calc(100vh - var(--header-h) - var(--io-banner-h, 72px));
+    height: calc(100dvh - var(--header-h) - var(--io-banner-h, 72px));
     min-height: 540px;
     display: flex; flex-direction: column;
     background: var(--bg); color: var(--text);
@@ -91,8 +100,8 @@
 }
 
 /* ── Rail ───────────────────────────────────────────────────────────────── */
-.io-rail { display: grid; grid-template-columns: 48px minmax(0, 1fr); min-height: 0; border-right: 1px solid var(--border); background: var(--surface); }
-.io-rail-tabs { display: flex; flex-direction: column; gap: 2px; padding: 0.35rem 0.25rem; border-right: 1px solid var(--border); background: var(--bg-soft); overflow-y: auto; }
+.io-rail { display: grid; grid-template-columns: 56px minmax(0, 1fr); min-height: 0; border-right: 1px solid var(--border); background: var(--surface); }
+.io-rail-tabs { display: flex; flex-direction: column; gap: 2px; padding: 0.35rem 1px; border-right: 1px solid var(--border); background: var(--bg-soft); overflow-y: auto; }
 .io-railtab {
     position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
     width: 100%; padding: 0.4rem 0 0.3rem; border: 0; border-radius: var(--radius-sm);
@@ -100,7 +109,7 @@
 }
 .io-railtab:hover { color: var(--text); background: var(--surface-2); }
 .io-railtab[aria-selected="true"] { color: var(--accent); background: var(--accent-soft); }
-.io-railtab-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.01em; line-height: 1.1; max-width: 44px; overflow: hidden; text-overflow: ellipsis; }
+.io-railtab-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.01em; line-height: 1.1; max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .io-badge-dot { position: absolute; top: 4px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); border: 2px solid var(--surface); }
 .io-rail-panels { position: relative; min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .io-rail-close { display: none; position: absolute; top: 6px; right: 6px; z-index: 2; width: 30px; height: 30px; font-size: 1.1rem; }
@@ -264,14 +273,16 @@
 .io-splitter:hover, .io-splitter:focus-visible { background: var(--accent); outline: 0; }
 .io-dock { height: var(--io-dock-h); min-height: 80px; flex-shrink: 0; display: flex; flex-direction: column; background: var(--surface); min-width: 0; }
 .io-dock-head { display: flex; align-items: center; border-bottom: 1px solid var(--border); min-width: 0; }
-.io-dock-tabs { display: flex; gap: 0; overflow-x: auto; scrollbar-width: thin; flex: 1 1 auto; min-width: 0; }
+.io-dock-tabs { display: flex; gap: 0; overflow: hidden; flex: 0 1 auto; min-width: 0; }
+.io-docktab[hidden] { display: none; }
+.io-dock-more { flex-shrink: 0; color: var(--muted); }
 .io-docktab {
     font: inherit; font-size: 0.82rem; font-weight: 550; white-space: nowrap; color: var(--text-2);
     background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 0.5rem 0.75rem; cursor: pointer;
 }
 .io-docktab:hover { color: var(--text); background: var(--surface-2); }
 .io-docktab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
-.io-dock-toggle { width: 32px; height: 32px; margin: 0 0.3rem; border: 0; }
+.io-dock-toggle { width: 32px; height: 32px; margin: 0 0.3rem 0 auto; border: 0; flex-shrink: 0; }
 .io-dock-collapsed { height: auto !important; min-height: 0; }
 .io-dock-collapsed .io-dock-panels { display: none; }
 .io-dock-collapsed .io-dock-toggle svg { transform: rotate(180deg); }
@@ -371,7 +382,10 @@
 .io-chip-box { display: inline-flex; min-width: 0; flex: 1 1 auto; }
 .io-chip-box .io-chip-el { max-width: 100%; }
 .io-order { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); min-width: 1.8rem; }
-.io-item-sub.io-item-row { gap: 0.15rem; }
+.io-item-sub.io-item-row { gap: 0.15rem; flex-wrap: wrap; }
+/* Shapes cards: the electrode chip has the row to itself (next to the paint order), the buttons wrap under it at the right */
+.io-item-sub.io-item-row > .io-chip-box { flex: 1 1 calc(100% - 2.2rem); }
+.io-item-sub.io-item-row > .io-chip-box + .io-mini { margin-left: auto; }
 .io-warn-text { color: var(--warn); }
 .io-section { margin-bottom: 0.4rem; }
 .io-edges { display: grid; gap: 0.5rem; }
@@ -384,7 +398,21 @@
 .io-cell-chips .chip { font-size: 0.74rem; padding: 0.2rem 0.55rem; }
 .io-cell-chips .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .io-insp-sel { min-height: 3rem; }
+/* "?" links from a card to its section of the help page */
+.io-help-q {
+    display: inline-flex; align-items: center; justify-content: center; width: 1.15rem; height: 1.15rem; margin-left: 0.4rem; flex-shrink: 0;
+    border: 1px solid var(--border-strong); border-radius: 50%; color: var(--muted); background: var(--surface);
+    font-size: 0.72rem; font-weight: 650; line-height: 1; text-decoration: none; text-transform: none; letter-spacing: 0; vertical-align: 0.05em;
+}
+.io-help-q:hover, .io-help-q:focus-visible { color: var(--accent); border-color: var(--accent); text-decoration: none; }
 .io-insp-quick { margin-top: 0.9rem; }
+.io-insp-start { position: relative; margin-top: 0.6rem; padding-right: 2rem; background: var(--surface-2); }
+.io-insp-start[hidden] { display: none; }
+.io-insp-start ol { margin: 0 0 0.45rem; padding-left: 1.15rem; font-size: 0.82rem; color: var(--text-2); }
+.io-insp-start li { margin: 0.2rem 0; }
+.io-insp-start li strong { color: var(--text); }
+.io-insp-start p { margin: 0; font-size: 0.8rem; }
+.io-insp-start-x { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; font-size: 1.05rem; }
 .io-insp-head .io-icon { color: var(--muted); }
 .io-wave .io-card .io-item-row { margin-bottom: 0.3rem; }
 .io-wave-plot { margin-bottom: 0.4rem; }
@@ -400,11 +428,11 @@
 /* ── Tablet: icon rail, inspector drawer ───────────────────────────────── */
 .io-inspector-toggle { display: none; }
 @media (max-width: 1099.98px) {
-    .io-body { grid-template-columns: 48px minmax(0, 1fr); }
-    .io-rail { grid-template-columns: 48px; border-right: 1px solid var(--border); }
+    .io-body { grid-template-columns: 56px minmax(0, 1fr); }
+    .io-rail { grid-template-columns: 56px; border-right: 1px solid var(--border); }
     .io-rail-panels { display: none; }
     .io-rail.io-rail-open .io-rail-panels {
-        display: block; position: absolute; left: 48px; top: 0; bottom: 0; width: min(300px, calc(100vw - 64px)); z-index: 40;
+        display: block; position: absolute; left: 56px; top: 0; bottom: 0; width: min(300px, calc(100vw - 72px)); z-index: 40;
         background: var(--surface); border-right: 1px solid var(--border-strong); box-shadow: var(--shadow);
     }
     .io-rail.io-rail-open .io-rail-close { display: inline-flex; }
@@ -431,7 +459,9 @@
     .io-body { display: block; }
     .io-rail, .io-inspector, .io-splitter, .io-dock, .io-viewbar .io-edit-only, .io-viewbar .io-elsel, .io-viewbar .io-menubtn { display: none !important; }
     .io-centre { display: flex; }
-    .io-canvas-wrap { flex: none; height: 55vh; min-height: 260px; }
+    /* the canvas ends above the fixed tab bar on first view: the page header, the notice and name strip (--io-banner-h),
+       the app bar and the view bar lie above it (215 px with the 46 px tab bar), and it is never taller than 55vh */
+    .io-canvas-wrap { flex: none; height: 55vh; height: min(55vh, calc(100dvh - var(--header-h) - var(--io-banner-h, 167px) - 215px)); min-height: 260px; }
     .io-viewbar { min-height: 40px; }
     .io-appbar { gap: 0.25rem; padding: 0.3rem 0.4rem; }
     .io-appbar .io-desktop-only { display: none !important; }
@@ -475,4 +505,4 @@
 .io-sheet-note { font-size: 0.8rem; color: var(--muted); margin: 0.2rem 0 0.8rem; }
 
 /* ── Print ──────────────────────────────────────────────────────────────── */
-@media print { .io-appbar, .io-rail, .io-inspector, .io-viewbar, .io-dock, .io-splitter, .io-status { display: none !important; } }
+@media print { .io-ident-line a, .io-appbar, .io-rail, .io-inspector, .io-viewbar, .io-dock, .io-splitter, .io-status { display: none !important; } }

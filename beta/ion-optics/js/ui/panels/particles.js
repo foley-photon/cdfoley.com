@@ -62,6 +62,10 @@ export function mountParticles(host, ctx, app) {
     importBtn.addEventListener('click', () => fileInput.click());
     const detail = h('div', { class: 'io-src-detail' });
     host.append(listEl, empty, h('div', { class: 'io-add-row' }, addBtn, importBtn, fileInput), detail);
+    // wide layout: the inspector on the right is the one place a source is edited, and this panel is the list.
+    // Narrower layouts hide the inspector (it is a drawer there), so the form of the selected source stays in this panel.
+    const wide = typeof matchMedia === 'function' ? matchMedia('(min-width: 1100px)') : null;
+    const formHere = () => !(wide && wide.matches);
     let sig = '', rows = new Map(), editor = null, editorId = null;
     function build() {
         const p = store.get().project;
@@ -106,15 +110,17 @@ export function mountParticles(host, ctx, app) {
         });
         // detail editor of the selected source
         const want = sel.kind === 'source' && sel.ids && sel.ids.length === 1 ? sel.ids[0] : null;
-        if (want !== editorId) {
+        const key = `${want || ''}|${formHere() ? 'form' : 'list'}`;
+        if (key !== editorId) {
             clear(detail);
-            editor = null; editorId = want;
-            if (want) {
+            editor = null; editorId = key;
+            if (want && formHere()) {
                 detail.appendChild(h('h3', { class: 'io-group-title', text: 'Selected source' }));
                 const box = h('div');
                 detail.appendChild(box);
                 editor = sourceEditor(box, ctx, app, want, { compactHead: true });
-            } else if (srcs.length) detail.appendChild(h('p', { class: 'io-note', text: 'Select a source to edit its species, position, direction, energy and birth time.' }));
+            } else if (want) detail.appendChild(h('p', { class: 'io-note', text: 'The selected source is edited in the inspector on the right: species, position, direction, energy and birth time.' }));
+            else if (srcs.length) detail.appendChild(h('p', { class: 'io-note', text: formHere() ? 'Select a source to edit its species, position, direction, energy and birth time.' : 'Select a source to edit it in the inspector on the right.' }));
         } else if (editor) editor.update();
     }
     function update() {
@@ -123,6 +129,7 @@ export function mountParticles(host, ctx, app) {
     }
     build();
     const offs = ['project', 'resolved', 'selection'].map((evt) => store.on(evt, update));
+    if (wide && wide.addEventListener) { wide.addEventListener('change', syncRows); offs.push(() => wide.removeEventListener('change', syncRows)); }
     return { update, destroy: () => offs.forEach((f) => f()) };
 }
 
@@ -436,7 +443,8 @@ export function nuclideBuilder(ctx, { onAdd, onEnergy, focusTarget = null }) {
         return { el, field: h('div', { class: 'field io-field-select' }, h('label', { for: id(k), text: label }), el) };
     };
     const intInput = (k, label, { min = null, unit = null, step = 1, short = null } = {}) => {
-        const el = h('input', { id: id(k), type: 'number', class: 'input', step, inputmode: 'numeric', autocomplete: 'off', dataset: { nb: k }, 'aria-describedby': id('msg') });
+        // the accessible name is spelled out on the input as well as through its label: the full heading with the unit
+        const el = h('input', { id: id(k), type: 'number', class: 'input', step, inputmode: 'numeric', autocomplete: 'off', dataset: { nb: k }, 'aria-describedby': id('msg'), 'aria-label': unit ? `${label} (${unit})` : label });
         if (min !== null) el.min = String(min);
         const control = h('div', { class: 'input-unit' }, el, unit ? h('span', { class: 'unit', text: unit, 'aria-hidden': 'true' }) : null);
         // `short` is the visible text when the full label would wrap at rail width; the full label stays for screen readers

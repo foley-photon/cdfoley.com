@@ -8,12 +8,12 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="/assets/css/site.css">
 <link rel="stylesheet" href="./conductance.css">
 <link rel="stylesheet" href="./cad.css">
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js"></script>
+<script defer src="/assets/katex/katex.min.js"></script>
+<script defer src="/assets/katex/contrib/auto-render.min.js"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -47,8 +47,18 @@
 
     <header class="page-head">
         <span class="eyebrow">Beta</span>
-        <h1>Conductance Lab <span class="badge badge-warn">BETA</span></h1>
+        <h1>Conductance Lab</h1>
         <p class="lede">Conductance of tubes, slits, ducts, annuli, cones and elbows, alone or as a whole pumping line, from molecular to viscous flow. Check the formulas with a Monte Carlo simulation, or load a CAD model and simulate it directly.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>Conductance</dt><dd>How easily gas flows through a part, in L/s. It works like the inverse of a resistance: the gas flow is the conductance times the pressure difference across the part.</dd>
+            <dt>Throughput</dt><dd>The amount of gas passing per second, given as pressure times volume per second (mbar·L/s). In steady flow it is the same through every part of a line.</dd>
+            <dt>Pumping speed</dt><dd>The volume of gas a pump removes per second at its inlet, in L/s, as rated on its datasheet.</dd>
+            <dt>Effective pumping speed</dt><dd>The speed the chamber actually gets once a line sits between it and the pump. It is always lower than both the pump’s speed and the line’s conductance.</dd>
+            <dt>Transmission probability <span class="sym">α</span></dt><dd>In molecular flow, the fraction of the molecules entering a part that leave through its far end. A thin opening has α = 1; the longer and narrower the part, the smaller α.</dd>
+            <dt>Knudsen number</dt><dd>The mean free path, the average distance a molecule travels between collisions, divided by the bore. Above 0.5 the flow is molecular: molecules hit the walls, not each other, and the conductance does not depend on pressure. Below 0.01 the flow is viscous, and in between it is transitional.</dd>
+            <dt>Discharge coefficient <span class="sym">C<sub>d</sub></span></dt><dd>How much a sharp-edged opening narrows the gas jet behind it. It only matters near atmosphere, where the flow is viscous or choked; in high vacuum leave the default.</dd>
+            <dt>Formula accuracy</dt><dd>How far the exact molecular value can lie from the formula value for this line. It grows with every junction between different cross-sections. The Monte Carlo check gives the exact value for the geometry.</dd>
+        </dl></details>
     </header>
 
     <div class="callout callout-warn" role="note">
@@ -99,7 +109,7 @@
         <div class="tool-layout">
             <section class="panel" aria-labelledby="cl-line-h">
                 <div class="panel-head"><h2 id="cl-line-h">Pumping line</h2>
-                    <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
+                    <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button><button type="button" class="btn btn-ghost btn-sm" id="cl-reset" data-act="reset">Reset</button></div>
                 </div>
                 <div class="panel-body">
                     <p class="callout cl-notice" id="cl-notice" role="status" hidden></p>
@@ -213,9 +223,13 @@
                     <p class="hint">Small pressure difference. At high pressure, real flows are limited by inertia, choking and turbulence; see the operating curve.</p></div>
             </section>
         </div>
-        <div class="cl-range field-row">
-            <div class="field"><label for="cl-pmin">Plot from</label><div class="input-unit"><input id="cl-pmin" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="unit" data-unit="pressure">mbar</span></div></div>
-            <div class="field"><label for="cl-pmax">to</label><div class="input-unit"><input id="cl-pmax" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="unit" data-unit="pressure">mbar</span></div></div>
+        <div class="cl-range" role="group" aria-labelledby="cl-range-l">
+            <span class="field-label" id="cl-range-l">Plot range</span>
+            <div class="field-row">
+            <div class="field"><label for="cl-pmin">From</label><div class="input-unit"><input id="cl-pmin" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="unit" data-unit="pressure">mbar</span></div></div>
+            <div class="field"><label for="cl-pmax">To</label><div class="input-unit"><input id="cl-pmax" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="unit" data-unit="pressure">mbar</span></div></div>
+            </div>
+            <p class="hint">The pressure axis of both plots.</p>
         </div>
     </section>
 
@@ -274,11 +288,37 @@
         <div class="formula">$$Q = k_v\,\frac{p_a^2 - p_b^2}{2} + C_m\,s\left[I_Z\!\left(\frac{p_a}{s}\right) - I_Z\!\left(\frac{p_b}{s}\right)\right],\qquad k_v = \frac{\pi R^4}{8\,\eta\,L}\ \text{(tube)}$$</div>
         <p>For a long round tube this is exactly Sharipov's result at any pressure ratio; in the viscous limit it becomes Poiseuille flow with the slip correction, \(G_P \to \delta/4 + 1.018\). The entrance edge adds the right end correction: a short tube in viscous flow behaves as if it were \(3\pi R/8\) longer, as creeping-flow (Stokes) theory predicts, Sampson's orifice resistance in series with Poiseuille's (Dagan, Weinbaum and Pfeffer 1982). Ducts, annuli and cones use their own laminar coefficients with \(Z\) evaluated at their hydraulic size. In a slit, a flat duct or a narrow annulus, molecules fly long distances along the gap in molecular flow; gas collisions cut those flights off, which the round-tube \(Z\) does not know. There the molecular term is limited by Sharipov's plane-channel solution, \(Q \le \frac{w h^2 v_m}{2L}\left(G_P^\text{ch}(\delta) - \frac{\delta}{6}\right)\Delta p\) with \(\delta\) on the gap \(h\), which a 0.1 mm × 100 mm slit 100 mm deep reproduces to 0.6 % over the whole table, δ = 0.01 to 10 (without this limit it was up to twice too high). Other transitional results for non-circular elements are approximate (about ±10 %).</p>
         <p>Entrances and orifices pass the smaller of a linear (rarefied) law and the isentropic nozzle flow \(Q = C_d\,A\,p\,\psi(r,\gamma)\sqrt{R_sT}\). Below the critical pressure ratio \(r^* = \left(2/(\gamma+1)\right)^{\gamma/(\gamma-1)}\) the orifice chokes, and the discharge coefficient \(C_d\) in the conditions bar sets the flow. Inside ducts the flow chokes at the outlet when it reaches the isothermal speed of sound. Reynolds numbers above 2300 and Mach numbers above 0.3 are flagged: turbulence and compressibility are not modeled.</p>
-        <p>The simple sum \(C_\text{visc} + C_\text{mol}\), a common shortcut, is up to 19 % high in the transitional range compared with Sharipov's solution; Knudsen's semi-empirical formula, which this site's pump-down tool uses, is at most about 5 % high for long tubes.</p>
+        <p>The simple sum \(C_\text{visc} + C_\text{mol}\), a common shortcut, is up to 19 % high in the transitional range compared with Sharipov's solution; Knudsen's semi-empirical formula, which this site's <a href="/tools/pumpdown/">pump-down tool</a> uses, is at most about 5 % high for long tubes.</p>
 
         <h3>The Monte Carlo method</h3>
         <p>Test-particle Monte Carlo follows molecules one at a time: each enters with a cosine (Lambertian) direction, travels in a straight line, and leaves every wall it hits in a new cosine direction, until it leaves through an opening. The fraction that reaches the far opening estimates \(\alpha\), with the statistical uncertainty \(\sigma = \sqrt{\alpha(1-\alpha)/N}\) for \(N\) particles; the results show 95 % intervals. "Verify by Monte Carlo" traces the line's exact analytic geometry in parallel Web Workers, so it checks the formula's combination rules, not just its tables.</p>
         <p>The CAD tab traces particles through a triangle mesh. The mesh is welded and checked for holes, its open edges become the openings, and a reciprocity test (\(A_1\alpha_{12} = A_2\alpha_{21}\)) catches leaky or inconsistent meshes. Faceted circles lose area: a 16-sided tube conducts about 3.5 % less than a round one, so export at least 64 segments per circle. The wall pressure comes from the density of wall hits of the particles launched from the selected inlet, \(p_t/p_\text{in} = (h_t/A_t)\big/(N_\text{in}/A_\text{in})\): the inlet at \(p_\text{in}\) and every other opening pumping. With several inlets the map shows the gas that enters through the selected one.</p>
+
+        <h3>Typical values</h3>
+        <p>Molecular-flow conductances in air at 20 °C, each part alone between two large volumes. For another gas multiply by \(\sqrt{29/M}\) with \(M\) in g/mol: 1.02 for nitrogen, 2.7 for helium and 3.8 for hydrogen.</p>
+        <table class="cl-typical">
+            <caption class="visually-hidden">Typical molecular-flow conductances in air at 20 °C</caption>
+            <thead><tr><th>Part</th><th class="num">This tool</th><th class="num">Long-tube formula, 12.1 d³/l</th><th>Method and source</th></tr></thead>
+            <tbody>
+                <tr><td>Thin orifice, per cm² of area</td><td class="num">11.6 L/s</td><td class="num">—</td><td>\(A\bar v/4\); the same value in Leybold [21]</td></tr>
+                <tr><td>Tube, 25 mm bore (KF25), 1 m long</td><td class="num">1.78 L/s</td><td class="num">1.89 L/s</td><td>Berman's closed form [2]</td></tr>
+                <tr><td>Tube, 40 mm bore (DN40), 1 m long</td><td class="num">7.05 L/s</td><td class="num">7.74 L/s</td><td>Berman's closed form [2]</td></tr>
+                <tr><td>Tube, 100 mm bore (DN100), 1 m long</td><td class="num">99.4 L/s</td><td class="num">121 L/s</td><td>Berman's closed form [2]</td></tr>
+                <tr><td>90° elbow, 100 mm bore (DN100), legs 100 mm</td><td class="num">319 L/s</td><td class="num">—</td><td>Oatley's rule [8] times \(\kappa\) from my TPMC table</td></tr>
+            </tbody>
+        </table>
+        <p>The long-tube formula is the one printed in most vacuum handbooks (Leybold [21], with \(d\) and \(l\) in cm). It leaves out the entrance, so it is 6 % high for the 25 mm tube, 10 % high for the 40 mm tube and 22 % high for the 100 mm tube. Corrugated hoses and lines with bends conduct less than a straight tube of the same bore.</p>
+
+        <h3>Worked example</h3>
+        <p>The page opens on the first example: a 300 L/s turbo pump on a DN100 line made of a 200 mm tube and a 90° elbow with 100 mm legs, in nitrogen at 20 °C, with the chamber at 10<sup>−6</sup> mbar.</p>
+        <ol>
+            <li>Nitrogen at 20 °C has \(\bar v\) = 470.7 m/s. An orifice of the 100 mm bore (\(A\) = 78.54 cm²) passes \(A\bar v/4\) = 924.2 L/s.</li>
+            <li>The tube and the elbow have the same bore, so they are merged into one elbow with legs of 300 mm and 100 mm. Its transmission probability is \(\alpha\) = 0.2178, so \(C_\text{mol}\) = 0.2178 × 924.2 L/s = 201.3 L/s.</li>
+            <li>The pump's test-dome entrance is taken out: \(1/S_c = 1/300 - 1/924.2\) gives \(S_c\) = 444.2 L/s.</li>
+            <li>Line and pump in series: \(1/S_\text{eff} = 1/201.3 + 1/444.2\) gives \(S_\text{eff}\) = 138.5 L/s, which is 46.2 % of the pump's speed.</li>
+            <li>At 10<sup>−6</sup> mbar the Knudsen number in the line is 990, far above 0.5, so the flow is molecular and the line conductance at this pressure, 201.2 L/s, is within 0.1 % of \(C_\text{mol}\).</li>
+        </ol>
+        <p>The formula accuracy shown for this line is ±1.3 %: 0.3 % for the elbow table plus 1 % for the pump's entrance correction. There is no junction between different cross-sections, so nothing is added for one. The simple series rule, with the tube, the elbow and the pump each taken alone, would give 106 L/s.</p>
 
         <h3>Assumptions and limits</h3>
         <ul>
@@ -312,7 +352,7 @@
             <li>R. K. Shah and A. L. London, <em>Laminar Flow Forced Convection in Ducts</em>, Academic Press (1978): the laminar coefficient of the square duct, f Re = 14.227.</li>
             <li>Leybold, <em>Fundamentals of Vacuum Technology</em>. <a href="https://archive.org/details/FundamentalsOfVacuumTechnology" target="_blank" rel="noopener">archive.org</a></li>
             <li>Molflow+ documentation (ideas only; no code is used). <a href="https://molflow.docs.cern.ch/" target="_blank" rel="noopener">molflow.docs.cern.ch</a></li>
-            <li>3D view: three.js (MIT license). Formulas: KaTeX (MIT license). Both are loaded from cdnjs.cloudflare.com.</li>
+            <li>3D view: three.js (MIT license), loaded from cdnjs.cloudflare.com. Formulas: KaTeX (MIT license), served from this site.</li>
         </ol>
         <h4>Textbooks</h4>
         <ul class="refs">
@@ -322,6 +362,11 @@
         </ul>
         <p><strong>Source code.</strong> The page, its tests and the validation suite are public at <a href="https://github.com/foley-photon/conductance-lab" target="_blank" rel="noopener">github.com/foley-photon/conductance-lab</a>. The code is MIT-licensed; the published reference values keep their own terms. Found a wrong number or a bug? Please <a href="https://github.com/foley-photon/conductance-lab/issues" target="_blank" rel="noopener">open an issue</a>.</p>
     </article>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="pumpdown,outgassing,mean-free-path,pressure-converter"></div>
+    </section>
 </main>
 <div id="site-footer"></div>
 <script type="module" src="./js/ui/app.js"></script>

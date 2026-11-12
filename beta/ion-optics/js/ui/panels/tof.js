@@ -13,6 +13,9 @@ import { chartBlock, barsPlot, dataTable, fmtNum, csvText, download, displayHist
 
 export const meta = { id: 'tof', title: 'TOF', order: 40 };
 
+/** Peak table: σ (column 3) and FWHM (column 7) to 3 significant digits; the mean keeps 7 and the CSV keeps everything. */
+export const PEAK_DIGITS = Object.freeze([undefined, undefined, undefined, 3, undefined, undefined, undefined, 3]);
+
 export function mount(el, ctx) {
     const { h } = ctx.ui.dom;
     const pick = h('select', { class: 'io-select io-select-sm', 'aria-label': 'Plane' });
@@ -72,7 +75,7 @@ export function mount(el, ctx) {
             'fwhm_us', 'resolving_power_fwhm', 'fwhm_resolved', 'note'], csvRows), 'tof-peaks.csv'));
         const flagged = t.peaks.filter((p) => p.stats.n >= 30);
         const mixedFlags = flagged.some((p) => p.stats.fwhmResolved) && flagged.some((p) => !p.stats.fwhmResolved);
-        peaksBox.append(h('h3', { class: 'io-card-title', text: 'Peaks' }), dataTable({ columns: cols, rows: prow, caption: 'Peak statistics' }), csv,
+        peaksBox.append(h('h3', { class: 'io-card-title', text: 'Peaks' }), dataTable({ columns: cols, rows: prow, caption: 'Peak statistics', colDigits: PEAK_DIGITS }), csv,
             h('p', { class: 'io-note', text: 'R (rms) uses the FWHM of a Gaussian with the same rms width; it needs no histogram and is the value Scan & tune optimizes. '
                 + 'For peaks that are not Gaussian (a steep leading edge is common after a mirror) the three values differ, and the FWHM value depends on the number of ions. '
                 + 'R (FWHM) is marked "not reliable" unless the half-maximum width spans at least 4 histogram bins and, over a bootstrap of 50 resamples of the arrivals, neither follows the bin width nor varies by more than 30%; '
