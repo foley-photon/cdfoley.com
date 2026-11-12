@@ -283,6 +283,7 @@ sub, sup { line-height: 0; }
     font-family: inherit;
 }
 .btn:hover { text-decoration: none; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 .btn-primary { background: var(--accent); color: var(--on-accent); }
 .btn-primary:hover { background: var(--accent-hover); color: var(--on-accent); }
@@ -495,6 +496,9 @@ a.card h3 { color: var(--text); }
 .input:focus, select.input:focus, textarea.input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 textarea.input { font-family: var(--mono); font-size: 0.88rem; resize: vertical; min-height: 120px; line-height: 1.5; }
 .input-unit input[aria-invalid="true"] { color: var(--danger); }
+/* a field that is switched off (another choice supplies its value) reads as inactive */
+.input-unit input:disabled, .input:disabled { color: var(--muted); -webkit-text-fill-color: var(--muted); background: var(--surface-2); cursor: not-allowed; }
+.input-unit:has(input:disabled) { background: var(--surface-2); }
 .input-unit:has(input[aria-invalid="true"]) { border-color: var(--danger); }
 input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -522,12 +526,34 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
     font-variant-numeric: tabular-nums; text-align: right; cursor: copy; border-radius: 4px; padding: 0 0.25rem; margin-left: auto;
 }
 .result-value:hover { background: var(--surface-2); }
+/* click-to-copy cue: a small copy icon beside the value on hover and on keyboard focus (in the gap left of it, so nothing moves) */
+.result-value { position: relative; }
+.result-value:hover::after, .result-value:focus-visible::after {
+    content: ''; position: absolute; right: 100%; top: 50%; width: 0.8rem; height: 0.8rem; margin: -0.4rem 0.1rem 0 0;
+    background: var(--muted); pointer-events: none;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='round' stroke-linecap='round'%3E%3Crect x='5.5' y='5.5' width='8' height='8' rx='1.5'/%3E%3Cpath d='M10.5 2.5H4A1.5 1.5 0 0 0 2.5 4v6.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='round' stroke-linecap='round'%3E%3Crect x='5.5' y='5.5' width='8' height='8' rx='1.5'/%3E%3Cpath d='M10.5 2.5H4A1.5 1.5 0 0 0 2.5 4v6.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+@media (hover: none) { .result-value:hover::after { content: none; } }
 .result-value.copied { background: var(--ok-soft); color: var(--ok); }
 .result-note { flex: 1 0 100%; font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
 .result.primary .result-value { font-size: 1.25rem; color: var(--accent); }
 .result.primary .result-label { font-weight: 600; color: var(--text); }
+/* a result that is a sentence or a short list, not a number: <div class="result text"> puts it under its label as a left-aligned block */
+.result.text .result-value { flex: 1 0 100%; display: block; margin: 0.15rem 0 0; font-family: inherit; font-size: 0.9rem; font-weight: 400; text-align: left; line-height: 1.5; cursor: auto; font-variant-numeric: normal; }
+.result.text .result-value:hover { background: none; }
+.result.text .result-value::after { content: none; }
 .calc-error { display: none; font-size: 0.88rem; color: var(--danger); background: var(--danger-soft); border-radius: var(--radius-sm); padding: 0.6rem 0.8rem; margin-bottom: 0.9rem; }
 .calc-error.show { display: block; }
+/* Input-error state for rich outputs. While a calculator shows an input error, calc.js puts .calc-error-state on its
+   outputs container (opts.outputs, or <body>). A chart, figure or KPI grid then shows a line of help instead of a blank box:
+     <div id="plot" class="calc-hide-on-error"></div>
+     <p class="hint calc-empty">Fix the input error above to redraw the profile.</p>
+   .calc-dim-on-error keeps the last drawing, faded, for pages that do not clear it. */
+.calc-empty { display: none; }
+.calc-error-state .calc-empty { display: block; }
+.calc-error-state .calc-hide-on-error { display: none !important; }
+.calc-error-state .calc-dim-on-error { opacity: 0.35; }
 .calc-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: flex-end; }
 .badge { display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.55rem; border-radius: 999px; background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
 .badge-ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
@@ -586,7 +612,13 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
 .plot .hover-line { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
 .plot-legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; font-size: 0.82rem; color: var(--text-2); margin-top: 0.5rem; }
 .plot-legend span::before { content: ''; display: inline-block; width: 14px; height: 3px; border-radius: 2px; background: var(--c); margin-right: 0.4rem; vertical-align: middle; }
+/* legend swatches match the marks: a line sample (dashed when the series is), a filled box for a band or bars, a dot for points */
+.plot-legend .lg-line::before { width: 22px; }
+.plot-legend .lg-dash::before { border-radius: 0; background: repeating-linear-gradient(90deg, var(--c) 0 5px, transparent 5px 8.5px); }
+.plot-legend .lg-fill::before { width: 12px; height: 8px; opacity: var(--o, 0.3); }
+.plot-legend .lg-dot::before { width: 8px; height: 8px; border-radius: 50%; }
 .plot-readout { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); min-height: 1.3em; margin-top: 0.3rem; }
+.plot-readout.idle { font-family: inherit; }   /* the "hover or tap" hint, until the first reading replaces it */
 
 /* Tools hub */
 .tool-search { position: relative; max-width: 520px; margin-bottom: 1.6rem; }
@@ -624,9 +656,26 @@ input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-i
     background:
         linear-gradient(to right, var(--bg) 30%, transparent) left / 2.5rem 100% no-repeat local,
         linear-gradient(to left, var(--bg) 30%, transparent) right / 2.5rem 100% no-repeat local,
-        radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--text) 22%, transparent), transparent) left / 0.75rem 100% no-repeat scroll,
-        radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--text) 22%, transparent), transparent) right / 0.75rem 100% no-repeat scroll;
+        radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--text) 30%, transparent), transparent) left / 1rem 100% no-repeat scroll,
+        radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--text) 30%, transparent), transparent) right / 1rem 100% no-repeat scroll;
 }
+/* A wide table outside .prose (in a panel), or one that needs a min-width: <div class="table-wrap"><table>…</table></div>.
+   The wrapper is the scroll box and carries the same edge shadows; --cue-bg is the color behind it. */
+.table-wrap {
+    --cue-bg: var(--bg); overflow-x: auto; position: relative; max-width: 100%; margin: 1.2rem 0;
+    background:
+        linear-gradient(to right, var(--cue-bg) 30%, transparent) left / 2.5rem 100% no-repeat local,
+        linear-gradient(to left, var(--cue-bg) 30%, transparent) right / 2.5rem 100% no-repeat local,
+        radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--text) 30%, transparent), transparent) left / 1rem 100% no-repeat scroll,
+        radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--text) 30%, transparent), transparent) right / 1rem 100% no-repeat scroll;
+}
+.panel .table-wrap, .card .table-wrap { --cue-bg: var(--surface); }
+.table-wrap > table, .prose .table-wrap > table, .panel-body .table-wrap > table { display: table; margin: 0; overflow: visible; background: none; }
+/* Sticky first column for a wide comparison table: <table class="sticky-col">. The row labels stay in view while the
+   other columns scroll sideways. --sticky-bg is the color behind the table (the panel surface by default). */
+table.sticky-col :is(th, td):first-child { position: sticky; left: 0; z-index: 1; background: var(--sticky-bg, var(--surface)); box-shadow: 1px 0 0 var(--border); }
+.prose table.sticky-col { --sticky-bg: var(--bg); }
+.prose table.sticky-col th:first-child { --sticky-bg: var(--surface-2); }
 .prose th, .prose td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
 .prose th { color: var(--text); font-weight: 600; background: var(--surface-2); white-space: nowrap; }
 .prose td.num, .prose th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 0.88rem; }

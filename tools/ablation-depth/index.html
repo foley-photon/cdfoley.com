@@ -17,16 +17,20 @@
 <meta property="og:image:alt" content="Ablation Threshold &amp; Depth Calculator. Find laser ablation threshold fluence and beam radius from crater diameters (Liu D² method), then ablation depth per pulse, incubation, and optimum fluence.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
+<style>
+    .panel-head .abl-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.3rem 0.5rem; }
+    #part2 { scroll-margin-top: 5rem; }
+    .input-unit.filled { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+</style>
 <script type="application/ld+json" id="ld-page">
 {
  "@context": "https://schema.org",
@@ -143,11 +147,11 @@
         </form>
 
         <section class="panel sticky-panel" id="liu-out" aria-labelledby="liu-h">
-            <div class="panel-head"><h3 id="liu-h">Fit results</h3><span id="liu-badge" class="badge"></span></div>
+            <div class="panel-head"><h3 id="liu-h">Fit results</h3><span class="abl-head"><span id="liu-badge" class="badge"></span><button type="button" class="btn btn-ghost btn-sm" id="liu-use" title="Copy the fitted threshold and spot diameter into part 2" disabled>Use in part 2</button></span></div>
             <div class="panel-body">
                 <div class="results">
                     <div class="result primary"><span class="result-label">Threshold fluence (peak)<span class="sym">F<sub>th</sub></span></span><output class="result-value" data-out="fth">—</output>
-                        <span class="result-note">Valid for the number of pulses per crater you used: with one pulse each, this is F<sub>th</sub>(1) for part 2.</span></div>
+                        <span class="result-note">Valid for the number of pulses per crater you used: with one pulse each, this is F<sub>th</sub>(1) for part 2. “Use in part 2” copies it there with the spot diameter.</span></div>
                     <div class="result"><span class="result-label">Threshold pulse energy<span class="sym">E<sub>th</sub></span></span><output class="result-value" data-out="eth">—</output></div>
                     <div class="result"><span class="result-label">Beam radius at the surface (1/e²)<span class="sym">w₀</span></span><output class="result-value" data-out="w0">—</output></div>
                     <div class="result"><span class="result-label">Spot diameter (1/e²)<span class="sym">2w₀</span></span><output class="result-value" data-out="d0">—</output></div>
@@ -163,7 +167,7 @@
         <div class="panel-body"><div id="liu-plot"></div></div>
     </section>
 
-    <h2 style="font-size:1.2rem;margin:2.5rem 0 1rem">2 · Depth, incubation &amp; removal efficiency</h2>
+    <h2 id="part2" style="font-size:1.2rem;margin:2.5rem 0 1rem">2 · Depth, incubation &amp; removal efficiency</h2>
     <div class="tool-layout">
         <form class="panel" id="abl" autocomplete="off">
             <div class="panel-head"><h3>Process</h3>
@@ -179,7 +183,7 @@
                 <div class="field">
                     <label for="a-fth">Single-pulse threshold fluence <span class="sym">F<sub>th</sub>(1)</span></label>
                     <div class="input-unit"><input id="a-fth" name="fth" value="0.2" inputmode="decimal" data-positive data-label="threshold fluence"><select data-dim="fluence" data-units="mJ/cm²,J/cm²" data-default="J/cm²"></select></div>
-                    <p class="hint">A peak value for one pulse per spot: from part 1 with single-pulse craters, or from the literature (typical values below).</p>
+                    <p class="hint">A peak value for one pulse per spot: from part 1 with single-pulse craters (“Use in part 2” copies it here), or from the literature (typical values below).</p>
                 </div>
                 <div class="field">
                     <label for="a-delta">Effective penetration depth <span class="sym">δ<sub>eff</sub></span></label>
@@ -189,7 +193,7 @@
                 <div class="field-row">
                     <div class="field">
                         <label for="a-n">Pulses per spot <span class="sym">N</span></label>
-                        <div class="input-unit"><input id="a-n" name="n" value="10" inputmode="decimal" data-min="1" data-label="pulses per spot"><span class="unit">—</span></div>
+                        <div class="input-unit"><input id="a-n" name="n" value="10" inputmode="decimal" data-min="1" data-label="pulses per spot"><span class="unit">pulses</span></div>
                     </div>
                     <div class="field" style="margin-bottom:.95rem">
                         <label for="a-s">Incubation coefficient <span class="sym">S</span></label>
@@ -229,6 +233,13 @@
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="eta-h">
         <div class="panel-head"><h3 id="eta-h">Removal efficiency vs. fluence</h3></div>
         <div class="panel-body"><div id="eta-plot"></div></div>
+    </section>
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="dn-h">
+        <div class="panel-head"><h3 id="dn-h">Total depth vs. pulse number</h3></div>
+        <div class="panel-body">
+            <div id="dn-plot"></div>
+            <p class="hint" style="margin:.5rem 0 0">The on-axis depth after each pulse, summed pulse by pulse with the incubated threshold. It holds for shallow features: in deep grooves and holes the depth levels off.</p>
+        </div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
@@ -365,7 +376,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return pts;
     }
     const liuBadge = document.getElementById('liu-badge');
+    const useBtn = document.getElementById('liu-use');
     let liuFit = null;
+    // a cleared chart leaves a line of help instead of an empty box
+    const emptyPlot = (sel, text) => {
+        const el = document.querySelector(sel);
+        Plot.clear(el);
+        el.innerHTML = '<p class="hint" style="margin:0">' + text + '</p>';   // fixed strings only
+    };
+    const FIX = 'Fix the input error above to redraw the chart.';
+
+    // "Use in part 2": the fitted threshold and spot diameter go into part 2, in the units selected there
+    useBtn.addEventListener('click', () => {
+        if (!liuFit) return;
+        const fill = (id, dim, si) => {
+            const inp = document.getElementById(id), box = inp.closest('.input-unit');
+            inp.value = fmt.plain(fromSI(dim, box.querySelector('select').value, si), 4);
+            box.classList.add('filled'); setTimeout(() => box.classList.remove('filled'), 1200);
+            return inp;
+        };
+        fill('a-d', 'length', 2 * liuFit.w0);
+        fill('a-fth', 'fluence', liuFit.Fth).dispatchEvent(new Event('input', { bubbles: true }));   // recalculates part 2 and updates the link
+        const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        document.getElementById('part2').scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+    });
 
     Calc.create({
         form: '#liu', id: 'liu', outputs: '#liu-out',
@@ -388,7 +422,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const Eth = Math.exp(-b / m);
             const Fth = 2 * Eth / (Math.PI * w0 * w0);
             const r2 = syy > 0 ? sxy * sxy / (sxx * syy) : 1;
-            liuFit = { pts, eu, du, m, Eth, w0 };
+            liuFit = { pts, eu, du, m, Eth, w0, Fth };
+            useBtn.disabled = false;
             liuBadge.textContent = r2 >= 0.98 ? 'Good linear fit' : r2 >= 0.9 ? 'Check linearity' : 'Poor fit';
             liuBadge.className = 'badge ' + (r2 >= 0.98 ? 'badge-ok' : r2 >= 0.9 ? 'badge-warn' : 'badge-bad');
             const skipped = raw.length - pts.length;
@@ -421,8 +456,9 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onError() {
             liuFit = null;
+            useBtn.disabled = true;
             liuBadge.textContent = ''; liuBadge.className = '';
-            const el = document.getElementById('liu-plot'); el.innerHTML = ''; el._plot = null;
+            emptyPlot('#liu-plot', FIX);
         }
     });
 
@@ -433,6 +469,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (n < 20) { let s = 0; for (let k = 2; k <= n; k++) s += Math.log(k); return s; }
         return n * Math.log(n) - n + 0.5 * Math.log(2 * Math.PI * n) + 1 / (12 * n) - 1 / (360 * n ** 3);
     };
+    // Total on-axis depth after n whole pulses: pulse k removes δ·ln(F₀/F_th(k)) once F₀ > F_th(k). Summed in closed
+    // form over the pulses k0…n, where k0 is the first pulse above its threshold and l1 = ln(F₀/F_th(1)).
+    const depthAfter = (n, v, l1) => {
+        const k0 = l1 > 0 ? 1 : v.s < 1 ? Math.floor(Math.exp(-l1 / (1 - v.s))) + 1 : Infinity;
+        return k0 > n ? 0 : v.delta * ((n - k0 + 1) * l1 + (1 - v.s) * (lnFact(n) - lnFact(k0 - 1)));
+    };
     Calc.create({
         form: '#abl', id: 'abl', outputs: '#abl-out',
         compute(v) {
@@ -440,10 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const nTot = Math.max(1, Math.round(v.n));
             const fthN = v.fth * Math.pow(nTot, v.s - 1);
             const r1 = v.f0 / v.fth, rN = v.f0 / fthN, l1 = Math.log(r1);
-            // Total on-axis depth: pulse k removes δ·ln(F₀/F_th(k)) once F₀ > F_th(k). Summed in closed form over the
-            // whole pulses k0…nTot, where k0 is the first pulse above its threshold.
-            const k0 = l1 > 0 ? 1 : v.s < 1 ? Math.floor(Math.exp(-l1 / (1 - v.s))) + 1 : Infinity;
-            const tot = k0 > nTot ? 0 : v.delta * ((nTot - k0 + 1) * l1 + (1 - v.s) * (lnFact(nTot) - lnFact(k0 - 1)));
+            const tot = depthAfter(nTot, v, l1);
             const rounded = nTot !== v.n ? 'N rounded to ' + nTot : '';
             const above = rN > 1;
             const a = Math.log(rN);
@@ -489,10 +528,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 vlines: [{ x: E2, label: 'e² ≈ 7.39', color: 'var(--c3)' }],
                 hover: { format: (x, hits) => hits.length ? `F₀/Fₜₕ = ${fmt.num(hits[0].x, 3)} · η/η_max = ${fmt.pct(hits[0].y, 3)}` : '' }
             });
+
+            // total depth after each pulse 1…N
+            const nTot = Math.max(1, Math.round(v.n)), l1 = Math.log(v.f0 / v.fth), top = depthAfter(nTot, v, l1);
+            if (nTot < 2) { emptyPlot('#dn-plot', 'Enter two or more pulses per spot to see the depth build up.'); return; }
+            if (!(top > 0)) { emptyPlot('#dn-plot', 'No pulse is above its threshold, so there is no depth to plot.'); return; }
+            const ks = nTot <= 200 ? Array.from({ length: nTot }, (_, i) => i + 1)
+                : Array.from(new Set(Calc.math.logspace(1, nTot, 200).map(Math.round)));
+            const um = top >= 1e-6, sc = um ? 1e6 : 1e9, u = um ? 'µm' : 'nm';
+            const few = nTot <= 30;                                   // few pulses: one marker each on a linear axis
+            const dn = [{ type: few ? 'points' : 'line', line: true, r: 3.5, x: ks, y: ks.map(k => depthAfter(k, v, l1) * sc),
+                label: v.s < 1 ? 'With incubation (S = ' + fmt.num(v.s, 3) + ')' : 'Total depth', color: 'var(--c1)' }];
+            if (v.s < 1 && l1 > 0) dn.push({ type: 'line', x: ks, y: ks.map(k => k * v.delta * l1 * sc), label: 'No incubation (S = 1)', color: 'var(--c2)', dash: true });
+            Plot.draw('#dn-plot', {
+                height: 260,
+                x: few ? { label: 'Pulse number', min: 1, max: nTot, format: x => Number.isInteger(x) ? String(x) : '' } : { label: 'Pulse number', log: true, min: 1, max: nTot },
+                y: { label: 'Total depth on axis (' + u + ')', min: 0 },
+                series: dn,
+                hover: { format: (x, hits) => hits.length ? 'After pulse ' + Math.round(hits[0].x) + ': ' + hits.map(h => fmt.si(h.y / sc, 'm', 4) + (hits.length > 1 ? (h.series.dash ? ' without incubation' : ' with incubation') : '')).join(', ') + '. Deep features level off below this estimate.' : '' }
+            });
         },
         onError() {
             ablBadge.textContent = ''; ablBadge.className = '';
-            const el = document.getElementById('eta-plot'); el.innerHTML = ''; el._plot = null;
+            emptyPlot('#eta-plot', FIX);
+            emptyPlot('#dn-plot', FIX);
         }
     });
 });

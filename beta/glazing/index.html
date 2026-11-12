@@ -7,14 +7,13 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="description" content="Beta: the glazing calculator with measured glass optical constants, thin-film low-e coatings calibrated to published datasheets, and measured IGDB products, side by side with the current model.">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <link rel="stylesheet" href="./glazing-beta.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="/assets/katex/katex.min.js"></script>
+<script defer src="/assets/katex/contrib/auto-render.min.js"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/glazing-units.js"></script>
@@ -41,10 +40,26 @@
     <header class="page-head">
         <span class="eyebrow">Beta</span>
         <h1>Glazing Performance Calculator (Open-Data Beta)</h1>
-        <p class="lede">Build single, double, triple or vacuum glazing and see the current calculator's material model and a new one built only from openly licensed data side by side: measured glass optical constants, thin-film low-e coatings calibrated to published datasheets, and nine measured IGDB products. Compare either model with manufacturers' published values. Everything runs in your browser.</p>
+        <p class="lede">Does a glazing model built only from openly licensed data match the current calculator and the manufacturers' published numbers? Build single, double, triple or vacuum glazing and see both models side by side: measured glass optical constants, thin-film low-e coatings calibrated to published datasheets, and nine measured IGDB products. Everything runs in your browser.</p>
+        <details class="key-terms"><summary>Key terms</summary><dl>
+            <dt>U-factor</dt><dd>The heat that flows through each square meter of glazing for each degree of temperature difference between inside and outside, in W/m²·K (US units: Btu/h·ft²·°F; 1&nbsp;Btu/h·ft²·°F = 5.678&nbsp;W/m²·K). Lower insulates better. The R-value, next, is the same property turned upside down.</dd>
+            <dt>R-value</dt><dd>The resistance of the glazing to heat flow: the U-factor turned upside down, so a higher R-value insulates better, and halving the U-factor doubles the R-value. US practice writes it as “R-4”, in h·ft²·°F/Btu. The SI value, in m²·K/W, is often called RSI and is about 5.7 times smaller. The R-values here are center-of-glass values from indoor air to outdoor air, so they include the thin layers of air on the two outer glass faces (the air films).</dd>
+            <dt>Center of glass</dt><dd>The middle of the glazing, away from the edge seal and the frame. These results are center-of-glass values; the whole-window U-factor on an NFRC label also counts the frame and the edges and comes out higher, and the whole-window R-value lower.</dd>
+            <dt>SHGC</dt><dd>Solar heat gain coefficient: the fraction of the sunlight striking the glass that ends up as heat indoors, transmitted directly or absorbed in the panes and released inward. It runs from 0 to 1: low values keep rooms cool, high values help passive solar heating.</dd>
+            <dt>Visible transmittance (VT)</dt><dd>The fraction of daylight that passes through, weighted by the eye’s sensitivity. Clear double glazing transmits about 80&nbsp;%.</dd>
+            <dt>Low-e coating</dt><dd>A thin, transparent coating of doped tin oxide or silver that reflects the long-wave infrared radiated by room-temperature surfaces. Its emissivity, from 0 to 1, says how strongly a surface radiates heat: 0.84 for bare glass, about 0.15 for a tin-oxide hard coat, and about 0.015–0.07 for silver coatings.</dd>
+            <dt>Surface numbers</dt><dd>Glass surfaces are counted from outdoors: a double unit has surfaces #1 (outdoor face) to #4 (indoor face), so a coating on #2 is on the inner face of the outer pane, inside the sealed gap.</dd>
+            <dt>Gas fill</dt><dd>Argon, krypton, or xenon conducts heat less well than air, so a filled gap insulates better. Here a gas fill is 90&nbsp;% gas and 10&nbsp;% air.</dd>
+            <dt>Vacuum insulating glass (VIG)</dt><dd>Two panes a fraction of a millimeter apart with the air pumped out, held apart by a grid of small pillars and sealed at the edges. Heat crosses only by radiation and through the pillars.</dd>
+            <dt>Classic and open-data models</dt><dd>Two ways to make each pane’s spectra. The classic model is the current calculator’s: smooth parametric curves for each glass and coating. The open-data model computes the spectra from published optical constants: measured glass, and a stack of thin films for each coating. Both feed the same optics and the same thermal model.</dd>
+            <dt>Measured record (IGDB)</dt><dd>The measured transmittance and reflectance spectra of one product, from the International Glazing Database that LBNL maintains. Nine records are available here. A pane that uses one is identical in both models.</dd>
+            <dt>Calibrated and held out</dt><dd>A calibration row is a published datasheet configuration that a coating’s layer thicknesses were fitted to. A held-out row was not used in the fit, so it is an independent check of the model.</dd>
+            <dt>ASTM E891 and G173</dt><dd>Two reference solar spectra used to weight the solar quantities. E891 (direct normal) is the one in LBNL’s NFRC calculations, so it is the one behind manufacturers’ datasheets. G173 is the newer reference, with more ultraviolet and visible light: with it, SHGC for the default unit comes out 0.020 higher.</dd>
+            <dt>Datasheet tolerance</dt><dd>How far a model value may be from a published value and still count as a match. For a calibration row: 1&nbsp;point of visible transmittance, 0.015 in SHGC and 0.01&nbsp;Btu/h·ft²·°F in U-factor. Held-out rows are allowed 2&nbsp;points, 0.02 and 0.015. In the comparison tables, ✓ is within the tolerance, ! is within twice the tolerance, and ✗ is outside twice the tolerance.</dd>
+        </dl></details>
     </header>
     <div class="callout callout-warn" role="note">
-        <p><strong>Beta, in review.</strong> This page tests a new material model built only from openly licensed data, next to the model used by the <a href="/tools/glazing-performance/">current glazing calculator</a>, which is unchanged. Check its numbers against the published datasheets and the self-test below before relying on them.</p>
+        <p><strong>Beta, in review.</strong> This page tests a new material model built only from openly licensed data, next to the model used by the <a href="/tools/glazing-performance/">current glazing calculator</a>, which is unchanged. Check its numbers against the <a href="#cmp-panel">published datasheets</a> and the <a href="#selftest">self-test</a> below before relying on them.</p>
     </div>
 
     <div class="tool-layout">
@@ -74,8 +89,8 @@
                     <div class="field">
                         <label for="np">Panes</label>
                         <select id="np" name="np" class="input">
-                            <option value="2" selected>Double</option>
                             <option value="1">Single (monolithic)</option>
+                            <option value="2" selected>Double</option>
                             <option value="3">Triple</option>
                         </select>
                     </div>
@@ -90,17 +105,19 @@
         </form>
 
         <section class="panel" id="glzb-out" aria-labelledby="out-h">
-            <div class="panel-head"><h2 id="out-h">Performance</h2><span class="badge" data-out="cond">NFRC 100 / 200 · ASTM E891</span></div>
+            <div class="panel-head"><h2 id="out-h">Performance</h2><span class="badge calc-hide-on-error" data-out="cond">NFRC 100 / 200 · ASTM E891</span></div>
             <div class="panel-body">
                 <div class="callout callout-warn gl-open-err" id="open-err" role="status" hidden><p>The open-data model could not load. The classic results below are unaffected.</p></div>
-                <div class="xsec" data-out="xsec" role="img" aria-label="Cross-section of the glazing unit with surface numbers, coatings, gaps, and winter surface temperatures"></div>
-                <p class="hint" style="margin:.4rem 0 0">Purple line: low-e coating. Orange: surface temperatures (°C) at NFRC 100 winter conditions.</p>
-                <div class="kpis" data-out="kpis"></div>
-                <p class="hint kpi-hint">R-value is 1 divided by the U-factor: center of glass and air to air, at NFRC 100 winter conditions. <a href="#ru-converter">Convert a U-factor or an R-value</a>.</p>
-                <div class="gl-notes" data-out="notes" aria-live="polite"></div>
-                <div class="cmp-wrap" data-out="table"></div>
-                <div class="swatches" data-out="swatches"></div>
-                <div class="attrib" data-out="attrib"></div>
+                <p class="hint calc-empty gl-empty">Fix the highlighted input to see results.</p>
+                <div class="xsec calc-hide-on-error" data-out="xsec" role="img" aria-label="Cross-section of the glazing unit with surface numbers, coatings, gaps, and winter surface temperatures"></div>
+                <p class="hint calc-hide-on-error" style="margin:.4rem 0 0">Purple line: low-e coating. Orange: surface temperatures (°C) at NFRC 100 winter conditions.</p>
+                <div class="kpis calc-hide-on-error" data-out="kpis"></div>
+                <p class="hint kpi-hint calc-hide-on-error">R-value is 1 divided by the U-factor: center of glass and air to air, at NFRC 100 winter conditions. For scale, in the open-data model: about 5.8&nbsp;W/m²·K (R-0.98) for single glass, 2.7 (R-2.1) for clear double glazing, 1.4 (R-4.0) for low-e double glazing with argon, and 0.6–0.8 (R-9.0 to R-7.3) for low-e triple glazing. <a href="#ru-converter">Convert a U-factor or an R-value</a>.</p>
+                <div class="gl-notes calc-hide-on-error" data-out="notes" aria-live="polite"></div>
+                <div class="cmp-wrap calc-hide-on-error" data-out="table"></div>
+                <div class="swatches calc-hide-on-error" data-out="swatches"></div>
+                <p class="hint swatch-hint calc-hide-on-error">Color as CIELAB under daylight (D65): L* is lightness from 0 (black) to 100 (white); negative a* is greener and positive a* redder; negative b* is bluer and positive b* yellower.</p>
+                <div class="attrib calc-hide-on-error" data-out="attrib"></div>
             </div>
         </section>
     </div>
@@ -163,6 +180,7 @@
     <section class="panel gl-sec" id="imp-panel" aria-labelledby="imp-h">
         <div class="panel-head"><h2 id="imp-h">Use measured product data</h2></div>
         <div class="panel-body">
+            <details class="fold" id="imp-fold" style="margin:0"><summary>Paste or load spectra for a specific product</summary>
             <p class="imp-note">Load a spectral file exported from LBNL Optics or WINDOW (IGDB text format), an IGSDB product record (JSON), or four columns of your own data (wavelength, T, Rfront, Rback). The file is read in this browser only: it is not uploaded, and this site never redistributes it. Records from the International Glazing Database are Copyright (c) 2011, The Regents of the University of California, through Lawrence Berkeley National Laboratory, and licensed under <a href="https://creativecommons.org/licenses/by-nd/4.0/" target="_blank" rel="noopener">CC BY-ND 4.0</a>; their attribution is shown with every result that uses them. Import only data you have the right to use.</p>
             <label for="imp-text" class="field-label">Spectral data</label>
             <textarea id="imp-text" class="input" rows="7" placeholder="{ Thickness } 5.7&#10;{ Emissivity, forward, back } Emis= 0.840 0.037&#10;{ Product Name: … }  { Manufacturer: … }&#10;0.300  0.000  0.047  0.048&#10;0.305  0.002  0.047  0.048&#10;…   (wavelength, T, Rfront, Rback; µm or nm; fractions or %)"></textarea>
@@ -172,6 +190,7 @@
             </div>
             <div class="imp-msg" id="imp-msg" role="status"></div>
             <ul class="imp-list" id="imp-list"></ul>
+            </details>
         </div>
     </section>
 
@@ -190,6 +209,35 @@
         <p><strong>Calibration.</strong> Four generic stacks (hard coat, single, double and triple silver) had their layer thicknesses fitted offline only to published datasheet values: visible transmittance, reflectance, SHGC, UV transmittance (computed as LBNL WINDOW computes it for datasheets) and, for the hard coat, solar transmittance. Color windows taken from the manufacturers' appearance statements keep the reflected color neutral. The emissivity of the coated face is then inferred from the published air and argon U-factors. The datasheets give U-factors, not R-values, so the R-values in the comparison panel are converted from them. A fitted stack is an effective model of a coating family, not any manufacturer's actual design. The panel “How the open coatings are built” shows every layer and every residual, and the comparison panel shows the datasheet rows the fit never saw.</p>
         <p><strong>Measured products.</strong> The nine named products are unmodified International Glazing Database (IGDB) records that LBNL distributes in its open-source pyWinCalc and Windows-CalcEngine projects. Your browser reads each file when you first select the product and resamples its spectra to the calculator's 5 nm grid for that calculation only; a measured pane is identical in both models.</p>
         <p><strong>Solar spectrum.</strong> The solar quantities (solar transmittance, SHGC, UV) depend on the solar spectrum used to weight them. This page defaults to the ASTM E891 direct-normal spectrum, which LBNL's NFRC calculations in Windows-CalcEngine use, so its numbers are comparable with manufacturers' datasheets computed in LBNL WINDOW; the datasheet comparisons always use it. ASTM G173 (direct plus circumsolar), the newer reference spectrum, has more ultraviolet and visible light; with it, SHGC comes out about 0.01–0.03 higher for silver low-e coatings.</p>
+
+        <h2>Typical values</h2>
+        <p>Center-of-glass results of both models for common glazings: generic layers, the ASTM E891 spectrum, 1&nbsp;m tall. Each cell gives the open-data value first, then the classic value. Double units have 6&nbsp;mm clear panes and a 12.7&nbsp;mm gap; a gas fill is 90&nbsp;% gas. The R-value is 1/U, from indoor air to outdoor air.</p>
+        <table class="typ-beta">
+            <thead><tr><th>Glazing</th><th class="tv-num">U, W/m²·K</th><th class="tv-num">R, h·ft²·°F/Btu</th><th class="tv-num">SHGC</th><th class="tv-num">VT</th></tr></thead>
+            <tbody>
+                <tr><td>Single, 6&nbsp;mm clear</td><td class="tv-num">5.81 / 5.81</td><td class="tv-num">0.98 / 0.98</td><td class="tv-num">0.82 / 0.84</td><td class="tv-num">88 / 89&nbsp;%</td></tr>
+                <tr><td>Double, clear, air</td><td class="tv-num">2.68 / 2.68</td><td class="tv-num">2.12 / 2.12</td><td class="tv-num">0.71 / 0.73</td><td class="tv-num">78 / 80&nbsp;%</td></tr>
+                <tr><td>Double, hard coat on #3, argon</td><td class="tv-num">1.66 / 1.63</td><td class="tv-num">3.42 / 3.48</td><td class="tv-num">0.67 / 0.69</td><td class="tv-num">71 / 75&nbsp;%</td></tr>
+                <tr><td>Double, single silver on #2, argon</td><td class="tv-num">1.47 / 1.40</td><td class="tv-num">3.87 / 4.06</td><td class="tv-num">0.60 / 0.55</td><td class="tv-num">76 / 73&nbsp;%</td></tr>
+                <tr><td>Double, double silver on #2, argon (the default)</td><td class="tv-num">1.40 / 1.37</td><td class="tv-num">4.04 / 4.16</td><td class="tv-num">0.39 / 0.37</td><td class="tv-num">70 / 74&nbsp;%</td></tr>
+                <tr><td>Double, triple silver on #2, argon</td><td class="tv-num">1.36 / 1.34</td><td class="tv-num">4.18 / 4.23</td><td class="tv-num">0.27 / 0.31</td><td class="tv-num">63 / 70&nbsp;%</td></tr>
+                <tr><td>Triple, 4&nbsp;mm panes, single silver on #2 and #5, 12&nbsp;mm argon</td><td class="tv-num">0.78 / 0.73</td><td class="tv-num">7.31 / 7.82</td><td class="tv-num">0.54 / 0.47</td><td class="tv-num">68 / 62&nbsp;%</td></tr>
+                <tr><td>Triple, 4&nbsp;mm panes, double silver on #2 and #5, 12&nbsp;mm krypton</td><td class="tv-num">0.63 / 0.60</td><td class="tv-num">8.99 / 9.43</td><td class="tv-num">0.34 / 0.32</td><td class="tv-num">57 / 63&nbsp;%</td></tr>
+            </tbody>
+        </table>
+        <p>Typical inputs: uncoated glass has an emissivity of 0.84 in both models. The open coatings use 0.1635 (hard coat), 0.071 (single silver), 0.042 (double silver) and 0.022 (triple silver), each inferred from the published air and argon U-factors of the calibration datasheets. The classic model uses 0.15, 0.04, 0.025 and 0.015. The higher open emissivities are why the open U-factors of coated units are a little higher.</p>
+
+        <h2>Worked example</h2>
+        <p>The default unit: 6&nbsp;mm clear glass with the double-silver coating on #2, a 12.7&nbsp;mm gap of 90&nbsp;% argon, and 6&nbsp;mm clear glass, 1&nbsp;m tall, with the ASTM E891 spectrum and both models shown.</p>
+        <ul>
+            <li><strong>Open-data model:</strong> \(U = 1.40\)&nbsp;W/m²·K (0.247&nbsp;Btu/h·ft²·°F), SHGC&nbsp;=&nbsp;0.394 and VT&nbsp;=&nbsp;69.6&nbsp;%. These are the large figures on the tiles.</li>
+            <li><strong>R-value:</strong> from the full-precision U-factor, \(R = 1/1.4048 = 0.7118\)&nbsp;m²·K/W, shown as 0.712. In US units, \(5.678263 \times 0.7118 = 4.04\)&nbsp;h·ft²·°F/Btu, or R-4.04.</li>
+            <li><strong>Classic model:</strong> \(U = 1.37\)&nbsp;W/m²·K (0.241&nbsp;Btu/h·ft²·°F), R-4.16 (0.732&nbsp;m²·K/W), SHGC&nbsp;=&nbsp;0.368 and VT&nbsp;=&nbsp;73.8&nbsp;%. These are the small “classic” figures on the tiles.</li>
+            <li><strong>Δ column (open − classic):</strong> +0.039&nbsp;W/m²·K in U-factor (+0.007&nbsp;Btu/h·ft²·°F), +0.026 in SHGC and −4.15&nbsp;points in VT.</li>
+        </ul>
+        <p>The U-factor difference is inside the datasheet tolerance of 0.01&nbsp;Btu/h·ft²·°F. The SHGC and VT differences are outside 0.015 and 1&nbsp;point, and the note under the tiles says so. The open coating has a higher emissivity (0.042 against 0.025), which raises U. Its thin-film stack also absorbs more sunlight in the outer pane (35.3&nbsp;% against 27.6&nbsp;%) and reflects less (27.1&nbsp;% against 37.1&nbsp;%), which raises SHGC. The two models are furthest apart in UV transmittance: 16.6&nbsp;% against 38.5&nbsp;%.</p>
+        <p>The nearest published configuration is Vitro Solarban 60 on #2, 6/13/6&nbsp;mm, a held-out row in the <a href="#cmp-panel">comparison panel</a>. The datasheet gives VT&nbsp;70&nbsp;%, SHGC&nbsp;0.39 and an argon U-factor of 0.24&nbsp;Btu/h·ft²·°F. With the 13&nbsp;mm gap of that row, the open-data model gives 69.6&nbsp;%, 0.398 and 0.248, all within the held-out tolerance. The classic model gives 73.8&nbsp;%, 0.372 and 0.241: its VT is 3.8&nbsp;points high, outside the 2-point tolerance but within twice the tolerance.</p>
+        <p><a href="#glzb.view=both&amp;glzb.sol=e891&amp;glzb.np=2&amp;glzb.H=1&amp;glzb.H_u=m&amp;glzb.p1g=clear&amp;glzb.p1t=6&amp;glzb.p1c=double&amp;glzb.p1s=back&amp;glzb.g1f=argon&amp;glzb.g1w=12.7&amp;glzb.g1w_u=mm&amp;glzb.p2g=clear&amp;glzb.p2t=6&amp;glzb.p2c=none">Load this example into the calculator</a>.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
@@ -231,6 +279,11 @@
             <p><strong>Solar spectrum and test references.</strong> The ASTM E891 solar spectrum is taken from LBNL Windows-CalcEngine (BSD-style license), as are the unit-test values used in the self-test. Low-iron reference values are from the EnergyPlus glass dataset.</p>
             <p><strong>Published values.</strong> Datasheet values are quoted as facts from the manufacturers' documents linked in the comparison panel; the documents themselves are not copied. Product names are trademarks of their owners and identify the products only. Nothing on this page is endorsed by any manufacturer, by LBNL, by the University of California or by the U.S. Department of Energy.</p>
         </div>
+    </section>
+
+    <section class="related">
+        <h2>Related tools</h2>
+        <div data-related="glazing-performance,low-e-sheet-resistance,color-converter,fresnel-equations"></div>
     </section>
 </main>
 <div id="site-footer"></div>

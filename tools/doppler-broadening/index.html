@@ -17,17 +17,16 @@
 <meta property="og:image:alt" content="Doppler Broadening &amp; Linewidth Calculator. Doppler (Gaussian) and natural (Lorentzian) linewidths from temperature, mass, and lifetime, combined into the Voigt FWHM, in pm, GHz, and cm-1.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
     /* the typical-values table: slightly tighter cells, so its four columns fit a 390 px phone without scrolling */
     .prose table.tv th, .prose table.tv td { padding-left: 0.55rem; padding-right: 0.55rem; }
 </style>
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -101,7 +100,7 @@
 
     <header class="page-head">
         <h1>Doppler Broadening &amp; Linewidth Calculator</h1>
-        <p class="lede">How wide is a spectral line from a gas or plasma, and which effect sets that width? Enter the line’s wavelength, the gas temperature, and the mass of the emitting atom to get the Doppler width from thermal motion. Add the lifetime of the excited state, any pressure or Stark broadening, and your spectrometer’s resolution to get the width you would actually measure, the Voigt width. Use it to compare a measured line width with what a temperature predicts, to check whether a spectrometer can resolve a line, or to see whether a laser is narrower than the line it probes. Every width is given in wavelength, frequency, and wavenumber.</p>
+        <p class="lede">How wide is a spectral line from a gas or plasma, and which effect sets that width? Enter the line’s wavelength, the gas temperature, and the mass of the emitting atom to get the Doppler width from thermal motion; add the lifetime, any pressure or Stark broadening, and your spectrometer’s resolution to get the Voigt width you would actually measure, in wavelength, frequency, and wavenumber.</p>
         <details class="key-terms"><summary>Key terms</summary><dl>
             <dt>Linewidth (FWHM)</dt><dd>The width of a spectral line at half its peak height, the full width at half maximum. It can be quoted as a wavelength (pm or nm), a frequency (MHz or GHz), or a wavenumber (cm⁻¹).</dd>
             <dt>Doppler broadening</dt><dd>Atoms moving toward you emit or absorb at a slightly higher frequency, atoms moving away at a lower one. In a gas, thermal motion spreads a line into a bell-shaped (Gaussian) profile that widens with temperature and is narrower for heavier atoms.</dd>
@@ -210,6 +209,7 @@
 
     <article class="prose" style="margin-top:3rem">
         <h2>How it is calculated</h2>
+        <p>Use the calculator to compare a measured line width with what a temperature predicts, to check whether a spectrometer can resolve a line, or to see whether a laser is narrower than the line it probes.</p>
         <p><strong>Doppler broadening.</strong> Thermal motion along the line of sight shifts each emitter’s frequency by \(\nu_0 v_z/c\). A Maxwell–Boltzmann velocity distribution turns this into a Gaussian line shape with full width at half maximum</p>
         <div class="formula">\[ \begin{gathered} \Delta\nu_D = \nu_0\sqrt{\frac{8 k_B T \ln 2}{m c^2}} \\[4pt] \frac{\Delta\lambda_D}{\lambda_0} = \frac{\Delta\nu_D}{\nu_0} \approx 7.162\times10^{-7}\sqrt{\frac{T\,[\text{K}]}{M\,[\text{u}]}} \end{gathered} \]</div>
         <p>Here \(m = M m_u\), with \(m_u\) the atomic mass constant (1&nbsp;u), and the factor \(\sqrt{8k_B\ln 2/(m_u c^2)} = 7.1623\times10^{-7}\) follows from the CODATA 2022 constants; NIST’s atomic spectroscopy compendium gives the same formula with 7.16&nbsp;×&nbsp;10⁻⁷.</p>
@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
             y: log ? { label: 'Normalized intensity', log: true, min: FLOOR, max: 1.5 } : { label: 'Normalized intensity', min: 0, max: 1.05 },
             series,
             hlines: [{ y: 0.5, label: 'half maximum', color: 'var(--muted)' }],
-            vlines: [{ x: -fV / 2 / unit.f, label: '', color: 'var(--border-strong)' }, { x: fV / 2 / unit.f, label: '', color: 'var(--border-strong)' }],
+            vlines: [{ x: -fV / 2 / unit.f, label: '', color: 'var(--muted)' }, { x: fV / 2 / unit.f, label: 'Voigt FWHM', color: 'var(--muted)' }],   // the pair of guides marks the Voigt width; one label names both
             includeLines: false,
             ariaLabel: 'Peak-normalized line profiles on a ' + (log ? 'logarithmic' : 'linear') + ' intensity scale: Gaussian FWHM ' + wlw(fG) +
                 (drawL ? ', Lorentzian FWHM ' + wlw(fL) : '') + ', Voigt FWHM ' + wlw(fV) + ', marked by the lines at half maximum.',

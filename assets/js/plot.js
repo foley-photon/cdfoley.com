@@ -15,6 +15,12 @@
      vlines: [{ x, label, color }], hlines: [{ y, label, color }],
      hover: true | { format: (x, hits) => 'text', hint }     readout by pointer, tap, or keyboard (focus, ← →)
    })
+   The legend shows each labelled series as it is drawn: a line sample (dashed when dash is set), a dot for points
+   without a line, a filled swatch for a band or bars.
+   A log axis without its own format labels every tick the same way: powers of ten as 10ⁿ when all ticks are powers
+   of ten and some lie outside 0.01…1000, otherwise plain numbers.
+   A y title too long for the chart is moved toward the middle and, if need be, set smaller. A vline label avoids
+   the other vlines; one that cannot is drawn over them.
    Plot.clear(container)                                 remove a chart, e.g. when the inputs are invalid
    ========================================================================== */
 (function () {
@@ -72,9 +78,30 @@
         var s = v.toExponential(Math.max(1, Math.min(20, Math.floor(Math.log10(a) + 1e-9) - ls))).split('e');
         return s[0].replace(/\.?0+$/, '').replace('-', '−') + 'e' + s[1].replace('+', '');
     }
+    // One notation for all the ticks of a log axis (never "2000, 5000, 10⁴, 20000" or "1000" next to "10⁴"):
+    // - every tick a power of ten: plain numbers while all lie in 0.01…1000, otherwise all as 10ⁿ;
+    // - other ticks (1-2-5 or 1-3 steps): plain numbers while all lie in 0.0001…10⁷, otherwise all as m×10ⁿ.
+    function pow10(v) { var e = Math.round(Math.log10(Math.abs(v))); return Math.abs(Math.abs(v) - Math.pow(10, e)) / Math.abs(v) < 1e-9 ? e : null; }
+    function supStr(e) { return String(e).split('').map(function (c) { return SUP[c] || c; }).join(''); }
+    function logFormat(min, max) {
+        var ticks = logTicks(min, max).filter(function (v) { return v >= min * (1 - 1e-9) && v <= max * (1 + 1e-9); });
+        var exps = ticks.map(pow10), allPow = exps.every(function (e) { return e !== null; });
+        var plain = function (v) { return String(parseFloat(v.toPrecision(6))).replace('-', '−'); };
+        var power = function (v) {
+            var e = Math.floor(Math.log10(Math.abs(v)) + 1e-9), m = parseFloat((Math.abs(v) / Math.pow(10, e)).toPrecision(3));
+            return (v < 0 ? '−' : '') + (m === 1 ? '' : m + '×') + '10' + supStr(e);
+        };
+        var fits = allPow ? exps.every(function (e) { return e >= -2 && e <= 3; })
+            : ticks.every(function (v) { return v >= 1e-4 * (1 - 1e-9) && v < 1e7; });
+        return function (v) {
+            if (v === 0) return '0';
+            if (!isFinite(v) || !(v > 0)) return tickLabel(v, true);
+            return fits ? plain(v) : power(v);
+        };
+    }
     function axisFormat(ax, log, min, max, count) {
         if (ax.format) return ax.format;
-        if (log) return function (v) { return tickLabel(v, true); };
+        if (log) return logFormat(min, max);
         var step = niceStep(max - min, count);
         return function (v) { return stepLabel(v, step); };
     }
@@ -243,6 +270,10 @@
         for (;;) {
             xt = log.x ? logTicks(xmin, xmax) : linTicks(xmin, xmax, xcount);
             fx = axisFormat(xo, log.x, xmin, xmax, xcount);
+            if (log.x && !xo.format) {   // log ticks are fixed: when their labels would collide, label every 2nd (3rd, …) one
+                while (xstride < xt.length && !xFits(xstride)) xstride++;
+                break;
+            }
             if (xo.format || log.x || xFits(1)) break;
             if (xcount <= 2 || inside(linTicks(xmin, xmax, xcount - 1)).length < 3) {
                 while (xstride < xt.length && !xFits(xstride)) xstride++;
@@ -269,7 +300,24 @@
         });
         h('path', { d: 'M' + x0 + ',' + y1 + 'V' + y0 + 'H' + x1, fill: 'none' }, gAxis);
         if (xo.label) h('text', { x: (x0 + x1) / 2, y: H - 8, 'text-anchor': 'middle', class: 'axis-label' }, svg).textContent = xo.label;
-        if (yo.label) h('text', { x: 14, y: (y0 + y1) / 2, 'text-anchor': 'middle', class: 'axis-label', transform: 'rotate(-90 14 ' + (y0 + y1) / 2 + ')' }, svg).textContent = yo.label;
+        if (yo.label) {
+            var yl = h('text', { x: 14, y: (y0 + y1) / 2, 'text-anchor': 'middle', class: 'axis-label', transform: 'rotate(-90 14 ' + (y0 + y1) / 2 + ')' }, svg);
+            yl.textContent = yo.label;
+            // a title longer than the plot area is tall (a long one on a phone) moves toward the middle of the chart,
+            // and is set smaller if it is longer than the whole chart, so neither end is cut off
+            var ylw = 0, yc = (y0 + y1) / 2;
+            try { ylw = yl.getComputedTextLength(); } catch (e) { /* not rendered */ }
+            if (ylw > 2 * Math.min(yc, H - yc) - 6) {
+                if (ylw > H - 6) {
+                    var yfs = 13;
+                    try { yfs = parseFloat(getComputedStyle(yl).fontSize) || 13; } catch (e) { /* keep 13 */ }
+                    yl.style.fontSize = Math.max(9, Math.floor(yfs * (H - 6) / ylw * 10) / 10) + 'px';
+                    ylw = H - 6;
+                }
+                yc = Math.min(Math.max(yc, ylw / 2 + 3), H - ylw / 2 - 3);
+                yl.setAttribute('y', yc); yl.setAttribute('transform', 'rotate(-90 14 ' + yc + ')');
+            }
+        }
 
         var gData = h('g', { 'clip-path': 'url(#' + clipId + ')' }, svg);
         var baseY = log.y ? y0 : sy(Math.max(ymin, Math.min(ymax, 0)));
@@ -352,8 +400,11 @@
             return Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
         };
         var placed = [];
-        var cost = function (b) {
+        // the other marked vertical lines: a vline label that one of them would cross moves to the free side
+        var vps = (o.vlines || []).filter(function (l) { return l.x >= xmin && l.x <= xmax; }).map(function (l) { return sx(l.x); });
+        var cost = function (b, own) {
             var g = { x: b.x - 2, y: b.y - 1, width: b.width + 4, height: b.height + 2 }, c = 0;
+            if (own !== undefined) vps.forEach(function (q) { if (q !== own && q > g.x && q < g.x + g.width) c += g.height; });
             segs.forEach(function (s) { c += inLen(g, s[0], s[1], s[2], s[3]); });
             boxes.forEach(function (q) { var a = overlap(g, q); if (a > 0) c += q.w ? q.w * Math.min(1, a / 4) + (q.w < 1 ? a / b.height : 0) : 0; });
             placed.forEach(function (q) { if (overlap({ x: g.x - 1, y: g.y, width: g.width + 2, height: g.height }, q) > 0) c += 1000; });
@@ -361,14 +412,14 @@
             return c;
         };
         // try each candidate {x, y (top of the text box), anchor, extra} in order; keep the cheapest
-        var place = function (t, cands) {
+        var place = function (t, cands, own) {
             var b = null;
             try { b = t.getBBox(); } catch (e) { /* not rendered */ }
             if (!b || !b.width) return;
             var asc = +t.getAttribute('y') - b.y, best = null;
             cands.forEach(function (cd) {
                 t.setAttribute('x', cd.x); t.setAttribute('y', cd.top + asc); t.setAttribute('text-anchor', cd.anchor);
-                var bb = t.getBBox(), c = cost(bb) + (cd.extra || 0);
+                var bb = t.getBBox(), c = cost(bb, own) + (cd.extra || 0);
                 if (!best || c < best.c - 0.5) best = { c: c, cd: cd };
             });
             t.setAttribute('x', best.cd.x); t.setAttribute('y', best.cd.top + asc); t.setAttribute('text-anchor', best.cd.anchor);
@@ -396,6 +447,7 @@
                 place(t, cands);
             }
         });
+        var vlab = [];
         (o.vlines || []).forEach(function (l) {
             if (!(l.x >= xmin && l.x <= xmax)) return;
             var p = sx(l.x), c = l.color || 'var(--muted)';
@@ -411,8 +463,16 @@
                     cands.push({ x: p + (right ? -5 : 5), top: top0 + n * step, anchor: right ? 'end' : 'start', extra: n * 0.6 });
                     cands.push({ x: p + (right ? 5 : -5), top: top0 + n * step, anchor: right ? 'start' : 'end', extra: n * 0.6 + 0.5 });
                 }
-                place(t, cands);
+                place(t, cands, p);
+                vlab.push({ t: t, p: p });
             }
+        });
+        // a vline label that another marked line still crosses (lines crowd it on both sides) is drawn over the lines,
+        // so its halo breaks the line behind the text instead of the line striking the text through
+        vlab.forEach(function (v) {
+            var bb = null;
+            try { bb = v.t.getBBox(); } catch (e) { /* not rendered */ }
+            if (bb && bb.width && vps.some(function (q) { return q !== v.p && q > bb.x - 2 && q < bb.x + bb.width + 2; })) svg.appendChild(v.t);
         });
 
         // legend
@@ -423,6 +483,13 @@
                 var i = series.indexOf(s);
                 var sp = document.createElement('span');
                 sp.style.setProperty('--c', s.color || 'var(--c' + ((i % 6) + 1) + ')');
+                // the swatch matches the mark: a filled box for a band or bars, a dot for points, a line sample (dashed
+                // when the series is) for a line
+                if (s.type === 'band' || s.type === 'bars') {
+                    sp.className = 'lg-fill';
+                    sp.style.setProperty('--o', s.type === 'band' ? Math.min(1, 2 * (s.opacity || 0.16)) : (s.opacity || 0.55));
+                } else if (s.type === 'points' && !s.line) sp.className = 'lg-dot';
+                else sp.className = s.dash ? 'lg-line lg-dash' : 'lg-line';
                 sp.textContent = s.label; lg.appendChild(sp);
             });
             container.appendChild(lg);
@@ -432,7 +499,8 @@
         if (o.hover) {
             var lines = series.filter(function (s) { return s.type === 'line' || s.type === 'points'; });
             var orders = lines.map(function (s) { return xOrder(s.x, log); });
-            var readout = document.createElement('div'); readout.className = 'plot-readout'; readout.setAttribute('aria-live', 'polite');
+            // the hint reads as a hint (.idle: body font) until the first value replaces it
+            var readout = document.createElement('div'); readout.className = 'plot-readout idle'; readout.setAttribute('aria-live', 'polite');
             readout.id = 'pr' + uid;
             readout.textContent = o.hover.hint || 'Hover over or tap the chart to read values.';
             container.appendChild(readout);
@@ -453,6 +521,7 @@
                 });
                 var hx = hits.length ? sx(hits[0].x) : px;
                 hl.setAttribute('x1', hx); hl.setAttribute('x2', hx); hl.setAttribute('visibility', 'visible');
+                readout.classList.remove('idle');
                 readout.textContent = o.hover.format ? o.hover.format(hits.length ? hits[0].x : xv, hits)
                     : (xo.label || 'x') + ' = ' + tickLabel(hits.length ? hits[0].x : xv) + hits.map(function (hh) { return ' · ' + (hh.series.label || 'y') + ' = ' + tickLabel(hh.y); }).join('');
             };

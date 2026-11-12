@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="Stopping Power &amp; Range Calculator. Proton, alpha, and electron stopping power and CSDA range in 35 common materials, interpolated from NIST PSTAR, ASTAR, and ESTAR, with energy after a layer and dose.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -163,6 +162,24 @@
                     <label for="F">Fluence <span class="sym">Φ</span></label>
                     <div class="input-unit"><input id="F" name="F" value="1e9" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="fluence"><select data-dim="pfluence" data-units="cm⁻²,mm⁻²,m⁻²" data-default="cm⁻²"></select></div>
                     <p class="hint">Particles per unit area that cross the material: beam current × time ÷ (charge × area). 1&nbsp;nA of protons on 1&nbsp;cm² for 1&nbsp;s is 6.24&nbsp;×&nbsp;10⁹&nbsp;cm⁻².</p>
+                    <details class="fold" id="beam-fold">
+                        <summary>Work it out from beam current, area, and time</summary>
+                        <div class="field">
+                            <label for="bi">Beam current</label>
+                            <div class="input-unit"><input id="bi" name="bi" value="" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="beam current"><select data-dim="current" data-units="pA,nA,µA,mA" data-default="nA"></select></div>
+                        </div>
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="ba">Beam area</label>
+                                <div class="input-unit"><input id="ba" name="ba" value="" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="beam area"><select data-dim="area" data-units="mm²,cm²,m²" data-default="cm²"></select></div>
+                            </div>
+                            <div class="field">
+                                <label for="bt">Exposure time</label>
+                                <div class="input-unit"><input id="bt" name="bt" value="" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="exposure time"><select data-dim="time" data-units="ms,s,min,h" data-default="s"></select></div>
+                            </div>
+                        </div>
+                        <p class="hint" style="margin:-.4rem 0 .9rem">With all three entered, the fluence field above is filled in: current × time ÷ (charge × area), with the charge of the chosen particle (2&nbsp;e for an alpha particle). Enter the electrical current, not the particle current. Typing a fluence by hand clears these three fields.</p>
+                    </details>
                 </div>
             </div>
         </form>
@@ -173,10 +190,9 @@
                 <div class="results">
                     <div class="result primary"><span class="result-label">Mass stopping power<span class="sym">S/ρ</span></span><output class="result-value" data-out="S">—</output><span class="result-note" id="s-note" hidden></span></div>
                     <div class="result"><span class="result-label">Linear stopping power<span class="sym">S = −dE/dx</span></span><output class="result-value" data-out="Sl">—</output></div>
-                    <div class="result"><span class="result-label" id="parts-label">Electronic and nuclear parts</span><output class="result-value" data-out="parts">—</output></div>
+                    <div class="result"><span class="result-label" id="parts-label">Electronic and nuclear parts</span><output class="result-value" data-out="parts">—</output><span class="result-note" id="parts-note" hidden></span></div>
                     <div class="result"><span class="result-label">CSDA range, areal density<span class="sym">R</span></span><output class="result-value" data-out="Rg">—</output></div>
-                    <div class="result"><span class="result-label">CSDA range in millimeters</span><output class="result-value" data-out="Rmm">—</output></div>
-                    <div class="result"><span class="result-label">CSDA range in micrometers</span><output class="result-value" data-out="Rum">—</output><span class="result-note" id="r-note" hidden></span></div>
+                    <div class="result"><span class="result-label">CSDA range (length)</span><output class="result-value" data-out="Rl">—</output><span class="result-note" id="r-note" hidden></span></div>
                     <div class="result"><span class="result-label">Projected range (mean depth)</span><output class="result-value" data-out="Rp">—</output></div>
                     <div class="result"><span class="result-label">Energy after the layer<span class="sym">E<sub>out</sub></span></span><output class="result-value" data-out="Eout">—</output><span class="result-note" id="eout-note" hidden></span></div>
                     <div class="result"><span class="result-label">Dose at the entrance<span class="sym">D = Φ·S/ρ</span></span><output class="result-value" data-out="D">—</output><span class="result-note" id="d-note" hidden></span></div>
@@ -227,7 +243,7 @@
         <p>The default inputs: 100&nbsp;MeV protons entering liquid water (ρ = 1.000&nbsp;g/cm³), a 50&nbsp;mm layer, and a fluence of 10⁹&nbsp;cm⁻².</p>
         <ul>
             <li>PSTAR gives S/ρ = 7.289&nbsp;MeV·cm²/g at 100&nbsp;MeV (a grid point, so no interpolation): 7.289&nbsp;MeV/cm, or 0.729&nbsp;keV/µm. The nuclear part is 0.04&nbsp;% of the total.</li>
-            <li>The CSDA range is 7.718&nbsp;g/cm², so 77.18&nbsp;mm or 77&#8239;180&nbsp;µm of water; the mean depth (projected range) is 77.07&nbsp;mm.</li>
+            <li>The CSDA range is 7.718&nbsp;g/cm², so 77.18&nbsp;mm of water; the mean depth (projected range) is 77.07&nbsp;mm.</li>
             <li>After 50&nbsp;mm the residual range is 7.718 − 5.000 = 2.718&nbsp;g/cm², which belongs to an energy of 55.8&nbsp;MeV: the layer absorbed 44.2&nbsp;MeV per proton, more than its entrance stopping power times its thickness (36.4&nbsp;MeV), because the protons slow down and lose energy faster as they go.</li>
             <li>The entrance dose is 1.602&nbsp;×&nbsp;10⁻¹⁰ × 10⁹ × 7.289 = 1.17&nbsp;Gy. The Bragg curve below shows the stopping power climbing steeply over the last few millimeters before 77.2&nbsp;mm.</li>
         </ul>
@@ -280,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const { fmt, K } = Calc;
     if (!Calc.UNITS.kenergy) Calc.UNITS.kenergy = { 'keV': 1.602176634e-16, 'MeV': 1.602176634e-13, 'GeV': 1.602176634e-10 };
     if (!Calc.UNITS.pfluence) Calc.UNITS.pfluence = { 'cm⁻²': 1e4, 'mm⁻²': 1e6, 'm⁻²': 1 };
+    if (!Calc.UNITS.current) Calc.UNITS.current = { 'pA': 1e-12, 'nA': 1e-9, 'µA': 1e-6, 'mA': 1e-3 };
     const MeV = 1.602176634e-13;
     const MAT = window.STAR_MATERIALS;
     const PROG = { p: 'pstar', a: 'astar', e: 'estar' };
@@ -342,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const lenFmt = cm => fmt.si(cm / 100, 'm', 4, { max: 3 });
     const status = document.getElementById('status');
     const notes = {};
-    ['s-note', 'r-note', 'eout-note', 'd-note', 'plot-note', 'plot2-note'].forEach(id => { notes[id] = document.getElementById(id); });
+    ['s-note', 'parts-note', 'r-note', 'eout-note', 'd-note', 'plot-note', 'plot2-note'].forEach(id => { notes[id] = document.getElementById(id); });
     const note = (id, t) => { notes[id].textContent = t || ''; notes[id].hidden = !t; };
     const gIon = document.getElementById('grp-ion'), gE = document.getElementById('grp-e'), braggPanel = document.getElementById('bragg-panel');
     const partsLabel = document.getElementById('parts-label'), rhoIn = document.getElementById('rho');
@@ -363,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 load(prog);
                 status.textContent = 'Loading ' + NAME[prog] + '…'; status.className = 'badge'; status.hidden = false;
                 const wait = 'Loading the ' + NAME[prog] + ' table…';
-                return { S: wait, Sl: wait, parts: wait, Rg: wait, Rmm: wait, Rum: wait, Rp: e ? null : wait, Eout: isFinite(v.t) ? wait : null, D: isFinite(v.F) ? wait : null, mi: info.name };
+                return { S: wait, Sl: wait, parts: wait, Rg: wait, Rl: wait, Rp: e ? null : wait, Eout: isFinite(v.t) ? wait : null, D: isFinite(v.F) ? wait : null, mi: info.name };
             }
             status.textContent = NAME[prog]; status.className = 'badge badge-ok'; status.hidden = false;
             const m = T.mats[id];
@@ -375,7 +392,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const rho = isFinite(v.rho) ? v.rho : m.rho;
             const [s1, s2] = stopping(T, m, Ec, e), S = s1 + s2;
             const R = at(T, m.R, Ec), Rcm = R / rho;
-            note('s-note', (e ? 'Radiative share ' : 'Nuclear share ') + fmt.num(s2 / S * 100, 3) + ' %. ' + (T.E.some(x => Math.abs(x - E) <= 1e-9 * x) ? 'A NIST grid point.' : 'Interpolated between NIST grid points.'));
+            note('s-note', T.E.some(x => Math.abs(x - E) <= 1e-9 * x) ? 'A NIST grid point.' : 'Interpolated between NIST grid points.');
+            note('parts-note', (e ? 'Radiative share ' : 'Nuclear share ') + fmt.num(s2 / S * 100, 3) + ' %.');
             note('r-note', e ? 'A path length: electrons scatter so much that few reach a depth near it.' : '');
             let Eout = null, dE = null;
             if (isFinite(v.t)) {
@@ -397,8 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 Sl: fmt.num(S * rho, 4) + ' MeV/cm = ' + fmt.num(S * rho / 10, 4) + ' keV/µm',
                 parts: fmt.num(s1, 4) + ' + ' + fmt.num(s2, 4) + ' MeV·cm²/g',
                 Rg: fmt.num(R, 4) + ' g/cm²' + (R < 1 ? ' (' + fmt.num(R * 1e3, 4) + ' mg/cm²)' : ''),
-                Rmm: fmt.num(Rcm * 10, 4) + ' mm',
-                Rum: fmt.num(Rcm * 1e4, 4) + ' µm',
+                Rl: lenFmt(Rcm),
                 Rp: e ? null : (() => { const Rp = at(T, m.Rp, Ec); return fmt.num(Rp / rho * 10, 4) + ' mm (' + fmt.num(Rp / R, 4) + ' × CSDA)'; })(),
                 Eout: Eout === null ? null : Eout > 0 ? fmt.si(Eout * 1e6, 'eV', 4) : 'stops in the layer',
                 D: D === null ? null : fmt.si(D, 'Gy', 4, { max: 6 }),
@@ -449,6 +466,26 @@ document.addEventListener('DOMContentLoaded', () => {
             note('plot2-note', 'Log scale. Without straggling, the stopping power keeps rising into the last few micrometers of the track, up to the maximum of the stopping-power curve; a measured Bragg peak is spread over about 1 % of the range and far lower. The curve stops where the energy falls below the table’s lowest value (1 keV). The CSDA range is ' + fmt.num(Rcm * unit[1], 4) + ' ' + unit[0] + '.');
         }
     });
+
+    // Fluence from a beam: with current, area, and time all entered, fill the fluence field (current × time ÷ (charge × area)).
+    // The three fields can never disagree with the fluence: a fluence typed by hand clears them.
+    const Fin = document.getElementById('F'), beam = ['bi', 'ba', 'bt'].map(id => document.getElementById(id));
+    const unitSel = c => c.closest('.input-unit').querySelector('select');
+    const si = c => { const s = unitSel(c); return Calc.toSI(s.dataset.dim, s.value, Calc.parseNum(c.value)); };
+    function fillFluence() {
+        const [I, A, t] = beam.map(si);
+        if (!(I > 0 && A > 0 && t > 0)) return;
+        const z = calc.root.querySelector('input[name="pt"]:checked').value === 'a' ? 2 : 1;
+        const phi = I * t / (z * K.e * A);              // particles per m²
+        if (!isFinite(phi)) return;
+        Fin.value = fmt.plain(phi / Calc.UNITS.pfluence[unitSel(Fin).value], 4);
+    }
+    calc.root.addEventListener('input', ev => {
+        if (beam.includes(ev.target)) fillFluence();
+        else if (ev.target === Fin) beam.forEach(c => { c.value = ''; });
+    });
+    calc.root.addEventListener('change', ev => { if (ev.target.name === 'pt') fillFluence(); });
+    if (beam.some(c => c.value.trim() !== '')) document.getElementById('beam-fold').open = true;   // a link that carries them
 });
 </script>
 </body>

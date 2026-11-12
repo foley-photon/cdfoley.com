@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="Color Converter &amp; Delta E Calculator. Convert colors between HEX, RGB, HSV, HSL, CMYK, XYZ, CIELAB, and LCh, calculate Delta E (ΔE 1976 and CIEDE2000), and learn how color is measured.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -46,9 +45,12 @@
     .slider input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid #333; }
     .viz2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 1.2rem; margin-top: 1.5rem; }
     .gamut { font-size: 0.82rem; margin-top: 0.5rem; }
-    .gamut.ok { color: var(--ok); } .gamut.bad { color: var(--warn); }
+    .gamut.ok { color: var(--ok); }
+    .gamut.bad { color: var(--warn); background: var(--warn-soft); border: 1px solid var(--warn-border); border-radius: var(--radius-sm); padding: 0.3rem 0.5rem; display: inline-block; }
+    .cgrid .csslab { display: block; margin: 0; padding: 0.4rem 0.5rem; font: 500 0.92rem var(--mono); text-align: left; color: var(--text); background: var(--surface-2); border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); overflow-wrap: anywhere; }
+    .cgrid .csslab::after { content: none; }
     .ref-row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.8rem; }
-    .ref-row input { font: 500 0.92rem var(--mono); padding: 0.4rem 0.5rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); width: 9rem; }
+    .ref-row input { font: 500 0.92rem var(--mono); padding: 0.4rem 0.5rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); width: 13rem; max-width: 100%; }
     .ref-row .mini { width: 34px; height: 34px; border-radius: 6px; border: 1px solid var(--border-strong); }
     table.cs { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     .cgrid input[aria-invalid="true"], .ref-row input[aria-invalid="true"] { border-color: var(--danger); color: var(--danger); }
@@ -164,8 +166,9 @@
                     <span>LCh</span><div class="row"><div><input data-g="lch" data-i="0" aria-label="LCh L*"><small>L*</small></div><div><input data-g="lch" data-i="1" aria-label="LCh chroma"><small>C*</small></div><div><input data-g="lch" data-i="2" aria-label="LCh hue angle"><small>h °</small></div></div>
                     <span>XYZ</span><div class="row"><div><input data-g="xyz" data-i="0" aria-label="X"><small>X</small></div><div><input data-g="xyz" data-i="1" aria-label="Y"><small>Y</small></div><div><input data-g="xyz" data-i="2" aria-label="Z"><small>Z</small></div></div>
                     <span>xyY</span><div class="row"><div><input data-g="xyY" data-i="0" aria-label="x"><small>x</small></div><div><input data-g="xyY" data-i="1" aria-label="y"><small>y</small></div><div><input data-g="xyY" data-i="2" aria-label="Y"><small>Y</small></div></div>
+                    <span>CSS lab()</span><div class="row"><div><output class="result-value csslab" id="csslab" aria-label="The current color as a CSS lab() value">—</output><small>D50 white, for style sheets · read-only, click to copy</small></div></div>
                 </div>
-                <p class="hint" style="margin-top:.8rem">Type in any row and the others update. HEX, RGB, HSV, HSL, and CMYK are sRGB values; XYZ, xyY, CIELAB, and LCh are for illuminant D65 and the 2° observer, with white at Y = 100, as a spectrophotometer set to D65/2° reports them. CSS lab() and ICC color management use a D50 white instead, so their numbers differ: #3366CC is <code>lab(44.12% 10.95 -59.09)</code> in CSS.</p>
+                <p class="hint" style="margin-top:.8rem">Type in any row and the others update. HEX, RGB, HSV, HSL, and CMYK are sRGB values; XYZ, xyY, CIELAB, and LCh are for illuminant D65 and the 2° observer, with white at Y = 100, as a spectrophotometer set to D65/2° reports them. CSS lab() and ICC color management use a D50 white instead, so their numbers differ: the last row gives the current color in that form, ready to paste into a style sheet.</p>
             </div>
         </section>
 
@@ -201,7 +204,7 @@
             <div class="ref-row">
                 <span class="mini" id="ref-sw"></span>
                 <label for="ref">Reference</label>
-                <input id="ref" value="#3A66C4" spellcheck="false" aria-label="Reference color as hex or L*, a*, b*">
+                <input id="ref" value="#3A66C4" spellcheck="false" placeholder="#3A66C4 or L*, a*, b*" aria-label="Reference color as hex or L*, a*, b*">
                 <button type="button" class="btn btn-secondary btn-sm" id="ref-set">Use current color as reference</button>
                 <span class="hint" style="margin:0">The standard you compare against: a hex code, or L*, a*, b* separated by commas or semicolons. The current color is the sample.</span>
                 <span class="hint" id="ref-msg" role="status" style="margin:0;color:var(--danger)"></span>
@@ -248,7 +251,7 @@
             </tbody>
         </table>
         <p>sRGB values are gamma-encoded, so channel value 128 is only about 22&nbsp;% of full light; the converter linearizes them before computing XYZ (exact formulas under <a href="#how-calculated">How it is calculated</a>). Many CIELAB colors, especially saturated cyans and greens, fall outside sRGB. They cannot be shown exactly on a typical screen or written as a hex code, which is why the converter flags out-of-gamut colors.</p>
-        <p><strong>D65 or D50?</strong> CIELAB numbers depend on the white they are computed against. This page uses D65, the white of the sRGB standard and a common spectrophotometer setting. CSS lab() and lch() and ICC color management use a D50 white, reached from sRGB by a chromatic adaptation transform, so the same color gets different numbers: #3366CC is L* 45.03, a* 18.71, b* −57.85 here but <code>lab(44.12% 10.95 -59.09)</code> in CSS. Pasted into CSS lab(), this page’s values give a visibly different blue, <code>rgb(83, 99, 205)</code>, ΔE00 = 5.0 away.</p>
+        <p><strong>D65 or D50?</strong> CIELAB numbers depend on the white they are computed against. This page uses D65, the white of the sRGB standard and a common spectrophotometer setting. CSS lab() and lch() and ICC color management use a D50 white, reached from sRGB by a chromatic adaptation transform, so the same color gets different numbers: #3366CC is L* 45.03, a* 18.71, b* −57.85 here but <code>lab(44.12% 10.95 -59.09)</code> in CSS. Pasted into CSS lab(), this page’s values give a visibly different blue, <code>rgb(83, 99, 205)</code>, ΔE00 = 5.0 away. The converter’s CSS lab() row gives the D50 form of whatever color is entered.</p>
 
         <h2 id="hsv-vs-cielab">Hue in HSV is not hue in CIELAB</h2>
         <p>HSV and HSL are geometric rearrangements of RGB, not models of perception. A fully saturated yellow and a fully saturated blue both have V = 100&nbsp;%, but yellow looks far lighter (L* 97 against 32). Equal steps in HSV hue are not equal perceived steps, and HSV hue angles do not match CIELAB hue angles. Use HSV for quick thresholds on images taken under fixed conditions; use CIELAB and ΔE when the numbers must match what people see or what another instrument reports.</p>
@@ -285,6 +288,7 @@
         <p><strong>CIELAB and LCh</strong> (CIE 15; ISO/CIE 11664-4) follow from XYZ and the white:</p>
         <div class="formula">\[ \begin{aligned} L^* &= 116\, f(Y/Y_n) - 16, \\ a^* &= 500\,[f(X/X_n) - f(Y/Y_n)], \\ b^* &= 200\,[f(Y/Y_n) - f(Z/Z_n)], \\ f(t) &= \begin{cases} t^{1/3} & t > (6/29)^3 = 216/24389 \\ (841/108)\,t + 4/29 & \text{otherwise,} \end{cases} \\ C^*_{ab} &= \sqrt{a^{*2} + b^{*2}}, \qquad h_{ab} = \operatorname{atan2}(b^*, a^*). \end{aligned} \]</div>
         <p>The hue angle h<sub>ab</sub> runs from 0° to 360°. The inverse transform follows CIE 15 (Appendix D of the 2004 edition), with its break at L* = 8.</p>
+        <p><strong>The CSS lab() row</strong> adapts XYZ from the D65 white to the D50 white (x = 0.3457, y = 0.3585) with the linear Bradford transform, as CSS Color 4 does, and then applies the same CIELAB formulas with the D50 white. For every 8-bit sRGB color the result is within 0.01 of the value from CSS Color 4’s own matrices.</p>
         <p><strong>HSV, HSL, and CMYK</strong> use the gamma-encoded sRGB values R, G, B from 0 to 1, with max and min the largest and smallest of the three. HSV (Smith): V = max and S = (max − min)/max. HSL (Joblove and Greenberg; CSS Color 4): L = (max + min)/2 and S = (max − min)/(1 − |2L − 1|). Both use the same hue angle, set by which channel is largest. CMYK: K = 1 − max, C = (1 − R − K)/(1 − K), and likewise M from G and Y from B.</p>
         <p><strong>Color differences</strong> are sample minus reference. The CIELAB differences (CIE 15) are</p>
         <div class="formula">\[ \begin{aligned} \Delta E^*_{ab} &= \sqrt{\Delta L^{*2} + \Delta a^{*2} + \Delta b^{*2}}, \\ \Delta C^*_{ab} &= C^*_{ab,1} - C^*_{ab,0}, \qquad \Delta H^*_{ab} = 2\sqrt{C^*_{ab,1}\, C^*_{ab,0}}\,\sin(\Delta h_{ab}/2), \end{aligned} \]</div>
@@ -302,7 +306,7 @@
 
         <h2 id="limits">Assumptions and limits</h2>
         <ul>
-            <li><strong>One viewing condition.</strong> Everything is for CIE illuminant D65 and the 1931 2° observer, with no 10° observer, no other illuminant, and no chromatic adaptation. CIELAB from a D65/10° instrument setting, from CSS lab(), or from ICC (D50) software is therefore not interchangeable with these values, though two readings taken in the same setting can still be compared in the ΔE panel.</li>
+            <li><strong>One viewing condition.</strong> Everything is for CIE illuminant D65 and the 1931 2° observer, with no 10° observer, no other illuminant, and no chromatic adaptation (the read-only CSS lab() row is the one exception). CIELAB from a D65/10° instrument setting, from CSS lab(), or from ICC (D50) software is therefore not interchangeable with these values, though two readings taken in the same setting can still be compared in the ΔE panel.</li>
             <li><strong>sRGB only.</strong> HEX, RGB, HSV, HSL, and CMYK are sRGB codes; convert Display P3 or Adobe RGB values first. Colors outside sRGB are clipped channel by channel, not gamut-mapped, so their swatch and RGB-based codes are approximate, while XYZ, xyY, CIELAB, and LCh stay exact. HEX and RGB show the nearest 8-bit value.</li>
             <li><strong>CMYK is the naive formula</strong> applied to gamma-encoded sRGB. It ignores inks, paper, dot gain, and black generation; use the printer’s ICC profile for print.</li>
             <li><strong>No plausibility check on CIE entries.</strong> Any L*, a*, b*, XYZ, or xyY entry is accepted, including combinations outside the spectral locus that no real color can have.</li>
@@ -318,7 +322,7 @@
             <li>ISO/CIE 11664-4:2019, <em>Colorimetry — Part 4: CIE 1976 L*a*b* colour space</em>; ISO/CIE 11664-6:2022, <em>Colorimetry — Part 6: CIEDE2000 colour-difference formula</em> (the standardized CIELAB and CIEDE2000 definitions).</li>
             <li>CIE datasets (2019): “CIE 1931 colour-matching functions, 2 degree observer,” <a href="https://doi.org/10.25039/CIE.DS.xvudnb9b" target="_blank" rel="noopener">doi:10.25039/CIE.DS.xvudnb9b</a>; “CIE standard illuminant D65,” <a href="https://doi.org/10.25039/CIE.DS.hjfjmt59" target="_blank" rel="noopener">doi:10.25039/CIE.DS.hjfjmt59</a>; “CIE 1931 chromaticity coordinates of spectrum loci, 2 degree observer,” <a href="https://doi.org/10.25039/CIE.DS.mifmy4x4" target="_blank" rel="noopener">doi:10.25039/CIE.DS.mifmy4x4</a> (the spectrum weights, the white X<sub>n</sub>, Y<sub>n</sub>, Z<sub>n</sub> = 95.047, 100, 108.883, and the spectral locus of the diagram).</li>
             <li>IEC 61966-2-1:1999, <em>Multimedia systems and equipment — Colour measurement and management — Part 2-1: Colour management — Default RGB colour space — sRGB</em> (sRGB primaries, D65 white, and transfer function).</li>
-            <li>W3C, <em>CSS Color Module Level 4</em>, Candidate Recommendation Draft (2026), <a href="https://www.w3.org/TR/css-color-4/" target="_blank" rel="noopener">w3.org/TR/css-color-4</a> (hex notation, HSL, the sRGB transfer function, and the D50 white of CSS lab() and of ICC color management).</li>
+            <li>W3C, <em>CSS Color Module Level 4</em>, Candidate Recommendation Draft (2026), <a href="https://www.w3.org/TR/css-color-4/" target="_blank" rel="noopener">w3.org/TR/css-color-4</a> (hex notation, HSL, the sRGB transfer function, the D50 white of CSS lab() and of ICC color management, and the Bradford adaptation from D65 to D50).</li>
             <li>A. R. Smith, “Color gamut transform pairs,” <em>ACM SIGGRAPH Comput. Graph.</em> <strong>12</strong>, 12–19 (1978), <a href="https://doi.org/10.1145/965139.807361" target="_blank" rel="noopener">doi:10.1145/965139.807361</a> (HSV).</li>
             <li>G. H. Joblove and D. Greenberg, “Color spaces for computer graphics,” <em>ACM SIGGRAPH Comput. Graph.</em> <strong>12</strong>, 20–25 (1978), <a href="https://doi.org/10.1145/965139.807362" target="_blank" rel="noopener">doi:10.1145/965139.807362</a> (HSL).</li>
             <li>M. R. Luo, G. Cui, and B. Rigg, “The development of the CIE 2000 colour-difference formula: CIEDE2000,” <em>Color Res. Appl.</em> <strong>26</strong>, 340–350 (2001), <a href="https://doi.org/10.1002/col.1049" target="_blank" rel="noopener">doi:10.1002/col.1049</a> (what each CIEDE2000 term corrects).</li>
@@ -373,6 +377,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const num = s => Calc.parseNum(s);
     const r1 = (x, d) => (Math.round(x * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d).replace(/^-0(\.0+)?$/, '0$1');
     // signed difference, with no sign on a value that rounds to zero
+    // the same rounding without trailing zeros: 220 and 75, but 287.9
+    const t1 = (x, d) => String(+r1(x, d));
+    // CSS lab(): CIELAB for a D50 white, reached from this page's D65 XYZ by the linear Bradford adaptation (CSS Color 4)
+    const mul3 = (m, v) => m.map(r => r[0] * v[0] + r[1] * v[1] + r[2] * v[2]);
+    const BFD = [[0.8951, 0.2664, -0.1614], [-0.7502, 1.7135, 0.0367], [0.0389, -0.0685, 1.0296]];
+    const BFDI = (m => {
+        const a = [[m[1][1] * m[2][2] - m[1][2] * m[2][1], m[0][2] * m[2][1] - m[0][1] * m[2][2], m[0][1] * m[1][2] - m[0][2] * m[1][1]],
+            [m[1][2] * m[2][0] - m[1][0] * m[2][2], m[0][0] * m[2][2] - m[0][2] * m[2][0], m[0][2] * m[1][0] - m[0][0] * m[1][2]],
+            [m[1][0] * m[2][1] - m[1][1] * m[2][0], m[0][1] * m[2][0] - m[0][0] * m[2][1], m[0][0] * m[1][1] - m[0][1] * m[1][0]]];
+        const det = m[0][0] * a[0][0] + m[0][1] * a[1][0] + m[0][2] * a[2][0];
+        return a.map(r => r.map(x => x / det));
+    })(BFD);
+    const D50 = [0.3457 / 0.3585, 1, (1 - 0.3457 - 0.3585) / 0.3585];
+    const coneD65 = mul3(BFD, C.WHITE), coneD50 = mul3(BFD, D50);
+    function cssLab(X) {
+        const Xd = mul3(BFDI, mul3(BFD, X).map((c, i) => c * coneD50[i] / coneD65[i]));
+        // xyzToLab divides by the D65 white, so hand it XYZ rescaled to make the D50 white play that part
+        return tidy(C.xyzToLab(Xd.map((c, i) => c / D50[i] * C.WHITE[i])));
+    }
     const sgn = (x, d) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? '' : x > 0 ? '+' : '−') + r1(Math.abs(x), d);
     // sRGB channels rounded to 1e-12, so floating-point noise cannot tip an 8-bit value or tint a gray
     const toRgb = X => C.xyzToRgb(X).map(c => Math.round(c * 1e12) / 1e12);
@@ -411,14 +434,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hsv[1] < 1e-6) { hsv[0] = hueMemo; hsl[0] = hueMemo; } else hueMemo = hsv[0];
         const cmyk = C.rgbToCmyk(rgb);
         const vals = {
-            hex: [hex], rgb: rgb.map(c => Math.round(c * 255)), hsv: [r1(hsv[0], 1), r1(hsv[1] * 100, 1), r1(hsv[2] * 100, 1)],
-            hsl: [r1(hsl[0], 1), r1(hsl[1] * 100, 1), r1(hsl[2] * 100, 1)], cmyk: cmyk.map(c => r1(c * 100, 1)),
-            lab: lab.map(x => r1(x, 2)), lch: [r1(lch[0], 2), r1(lch[1], 2), r1(lch[2], 1)],
+            hex: [hex], rgb: rgb.map(c => Math.round(c * 255)), hsv: [t1(hsv[0], 1), t1(hsv[1] * 100, 1), t1(hsv[2] * 100, 1)],
+            hsl: [t1(hsl[0], 1), t1(hsl[1] * 100, 1), t1(hsl[2] * 100, 1)], cmyk: cmyk.map(c => t1(c * 100, 1)),
+            lab: lab.map(x => r1(x, 2)), lch: [r1(lch[0], 2), r1(lch[1], 2), t1(lch[2], 1)],
             xyz: xyz.map(x => r1(x * 100, 3)), xyY: [r1(xyY[0], 4), r1(xyY[1], 4), r1(xyY[2] * 100, 3)]
         };
         inputs.forEach(i => { if (i.dataset.g !== skip) { i.value = vals[i.dataset.g][+i.dataset.i]; i.removeAttribute('aria-invalid'); } });
         $('swatch').style.background = hex;
         $('swatch-tag').textContent = hex;
+        const cl = cssLab(xyz);
+        $('csslab').textContent = 'lab(' + r1(cl[0], 2) + '% ' + r1(cl[1], 2) + ' ' + r1(cl[2], 2) + ')';
         const g = $('gamut');
         g.className = 'gamut ' + (ok ? 'ok' : 'bad');
         g.textContent = ok ? 'Inside the sRGB gamut: the swatch and hex code show this color to within 8-bit rounding.' : 'Outside the sRGB gamut: the RGB channels are clipped to 0–255, so the swatch and the HEX, RGB, HSV, HSL, and CMYK values only approximate this color. CIELAB, LCh, XYZ, and xyY are exact.';

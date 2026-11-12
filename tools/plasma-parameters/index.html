@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="Plasma Parameters Calculator. Debye length, plasma frequencies, plasma parameter, collision rates and mean free paths, gyrofrequencies, plasma beta, and the ECR field for 2.45 or 28 GHz.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/charged-particles.js"></script>
@@ -127,6 +126,19 @@
 
                 <div class="cp-group">Plasma</div>
                 <div class="field">
+                    <label for="typ">Typical plasma</label>
+                    <select id="typ" class="input">
+                        <option value="rf" selected>RF or ECR processing plasma</option>
+                        <option value="sw">Solar wind near Earth</option>
+                        <option value="iono">Ionosphere (F layer)</option>
+                        <option value="lamp">Fluorescent lamp</option>
+                        <option value="tok">Tokamak core</option>
+                        <option value="laser">Laser-produced plasma</option>
+                        <option value="custom">Custom (your own values)</option>
+                    </select>
+                    <p class="hint">Fills the density and temperatures from the <a href="#typical">typical values</a> table. The processing plasma restores every default. The others set T<sub>i</sub> = T<sub>e</sub> (0.03&nbsp;eV in the lamp), pick protons, O⁺, or deuterons where that is the usual ion (argon otherwise), and clear the optional field, microwave, gas pressure, and size inputs.</p>
+                </div>
+                <div class="field">
                     <label for="ne">Electron density <span class="sym">n<sub>e</sub></span></label>
                     <div class="input-unit"><input id="ne" name="ne" value="1e11" inputmode="decimal" data-positive data-label="electron density"><select data-dim="ndensity" data-units="cm⁻³,m⁻³" data-default="cm⁻³"></select></div>
                     <p class="hint">From a Langmuir probe, interferometer, or a typical value: 10⁹–10¹² cm⁻³ in processing discharges. The ion density is n<sub>e</sub>/Z (quasi-neutrality).</p>
@@ -206,7 +218,8 @@
                     <div class="result"><span class="result-label">Electron plasma frequency<span class="sym">f<sub>pe</sub></span></span><output class="result-value" data-out="fpe">—</output></div>
                     <div class="result"><span class="result-label">Ion plasma frequency<span class="sym">f<sub>pi</sub></span></span><output class="result-value" data-out="fpi">—</output></div>
                     <div class="result"><span class="result-label">Plasma parameter (electrons per Debye sphere)<span class="sym">N<sub>D</sub></span></span><output class="result-value" data-out="ND">—</output></div>
-                    <div class="result"><span class="result-label">Coulomb logarithm, electron–ion<span class="sym">ln Λ</span></span><output class="result-value" data-out="lnL">—</output></div>
+                    <div class="result"><span class="result-label">Coulomb logarithm, electron–ion<span class="sym">ln Λ<sub>ei</sub></span></span><output class="result-value" data-out="lnL">—</output></div>
+                    <div class="result"><span class="result-label">Coulomb logarithm, ion–ion<span class="sym">ln Λ<sub>ii</sub></span></span><output class="result-value" data-out="lnLii">—</output></div>
                     <div class="result"><span class="result-label">Electron–ion collision frequency<span class="sym">ν<sub>ei</sub></span></span><output class="result-value" data-out="nuei">—</output><span class="result-note" id="nuei-note" hidden></span></div>
                     <div class="result"><span class="result-label">Ion–ion collision frequency<span class="sym">ν<sub>ii</sub></span></span><output class="result-value" data-out="nuii">—</output></div>
                     <div class="result"><span class="result-label">Electron–neutral collision frequency<span class="sym">ν<sub>en</sub></span></span><output class="result-value" data-out="nuen">—</output><span class="result-note" id="nuen-note" hidden></span></div>
@@ -242,7 +255,7 @@
         <div class="formula">\[ \begin{gathered} \omega_{ce} = \frac{eB}{m_e}, \qquad \omega_{ci} = \frac{ZeB}{m_i}, \qquad r_e = \frac{v_{te}}{\omega_{ce}}, \qquad r_i = \frac{\sqrt{T_i/m_i}}{\omega_{ci}}, \qquad \beta = \frac{2\mu_0 (n_e T_e + n_i T_i)}{B^2}, \\[8pt] B_\text{ECR} = \frac{2\pi f\, m_e}{e}, \qquad n_c = \frac{\varepsilon_0 m_e (2\pi f)^2}{e^2}. \end{gathered} \]</div>
         <p>\(B_\text{ECR}\) is the field where the electron gyrofrequency equals the microwave frequency: \(f/(27.992\ \text{GHz})\) teslas, so 2.45&nbsp;GHz resonates at 87.5&nbsp;mT and 28&nbsp;GHz at 1.000&nbsp;T. Above the cutoff density \(n_c\) (where \(f_{pe} = f\)) an ordinary wave cannot propagate into the plasma: 7.4&nbsp;×&nbsp;10¹⁰&nbsp;cm⁻³ at 2.45&nbsp;GHz and 9.7&nbsp;×&nbsp;10¹²&nbsp;cm⁻³ at 28&nbsp;GHz. ECR sources reach higher densities with waves that travel along the field from the high-field side or by mode conversion.</p>
 
-        <h2>Typical values</h2>
+        <h2 id="typical">Typical values</h2>
         <p>From the formulas above (Z = 1, n<sub>e</sub> in cm⁻³):</p>
         <table>
             <thead><tr><th>Plasma</th><th class="num">n<sub>e</sub></th><th class="num">T<sub>e</sub></th><th class="num">λ<sub>De</sub></th><th class="num">f<sub>pe</sub></th><th class="num">N<sub>D</sub></th></tr></thead>
@@ -327,9 +340,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const regimes = document.getElementById('regimes');
     const notes = {};
     ['nuei-note', 'nuen-note', 'nc-note'].forEach(id => { notes[id] = document.getElementById(id); });
-    const note = (id, t) => { notes[id].textContent = t || ''; notes[id].hidden = !t; };
+    // notes and regime lines are page-authored HTML (subscripts); only formatted numbers are added, which never contain '<' or '&'
+    const note = (id, t) => { notes[id].innerHTML = t || ''; notes[id].hidden = !t; };
 
-    Calc.create({
+    // Typical plasmas: the rows of the Typical values table (n_e in cm⁻³, T in eV). T_i equals T_e except in the two
+    // discharges, where the ions stay near the gas temperature. sp: the usual ion where the species list has it, else argon.
+    const typ = document.getElementById('typ');
+    const TYPICAL = {
+        rf:    { ne: '1e11', Te: '5',     Ti: '0.05',  sp: 'ar' },
+        sw:    { ne: '5',    Te: '10',    Ti: '10',    sp: 'p' },
+        iono:  { ne: '1e6',  Te: '0.1',   Ti: '0.1',   sp: 'o' },
+        lamp:  { ne: '1e11', Te: '1',     Ti: '0.03',  sp: 'ar' },
+        tok:   { ne: '1e14', Te: '10000', Ti: '10000', sp: 'd' },
+        laser: { ne: '1e21', Te: '1000',  Ti: '1000',  sp: 'ar' }
+    };
+    const near = (a, b) => Math.abs(a - b) <= 1e-9 * Math.abs(b);
+    const syncTypical = v => {                  // the list follows the fields: any other density or temperature is Custom
+        const hit = Object.keys(TYPICAL).find(k => { const t = TYPICAL[k]; return near(v.ne, t.ne * 1e6) && near(v.Te, +t.Te) && near(v.Ti, +t.Ti); });
+        typ.value = hit || 'custom';
+    };
+    typ.addEventListener('change', () => {
+        const t = TYPICAL[typ.value];
+        if (!t) return;
+        const s = {};
+        if (typ.value === 'rf') {               // the page defaults, every field
+            calc.root.querySelectorAll('input[name]').forEach(c => { s[c.name] = c.defaultValue; });
+            calc.root.querySelectorAll('select[data-dim]').forEach(c => { s[c.name] = c.dataset.default; });
+            s.sp = 'ar';
+        } else {
+            Object.assign(s, { ne: t.ne, ne_u: 'cm⁻³', Te: t.Te, Te_u: 'eV', Ti: t.Ti, Ti_u: 'eV', B: '', fmw: '', p: '', L: '' });
+            Object.assign(s, { sp: t.sp, z: '1', m: fmt.plain(CP.massOf(t.sp, 1), 12) });
+        }
+        calc.set(s);
+    });
+
+    const calc = Calc.create({
         form: '#calc',
         compute(v) {
             const ne = v.ne, Z = v.z, ni = ne / Z, mi = v.m * K.u;
@@ -349,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // the Coulomb-collision formulas need ln Λ ≥ 2; below that they give meaningless (even negative) rates
             const okEI = lnL >= 2, okII = lnLii >= 2, NA = 'n/a (ln Λ < 2)';
             const lei = vte / nuei;
-            note('nuei-note', okEI ? 'Electron–ion mean free path v_te/ν_ei = ' + len(lei) + '; collision time ' + fmt.si(1 / nuei, 's', 3) + '.' : '');
+            note('nuei-note', okEI ? 'Electron–ion mean free path v<sub>te</sub>/ν<sub>ei</sub> = ' + len(lei) + '; collision time ' + fmt.si(1 / nuei, 's', 3) + '.' : '');
             const hasGas = isFinite(v.p) && v.p > 0;
             const nn = hasGas ? v.p / (kB * v.Tg) : NaN;
             const nuen = hasGas ? nn * v.sig * vbar : NaN, len_en = hasGas ? 1 / (nn * v.sig) : NaN;
@@ -358,11 +403,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const wce = hasB ? e * B / me : NaN, wci = hasB ? Z * e * B / mi : NaN;
             const hasF = isFinite(v.fmw) && v.fmw > 0, w = 2 * Math.PI * v.fmw;
             const Becr = hasF ? w * me / e : NaN, nc = hasF ? eps0 * me * w * w / (e * e) : NaN;
-            note('nc-note', hasF ? 'Your density is ' + fmt.num(ne / nc, 3) + ' n_c: ' + (ne > nc ? 'over-dense, an ordinary wave at this frequency is reflected.' : 'under-dense, the wave can propagate.') : '');
+            note('nc-note', hasF ? 'Your density is ' + fmt.num(ne / nc, 3) + ' n<sub>c</sub>: ' + (ne > nc ? 'over-dense, an ordinary wave at this frequency is reflected.' : 'under-dense, the wave can propagate.') : '');
 
             // regime notes
             const R = [];
-            if (ND < 10) R.push('N_D = ' + fmt.num(ND, 3) + ' is not much greater than 1: the plasma is strongly coupled, and the Coulomb-logarithm and collision formulas here do not apply.');
+            if (ND < 10) R.push('N<sub>D</sub> = ' + fmt.num(ND, 3) + ' is not much greater than 1: the plasma is strongly coupled, and the Coulomb-logarithm and collision formulas here do not apply.');
             else R.push('Weakly coupled (ideal) plasma: ' + fmt.sci(ND, 2) + ' electrons per Debye sphere.');
             if (!okEI) R.push('The electron–ion ln Λ is below 2: Coulomb collisions are outside the range of the formulas used, so the electron–ion rate, mean free path, collisionality, and electron magnetization are not given.');
             if (!okII) R.push('The ion–ion ln Λ is below 2: the ion–ion rate and ion magnetization are not given.');
@@ -370,26 +415,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 const r = v.L / lDe;
                 R.push(r > 100 ? 'Quasi-neutral: the plasma is ' + fmt.num(r, 3) + ' Debye lengths across, so sheaths occupy a thin layer at the walls.'
                     : r > 3 ? 'Only ' + fmt.num(r, 3) + ' Debye lengths across: sheaths fill a sizable part of the volume.'
-                    : 'Smaller than a few Debye lengths (L/λ_De = ' + fmt.num(r, 3) + '): this is not a quasi-neutral plasma.');
+                    : 'Smaller than a few Debye lengths (L/λ<sub>De</sub> = ' + fmt.num(r, 3) + '): this is not a quasi-neutral plasma.');
                 const lam = hasGas ? 1 / (1 / lei + 1 / len_en) : lei;
-                if (okEI) R.push(lam > v.L ? 'Electrons are collisionless on the scale of the plasma (mean free path ' + len(lam) + ' > L).' : 'Electrons are collisional on the scale of the plasma (mean free path ' + len(lam) + ' < L).');
+                if (okEI) R.push(lam > v.L ? 'Electrons are collisionless on the scale of the plasma (mean free path ' + len(lam) + ' &gt; L).' : 'Electrons are collisional on the scale of the plasma (mean free path ' + len(lam) + ' &lt; L).');
             }
             if (hasB) {
                 const nue = nuei + (hasGas ? nuen : 0);
                 const he = wce / nue, hi = wci / nuii;
-                if (okEI) R.push(he > 1 ? 'Magnetized electrons: ω_ce/ν_e = ' + fmt.num(he, 3) + ', the angle in radians they gyrate between collisions.' : 'Electrons are not magnetized: they collide before completing a turn (ω_ce/ν_e = ' + fmt.num(he, 3) + ').');
-                if (okII) R.push(hi > 1 ? 'Magnetized ions (ω_ci/ν_ii = ' + fmt.num(hi, 3) + ', ion–neutral collisions not counted).' : 'Ions are not magnetized by ion–ion collisions alone (ω_ci/ν_ii = ' + fmt.num(hi, 3) + '); ion–neutral collisions would lower this further.');
+                if (okEI) R.push(he > 1 ? 'Magnetized electrons: ω<sub>ce</sub>/ν<sub>e</sub> = ' + fmt.num(he, 3) + ', the angle in radians they gyrate between collisions.' : 'Electrons are not magnetized: they collide before completing a turn (ω<sub>ce</sub>/ν<sub>e</sub> = ' + fmt.num(he, 3) + ').');
+                if (okII) R.push(hi > 1 ? 'Magnetized ions (ω<sub>ci</sub>/ν<sub>ii</sub> = ' + fmt.num(hi, 3) + ', ion–neutral collisions not counted).' : 'Ions are not magnetized by ion–ion collisions alone (ω<sub>ci</sub>/ν<sub>ii</sub> = ' + fmt.num(hi, 3) + '); ion–neutral collisions would lower this further.');
                 if (hasF) R.push(Math.abs(B / Becr - 1) < 0.02 ? 'B is at the ECR field for ' + fq(v.fmw) + '.' : 'B is ' + fmt.num(B / Becr, 3) + ' times the ECR field for ' + fq(v.fmw) + '.');
             }
-            if (hasF) R.push(wpe > w ? 'f_pe = ' + fq(wpe / (2 * Math.PI)) + ' exceeds the drive frequency: over-dense.' : 'f_pe = ' + fq(wpe / (2 * Math.PI)) + ' is below the drive frequency: under-dense.');
-            if (v.Te > 1e5) R.push('T_e above 100 keV: electrons are relativistic (mc² = 511 keV) and these classical formulas lose accuracy.');
-            regimes.innerHTML = R.map(t => '<li>' + t.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</li>').join('');
+            if (hasF) R.push(wpe > w ? 'f<sub>pe</sub> = ' + fq(wpe / (2 * Math.PI)) + ' exceeds the drive frequency: over-dense.' : 'f<sub>pe</sub> = ' + fq(wpe / (2 * Math.PI)) + ' is below the drive frequency: under-dense.');
+            if (v.Te > 1e5) R.push('T<sub>e</sub> above 100 keV: electrons are relativistic (mc² = 511 keV) and these classical formulas lose accuracy.');
+            syncTypical(v);
+            regimes.innerHTML = R.map(t => '<li>' + t + '</li>').join('');
 
             return {
                 lDe: len(lDe), lD: len(lD),
                 fpe: fq(wpe / (2 * Math.PI)), fpi: fq(wpi / (2 * Math.PI)),
                 ND: fmt.sci(ND, 3),
-                lnL: fmt.num(lnL, 4) + ' (ion–ion ' + fmt.num(lnLii, 3) + ')',
+                lnL: fmt.num(lnL, 4), lnLii: fmt.num(lnLii, 4),
                 nuei: okEI ? rate(nuei) : NA, nuii: okII ? rate(nuii) : NA,
                 nuen: hasGas ? rate(nuen) : null,
                 vte: fmt.num(vte / 1e3, 4) + ' km/s',

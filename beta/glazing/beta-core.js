@@ -184,6 +184,29 @@
         return out;
     }
 
+    // One sentence on whether the two models agree, for the side-by-side view. The yardstick is the tolerance the
+    // datasheet comparison uses: for a unit with a generic low-e coating the calibration tolerance (TOL.calibrate: U
+    // within 0.01 Btu/h·ft²·°F, SHGC within 0.015, visible transmittance within 1 point), for uncoated glass the
+    // glass-check tolerance (TOL.glass: 0.01, 0.03, 2 points). rc, ro: the engine results of the classic and the
+    // open-data model. coated: the unit has a generic low-e coating (the part the two models build differently).
+    var AGREE = [['U', 'U-factor'], ['SHGC', 'SHGC'], ['VT', 'visible transmittance']];
+    function agreementNote(rc, ro, coated) {
+        if (!rc || !ro) return '';
+        var T = coated ? TOL.calibrate : TOL.glass;
+        var d = { U: (ro.U - rc.U) / BTU, SHGC: ro.SHGC - rc.SHGC, VT: 100 * (ro.Tvis - rc.Tvis) };
+        var out = [], within = [];
+        AGREE.forEach(function (k) {
+            var x = d[k[0]];
+            if (isFinite(x) && Math.abs(x) <= T[k[0]] + 1e-12) within.push(k[1]); else out.push(k[1]);
+        });
+        function list(a) { return a.length > 1 ? a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : a[0]; }
+        var s = !out.length ? 'For this configuration the two models agree within datasheet tolerance on ' + list(within) + '.'
+            : 'For this configuration the two models differ by more than datasheet tolerance in ' + list(out) +
+              (within.length ? '; they agree on ' + list(within) : '') + '.';
+        if (coated) s += ' The largest differences are usually in UV and solar reflectance, where the classic model’s parametric curves are crudest.';
+        return s;
+    }
+
     function evaluateModels(state, deps) {
         var E = deps.E, opts = state.solar === 'E891' ? { solar: deps.solarE891 } : undefined;
         var res = { classic: null, open: null, pending: [], notes: [] };
@@ -203,6 +226,10 @@
             state.panes.forEach(function (p) {
                 if (p.src !== 'generic') res.notes.push('Pane ' + p.i + ' uses measured data, so it is identical in both models.');
             });
+        }
+        if (view === 'both' && res.classic && res.open) {
+            var agree = agreementNote(res.classic.r, res.open.r, state.panes.some(function (p) { return p.src === 'generic' && p.coat !== 'none'; }));
+            if (agree) res.notes.push(agree);
         }
         var imp = importNotes(state, deps);
         res.uvUnavailable = imp.uvUnavailable;
@@ -315,9 +342,10 @@
     var KPIS = [['U', 'U-factor, W/m²·K', 1, ''], ['Uip', 'U-factor, Btu/h·ft²·°F', 1, ''],
         ['Rip', 'R-value, h·ft²·°F/Btu', 1, ''], ['Rsi', 'R-value, m²·K/W', 1, ''],
         ['SHGC', 'SHGC', 1, ''], ['VT', 'Visible transmittance', 100, ' %']];
+    var KPI_CAP = '<div class="kpi-cap">Center of glass</div>';
     function kpiHTML(mc, mo, view, fmt) {
-        return KPIS.map(function (k) {
-            function val(m) { return m ? num(m[k[0]] * k[2], 3, fmt) + k[3] : 'n/a'; }
+        return KPI_CAP + KPIS.map(function (k) {
+            function val(m) { return m ? sig3(m[k[0]] * k[2], fmt) + k[3] : 'n/a'; }   // as the table prints it: 1.40, not 1.4
             var big, small = '';
             if (view === 'both') { big = val(mo); small = '<small>classic ' + val(mc) + '</small>'; }
             else big = val(view === 'open' ? mo : mc);
@@ -327,7 +355,7 @@
 
     // The same tiles with no values yet (a product still loading)
     function kpiPendingHTML() {
-        return KPIS.map(function (k) { return '<div class="kpi"><b>…</b><span>' + k[1] + '</span></div>'; }).join('');
+        return KPI_CAP + KPIS.map(function (k) { return '<div class="kpi"><b>…</b><span>' + k[1] + '</span></div>'; }).join('');
     }
 
     function swatchesHTML(rc, ro, view, fmt) {
@@ -400,7 +428,7 @@
     var GROUPS = [['clear', 'Clear glass'], ['hard', 'Hard coat'], ['single', 'Single silver'], ['double', 'Double silver'], ['triple', 'Triple silver'], ['mixed', 'Mixed triple']];
     var ROLE_LABEL = { calibrate: 'calibration', check: 'held out' };
     var SRC_SHORT = { 'cardinal-cg09': 'Cardinal', 'cardinal-loe180': 'Cardinal', 'vitro-igu-2026': 'Vitro', 'pilkington-ea-2011': 'Pilkington' };
-    var DEFAULT_ROW = 'vitro-6-sb60-s2';
+    var DEFAULT_ROW = 'vitro-6-sb70-s2';   // held out, with a measured record: every column of the table has values
     function makeup(row) {
         var parts = [];
         row.panes.forEach(function (p, i) { parts.push(String(p.mm)); if (i < row.gaps.length) parts.push(String(row.gaps[i])); });
@@ -552,7 +580,7 @@
     var api = {
         THICK: THICK, GENERIC: GENERIC, COAT_LABELS: COAT_LABELS, TOL: TOL, BTU: BTU, DEFAULT_ROW: DEFAULT_ROW,
         glassOptionsHTML: glassOptionsHTML, productLabel: productLabel,
-        readState: readState, buildLayers: buildLayers, evaluateModels: evaluateModels,
+        readState: readState, buildLayers: buildLayers, evaluateModels: evaluateModels, agreementNote: agreementNote,
         metrics: metrics, comparisonRows: comparisonRows, tableHTML: tableHTML, kpiHTML: kpiHTML, kpiPendingHTML: kpiPendingHTML, swatchesHTML: swatchesHTML,
         xsecSVG: xsecSVG, attributionHTML: attributionHTML, tuvNFRC: tuvNFRC,
         datasheetOptionsHTML: datasheetOptionsHTML, rowLabel: rowLabel, datasheetCompare: datasheetCompare, datasheetRRows: datasheetRRows,

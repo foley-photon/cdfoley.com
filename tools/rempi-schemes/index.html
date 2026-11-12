@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="REMPI Scheme Planner. Plan n+m REMPI schemes for atoms and small molecules: resonance wavelength in vacuum and air from NIST ASD levels, ionization margin, photoelectron energy.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="rempi-data.js"></script>
@@ -60,9 +59,11 @@
     .rp-fig .ax { fill: var(--muted); font-size: 9px; }
     @media (max-width: 560px) { .rp-fig .lab { font-size: 12px; } .rp-fig .sub { font-size: 11px; } .rp-fig .ax { font-size: 10.5px; } }
     .rp-table-wrap { overflow-x: auto; }
-    .rp-table-wrap table { min-width: 640px; }
+    .rp-table-wrap table { min-width: 720px; }
+    .rp-table-wrap td:nth-child(2) { min-width: 11.5rem; }   /* the scheme name stays on one or two lines on a phone */
     .prose td.num, .prose th.num { white-space: nowrap; }
     .rp-ref { font-size: 0.82rem; color: var(--text-2); }
+    .calc-actions .btn[disabled] { opacity: 0.45; cursor: default; }   /* the CSV button while the inputs are invalid */
     .prose .refs a { overflow-wrap: anywhere; }
 </style>
 <script type="application/ld+json" id="ld-page">
@@ -135,7 +136,7 @@
 
     <header class="page-head">
         <h1>REMPI Scheme Planner</h1>
-        <p class="lede">Resonance-enhanced multiphoton ionization detects an atom or molecule by tuning a laser so that <em>n</em> photons together hit one of its excited levels and <em>m</em> more photons lift it into the ionization continuum; the ion (or the photoelectron) is then counted. This planner turns level energies into a usable scheme: pick a documented scheme or build one from an <a href="https://physics.nist.gov/PhysRefData/ASD/levels_form.html" target="_blank" rel="noopener">NIST ASD</a> level, and it returns the resonance wavelength in vacuum and air, the photon energy, whether the ionizing step clears the limit and by how much, the photoelectron energy, the Doppler shift, the fine-structure companion lines, which laser gets you there, and a diagram. It is not a levels database: the level excerpts link back to ASD for the full tables.</p>
+        <p class="lede">Resonance-enhanced multiphoton ionization detects an atom or molecule by tuning a laser so that <em>n</em> photons together hit one of its excited levels and <em>m</em> more lift it into the ionization continuum. Pick a documented scheme or build one from a <a href="https://physics.nist.gov/PhysRefData/ASD/levels_form.html" target="_blank" rel="noopener">NIST ASD</a> level, and this planner returns the resonance wavelength in vacuum and air, whether the scheme ionizes, the photoelectron energy, the companion lines, which laser gets you there, and a diagram.</p>
         <details class="key-terms"><summary>Key terms</summary><dl>
             <dt>REMPI</dt><dd>Resonance-enhanced multiphoton ionization. Several photons are absorbed within one laser pulse; because an intermediate step lands on a real level, the rate is many orders of magnitude higher than for non-resonant multiphoton ionization, and it is species- and quantum-state-selective. R2PI (resonant two-photon ionization) is the 1+1 case.</dd>
             <dt>n+m and n+m′ notation</dt><dd><em>n</em> photons reach the resonant level, <em>m</em> more ionize. A prime marks a second laser color for the ionizing step (two-color REMPI); without the prime every photon comes from one laser. 2+1 is the usual atomic scheme, 1+1 the usual molecular one.</dd>
@@ -274,8 +275,8 @@
                     <div class="result"><span class="result-label">Doppler shift of the resonance</span><output class="result-value" data-out="dopp">—</output><span class="result-note" id="dopp-note" hidden></span></div>
                     <div class="result"><span class="result-label">Selection rules</span><output class="result-value" data-out="rules">—</output></div>
                     <div class="result"><span class="result-label">Fine-structure components</span><output class="result-value" data-out="fs">—</output><span class="result-note" id="fs-note" hidden></span></div>
-                    <div class="result"><span class="result-label">Literature value</span><output class="result-value" data-out="lit">—</output></div>
-                    <div class="result"><span class="result-label">Which laser gets there</span><output class="result-value" data-out="src">—</output><span class="result-note">Ranges from the Lambdachrome dye tables (efficiency above 10 % of peak), Nd:YAG harmonics of 1064.1 nm, Ti:sapphire 660–986 nm (Moulton 1986) with its 2nd–4th harmonics, and a 355 nm pumped BBO OPO; doubling in KDP/BBO works down to about 207 nm, mixing to 197 nm. Sources in the references.</span></div>
+                    <div class="result text"><span class="result-label">Literature value</span><output class="result-value" data-out="lit">—</output></div>
+                    <div class="result text"><span class="result-label">Which laser gets there</span><output class="result-value" data-out="src">—</output><span class="result-note">Ranges from the Lambdachrome dye tables (efficiency above 10 % of peak), Nd:YAG harmonics of 1064.1 nm, Ti:sapphire 660–986 nm (Moulton 1986) with its 2nd–4th harmonics, and a 355 nm pumped BBO OPO; doubling in KDP/BBO works down to about 207 nm, mixing to 197 nm. Sources in the references.</span></div>
                 </div>
             </div>
         </section>
@@ -284,7 +285,7 @@
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="fig-h">
         <div class="panel-head"><h2 id="fig-h">Energy-level diagram</h2></div>
         <div class="panel-body">
-            <svg class="rp-fig" id="diag" viewBox="0 0 400 330" role="img" aria-label="REMPI energy-level diagram"><title id="diag-t">REMPI energy-level diagram</title></svg>
+            <svg class="rp-fig" id="diag" viewBox="0 0 400 370" role="img" aria-label="REMPI energy-level diagram"><title id="diag-t">REMPI energy-level diagram</title></svg>
             <p class="hint" id="diag-note" style="margin-top:.6rem"></p>
         </div>
     </section>
@@ -326,9 +327,32 @@
 
         <h2>Typical values</h2>
         <p>Every documented scheme on this page, recomputed from the level energies (NIST ASD excerpts for atoms; WebBook ionization energies and band origins for molecules). Wavelengths are for the lowest ground component; the fine-structure companions appear when you select the scheme above.</p>
-        <div class="rp-table-wrap"><table id="scheme-table">
+        <div class="table-wrap rp-table-wrap"><table id="scheme-table">
             <thead><tr><th>Species</th><th>Scheme</th><th class="num">λ<sub>vac</sub> (nm)</th><th class="num">λ<sub>air</sub> (nm)</th><th class="num">Resonance (cm⁻¹)</th><th class="num">Margin over IE (eV)</th><th>Primary source</th></tr></thead>
-            <tbody id="scheme-rows"></tbody>
+            <tbody id="scheme-rows">
+                <tr><td>Hydrogen (H)</td><td>H 2+1 via 2s ²S₁/₂ (2+1)</td><td class="num">243.135</td><td class="num">243.061</td><td class="num">82,258.95</td><td class="num">1.700</td><td><a href="#ref-hansch1975">Hänsch 1975</a></td></tr>
+                <tr><td>Hydrogen (H)</td><td>H 2+1 via n = 3 (2+1)</td><td class="num">205.144</td><td class="num">205.079</td><td class="num">97,492.36</td><td class="num">4.533</td><td><a href="#ref-bokor1981">Bokor 1981</a></td></tr>
+                <tr><td>Hydrogen (H)</td><td>H 1+1′ via Lyman-α (1+1′)</td><td class="num">121.567</td><td class="num">—</td><td class="num">82,259.29</td><td class="num">0.000</td><td><a href="#ref-mahon1979">Mahon 1979</a></td></tr>
+                <tr><td>Deuterium (D)</td><td>D 2+1 via 2s ²S₁/₂ (2+1)</td><td class="num">243.068</td><td class="num">242.995</td><td class="num">82,281.34</td><td class="num">1.700</td><td><a href="#ref-hansch1975">Hänsch 1975</a></td></tr>
+                <tr><td>Oxygen (O)</td><td>O 2+1 via 3p ³P (2+1)</td><td class="num">225.654</td><td class="num">225.584</td><td class="num">88,631.15</td><td class="num">2.865</td><td><a href="#ref-bamford1986">Bamford 1986</a>, <a href="#ref-perry1982">Bischel 1982</a></td></tr>
+                <tr><td>Nitrogen (N)</td><td>N 2+1 via 3p ⁴D° (2+1)</td><td class="num">210.789</td><td class="num">210.722</td><td class="num">94,881.82</td><td class="num">3.112</td><td><a href="#ref-perry1982">Bischel 1982</a>, <a href="#ref-bischel1981">Bischel 1981</a></td></tr>
+                <tr><td>Carbon (C)</td><td>C 2+1 via 2p3p ³D (2+1)</td><td class="num">286.941</td><td class="num">286.857</td><td class="num">69,700.64</td><td class="num">1.708</td><td><a href="#ref-das1983">Das 1983</a></td></tr>
+                <tr><td>Sulfur (S)</td><td>S 2+1 via 4p ³P (2+1)</td><td class="num">308.202</td><td class="num">308.112</td><td class="num">64,892.55</td><td class="num">1.708</td><td><a href="#ref-lai2020">Lai 2020</a>, <a href="#ref-brewer1982">Brewer 1982</a></td></tr>
+                <tr><td>Chlorine (Cl)</td><td>Cl 2+1 via 4p ²D°₃/₂ (2+1)</td><td class="num">235.326</td><td class="num">235.254</td><td class="num">84,988.48</td><td class="num">2.838</td><td><a href="#ref-arepalli1985cl">Arepalli 1985</a></td></tr>
+                <tr><td>Bromine (Br)</td><td>Br 2+1 via 5p ²[1]°₃/₂ (2+1)</td><td class="num">260.610</td><td class="num">260.532</td><td class="num">76,743.08</td><td class="num">2.459</td><td><a href="#ref-sausa1999">Sausa &amp; Simeonsson patent</a>, <a href="#ref-simeonsson1994">Simeonsson 1994</a>, <a href="#ref-arepalli1985br">Arepalli 1985</a></td></tr>
+                <tr><td>Iodine (I)</td><td>I 2+1 via 6p ²[3]°₅/₂ (2+1)</td><td class="num">304.672</td><td class="num">304.584</td><td class="num">65,644.31</td><td class="num">1.757</td><td><a href="#ref-brewer1983">Brewer 1983</a></td></tr>
+                <tr><td>Iodine (I)</td><td>I* (²P°₁/₂) 2+1 via 6p′ ²[2]°₃/₂ (2+1)</td><td class="num">306.730</td><td class="num">306.640</td><td class="num">65,204.02</td><td class="num">2.618</td><td><a href="#ref-brewer1983">Brewer 1983</a></td></tr>
+                <tr><td>Krypton (Kr)</td><td>Kr 2+1 via 5p[1/2]₀ (2+1)</td><td class="num">212.556</td><td class="num">212.489</td><td class="num">94,092.86</td><td class="num">3.499</td><td><a href="#ref-galtier2017">Galtier 2017</a></td></tr>
+                <tr><td>Xenon (Xe)</td><td>Xe 2+1 via 6p[1/2]₀ (2+1)</td><td class="num">249.629</td><td class="num">249.554</td><td class="num">80,118.96</td><td class="num">2.770</td><td><a href="#ref-kroll1990">Kröll 1990</a></td></tr>
+                <tr><td>NO (nitric oxide)</td><td>NO 1+1 via A ²Σ⁺ (γ(0,0) band, 226 nm) (1+1)</td><td class="num">226.235</td><td class="num">226.165</td><td class="num">44,201.80</td><td class="num">1.696</td><td><a href="#ref-jacobs1986">Jacobs 1986</a></td></tr>
+                <tr><td>CO (carbon monoxide)</td><td>CO 2+1 via B ¹Σ⁺ (2+1)</td><td class="num">230.107</td><td class="num">230.036</td><td class="num">86,916.20</td><td class="num">2.150</td><td><a href="#ref-tjossem1989">Tjossem 1989</a></td></tr>
+                <tr><td>H₂</td><td>H₂ 2+1 via E,F ¹Σg⁺ (2+1)</td><td class="num">201.666</td><td class="num">201.601</td><td class="num">99,173.90</td><td class="num">3.018</td><td><a href="#ref-marinero1982">Marinero 1982</a></td></tr>
+                <tr><td>OH (hydroxyl radical)</td><td>OH 2+1 via D ²Σ⁻ (2+1)</td><td class="num">244.452</td><td class="num">244.377</td><td class="num">81,815.80</td><td class="num">2.199</td><td><a href="#ref-debeer1991">Beer 1991</a></td></tr>
+                <tr><td>CH₃ (methyl radical)</td><td>CH₃ 2+1 via 3p ²A₂″ (2+1)</td><td class="num">333.489</td><td class="num">333.393</td><td class="num">59,972.00</td><td class="num">1.313</td><td><a href="#ref-hudgens1983">Hudgens 1983</a></td></tr>
+                <tr><td>O₂</td><td>O₂ 2+1 via C ³Πg (2+1)</td><td class="num">287.501</td><td class="num">287.417</td><td class="num">69,565.00</td><td class="num">0.868</td><td><a href="#ref-sur1986">Sur 1986</a>, <a href="#ref-radar2026">arXiv:2606.20827 (2026)</a>, <a href="#ref-kallos2024">Kallos 2024</a></td></tr>
+                <tr><td>HCl</td><td>HCl 2+1 via E ¹Σ⁺ (2+1)</td><td class="num">238.720</td><td class="num">238.648</td><td class="num">83,780.00</td><td class="num">2.837</td><td><a href="#ref-arepalli1985cl">Arepalli 1985</a></td></tr>
+                <tr><td>H₂O</td><td>H₂O 2+1 via C̃ ¹B₁ ((000) band head, 247.9 nm) (2+1)</td><td class="num">247.924</td><td class="num">247.849</td><td class="num">80,670.00</td><td class="num">2.382</td><td><a href="#ref-meijer1986">Meijer 1986</a>, <a href="#ref-glab1997">Glab 1997</a></td></tr>
+            </tbody>
         </table></div>
         <p class="rp-ref">Numbers that the primary paper quotes agree with the recomputed values within the 0.01–0.1 nm precision the papers give (the N 3p ⁴D° components spread over 210.79–211.04 nm and the S 4p ³P ones over 308.2–311.0 nm). Schemes that could not be traced to a paper whose record or abstract was checked (for example the Br* and O 3p ⁵P lines sometimes quoted) are deliberately left out, and so is NH₃ 2+1 via B̃: <a href="#ref-stanley1983">Stanley, Echt and Castleman</a> report its bands only as a 304–340 nm range and no archived source gives a band origin. See the references for what each source supports.</p>
 
@@ -345,7 +369,7 @@
         <h2>Assumptions and limits</h2>
         <ul>
             <li>Energetics only. The calculator says whether a scheme is allowed and whether it ionizes; it does not estimate two-photon cross sections, line strengths, or the actual ion yield, which depend on intensity, bandwidth, focusing, and the particular level. The cited papers give cross sections for O and Xe.</li>
-            <li>Level excerpts. Each atom carries only the ground-term components, a handful of low Rydberg levels, and the first ionization limit, copied from NIST ASD 5.12 with the uncertainties ASD lists (several atoms carry none). For every other level follow the ASD link; for higher Rydberg or autoionizing levels (for example O(¹D) detection through 2p³(²D°)3p ¹F₃ above the limit) type the level energy in design mode.</li>
+            <li>Level excerpts. This is a planner, not a levels database. Each atom carries only the ground-term components, a handful of low Rydberg levels, and the first ionization limit, copied from NIST ASD 5.12 with the uncertainties ASD lists (several atoms carry none). For every other level follow the ASD link; for higher Rydberg or autoionizing levels (for example O(¹D) detection through 2p³(²D°)3p ¹F₃ above the limit) type the level energy in design mode.</li>
             <li>Molecules. The resonant energy is a band origin (or, for H₂O, the band head) from the cited paper or from Huber–Herzberg constants in the WebBook; rotational structure, vibrational bands other than the one listed, and the ion’s internal energy are not modeled, so the photoelectron energy is the maximum for that band.</li>
             <li>Air wavelengths. Standard dry air at 15 °C and 101.325 kPa. At 20 °C and typical humidity the index is lower by about 5 × 10⁻⁷ (0.0001 nm at 250 nm), below the precision of the schemes. No air value is given below 185 nm, where the formula is undefined and air absorbs anyway.</li>
             <li>Doppler shift. First order, non-relativistic, co-propagating photons; the second-order shift is 10⁻¹⁰ at 2000 m/s.</li>
@@ -354,11 +378,54 @@
 
         <h2>References</h2>
         <h3>Data</h3>
-        <ol class="refs" id="refs-data"></ol>
+        <ol class="refs" id="refs-data">
+            <li id="ref-nistasd">A. Kramida, Yu. Ralchenko, J. Reader and NIST ASD Team, <em>NIST Atomic Spectra Database</em> (version 5.12), National Institute of Standards and Technology, Gaithersburg, MD (2024), <a href="https://doi.org/10.18434/T4W30F" target="_blank" rel="noopener">doi:10.18434/T4W30F</a> (every atomic level energy and ionization limit on this page (excerpts; full tables at the levels form)).</li>
+            <li id="ref-webbook">P. J. Linstrom and W. G. Mallard (eds.), <em>NIST Chemistry WebBook</em>, NIST Standard Reference Database 69, National Institute of Standards and Technology, Gaithersburg, MD, <a href="https://doi.org/10.18434/T4D303" target="_blank" rel="noopener">doi:10.18434/T4D303</a> (molecular ionization energies (evaluated values) and the Huber–Herzberg diatomic constants behind the band origins).</li>
+        </ol>
         <h3>Scheme papers, selection rules, and reviews</h3>
-        <ol class="refs" id="refs-papers" start="3"></ol>
+        <ol class="refs" id="refs-papers" start="3">
+            <li id="ref-hansch1975">T. W. Hänsch, S. A. Lee, R. Wallenstein and C. Wieman, “Doppler-free two-photon spectroscopy of hydrogen 1S−2S,” <em>Phys. Rev. Lett.</em> <strong>34</strong>, 307–309 (1975), <a href="https://doi.org/10.1103/PhysRevLett.34.307" target="_blank" rel="noopener">doi:10.1103/PhysRevLett.34.307</a> (the 243 nm two-photon resonance of H and D).</li>
+            <li id="ref-bokor1981">J. Bokor, R. R. Freeman, J. C. White and R. H. Storz, “Two-photon excitation of the n = 3 level in H and D atoms,” <em>Phys. Rev. A</em> <strong>24</strong>, 612–614 (1981), <a href="https://doi.org/10.1103/PhysRevA.24.612" target="_blank" rel="noopener">doi:10.1103/PhysRevA.24.612</a> (205 nm two-photon excitation with Balmer-α fluorescence and resonant three-photon ionization).</li>
+            <li id="ref-mahon1979">R. Mahon, T. J. McIlrath, V. P. Myerscough and D. W. Koopman, “Third-harmonic generation in argon, krypton, and xenon: bandwidth limitations in the vicinity of Lyman-α,” <em>IEEE J. Quantum Electron.</em> <strong>15</strong>, 444–451 (1979), <a href="https://doi.org/10.1109/JQE.1979.1070036" target="_blank" rel="noopener">doi:10.1109/JQE.1979.1070036</a> (tripling 364.7 nm to Lyman-α (121.57 nm) in Kr and phase-matched mixtures).</li>
+            <li id="ref-bamford1986">D. J. Bamford, L. E. Jusinski and W. K. Bischel, “Absolute two-photon absorption and three-photon ionization cross sections for atomic oxygen,” <em>Phys. Rev. A</em> <strong>34</strong>, 185–198 (1986), <a href="https://doi.org/10.1103/PhysRevA.34.185" target="_blank" rel="noopener">doi:10.1103/PhysRevA.34.185</a> (O 3p ³P ← 2p⁴ ³P₂ at 226 nm; two-photon and photoionization cross sections).</li>
+            <li id="ref-perry1982">W. K. Bischel, B. E. Perry and D. R. Crosley, “Detection of fluorescence from O and N atoms induced by two-photon absorption,” <em>Appl. Opt.</em> <strong>21</strong>, 1419–1429 (1982), <a href="https://doi.org/10.1364/AO.21.001419" target="_blank" rel="noopener">doi:10.1364/AO.21.001419</a> (O 3p ³P at 226 nm and N 3p ⁴D° at 211 nm by two-photon absorption; lifetimes and quenching).</li>
+            <li id="ref-bischel1981">W. K. Bischel, B. E. Perry and D. R. Crosley, “Two-photon laser-induced fluorescence in oxygen and nitrogen atoms,” <em>Chem. Phys. Lett.</em> <strong>82</strong>, 85–88 (1981), <a href="https://doi.org/10.1016/0009-2614(81)85112-3" target="_blank" rel="noopener">doi:10.1016/0009-2614(81)85112-3</a> (first report of the O and N two-photon schemes).</li>
+            <li id="ref-das1983">P. Das, G. Ondrey, N. van Veen and R. Bersohn, “Two photon laser induced fluorescence of carbon atoms,” <em>J. Chem. Phys.</em> <strong>79</strong>, 724–726 (1983), <a href="https://doi.org/10.1063/1.445821" target="_blank" rel="noopener">doi:10.1063/1.445821</a> (C 2p3p ³D ← 2p² ³P near 287 nm (and ¹P₁ ← ¹D₂ at 284 nm for C(¹D))).</li>
+            <li id="ref-lai2020">K.-F. Lai, E. J. Salumbides and W. Ubachs, “Two-photon Doppler-free ultraviolet laser spectroscopy on sulphur atoms,” <em>J. Phys. B</em> <strong>53</strong>, 175002 (2020), <a href="https://doi.org/10.1088/1361-6455/ab9c37" target="_blank" rel="noopener">doi:10.1088/1361-6455/ab9c37</a> (all seven S 3p⁴ ³P_J → 3p³4p ³P_J′ two-photon components, 308–311 nm, S⁺ detected by TOF).</li>
+            <li id="ref-brewer1982">P. Brewer, N. Van Veen and R. Bersohn, “Two-photon induced fluorescence and resonance-enhanced ionization of sulfur atoms,” <em>Chem. Phys. Lett.</em> <strong>91</strong>, 126–129 (1982), <a href="https://doi.org/10.1016/0009-2614(82)80121-8" target="_blank" rel="noopener">doi:10.1016/0009-2614(82)80121-8</a> (S-atom REMPI via the 4p levels (title and bibliographic record checked; abstract not available online)).</li>
+            <li id="ref-brewer1983">P. Brewer, P. Das, G. Ondrey and R. Bersohn, “Measurement of the relative populations of I(²P°₁/₂) and I(²P°₃/₂) by laser induced vacuum ultraviolet fluorescence,” <em>J. Chem. Phys.</em> <strong>79</strong>, 720–723 (1983), <a href="https://doi.org/10.1063/1.445820" target="_blank" rel="noopener">doi:10.1063/1.445820</a> (I and I* two-photon resonances at 304.7 and 306.7 nm).</li>
+            <li id="ref-arepalli1985cl">S. Arepalli, N. Presser, D. Robie and R. J. Gordon, “Detection of Cl atoms and HCl molecules by resonantly enhanced multiphoton ionization,” <em>Chem. Phys. Lett.</em> <strong>118</strong>, 88–92 (1985), <a href="https://doi.org/10.1016/0009-2614(85)85272-6" target="_blank" rel="noopener">doi:10.1016/0009-2614(85)85272-6</a> (Cl 2+1 via 4p ²D°₃/₂ and HCl 2+1 via E/V ¹Σ⁺ (title and record checked; abstract not available online, wavelengths recomputed from ASD and WebBook)).</li>
+            <li id="ref-arepalli1985br">S. Arepalli, N. Presser, D. Robie and R. J. Gordon, “The detection of bromine atoms by resonant multiphoton ionization,” <em>Chem. Phys. Lett.</em> <strong>117</strong>, 64–66 (1985), <a href="https://doi.org/10.1016/0009-2614(85)80406-1" target="_blank" rel="noopener">doi:10.1016/0009-2614(85)80406-1</a> (Br 2+1 REMPI (title and record checked)).</li>
+            <li id="ref-simeonsson1994">J. B. Simeonsson and R. C. Sausa, “Trace detection of ambient brominated compounds by laser-induced photofragmentation/fragment detection spectrometry,” <em>Spectrochim. Acta B</em> <strong>49</strong>, 1545–1555 (1994), <a href="https://doi.org/10.1016/0584-8547(94)80129-0" target="_blank" rel="noopener">doi:10.1016/0584-8547(94)80129-0</a> (Br detection by photofragmentation and two-photon excitation near 260.6 nm; record only, the abstract was not reachable, so the wavelength is taken from the same authors' patent).</li>
+            <li id="ref-sausa1999">R. C. Sausa and J. B. Simeonsson, “Detector of halogenated compounds based on laser photofragmentation/fragment stimulated emission,” U.S. Patent 5,866,073 (granted 2 Feb. 1999), <a href="https://patents.google.com/patent/US5866073A/en" target="_blank" rel="noopener">patents.google.com</a> (states that a strong Br signal was observed at 260.634 nm on the spin-forbidden 4p⁴5p ⁴D°₃/₂ ← 4p⁵ ²P°₃/₂ two-photon transition, computed from Moore's 1952 energies, and that it was the best analytical line).</li>
+            <li id="ref-galtier2017">S. Galtier, R. K. Altmann, L. S. Dreissen and K. S. E. Eikema, “High-accuracy deep-UV Ramsey-comb spectroscopy in krypton,” <em>Appl. Phys. B</em> <strong>123</strong>, 16 (2017), <a href="https://doi.org/10.1007/s00340-016-6584-8" target="_blank" rel="noopener">doi:10.1007/s00340-016-6584-8</a> (the Kr 4p⁶ → 4p⁵5p[1/2]₀ two-photon transition at 212.55 nm).</li>
+            <li id="ref-kroll1990">S. Kröll and W. K. Bischel, “Two-photon absorption and photoionization cross-section measurements in the 5p⁵6p configuration of xenon,” <em>Phys. Rev. A</em> <strong>41</strong>, 1340–1349 (1990), <a href="https://doi.org/10.1103/PhysRevA.41.1340" target="_blank" rel="noopener">doi:10.1103/PhysRevA.41.1340</a> (Xe 6p two-photon cross sections (Table I: σG(0) = 7.0, 2.4 and 4.0 × 10⁻³⁵ cm⁴ for 2p₅, 2p₆, 2p₉), photoionization cross sections (Table II: 4.3 and 3.7 × 10⁻¹⁸ cm² at 248 nm) and the estimate that 30 MW/cm² for 25 ns at 249.6 nm ionizes 10 % of the atoms; full text archived from the Lund University repository).</li>
+            <li id="ref-jacobs1986">D. C. Jacobs, R. J. Madix and R. N. Zare, “Reduction of 1+1 resonance enhanced MPI spectra to population distributions: Application to the NO A ²Σ⁺–X ²Π system,” <em>J. Chem. Phys.</em> <strong>85</strong>, 5469–5479 (1986), <a href="https://doi.org/10.1063/1.451557" target="_blank" rel="noopener">doi:10.1063/1.451557</a> (NO 1+1 via the A–X (0,0) band and how saturation and alignment affect the spectrum).</li>
+            <li id="ref-tjossem1989">P. J. H. Tjossem and K. C. Smyth, “Multiphoton excitation spectroscopy of the B ¹Σ⁺ and C ¹Σ⁺ Rydberg states of CO,” <em>J. Chem. Phys.</em> <strong>91</strong>, 2041–2048 (1989), <a href="https://doi.org/10.1063/1.457064" target="_blank" rel="noopener">doi:10.1063/1.457064</a> (CO two-photon B ← X (0,0) at 230 nm with ionization detection, polarization ratios).</li>
+            <li id="ref-marinero1982">E. E. Marinero, C. T. Rettner and R. N. Zare, “Quantum-state-specific detection of molecular hydrogen by three-photon ionization,” <em>Phys. Rev. Lett.</em> <strong>48</strong>, 1323–1326 (1982), <a href="https://doi.org/10.1103/PhysRevLett.48.1323" target="_blank" rel="noopener">doi:10.1103/PhysRevLett.48.1323</a> (H₂ 2+1 via E,F ¹Σg⁺).</li>
+            <li id="ref-debeer1991">E. de Beer, M. P. Koopmans, C. A. de Lange, Y. Wang and W. A. Chupka, “(2+1) resonance-enhanced multiphoton ionization–photoelectron spectroscopy of the OH radical,” <em>J. Chem. Phys.</em> <strong>94</strong>, 7634–7639 (1991), <a href="https://doi.org/10.1063/1.460150" target="_blank" rel="noopener">doi:10.1063/1.460150</a> (OH D ²Σ⁻ (v′ = 0–2) and 3 ²Σ⁻ intermediates, D v′ = 0 at 81 815.8 cm⁻¹).</li>
+            <li id="ref-hudgens1983">J. W. Hudgens, T. G. DiGiuseppe and M. C. Lin, “Two photon resonance enhanced multiphoton ionization spectroscopy and state assignments of the methyl radical,” <em>J. Chem. Phys.</em> <strong>79</strong>, 571–582 (1983), <a href="https://doi.org/10.1063/1.445857" target="_blank" rel="noopener">doi:10.1063/1.445857</a> (CH₃ 2+1 via the np ²A₂″ series, 3p at 333.5 nm).</li>
+            <li id="ref-stanley1983">R. J. Stanley, O. Echt and A. W. Castleman, Jr., “Resonance-enhanced multiphoton ionization (2+1) of the B̃ and C̃′ states of ammonia,” <em>Appl. Phys. B</em> <strong>32</strong>, 35–38 (1983), <a href="https://doi.org/10.1007/BF00688773" target="_blank" rel="noopener">doi:10.1007/BF00688773</a> (NH₃ 2+1 features of the B̃ and C̃′ states between 304 and 340 nm in a supersonic beam; cited only for why no NH₃ scheme is tabulated, since the abstract gives no band position).</li>
+            <li id="ref-sur1986">A. Sur, C. V. Ramana, W. A. Chupka and S. D. Colson, “Rydberg–valence interactions in the Πg states of O₂,” <em>J. Chem. Phys.</em> <strong>84</strong>, 69–72 (1986), <a href="https://doi.org/10.1063/1.450133" target="_blank" rel="noopener">doi:10.1063/1.450133</a> (MPI characterization of the (3sσ) ³Πg Rydberg state; only v′ = 2 rotationally resolved).</li>
+            <li id="ref-radar2026">Absolute Radar-REMPI via two-color REMPI and absolutely calibrated CMS for diagnostics of species in gaseous mixtures (2026), preprint arXiv:2606.20827, <a href="https://arxiv.org/abs/2606.20827" target="_blank" rel="noopener">arxiv.org</a> (states that 355 nm + 241.5 nm photons are equivalent to two 287.5 nm photons for O₂ C ³Πg (v′ = 2) ← X (v″ = 0), and compares with Kr 2+1 at 212.5 nm).</li>
+            <li id="ref-kallos2024">A. Kallos, I. Bar and J. H. Baraban, “Significantly improved detection of molecular oxygen by two-color resonance-enhanced multiphoton ionization,” <em>J. Phys. Chem. Lett.</em> <strong>15</strong>, 2639–2642 (2024), <a href="https://doi.org/10.1021/acs.jpclett.4c00141" target="_blank" rel="noopener">doi:10.1021/acs.jpclett.4c00141</a> (two-color 2+1′ O₂ detection via the 3d Rydberg complex, compared with the diffuse C 3sσ ³Πg 2+1 bands).</li>
+            <li id="ref-meijer1986">G. Meijer, J. J. ter Meulen, P. Andresen and A. Bath, “Sensitive quantum state selective detection of H₂O and D₂O by (2+1)-resonance enhanced multiphoton ionization,” <em>J. Chem. Phys.</em> <strong>85</strong>, 6914–6922 (1986), <a href="https://doi.org/10.1063/1.451845" target="_blank" rel="noopener">doi:10.1063/1.451845</a> (first 2+1 REMPI of H₂O and D₂O, at 248 nm through the C̃ ¹B₁ state).</li>
+            <li id="ref-glab1997">W. L. Glab, P. T. Glynn, P. M. Dehmer, J. L. Dehmer, K. Wang and B. V. McKoy, “Rotationally resolved energy-dispersive photoelectron spectroscopy of H₂O: Photoionization of the C̃(0,0,0) state at 355 nm,” <em>J. Chem. Phys.</em> <strong>106</strong>, 5779–5782 (1997), <a href="https://doi.org/10.1063/1.473597" target="_blank" rel="noopener">doi:10.1063/1.473597</a> (places the band head of the two-photon C̃(000) ← X̃ band of H₂O at 80,670 cm⁻¹ (full text archived from Caltech Authors)).</li>
+            <li id="ref-boesl1980">U. Boesl, H. J. Neusser and E. W. Schlag, “Visible and UV multiphoton ionization and fragmentation of polyatomic molecules,” <em>J. Chem. Phys.</em> <strong>72</strong>, 4327–4333 (1980), <a href="https://doi.org/10.1063/1.439712" target="_blank" rel="noopener">doi:10.1063/1.439712</a> (benzene resonance-enhanced ionization in a mass spectrometer: two-color time-delayed experiments show that fragmentation proceeds by climbing two independent ladders, one in the neutral up to the ionization potential and a second in the parent ion (ladder switching)).</li>
+            <li id="ref-bonin1984">K. D. Bonin and T. J. McIlrath, “Two-photon electric-dipole selection rules,” <em>J. Opt. Soc. Am. B</em> <strong>1</strong>, 52–55 (1984), <a href="https://doi.org/10.1364/JOSAB.1.000052" target="_blank" rel="noopener">doi:10.1364/JOSAB.1.000052</a> (the two-photon electric-dipole selection rules (same parity, |ΔF| ≤ 2, 0 ↔ 1 forbidden for equal-frequency photons, 0 ↔ 0 allowed only for polarization combinations with a scalar part); checked from the abstract and Table 1 of the publisher page).</li>
+            <li id="ref-demtroder2008">W. Demtröder, <em>Laser Spectroscopy</em>, 4th ed. (Springer, Berlin, 2008), Chap. 2, “Nonlinear Spectroscopy,” pp. 77–140, <a href="https://doi.org/10.1007/978-3-540-74954-7_2" target="_blank" rel="noopener">doi:10.1007/978-3-540-74954-7_2</a> (textbook treatment of multiphoton transitions: the ΔS = 0 rule in LS coupling and the three-photon (parity-changing, |ΔJ| ≤ 3) rules quoted in the selection-rules section).</li>
+            <li id="ref-kolachevsky2006">N. Kolachevsky, M. Haas, U. D. Jentschura, M. Herrmann, P. Fendel, M. Fischer, R. Holzwarth, Th. Udem, C. H. Keitel and T. W. Hänsch, “Photoionization broadening of the 1S–2S transition in a beam of atomic hydrogen,” <em>Phys. Rev. A</em> <strong>74</strong>, 052504 (2006), <a href="https://doi.org/10.1103/PhysRevA.74.052504" target="_blank" rel="noopener">doi:10.1103/PhysRevA.74.052504</a> (the AC Stark coefficient of the H 1S–2S two-photon transition at 243 nm, β_ac = 1.66982 × 10⁻⁴ Hz (W/m²)⁻¹ = 1.67 Hz per W cm⁻², and the ionization broadening (arXiv quant-ph/0609114 archived)).</li>
+            <li id="ref-ashfold1994">M. N. R. Ashfold and J. D. Howe, “Multiphoton spectroscopy of molecular species,” <em>Annu. Rev. Phys. Chem.</em> <strong>45</strong>, 57–82 (1994), <a href="https://doi.org/10.1146/annurev.pc.45.100194.000421" target="_blank" rel="noopener">doi:10.1146/annurev.pc.45.100194.000421</a> (review of REMPI spectroscopy and its uses).</li>
+        </ol>
         <h3>Air index and laser sources</h3>
-        <ol class="refs" id="refs-lasers"></ol>
+        <ol class="refs" id="refs-lasers" start="35">
+            <li id="ref-peck1972">E. R. Peck and K. Reeder, “Dispersion of air,” <em>J. Opt. Soc. Am.</em> <strong>62</strong>, 958–962 (1972), <a href="https://doi.org/10.1364/JOSA.62.000958" target="_blank" rel="noopener">doi:10.1364/JOSA.62.000958</a> (the refractive index of standard air used by NIST ASD for air wavelengths (valid 185 nm–1.7 µm)).</li>
+            <li id="ref-ciddor1996">P. E. Ciddor, “Refractive index of air: new equations for the visible and near infrared,” <em>Appl. Opt.</em> <strong>35</strong>, 1566–1573 (1996), <a href="https://doi.org/10.1364/AO.35.001566" target="_blank" rel="noopener">doi:10.1364/AO.35.001566</a> (the modern standard-air dispersion equation (230–1690 nm)).</li>
+            <li id="ref-vorobev2009">N. S. Vorob’ev, L. B. Glebov, V. I. Smirnov and I. V. Chapurin, “Generation of Stark spectral components in Nd:YAP and Nd:YAG lasers by using volume Bragg gratings,” <em>Quantum Electron.</em> <strong>39</strong>, 43–45 (2009), <a href="https://doi.org/10.1070/QE2009v039n01ABEH013943" target="_blank" rel="noopener">doi:10.1070/QE2009v039n01ABEH013943</a> (the Nd:YAG room-temperature line at 1064.1 nm (and 1061.5 nm); the harmonic wavelengths on this page are 1064.1/k, not values from the paper).</li>
+            <li id="ref-brackmann2000">U. Brackmann, <em>Lambdachrome Laser Dyes</em>, 3rd ed. (Lambda Physik AG, Göttingen, 2000) (dye tuning ranges for Nd:YAG- and excimer-pumped dye lasers (tables on pp. 277–280; range = efficiency above 10 % of maximum, broadband operation) and the UV extension by doubling to 207 nm and mixing to 197 nm (p. 3)).</li>
+            <li id="ref-moulton1986">P. F. Moulton, “Spectroscopic and laser characteristics of Ti:Al₂O₃,” <em>J. Opt. Soc. Am. B</em> <strong>3</strong>, 125–133 (1986), <a href="https://doi.org/10.1364/JOSAB.3.000125" target="_blank" rel="noopener">doi:10.1364/JOSAB.3.000125</a> (Ti:sapphire tuning over 660–986 nm).</li>
+            <li id="ref-ekspla_nt342">Ekspla, “NT340 series high energy tunable wavelength nanosecond lasers” (NT342 specification page, retrieved 2026-11-08), <a href="https://ekspla.com/products/high-energy-tunable-wavelength-nanosecond-lasers-nt340/" target="_blank" rel="noopener">ekspla.com</a> (OPO signal 410–710, idler 710–2600, SH/SF 210–410, DUV 192–210 and MIR 2500–4400 nm ranges).</li>
+        </ol>
         <h3>Textbooks</h3>
         <ul class="refs">
             <li>H. H. Telle and Á. González Ureña, <em>Laser Spectroscopy and Laser Imaging: An Introduction</em>, CRC Press (2018), sec. 7.4, “Multiphoton Absorption Processes,” pp. 178–181, and sec. 16.1, “Basic Concepts of REMPI,” pp. 427–435 (the energy balance of an (m+n) scheme, the rate-equation model and signal scaling, two-photon cross-section units, Doppler-free two-photon absorption, and selection rules for the ionization step).</li>
@@ -554,6 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
             note('exc-note', excess >= 0 ? `Ionization limit ${cmFmt(IE)} cm⁻¹ = ${fmt.num(IE / EV, 6)} eV${IEunc !== null && IEunc !== undefined ? ' (± ' + fmt.num(IEunc, 2) + ' cm⁻¹)' : ''}; the last photon clears it.` : `Ionization limit ${cmFmt(IE)} cm⁻¹: the scheme falls ${cmFmt(-excess)} cm⁻¹ short. Add a photon (m = 2), shorten the second color, or choose a higher intermediate level.`);
             note('ke-note', excess > 0 ? `Electron speed ${fmt.num(ve / 1e3, 4)} km/s for an ion left in its ground state; ions in excited spin-orbit or vibrational levels give slower electrons.` : '');
             note('dopp-note', dopp ? `For ${fmt.num(v.vbeam, 4)} m/s along co-propagating photons (first order, all ${n} photons from one direction). Counter-propagating beams cancel the shift for the photon pair they supply.` : 'Enter a beam speed to see the shift.');
+            csvBtn.disabled = false;
             note('fs-note', groundSet.length > 1 ? 'Same upper level from each component of the ground term; struck-through components violate |ΔJ| ≤ n.' : '');
             return {
                 lam: nm3(lam) + ' nm',
@@ -573,6 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onError() {
             last = null;
+            csvBtn.disabled = true;                       // nothing to copy until the inputs are valid again
             Object.keys(notes).forEach(k => { if (notes[k].classList.contains('result-note')) notes[k].hidden = true; });
             drawDiagram(null);
         },
@@ -583,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawDiagram(s) {
         const svg = document.getElementById('diag');
         if (!s) { svg.innerHTML = '<title id="diag-t">REMPI energy-level diagram</title>'; svg.setAttribute('aria-label', 'No diagram: the inputs are invalid.'); return; }
-        const W = 400, H = 330, top = 22, bot = 296, xL = 58, xR = 352;
+        const W = 400, H = 370, top = 22, bot = 336, xL = 58, xR = 352;   // H matches the viewBox in the markup
         const Emax = Math.max(s.IE * 1.06, s.after * 1.04, s.b.E * 1.1);
         const y = E => bot - (bot - top) * E / Emax;
         const T = (x, yy, cls, txt, anchor) => `<text x="${x.toFixed(1)}" y="${yy.toFixed(1)}" class="${cls}"${anchor ? ` text-anchor="${anchor}"` : ''}>${esc(txt)}</text>`;
@@ -598,7 +667,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // continuum above the limit
         const x0 = xL + 14, x1 = xR - 14;
         h += `<rect class="cont" x="${x0}" y="${top - 4}" width="${x1 - x0}" height="${Math.max(0, y(s.IE) - top + 4)}"/>`;
-        h += `<line class="lim" x1="${x0}" y1="${y(s.IE)}" x2="${x1}" y2="${y(s.IE)}"/>` + T(x1, y(s.IE) - 4, 'lab', 'ionization limit ' + cmFmt(s.IE) + ' cm⁻¹', 'end');
+        // the limit's label ends left of the photoelectron bar and starts right of the arrows, so it crosses neither
+        h += `<line class="lim" x1="${x0}" y1="${y(s.IE)}" x2="${x1}" y2="${y(s.IE)}"/>` + T(x1 - 46, y(s.IE) - 5, 'lab', 'limit ' + cmFmt(s.IE) + ' cm⁻¹', 'end');
         // ground components (left third), intermediate (middle), arrows up the middle
         const gx0 = x0 + 4, gx1 = x0 + 92;
         const ground = s.fs.map(f => f.g);
@@ -608,7 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ix0 = x0 + 36, ix1 = x0 + 150;
         h += `<line class="lvl" x1="${ix0}" y1="${y(s.b.E)}" x2="${ix1}" y2="${y(s.b.E)}"/>`;
         const bl = s.b.label.length > 30 ? s.b.label.slice(0, 29).replace(/[\s,(—]+$/, '') + '…' : s.b.label;
-        h += T(ix1 + 5, y(s.b.E) + 3.5, 'lab', bl) + T(ix1 + 5, y(s.b.E) + 14, 'sub', cmFmt(s.b.E) + ' cm⁻¹');
+        h += T(ix1 + 5, y(s.b.E) + 3.5, 'lab', bl) + T(ix1 + 5, y(s.b.E) + 16, 'sub', cmFmt(s.b.E) + ' cm⁻¹');
         const ax = x0 + 78;
         const arrow = (yA, yB, cls, head) => { const tip = yB + 2; return `<line class="${cls}" x1="${ax}" y1="${yA.toFixed(1)}" x2="${ax}" y2="${(tip + 5).toFixed(1)}"/><path class="${head}" d="M${ax},${tip.toFixed(1)} l-4.5,8 h9 z"/>`; };
         let E = s.a.E;
@@ -616,19 +686,23 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < s.m; i++) { h += arrow(y(E), y(E + s.hv2), s.lam2 ? 'ph2' : 'ph1', s.lam2 ? 'ph2h' : 'ph1h'); E += s.hv2; }
         h += `<line class="lvl g" x1="${ax - 10}" y1="${y(s.after)}" x2="${ax + 10}" y2="${y(s.after)}"/>`;
         h += T(ax - 14, (y(s.a.E) + y(s.b.E)) / 2 + 3, 'sub', `${s.n} × ${s.lam.toFixed(2)} nm`, 'end');
-        if (s.m > 0) h += T(ax + 14, (y(s.b.E) + y(s.after)) / 2 + 3, 'sub', `${s.m} × ${(s.lam2 || s.lam).toFixed(2)} nm`);
+        // the ionizing photons' label sits below the limit when there is room, so it stays clear of the limit's label
+        const yCap = y(Math.min(s.after, s.IE)), yIon = y(s.b.E) - yCap >= 26 ? (y(s.b.E) + yCap) / 2 : (y(s.b.E) + y(s.after)) / 2;
+        if (s.m > 0) h += T(ax + 14, yIon + 3, 'sub', `${s.m} × ${(s.lam2 || s.lam).toFixed(2)} nm`);
         // excess bar at the right
         const bx = x1 - 36;
         if (s.excess > 0) {
             h += `<rect class="exc" x="${bx}" y="${y(s.after)}" width="14" height="${(y(s.IE) - y(s.after)).toFixed(1)}"/><line class="excl" x1="${bx - 4}" y1="${y(s.after)}" x2="${bx + 18}" y2="${y(s.after)}"/>`;
-            h += T(bx + 7, y(s.after) - 5, 'lab', 'KE ' + fmt.num(s.KEeV, 3) + ' eV', 'middle');
+            // a photoelectron energy near zero would put this label on top of the limit's: it goes under the line instead
+            if (y(s.IE) - y(s.after) >= 14) h += T(bx + 7, y(s.after) - 5, 'lab', 'KE ' + fmt.num(s.KEeV, 3) + ' eV', 'middle');
+            else h += T(x1, y(s.IE) + 13, 'lab', 'KE ' + fmt.num(s.KEeV, 3) + ' eV', 'end');
         } else {
             h += `<line class="excl" x1="${bx - 4}" y1="${y(s.after)}" x2="${bx + 18}" y2="${y(s.after)}"/>` + T(bx + 7, y(s.after) + 14, 'lab', 'short by ' + cmFmt(-s.excess) + ' cm⁻¹', 'middle');
         }
         svg.innerHTML = h;
         const desc = `Energy-level diagram for ${s.species === 'custom' ? 'a custom species' : speciesName(s.species)}: ${ground.length} ground component${ground.length > 1 ? 's' : ''} at the bottom, the resonant level ${s.b.label} at ${cmFmt(s.b.E)} cm⁻¹, the ionization limit at ${cmFmt(s.IE)} cm⁻¹ with the continuum hatched above it; ${s.n} photon arrow${s.n > 1 ? 's' : ''} of ${s.lam.toFixed(2)} nm reach the resonance and ${s.m} ${s.lam2 ? 'second-color arrow' + (s.m > 1 ? 's' : '') + ' of ' + s.lam2.toFixed(2) + ' nm' : 'more'} end at ${cmFmt(s.after)} cm⁻¹, ${s.excess >= 0 ? cmFmt(s.excess) + ' cm⁻¹ above the limit' : cmFmt(-s.excess) + ' cm⁻¹ below the limit'}.`;
         svg.setAttribute('aria-label', desc);
-        note('diag-note', `Solid arrows: photons of the resonant color; dashed: the second color. The bar on the right is the photoelectron energy. Vertical scale: 0 to ${cmFmt(Emax)} cm⁻¹ (${fmt.num(Emax / EV, 3)} eV).`);
+        note('diag-note', `Solid arrows: photons of the resonant color; dashed arrows: the second color. The dashed line is the ionization limit, and the bar on the right is the photoelectron energy. Vertical scale: 0 to ${cmFmt(Emax)} cm⁻¹ (${fmt.num(Emax / EV, 3)} eV).`);
     }
 
     /* ── CSV shopping list ───────────────────────────────────────────────── */

@@ -17,9 +17,8 @@
 <meta property="og:image:alt" content="Diffraction Grating &amp; Spectrometer Calculator. Solve the grating equation for diffraction angle, then get linear dispersion, resolving power, and bandpass for Littrow or Czerny-Turner spectrometers.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
@@ -56,8 +55,8 @@
     /* the typical-values table: slightly tighter cells, so its four columns fit a 390 px phone */
     .prose table.tv th, .prose table.tv td { padding-left: 0.55rem; padding-right: 0.55rem; }
 </style>
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -167,7 +166,7 @@
                     </div>
                     <div class="field">
                         <label for="m">Diffraction order <span class="sym">m</span></label>
-                        <div class="input-unit"><input id="m" name="m" value="1" data-label="diffraction order"><span class="unit">—</span></div>
+                        <div class="input-unit"><input id="m" name="m" value="1" data-label="diffraction order"><span class="unit">order</span></div>
                     </div>
                 </div>
                 <p class="hint" style="margin:-.4rem 0 .9rem">The groove density is printed on the grating or its data sheet. The order is usually 1; positive orders lie on the incoming side of the mirror reflection (m = 0), negative orders on the other side.</p>
@@ -220,7 +219,7 @@
                     <div class="result"><span class="result-label">Reciprocal linear dispersion<span class="sym">dλ/dx</span></span><output class="result-value" data-out="rld">—</output>
                         <span class="result-note">Nanometers per millimeter along the exit slit or detector; the smaller, the finer the detail.</span></div>
                     <div class="result"><span class="result-label">Bandpass, equal slits<span class="sym">B</span></span><output class="result-value" data-out="bp">—</output>
-                        <span class="result-note">The band (FWHM) that passes when the entrance and exit slits are both w wide: w·dλ/dx, or the entrance-slit image times dλ/dx when the image is wider. Aberrations and diffraction add to it.</span></div>
+                        <span class="result-note">The band (FWHM) that passes when the entrance and exit slits are both w wide: w·dλ/dx, or the entrance-slit image times dλ/dx when the image is wider. Aberrations and diffraction add to it. <a id="bp-link" href="/tools/doppler-broadening/">Use it as the instrument width in the line-broadening calculator</a>.</span></div>
                     <div class="result"><span class="result-label">Entrance-slit image width<span class="sym">w·cos α/cos β</span></span><output class="result-value" data-out="img">—</output>
                         <span class="result-note">The slit as imaged at the exit, for equal collimator and focusing focal lengths. With a detector array instead of an exit slit, the bandpass is about this width times dλ/dx, which spectrometers usually spread over 3 to 6 pixels.</span></div>
                     <div class="result"><span class="result-label">Resolving power<span class="sym">R = |m|N</span></span><output class="result-value" data-out="R">—</output>
@@ -336,6 +335,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const fDev = document.getElementById('f-dev');
     const plotBox = document.getElementById('g-plot');
     const plotMode = document.getElementById('plot-mode');
+    const bpLink = document.getElementById('bp-link');
+    const BP_HREF = bpLink.getAttribute('href');
     const deg = r => fmt.num(r * DEG, 5) + '°';
     const nb = s => s.replace(/ /g, String.fromCharCode(160));
     // a spectral width Δλ at λ (in pm or larger, as in the line broadening calculator), also as a
@@ -454,6 +455,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const T = Math.cos(a) / cb;
             const R = Math.abs(v.m) * N;
             const sL = v.m * v.wl / (2 * d);
+            const bp = v.slit * Math.max(1, T) * rld;    // bandpass, m
+            // hand the bandpass to the line-broadening calculator as its instrument FWHM, at this wavelength
+            bpLink.href = BP_HREF + '#wl=' + (+(v.wl * 1e9).toPrecision(9)) + '&wl_u=nm&instr=' + (+(bp * 1e12).toPrecision(4)) + '&instr_u=pm';
 
             return {
                 beta: deg(b),
@@ -462,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 littrow: Math.abs(sL) < 1 ? deg(Math.asin(sL)) : 'not possible',
                 angDisp: fmt.num(Math.abs(angDisp) * 1e-9 * 1e3, 4) + ' mrad/nm  (' + fmt.num(Math.abs(angDisp) * 1e-9 * DEG, 4) + '°/nm)',
                 rld: fmt.num(rld * 1e9 / 1e3, 4) + ' nm/mm',
-                bp: width(v.slit * Math.max(1, T) * rld, v.wl),
+                bp: width(bp, v.wl),
                 img: nb(fmt.si(T * v.slit, 'm', 4)) + ' (×' + fmt.num(T, 4) + ')',
                 R: fmt.num(R, 5),
                 dl: width(v.wl / R, v.wl),
@@ -473,6 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         after: drawPlot,
         onError(err) {
+            bpLink.href = BP_HREF;                      // no bandpass to hand over
             if (err.plotted) return;                    // the plot already shows the current inputs
             plotMode.hidden = true; plotMode.textContent = '';
             clearTimeout(plotBox._plotT); plotBox._plot = null;   // stop plot.js redrawing the old chart on resize

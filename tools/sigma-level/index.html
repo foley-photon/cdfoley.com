@@ -17,9 +17,8 @@
 <meta property="og:image:alt" content="Sigma Level, DPMO &amp; Yield Calculator. Convert between DPMO, defect rate, yield, and sigma level with or without the 1.5σ shift, and calculate DPU, first-pass yield, and rolled throughput yield.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
@@ -30,6 +29,10 @@
     .sl-sub { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 1.2rem 0 0.7rem; font-weight: 650; }
     .sl-sub:first-child { margin-top: 0; }
     .sl-shift .hint { flex: 1 0 100%; margin: 0; }
+    .sl-presets { display: flex; flex-wrap: wrap; gap: 0.4rem 0.8rem; align-items: center; margin-bottom: 1rem; }
+    .sl-presets .field-label { margin: 0; }
+    .sl-presets .chip { font-family: var(--mono); min-width: 2.9rem; }
+    .sl-presets .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
     .sl-chart { margin: 1.4rem 0 0; }
     .sl-chart figcaption { font-size: 0.8rem; color: var(--muted); line-height: 1.45; margin-top: 0.4rem; }
     /* static figure: drawn from the normal density (sigma level 3 with the 1.5σ shift) */
@@ -55,8 +58,8 @@
     @media (max-width: 680px) { .fig .tick, .fig .sub { font-size: 16px; } .fig .lab { font-size: 17px; } }
     @media (max-width: 480px) { .fig .tick, .fig .sub { font-size: 20px; } .fig .lab { font-size: 21px; } }
 </style>
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -157,13 +160,22 @@
                 </div>
                 <p class="hint">Six Sigma tables and ISO&nbsp;13053-1 use the short-term level, with the 1.5σ shift: 6σ means 3.4&nbsp;DPMO. Choose no shift for the plain z-value of the defect rate, where 6σ means 0.001&nbsp;DPMO.</p>
             </div>
+            <div class="sl-presets">
+                <span class="field-label" id="sl-chips-l">Whole levels</span>
+                <div class="chip-row" id="sl-chips" role="group" aria-labelledby="sl-chips-l">
+                    <button type="button" class="chip" data-sig="3" aria-label="Sigma level 3">3σ</button>
+                    <button type="button" class="chip" data-sig="4" aria-label="Sigma level 4">4σ</button>
+                    <button type="button" class="chip" data-sig="5" aria-label="Sigma level 5">5σ</button>
+                    <button type="button" class="chip" data-sig="6" aria-label="Sigma level 6">6σ</button>
+                </div>
+            </div>
             <div class="conv-grid">
                 <div class="field"><label for="c-dpmo">Defects per million opportunities</label><div class="input-unit"><input id="c-dpmo" name="dpmo" inputmode="decimal"><span class="unit">DPMO</span></div></div>
                 <div class="field"><label for="c-pct">Defect rate</label><div class="input-unit"><input id="c-pct" name="pct" inputmode="decimal"><span class="unit">%</span></div></div>
                 <div class="field"><label for="c-yld">Yield</label><div class="input-unit"><input id="c-yld" name="yld" inputmode="decimal"><span class="unit">%</span></div></div>
                 <div class="field"><label for="c-sig">Sigma level</label><div class="input-unit"><input id="c-sig" name="sig" inputmode="decimal"><span class="unit">σ</span></div></div>
             </div>
-            <p class="hint">Type in any box and the others follow. The defect rate and the yield here are per opportunity, the same basis as DPMO.</p>
+            <p class="hint">Type in any box and the others follow, or pick a whole level above. The defect rate and the yield here are per opportunity, the same basis as DPMO.</p>
             <p class="sl-equiv" id="equiv" aria-live="polite"></p>
             <figure class="sl-chart">
                 <div id="sl-plot"></div>
@@ -283,7 +295,7 @@
         <p>\(3/n\) is the “rule of three” (Hanley and Lippman-Hand, 1983), close to the exact value for \(n\) above about 30. For 1200 units with 12 opportunities each, \(p_{95} = 2.08\times10^{-4}\), or 208&nbsp;DPMO, so the sigma level is at least 5.03 with the shift (3.53 without). The bound treats the opportunities as independent trials.</p>
 
         <h2>Worked example</h2>
-        <p>An inspection finds 38 defects on 1200 units, with 12 defect opportunities per unit. That gives DPU = 0.0317, DPO = 0.00264, and DPMO = 2639. This corresponds to Z = 2.79 long-term, or a 4.29σ sigma level with the shift. The Poisson first-pass yield, \(e^{-0.0317} = 96.88\,\%\), agrees with the observed 1163/1200 = 96.92&nbsp;%: the difference is 0.4 defect-free units, about half a standard deviation (0.76), so the defects look randomly spread rather than clustered. Five steps with first-pass yields of 98.5, 99.2, 97.8, 99.6, and 98.9&nbsp;% give RTY = 94.13&nbsp;%, a normalized yield of 98.80&nbsp;% per step, and TDPU = 0.0605. About one unit in seventeen needs rework somewhere, even though no single step looks worse than 97.8&nbsp;%.</p>
+        <p>An inspection finds 38 defects on 1200 units, with 12 defect opportunities per unit. That gives DPU = 0.0317, DPO = 0.00264, and DPMO = 2639. This corresponds to Z = 2.79 long-term, or a 4.29σ sigma level with the shift. The Poisson first-pass yield, \(e^{-0.0317} = 96.88\,\%\), agrees with the observed 1163/1200 = 96.92&nbsp;%: the difference is 0.4 defect-free units, about half a standard deviation (0.76), so the defects look randomly spread rather than clustered. Five steps with first-pass yields of 98.5, 99.2, 97.8, 99.6, and 98.9&nbsp;% give RTY = 94.13&nbsp;%, a normalized yield of 98.8&nbsp;% per step, and TDPU = 0.0605. About one unit in seventeen needs rework somewhere, even though no single step looks worse than 97.8&nbsp;%.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
@@ -364,6 +376,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const nearTop = (v, gap, maxDec) => v.toFixed(Math.min(maxDec, Math.ceil(-Math.log10(gap)) + 2)).replace(/0+$/, '').replace(/\.$/, '');
 
     let lastField = 'sig';
+    // whole-level shortcuts: each fills the sigma-level box and converts as if typed; the one in use is marked
+    const chips = [...document.querySelectorAll('#sl-chips .chip')];
+    const markChips = () => { const s = Calc.parseNum(box('sig').value); chips.forEach(b => b.setAttribute('aria-pressed', String(parseFloat(b.dataset.sig) === s))); };
+    chips.forEach(b => b.addEventListener('click', () => {
+        const inp = box('sig');
+        inp.value = b.dataset.sig;
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+    }));
     conv.addEventListener('input', e => { if (e.target.name in fields) lastField = e.target.name; });
 
     // the convention is part of the link, so a shared link shows the same sigma levels; changing it
@@ -450,6 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // for comparison: a centered process with limits at ±s (omitted where the tail area underflows)
                 (s > 0 && two >= 1e-300 ? ' · a centered process with limits at ±' + fmt.num(s, 3) + 'σ: <strong>' + fmt.num(two, 3) + '</strong> PPM, both tails' : '');
             drawChart(p, zlt);
+            markChips();
         }
     });
 

@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="Laser, optics, vacuum &amp; SPC formulas. Searchable formula reference for laser and optical engineering: Gaussian beams, fluence, Fresnel, blackbody, vacuum conductance, pump-down, and Cpk.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <style>
     .ref-toolbar { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: center; margin-bottom: 1.2rem; }
@@ -37,6 +36,12 @@
     .ref-section > .section-note { font-size: 0.92rem; color: var(--text-2); margin: 0.6rem 0 0.4rem; max-width: 760px; }
     .ref-item h3 a.anchor { color: var(--border-strong); font-weight: 500; margin-left: 0.35rem; opacity: 0; }
     .ref-item:hover h3 a.anchor, .ref-item h3 a.anchor:focus { opacity: 1; }
+    @media (hover: none) { .ref-item h3 a.anchor { opacity: 0.55; } }   /* no hover on touch screens: the permalink stays faintly visible */
+    /* wide screens: the section chips stay under the header while the page scrolls, and anchors land below them */
+    @media (min-width: 900px) {
+        .ref-index { position: sticky; top: var(--header-h); z-index: 20; background: var(--bg); padding: 0.6rem 0; margin: -0.6rem 0 1.9rem; border-bottom: 1px solid var(--border); }
+        html { scroll-padding-top: calc(var(--header-h) + 110px); }   /* header + two rows of chips */
+    }
     .ref-item .ref-desc a.calc-link { white-space: nowrap; }
     .ref-item .formula { font-size: 0.98em; }
     .ref-item .vars .katex { font-size: 1em; }
@@ -85,7 +90,7 @@
     </header>
 
     <div class="callout">
-        <p><strong>Conventions.</strong> Beam sizes are <strong>1/e² intensity</strong> values. \(w\) is a radius and \(d\) or \(D\) is a diameter, so \(d = 2w\). A full-width at half-maximum is labeled FWHM and is about 0.589 × the 1/e² width for a Gaussian. Wavelengths are <strong>vacuum</strong> wavelengths. Angles are in radians unless stated, and divergence \(\theta\) is a <strong>half-angle</strong>. Equations are written in SI units. “Practical forms” with mixed units say so explicitly. Logarithms are natural (\(\ln\)) unless written \(\log_{10}\).</p>
+        <p><strong>Conventions.</strong> Beam sizes are <strong>1/e² intensity</strong> values. \(w\) is a radius and \(d\) or \(D\) is a diameter, so \(d = 2w\). A full-width at half-maximum is labeled FWHM and is 0.5887 × the 1/e² width for a Gaussian. Wavelengths are <strong>vacuum</strong> wavelengths. Angles are in radians unless stated, and divergence \(\theta\) is a <strong>half-angle</strong>. Equations are written in SI units. “Practical forms” with mixed units say so explicitly. Logarithms are natural (\(\ln\)) unless written \(\log_{10}\).</p>
     </div>
 
     <div class="ref-toolbar">
@@ -832,8 +837,19 @@ document.addEventListener('DOMContentLoaded', () => {
         empty.style.display = shown ? 'none' : 'block';
         updateCounts();
     }
+    // Keep the filter in the address (?q=), as the tools hub does, so reload, Back, and shared links show the same list
+    function syncUrl() {
+        const p = new URLSearchParams(location.search), q = input.value.trim();
+        if (q) p.set('q', q); else p.delete('q');
+        const s = p.toString(), url = location.pathname + (s ? '?' + s : '') + location.hash;
+        if (url !== location.pathname + location.search + location.hash) {
+            try { history.replaceState(history.state, '', url); } catch (e) { /* ignore */ }
+        }
+    }
 
-    input.addEventListener('input', apply);
+    input.addEventListener('input', () => { apply(); syncUrl(); });
+    const q0 = new URLSearchParams(location.search).get('q');
+    if (q0) input.value = q0;
     apply();
 });
 </script>

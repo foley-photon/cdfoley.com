@@ -17,19 +17,23 @@
 <meta property="og:image:alt" content="Vacuum Conductance &amp; Pump-Down Time Calculator. Estimate vacuum pump-down time, pumping-line conductance in viscous and molecular flow, effective pumping speed, and outgassing-limited base pressure.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
 <style>
     .pd-group { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--border); }
     .calc-error + .pd-group { margin-top: 0; padding-top: 0; border-top: 0; }
+    /* the gas and the outgassing load are folded away until they are needed; each summary shows what is set */
+    .pd-fold { margin: 1.1rem 0 0; }
+    .pd-fold + .pd-fold { margin-top: 0.6rem; }
+    .pd-fold .pd-sum { font-weight: 400; color: var(--muted); margin-left: 0.35rem; }
+    .pd-fold[open] .pd-sum { display: none; }
     /* chamber, line, and pump schematic: 400 units wide and at most 520 px, so the phone sizes below render at 11.5 px or more at 390 px */
     .pd-fig { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; font-family: var(--font); }
     .pd-fig .box { fill: var(--surface-2); stroke: var(--border-strong); stroke-width: 1.5; }
@@ -183,7 +187,7 @@
                     <p class="hint">From the component datasheet, usually the molecular-flow value. Treated as constant.</p>
                 </div>
 
-                <div class="pd-group">Gas</div>
+                <details class="fold pd-fold" id="fold-gas"><summary>Gas and temperature <span class="pd-sum" id="gas-sum"></span></summary>
                 <div class="field">
                     <label for="gas">Gas</label>
                     <select id="gas" name="gas" class="input">
@@ -215,8 +219,9 @@
                     <div class="input-unit"><input id="T" name="T" value="20" inputmode="decimal" data-positive data-label="temperature (absolute)"><select data-dim="temperature" data-units="°C,K,°F" data-default="°C"></select></div>
                     <p class="hint">The gas temperature, usually room temperature. A preset gas’s viscosity follows it.</p>
                 </div>
+                </details>
 
-                <div class="pd-group">Outgassing (optional)</div>
+                <details class="fold pd-fold" id="fold-og"><summary>Outgassing (optional) <span class="pd-sum" id="og-sum"></span></summary>
                 <div class="field-row">
                     <div class="field">
                         <label for="q">Specific outgassing rate <span class="sym">q</span></label>
@@ -229,6 +234,7 @@
                         <p class="hint" style="margin-bottom:0">All inside surfaces: walls, fixtures, and parts. A 30&nbsp;cm cube has 5400&nbsp;cm² of wall.</p>
                     </div>
                 </div>
+                </details>
             </div>
         </form>
 
@@ -238,14 +244,14 @@
                 <div class="results">
                     <div class="result primary"><span class="result-label">Pump-down time to p₁</span><output class="result-value" data-out="t">—</output></div>
                     <div class="result"><span class="result-label">Ideal time, pump only<span class="sym">(V/S) ln(p₀/p₁)</span></span><output class="result-value" data-out="tideal">—</output>
-                        <span class="result-note">What the pump alone would do, with no line, gas load, or base pressure.</span></div>
+                        <span class="result-note">With no line, gas load, or base pressure.</span></div>
                     <div class="result"><span class="result-label">Effective speed at p₁<span class="sym">S<sub>eff</sub></span></span><output class="result-value" data-out="seff">—</output>
                         <span class="result-note">The speed the chamber actually gets. A conductance of at least 2–3 times the pump’s speed keeps it above 67–75&nbsp;% of S.</span></div>
                     <div class="result"><span class="result-label">Conductance at p₁<span class="sym">C</span></span><output class="result-value" data-out="c1">—</output>
                         <span class="result-note">The line and any other conductance in series, at the pressure p₁.</span></div>
                     <div class="result"><span class="result-label">Molecular-flow conductance of the line<span class="sym">C<sub>mol</sub></span></span><output class="result-value" data-out="cmol">—</output>
                         <span class="result-note">The line’s conductance at high vacuum, where it no longer depends on pressure: no pump behind this line can give the chamber more.</span></div>
-                    <div class="result"><span class="result-label">Knudsen number in the line (mean pressure)</span><output class="result-value" data-out="kn">—</output>
+                    <div class="result"><span class="result-label">Knudsen number in the line</span><output class="result-value" data-out="kn">—</output>
                         <span class="result-note">With the chamber at p₁, at the mean pressure in the line, which is lower than p₁ because the pump end is at a lower pressure. Below 0.01 the flow is viscous, above 0.5 molecular, and transitional in between.</span></div>
                     <div class="result"><span class="result-label">Reynolds number in the line at p₀</span><output class="result-value" data-out="re">—</output>
                         <span class="result-note">Laminar below about 2300; above about 4000 the flow is turbulent and the line conducts less than calculated. “Choked”: the gas would have to move faster than sound. Either way, the real pump-down near atmosphere is slower.</span></div>
@@ -261,13 +267,13 @@
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
         <div class="panel-head"><h2 id="plot-h">Pump-down curve</h2></div>
-        <div class="panel-body"><div id="pd-plot"></div></div>
+        <div class="panel-body"><div id="pd-plot"></div><p class="hint calc-empty" style="margin:0">Fix the input error above to redraw the chart.</p></div>
     </section>
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="cplot-h" id="c-panel">
         <div class="panel-head"><h2 id="cplot-h">Line conductance vs. pressure</h2></div>
-        <div class="panel-body"><div id="c-plot"></div>
-            <p class="hint" style="margin:0.6rem 0 0">The line’s conductance (with any other conductance in series) and the effective speed at the chamber, for the gas and temperature above. Shaded: molecular flow (Kn&nbsp;&gt;&nbsp;0.5) at the left and viscous flow (Kn&nbsp;&lt;&nbsp;0.01) at the right, with transitional flow between them. Where the conductance falls toward the pump’s speed, the line starts to throttle the pump.</p>
+        <div class="panel-body"><div id="c-plot"></div><p class="hint calc-empty" style="margin:0">Fix the input error above to redraw the chart.</p>
+            <p class="hint calc-hide-on-error" style="margin:0.6rem 0 0">The line’s conductance (with any other conductance in series) and the effective speed at the chamber, for the gas and temperature above. Shaded: molecular flow (Kn&nbsp;&gt;&nbsp;0.5) at the left and viscous flow (Kn&nbsp;&lt;&nbsp;0.01) at the right, with transitional flow between them. Where the conductance falls toward the pump’s speed, the line starts to throttle the pump.</p>
         </div>
     </section>
 
@@ -505,6 +511,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return { vbar, Cmol, at, pult, curve };
     }
 
+    // The gas and outgassing groups are folded. Each summary line shows what the group holds, and a group opens when
+    // a link restores something other than its defaults or when the field with an input error is inside it.
+    const form = document.getElementById('calc');
+    const folds = [...form.querySelectorAll('details.pd-fold')];
+    const isDefault = c => c.tagName === 'SELECT'
+        ? c.value === (c.dataset.default !== undefined ? c.dataset.default : ([...c.options].find(o => o.defaultSelected) || c.options[0]).value)
+        : c.value === c.defaultValue;
+    function syncFolds() {
+        const val = id => document.getElementById(id).value.trim(), unitOf = id => document.getElementById(id).nextElementSibling.value;
+        document.getElementById('gas-sum').textContent = gasSel.options[gasSel.selectedIndex].text + ', ' + val('T') + ' ' + unitOf('T');
+        document.getElementById('og-sum').textContent = val('q')
+            ? 'q = ' + val('q') + ' ' + unitOf('q') + (val('A') ? ', A = ' + val('A') + ' ' + unitOf('A') : '')
+            : 'none entered';
+    }
+    const openFoldWithError = () => { const bad = form.querySelector('[aria-invalid="true"]'), f = bad && bad.closest('details.pd-fold'); if (f) f.open = true; };
+
     const limit = document.getElementById('limit');
     const cBox = document.getElementById('c-plot'), cPanel = document.getElementById('c-panel');
     let last = null;
@@ -541,14 +563,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 band(lo, pMol, 'Molecular flow', 'var(--c6)'),
                 band(pVisc, hi, 'Viscous flow', 'var(--c4)'),
                 { type: 'line', x: ps, y: Cs, label: 'Conductance C', color: 'var(--c1)' },
-                { type: 'line', x: ps, y: Ss, label: 'Effective speed S_eff', color: 'var(--c2)' }
+                { type: 'line', x: ps, y: Ss, label: 'Effective speed at the chamber', color: 'var(--c2)' }
             ],
             hlines: [{ y: v.S * 1e3, label: 'pump speed S', color: 'var(--muted)' }],
             vlines: [{ x: toU(v.p1), label: 'p₁', color: 'var(--c3)' }],
             ariaLabel: 'Log-log chart of the line conductance and the effective pumping speed versus chamber pressure, with the molecular and viscous flow ranges shaded. At p₁ = ' +
                 fmt.num(toU(v.p1), 3) + ' ' + unit + ' the conductance is ' + fmt.num(at1.C * 1e3, 3) + ' L/s and the effective speed ' + fmt.num(at1.Seff * 1e3, 3) +
                 ' L/s, against a pump speed of ' + fmt.num(v.S * 1e3, 3) + ' L/s.',
-            hover: { format: (x, hits) => hits.length > 1 ? `p = ${fmt.num(hits[0].x, 3)} ${unit} · C = ${fmt.num(hits[0].y, 3)} L/s · S_eff = ${fmt.num(hits[1].y, 3)} L/s` : '' }
+            hover: { format: (x, hits) => hits.length > 1 ? `p = ${fmt.num(hits[0].x, 3)} ${unit} · C = ${fmt.num(hits[0].y, 3)} L/s · speed at chamber = ${fmt.num(hits[1].y, 3)} L/s` : '' }
         });
     }
 
@@ -611,6 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
         onError() {                             // no valid result: no verdict or charts left from the last one
             limit.textContent = ''; limit.className = 'badge';
             if (window.Plot) { Plot.clear('#pd-plot'); Plot.clear(cBox); }
+            openFoldWithError();
         },
         after() {
             const { m, c, v, unit, Q, pp } = last;
@@ -640,6 +663,11 @@ document.addEventListener('DOMContentLoaded', () => {
             drawConductance(m, v, unit);
         }
     });
+    folds.forEach(f => { if ([...f.querySelectorAll('input[name], select[name]')].some(c => !isDefault(c))) f.open = true; });
+    openFoldWithError();
+    syncFolds();
+    ['input', 'change'].forEach(t => form.addEventListener(t, syncFolds));
+    document.querySelectorAll('[data-action="reset"]').forEach(b => b.addEventListener('click', syncFolds));
 });
 </script>
 </body>

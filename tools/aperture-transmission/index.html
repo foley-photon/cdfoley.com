@@ -17,14 +17,13 @@
 <meta property="og:image:alt" content="Gaussian Beam Aperture Transmission Calculator. Power a Gaussian laser beam transmits through a circular aperture, iris, slit, or knife edge, and the aperture size needed for a target throughput.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>.ap-geo { margin-bottom: 1.1rem; } .prose td.num { white-space: nowrap; } .ap-ratios th { white-space: normal; }</style>
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -127,7 +126,7 @@
                 <div class="field">
                     <label for="d">Beam diameter (1/e²) <span class="sym">D<sub>b</sub> = 2w</span></label>
                     <div class="input-unit"><input id="d" name="d" value="8" inputmode="decimal" data-positive><select data-dim="length" data-units="µm,mm,cm,in" data-default="mm"></select></div>
-                    <p class="hint">1/e² diameter where the beam meets the aperture (for a spatial-filter pinhole, the focused spot diameter). A laser datasheet gives it at the output; it usually grows with distance from the laser (the <a href="/tools/gaussian-beam/">Gaussian beam</a> tool gives it anywhere along the beam).</p>
+                    <p class="hint">1/e² diameter where the beam meets the aperture or blade (for a spatial-filter pinhole, the focused spot diameter). A laser datasheet gives it at the output; it usually grows with distance from the laser (the <a href="/tools/gaussian-beam/">Gaussian beam</a> tool gives it anywhere along the beam).</p>
                 </div>
                 <div class="field">
                     <label for="a" id="a-label">Aperture diameter <span class="sym" id="a-sym">D<sub>t</sub></span></label>
@@ -326,9 +325,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     need = { html: fmt.si(rn * v.d, 'm', 4) + ' (' + fmt.num(rn, 4) + ' D<sub>b</sub>)' };
                 }
             }
+            // one ladder with the focused spot tool: negligible below 0.1 % clipped, light below 2 %, moderate below 10 %, heavy above
             if (loss < 1e-3) { grade.textContent = 'Negligible clipping'; grade.className = 'badge badge-ok'; }
-            else if (loss < 0.01) { grade.textContent = 'Light clipping'; grade.className = 'badge badge-ok'; }
-            else if (loss < 0.1) { grade.textContent = 'Significant clipping'; grade.className = 'badge badge-warn'; }
+            else if (loss < 0.02) { grade.textContent = 'Light clipping'; grade.className = 'badge badge-ok'; }
+            else if (loss < 0.1) { grade.textContent = 'Moderate clipping'; grade.className = 'badge badge-warn'; }
             else { grade.textContent = 'Heavy clipping'; grade.className = 'badge badge-bad'; }
             grade.hidden = false;
 

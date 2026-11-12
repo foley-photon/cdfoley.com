@@ -17,13 +17,13 @@
 <meta property="og:image:alt" content="Gaussian Beam Propagation Calculator. Calculate the Rayleigh range, beam radius w(z), divergence, wavefront curvature, Gouy phase, BPP, and depth of focus from waist size, wavelength, and M².">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<style>.input-unit select.wl-preset { max-width: 52%; }</style>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -129,8 +129,8 @@
                 </div>
                 <div class="field">
                     <label for="wl">Wavelength <span class="sym">λ</span></label>
-                    <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
-                    <p class="hint">Vacuum wavelength from the laser datasheet, for example 1064&nbsp;nm (Nd:YAG), 532&nbsp;nm (its second harmonic), or 10.6&nbsp;µm (CO₂).</p>
+                    <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select class="wl-preset" id="wl-preset" aria-label="Common laser lines"></select><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <p class="hint">Vacuum wavelength from the laser datasheet. Pick a common laser line from the list, such as 1064&nbsp;nm (Nd:YAG) or 10.6&nbsp;µm (CO₂), or type your own.</p>
                 </div>
                 <div class="field">
                     <label for="m2">Beam quality <span class="sym">M²</span></label>
@@ -161,7 +161,7 @@
                     <div class="result"><span class="result-label">Wavefront radius of curvature<span class="sym">R(z)</span></span><output class="result-value" data-out="R">—</output><span class="result-note">Flat (infinite) at the waist, tightest (2z<sub>R</sub>) at z = ±z<sub>R</sub>, and close to z far from the waist.</span></div>
                     <div class="result"><span class="result-label">Gouy phase<span class="sym">ψ(z)</span></span><output class="result-value" data-out="gouy">—</output><span class="result-note">Phase shift relative to a plane wave. It changes by 180° across the whole focus and matters for resonator mode frequencies and interference near a focus, not for spot size.</span></div>
                     <div class="result"><span class="result-label">Far-field divergence, full angle<span class="sym">2θ</span></span><output class="result-value" data-out="div">—</output></div>
-                    <div class="result"><span class="result-label">Beam parameter product<span class="sym">w₀θ</span></span><output class="result-value" data-out="bpp">—</output><span class="result-note">Equal to M²λ/π. Lenses and beam expanders cannot reduce it. The minimum, at M² = 1, is λ/π: 0.34&nbsp;mm·mrad at 1064&nbsp;nm.</span></div>
+                    <div class="result"><span class="result-label">Beam parameter product<span class="sym">w₀θ</span></span><output class="result-value" data-out="bpp">—</output><span class="result-note" id="bpp-note">Equal to M²λ/π. Lenses and beam expanders cannot reduce it. The minimum, at M² = 1, is λ/π: 0.34&nbsp;mm·mrad at 1064&nbsp;nm.</span></div>
                     <div class="result"><span class="result-label" id="dof-label">Depth of focus, total</span><output class="result-value" data-out="dof">—</output><span class="result-note">The full length, centered on the waist, over which the spot radius stays within the tolerance.</span></div>
                     <div class="result"><span class="result-label">Confocal parameter<span class="sym">b = 2z<sub>R</sub></span></span><output class="result-value" data-out="b">—</output><span class="result-note">Twice the Rayleigh range. Older texts use it instead of z<sub>R</sub>.</span></div>
                 </div>
@@ -260,6 +260,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const { fmt } = Calc;
     const zone = document.getElementById('zone');
     const dofLabel = document.getElementById('dof-label');
+    const bppNote = document.getElementById('bpp-note');
+    const BPP_NOTE = 'Equal to M²λ/π. Lenses and beam expanders cannot reduce it.';
+
+    // Common laser lines (vacuum wavelength in nm). The list fills the wavelength field and follows what is typed into it.
+    const LINES = [['', 'Custom'], ['10600', 'CO₂, 10.6 µm'], ['1550', 'Er fiber, 1550 nm'], ['1064', 'Nd:YAG, 1064 nm'], ['1030', 'Yb, 1030 nm'],
+        ['780', 'Diode, 780 nm'], ['632.991', 'HeNe, 633 nm'], ['532', 'Nd:YAG doubled, 532 nm'], ['515', 'Yb doubled, 515 nm'], ['355', 'Nd:YAG tripled, 355 nm']];
+    const wlIn = document.getElementById('wl'), wlPre = document.getElementById('wl-preset');
+    wlPre.innerHTML = LINES.map(p => `<option value="${p[0]}">${p[1]}</option>`).join('');
+    const wlUnit = () => wlIn.closest('.input-unit').querySelector('select[data-dim]').value;
+    const syncLine = () => {
+        const u = wlUnit(), nm = u ? Calc.toSI('length', u, Calc.parseNum(wlIn.value)) * 1e9 : NaN;
+        const hit = LINES.find(p => p[0] && Math.abs(nm - p[0]) < 1e-6 * p[0]);
+        wlPre.value = hit ? hit[0] : '';
+    };
+    wlPre.addEventListener('change', e => {
+        if (!wlPre.value) { e.stopPropagation(); return; }   // "Custom": keep it selected instead of re-syncing back to the matching line
+        wlIn.value = fmt.plain(Calc.fromSI('length', wlUnit(), wlPre.value * 1e-9), 6);
+        wlIn.dispatchEvent(new Event('input', { bubbles: true }));
+    });
 
     // pick a display unit for a length in metres
     function unitFor(x) {
@@ -273,6 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Calc.create({
         form: '#calc',
         compute(v) {
+            syncLine();
             const w0 = v.wmode === 'diameter' ? v.w / 2 : v.w;
             const zR = Math.PI * w0 * w0 / (v.m2 * v.wl);
             const wz = w0 * Math.sqrt(1 + (v.z / zR) ** 2);
@@ -297,6 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (az <= 10 * zR) { zone.textContent = 'Transition region'; zone.className = 'badge'; }
             else { zone.textContent = 'Far field'; zone.className = 'badge'; }
             zone.hidden = false;
+            // the diffraction limit λ/π in mm·mrad (1 mm·mrad = 1e-6 m·rad), for the wavelength entered
+            bppNote.textContent = BPP_NOTE + ' The minimum, at M² = 1, is λ/π = ' + fmt.num(v.wl / Math.PI * 1e6, 3) + ' mm·mrad at this wavelength.';
             dofLabel.textContent = 'Depth of focus, total (' + fmt.num(v.tol, 3) + ' % spot growth)';
 
             return {
@@ -316,6 +338,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('env-plot').innerHTML = '';
             zone.textContent = ''; zone.hidden = true;
             dofLabel.textContent = 'Depth of focus, total';
+            bppNote.textContent = BPP_NOTE;
+            syncLine();
         },
         after(v) {
             const w0 = v.wmode === 'diameter' ? v.w / 2 : v.w;

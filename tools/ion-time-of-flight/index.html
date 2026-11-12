@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="Ion Time-of-Flight Calculator. Ion and electron speed and flight time from voltage, mass, and charge, relativistic and classical, with a Wiley–McLaren source, space focus, and mass resolution.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -41,7 +40,7 @@
     .cp-fig .ion { fill: var(--warn); }
     .cp-fig .lab { fill: var(--text); font-size: 11px; font-weight: 600; }
     .cp-fig .sub { fill: var(--text-2); font-size: 10.5px; }
-    @media (max-width: 560px) { .cp-fig .sub { font-size: 12.5px; } .cp-fig .lab { font-size: 13px; } }
+    @media (max-width: 560px) { .cp-fig .sub { font-size: 16px; } .cp-fig .lab { font-size: 17px; } }   /* about 10 to 11 px on a 390 px screen */
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -261,18 +260,24 @@
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="fig-h">
         <div class="panel-head"><h2 id="fig-h">Layout</h2></div>
         <div class="panel-body">
-            <svg class="cp-fig" id="fig" viewBox="0 0 560 150" role="img" aria-labelledby="fig-t"><title id="fig-t">Time-of-flight layout</title></svg>
+            <svg class="cp-fig calc-hide-on-error" id="fig" viewBox="0 0 560 150" role="img" aria-labelledby="fig-t"><title id="fig-t">Time-of-flight layout</title></svg>
+            <p class="hint calc-empty" style="margin:0">Fix the input error above to redraw the layout.</p>
         </div>
     </section>
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
         <div class="panel-head"><h2 id="plot-h">Flight time vs. m/z</h2></div>
-        <div class="panel-body"><div id="tof-plot"></div><p class="hint" id="plot-note" hidden></p></div>
+        <div class="panel-body"><div id="tof-plot"></div><p class="hint calc-empty" style="margin:0">Fix the input error above to redraw the chart.</p><p class="hint" id="plot-note" hidden></p></div>
     </section>
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot2-h" id="focus-panel" hidden>
         <div class="panel-head"><h2 id="plot2-h">Arrival time vs. start position</h2></div>
-        <div class="panel-body"><div id="focus-plot"></div><p class="hint" id="plot2-note" hidden></p></div>
+        <div class="panel-body"><div id="focus-plot"></div><p class="hint calc-empty" style="margin:0">Fix the input error above to redraw the chart.</p><p class="hint" id="plot2-note" hidden></p></div>
+    </section>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="spec-h" id="spec-panel" hidden>
+        <div class="panel-head"><h2 id="spec-h">Spectrum preview</h2></div>
+        <div class="panel-body"><div id="spec-plot"></div><p class="hint" id="spec-note" hidden></p></div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
@@ -317,7 +322,7 @@
         <ul>
             <li>K = 2000&nbsp;eV, and \(K/mc^2 = 2000/(39.9618 \times 931.494\times10^6) = 5.37\times10^{-8}\), so γ − 1 is tiny.</li>
             <li>\(v = \sqrt{2K/m}\), with \(2K = 2 \times 2000 \times 1.602\times10^{-19} = 6.408\times10^{-16}\)&nbsp;J and \(m = 39.9618 \times 1.6605\times10^{-27} = 6.636\times10^{-26}\)&nbsp;kg, so v = 98.27&nbsp;km/s, and t = 1&nbsp;m / v = 10.176&nbsp;µs. The relativistic value is longer by 0.04&nbsp;ppm (0.4&nbsp;ps).</li>
-            <li>An ion 1&nbsp;u heavier (40.96&nbsp;u) would arrive 0.127&nbsp;µs later (t grows as √m: 10.176&nbsp;µs × (√(40.96/39.96) − 1)). With 2&nbsp;ns of spread, m/Δm = 10.176&nbsp;µs / (2 × 2&nbsp;ns) ≈ 2540.</li>
+            <li>An ion 1&nbsp;u heavier (40.96&nbsp;u) would arrive 0.127&nbsp;µs later (t grows as √m: 10.176&nbsp;µs × (√(40.96/39.96) − 1)). With 2&nbsp;ns of spread, m/Δm = 10.176&nbsp;µs / (2 × 2&nbsp;ns) ≈ 2540. The spectrum preview under the charts draws these two peaks.</li>
         </ul>
         <p>Switch to <strong>Two fields (Wiley–McLaren)</strong> to see the source defaults: V<sub>R</sub> = 2000&nbsp;V, V<sub>E</sub> = 1830&nbsp;V, S = 10&nbsp;mm, s₀ = 5&nbsp;mm, d = 10&nbsp;mm. The source field is 170&nbsp;V/10&nbsp;mm = 17&nbsp;V/mm, so an ion starting at s₀ gains 85&nbsp;eV before the extraction grid and 1915&nbsp;eV in all, and k₀ = 1915/85 = 22.5. The formula above gives L<sub>f</sub> = 0.991&nbsp;m, so the detector at 1&nbsp;m sits 0.9&nbsp;% beyond the focus; the calculator’s extractor voltage for focus at exactly 1&nbsp;m is 1830.9&nbsp;V. The ion arrives at 11.064&nbsp;µs (0.494&nbsp;µs in the first gap, 0.172&nbsp;µs in the second). The 0.5&nbsp;mm start-position spread adds only 0.24&nbsp;ns, so with the 2&nbsp;ns timing spread m/Δm ≈ 2750. An initial energy of 0.04&nbsp;eV would add a turn-around time of 21&nbsp;ns and cut m/Δm to about 260: in a linear TOF with a weak source field, thermal motion, not the start position, sets the resolution.</p>
 
@@ -418,9 +423,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const fmtE = (x, sig) => fmt.si(x / K.e, 'eV', sig || 5);
 
     const groups = { drift: document.getElementById('grp-drift'), single: document.getElementById('grp-single'), wm: document.getElementById('grp-wm') };
-    const gSrc = document.getElementById('grp-src'), gRes = document.getElementById('grp-res'), focusPanel = document.getElementById('focus-panel');
+    const gSrc = document.getElementById('grp-src'), gRes = document.getElementById('grp-res'), focusPanel = document.getElementById('focus-panel'), specPanel = document.getElementById('spec-panel');
     const notes = {};
-    ['t-note', 'tn-note', 'v-note', 'lf-note', 'vef-note', 'r-note', 'plot-note', 'plot2-note'].forEach(id => { notes[id] = document.getElementById(id); });
+    ['t-note', 'tn-note', 'v-note', 'lf-note', 'vef-note', 'r-note', 'plot-note', 'plot2-note', 'spec-note'].forEach(id => { notes[id] = document.getElementById(id); });
     const note = (id, text) => { notes[id].textContent = text || ''; notes[id].hidden = !text; };
     function showGroups(mode) {
         Object.keys(groups).forEach(k => { groups[k].hidden = k !== mode; });
@@ -457,8 +462,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     : 'Your drift length is ' + fmt.num(v.L / Lf, 4) + ' × Lf. ' + (Math.abs(v.L / Lf - 1) < 0.01 ? 'The detector sits at the space focus.' : 'Adjust the extractor voltage to move the focus to the detector.'));
                 if (v.mode === 'wm') {
                     VEf = focusVE(g);
-                    note('vef-note', VEf === null ? 'No extractor voltage between 0 and V_R focuses at this L: the shortest reachable focus is about 2s₀ − d. Lengthen L or move s₀.'
-                        : 'With V_R = ' + fmt.num(v.VR, 5) + ' V; the ion energy would then be ' + fmt.num(zA * (VEf + (v.VR - VEf) * v.s0 / v.S), 5) + ' eV.');
+                    note('vef-note', VEf === null ? 'No extractor voltage between 0 and the repeller voltage focuses at this L: the shortest reachable focus is about 2s₀ − d. Lengthen L or move s₀.'
+                        : 'With the repeller at ' + fmt.num(v.VR, 5) + ' V; the ion energy would then be ' + fmt.num(zA * (VEf + (v.VR - VEf) * v.s0 / v.S), 5) + ' eV.');
                 }
                 if (isFinite(v.ds) && v.ds > 0) {
                     const a = v.s0 - v.ds / 2, b = v.s0 + v.ds / 2;
@@ -475,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const parts = [v.dt, dts, dta].filter(x => isFinite(x) && x !== null && x > 0);
             const dtot = Math.sqrt(parts.reduce((s, x) => s + x * x, 0));
             note('r-note', parts.length > 1 ? 'From the spreads above added in quadrature: Δt = ' + fmtT(dtot, 3) + '.' : '');
-            last = { g, v, r, zA };
+            last = { g, v, r, zA, step: v.m >= 0.5 ? step : null, dtot };
             return {
                 t: fmtT(r.t),
                 tn: fmtT(rn.t),
@@ -496,10 +501,51 @@ document.addEventListener('DOMContentLoaded', () => {
         onError() {
             last = null;
             Object.keys(notes).forEach(k => { notes[k].hidden = true; });
-            ['#tof-plot', '#focus-plot'].forEach(s => Plot.clear(s));
+            ['#tof-plot', '#focus-plot', '#spec-plot'].forEach(s => Plot.clear(s));
+            specPanel.hidden = true;
         },
-        after() { if (last) { drawFig(last); drawPlots(last); } }
+        after() { if (last) { drawFig(last); drawPlots(last); drawSpectrum(last); } }
     });
+
+    // Spectrum preview: this ion and one 1 u heavier with the same charge and abundance, each drawn as a Gaussian peak
+    // whose FWHM is the total time spread. It shows what the resolving power means for two neighboring masses.
+    function drawSpectrum({ v, zA, step, dtot }) {
+        if (!(dtot > 0) || !(step > 0)) { Plot.clear('#spec-plot'); specPanel.hidden = true; note('spec-note', ''); return; }
+        specPanel.hidden = false;
+        const sig = dtot / (2 * Math.sqrt(2 * Math.LN2));
+        const peak = (t, t0) => Math.exp(-((t - t0) ** 2) / (2 * sig * sig));
+        const sum = t => peak(t, 0) + peak(t, step);
+        const pad = Math.max(3 * dtot, 0.15 * step), span = step + 2 * pad;
+        const [k, tu] = span < 2e-9 ? [1e12, 'ps'] : span < 2e-6 ? [1e9, 'ns'] : span < 2e-3 ? [1e6, 'µs'] : [1e3, 'ms'];
+        // an even grid over the window plus a fine one across each peak, so a narrow peak keeps its shape
+        const ts = Calc.math.linspace(-pad, step + pad, 241)
+            .concat(Calc.math.linspace(-4 * sig, 4 * sig, 81), Calc.math.linspace(step - 4 * sig, step + 4 * sig, 81))
+            .filter(t => t >= -pad && t <= step + pad).sort((a, b) => a - b);
+        // valley: the lowest point of the summed signal between the two peak centers, against its highest point
+        let top = 0;
+        for (let i = 0; i <= 400; i++) top = Math.max(top, sum(step * i / 400));
+        const valley = sum(step / 2) / top, merged = valley > 1 - 1e-6;
+        const mz1 = fmt.num(v.m / zA, 5), mz2 = fmt.num((v.m + 1) / zA, 5);
+        const series = [
+            { type: 'line', x: ts.map(t => t * k), y: ts.map(t => peak(t, 0)), label: 'm/z ' + mz1, color: 'var(--c1)' },
+            { type: 'line', x: ts.map(t => t * k), y: ts.map(t => peak(t, step)), label: 'm/z ' + mz2, color: 'var(--c2)' }
+        ];
+        if (valley >= 0.005) series.push({ type: 'line', x: ts.map(t => t * k), y: ts.map(sum), label: 'Sum, as recorded', color: 'var(--muted)', dash: true });
+        const verdict = merged ? 'The two peaks merge into one, with no valley between them.'
+            : valley < 0.001 ? 'The peaks are fully separated: the signal between them falls below 0.1 % of the peak height.'
+            : 'The valley between them is ' + fmt.num(valley * 100, 2) + ' % of the peak height.';
+        const apart = 'The peaks are ' + fmt.num(step / dtot, 3) + ' widths apart.';
+        Plot.draw('#spec-plot', {
+            height: 240,
+            ariaLabel: 'Two peaks of equal height against arrival time, for m/z ' + mz1 + ' and m/z ' + mz2 + ', ' + fmtT(step, 4) + ' apart, each ' + fmtT(dtot, 3) + ' wide (FWHM). ' + verdict,
+            x: { label: 'Arrival time − t (' + tu + ')', min: -pad * k, max: (step + pad) * k },
+            y: { label: 'Signal (relative)', min: 0 },
+            series,
+            hover: { format: (x, hits) => hits.length ? `t − t(m/z ${mz1}) = ${fmt.num(hits[0].x, 4)} ${tu} · signal = ${fmt.num(sum(hits[0].x / k), 3)}` : '' }
+        });
+        note('spec-note', 'Your ion and one 1 u heavier with the same charge, in equal amounts. Each peak is drawn as a Gaussian with a full width at half maximum of Δt = ' +
+            fmtT(dtot, 3) + ', the timing spread' + (v.mode === 'drift' ? '' : ' with any source spreads added') + '. ' + apart + ' ' + verdict + ' Real peaks often have tails that a Gaussian leaves out.');
+    }
 
     function drawPlots({ g, v, r, zA }) {
         const mz = v.m / zA;
@@ -547,10 +593,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let x = xr;
         if (v.mode === 'drift') {
             h += `<rect class="elec" x="${x}" y="${y0}" width="8" height="${y1 - y0}" rx="2"/>` + T(x + 4, y0 - 8, 'lab', 'Start', 'middle') + T(x + 4, y1 + 16, 'sub', fmt.num(v.U, 5) + ' V', 'middle');
-            x += 30;
-            h += `<line class="grid" x1="${x}" y1="${y0}" x2="${x}" y2="${y1}"/>` + T(x, y1 + 16, 'sub', '0 V', 'middle');
+            x += 46;   // wide enough that the two voltages do not meet at the phone sizes
+            h += `<line class="grid" x1="${x}" y1="${y0}" x2="${x}" y2="${y1}"/>` + T(x, y1 + 30, 'sub', '0 V', 'middle');   // on the lower line, clear of the start voltage
         } else {
-            const wS = 70, wd = v.mode === 'wm' ? 60 : 0;
+            const wS = 82, wd = v.mode === 'wm' ? 60 : 0;   // the source gap is wide enough for “Repeller” and “Extractor” side by side at the phone sizes
             h += `<rect class="elec" x="${x}" y="${y0}" width="8" height="${y1 - y0}" rx="2"/>` + T(x + 4, y0 - 8, 'lab', 'Repeller', 'middle');
             h += T(x + 4, y1 + 16, 'sub', fmt.num(v.mode === 'wm' ? v.VR : v.Us, 5) + ' V', 'middle');
             const xs0 = x + 8 + wS * (1 - v.s0 / v.S);
@@ -567,7 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const xd = 520;
         h += `<line class="path" x1="${x}" y1="${(y0 + y1) / 2}" x2="${xd - 8}" y2="${(y0 + y1) / 2}"/><path class="head" d="M${xd - 6},${(y0 + y1) / 2} l-9,-4.5 v9 z"/>`;
         h += T((x + xd) / 2, (y0 + y1) / 2 - 10, 'lab', 'Drift, L = ' + fmtL(v.L, 4), 'middle') + T((x + xd) / 2, (y0 + y1) / 2 + 20, 'sub', 'v = ' + fmt.num(r.v / 1e3, 4) + ' km/s', 'middle');
-        h += `<rect class="det" x="${xd}" y="${y0}" width="10" height="${y1 - y0}" rx="2"/>` + T(xd + 5, y0 - 8, 'lab', 'Detector', 'middle') + T(xd + 5, y1 + 16, 'sub', 't = ' + fmtT(r.t, 4), 'middle');
+        h += `<rect class="det" x="${xd}" y="${y0}" width="10" height="${y1 - y0}" rx="2"/>` + T(xd + 36, y0 - 8, 'lab', 'Detector', 'end') + T(xd + 36, y1 + 16, 'sub', 't = ' + fmtT(r.t, 4), 'end');   // right-aligned: the time stays inside the figure
         svg.innerHTML = h;
     }
 });

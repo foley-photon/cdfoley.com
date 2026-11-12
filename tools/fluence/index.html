@@ -17,16 +17,21 @@
 <meta property="og:image:alt" content="Laser Fluence &amp; Irradiance Calculator. Calculate peak and average laser fluence (J/cm²) and irradiance or intensity (W/cm²) for Gaussian and top-hat beams, plus the ablated spot diameter.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
+<style>
+    /* a table value that fills the threshold input when clicked */
+    .use-val { font: inherit; font-variant-numeric: tabular-nums; color: var(--accent); background: none; border: 0; border-bottom: 1px dashed currentColor; border-radius: 0; padding: 0.1rem 0.15rem; margin: 0; cursor: pointer; }
+    .use-val:hover { color: var(--accent-hover); background: var(--accent-soft); }
+    .input-unit.filled { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+</style>
 <script type="application/ld+json" id="ld-page">
 {
  "@context": "https://schema.org",
@@ -170,8 +175,8 @@
                 <p class="hint" style="margin:-.4rem 0 .9rem">The pulse duration (FWHM) and shape set only the peak power and irradiance; the fluence does not depend on them.</p>
                 <div class="field">
                     <label for="fth">Threshold fluence (optional) <span class="sym">F<sub>th</sub></span></label>
-                    <div class="input-unit"><input id="fth" name="fth" value="1" inputmode="decimal" data-optional data-label="threshold fluence" placeholder="e.g. ablation threshold"><select data-dim="fluence" data-units="mJ/cm²,J/cm²" data-default="J/cm²"></select></div>
-                    <p class="hint">Enter it as a peak fluence, the convention of ISO&nbsp;21254 and of crater-size (Liu) measurements. If your source quotes an average fluence (E<sub>p</sub>/πw₀²), multiply it by 2. Use a threshold measured with the same number of pulses per spot; typical values are in the table below.</p>
+                    <div class="input-unit"><input id="fth" name="fth" value="0.5" inputmode="decimal" data-optional data-label="threshold fluence" placeholder="e.g. ablation threshold"><select data-dim="fluence" data-units="mJ/cm²,J/cm²" data-default="J/cm²"></select></div>
+                    <p class="hint">Enter it as a peak fluence, the convention of ISO&nbsp;21254 and of crater-size (Liu) measurements. If your source quotes an average fluence (E<sub>p</sub>/πw₀²), multiply it by 2. Use a threshold measured with the same number of pulses per spot. The default is the table’s value for stainless steel with one 10&nbsp;ps pulse per spot, and a threshold for your own pulse duration will differ; the <a href="#typical-thresholds">table below</a> has more, and clicking a value there enters it here.</p>
                 </div>
             </div>
         </form>
@@ -200,7 +205,7 @@
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="prof-h">
         <div class="panel-head"><h2 id="prof-h">Radial fluence profile</h2></div>
-        <div class="panel-body"><div id="prof-plot"></div></div>
+        <div class="panel-body"><div id="prof-plot" class="calc-hide-on-error"></div><p class="hint calc-empty" style="margin:0">Fix the input error above to redraw the profile.</p></div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
@@ -223,14 +228,14 @@
         <div class="formula">\[ \frac{E_\text{inside}}{E_p} = 1 - \frac{F_\text{th}}{F_0}. \]</div>
         <p>The feature grows only slowly with fluence, because \(D_\text{th}^2\) is proportional to \(\ln(F_0/F_\text{th})\). Doubling the pulse energy at \(F_0/F_\text{th} = 5\) widens it by only about 20&nbsp;%. Fitting D² against ln E<sub>p</sub> is the Liu method for measuring \(w_0\) and \(F_\text{th}\), implemented in the <a href="/tools/ablation-depth/">ablation threshold &amp; depth</a> tool.</p>
 
-        <h2>Typical threshold fluences</h2>
-        <p>Ablation thresholds of three metals, measured with 10&nbsp;ps pulses at 1064&nbsp;nm as peak fluence from crater sizes, on sheet metal as received (Račiukaitis et al., 2009):</p>
+        <h2 id="typical-thresholds">Typical threshold fluences</h2>
+        <p>Ablation thresholds of three metals, measured with 10&nbsp;ps pulses at 1064&nbsp;nm as peak fluence from crater sizes, on sheet metal as received (Račiukaitis et al., 2009). Click a value to use it as the threshold in the calculator.</p>
         <table>
             <thead><tr><th>Material</th><th class="num">One pulse per spot (J/cm²)</th><th class="num">1000 pulses per spot (J/cm²)</th></tr></thead>
             <tbody>
-                <tr><td>Stainless steel (AISI 304)</td><td class="num">0.5</td><td class="num">0.04</td></tr>
-                <tr><td>Aluminum</td><td class="num">0.85</td><td class="num">0.15</td></tr>
-                <tr><td>Copper</td><td class="num">1.73</td><td class="num">0.33</td></tr>
+                <tr><td>Stainless steel (AISI 304)</td><td class="num"><button type="button" class="use-val" data-fth="0.5" aria-label="Use 0.5 J/cm² (stainless steel, one pulse per spot) as the threshold fluence">0.5</button></td><td class="num"><button type="button" class="use-val" data-fth="0.04" aria-label="Use 0.04 J/cm² (stainless steel, 1000 pulses per spot) as the threshold fluence">0.04</button></td></tr>
+                <tr><td>Aluminum</td><td class="num"><button type="button" class="use-val" data-fth="0.85" aria-label="Use 0.85 J/cm² (aluminum, one pulse per spot) as the threshold fluence">0.85</button></td><td class="num"><button type="button" class="use-val" data-fth="0.15" aria-label="Use 0.15 J/cm² (aluminum, 1000 pulses per spot) as the threshold fluence">0.15</button></td></tr>
+                <tr><td>Copper</td><td class="num"><button type="button" class="use-val" data-fth="1.73" aria-label="Use 1.73 J/cm² (copper, one pulse per spot) as the threshold fluence">1.73</button></td><td class="num"><button type="button" class="use-val" data-fth="0.33" aria-label="Use 0.33 J/cm² (copper, 1000 pulses per spot) as the threshold fluence">0.33</button></td></tr>
             </tbody>
         </table>
         <p>Repeated pulses on the same spot lower the threshold (incubation), here by a factor of 5 to 13. Thresholds also depend on the surface finish, the wavelength, and the pulse duration, so treat these as starting points and measure your own material.</p>
@@ -239,7 +244,7 @@
         <p>A 20&nbsp;µJ, 10&nbsp;ns Gaussian pulse focused to a 30&nbsp;µm (1/e²) spot:</p>
         <div class="formula">\[ F_0 = \frac{2 \times 20\ \mu\text{J}}{\pi\,(15\ \mu\text{m})^2} = 5.66\ \text{J/cm}^2, \]</div>
         <div class="formula">\[ I_0 = \frac{0.9394\,F_0}{10\ \text{ns}} = 5.3\times10^{8}\ \text{W/cm}^2. \]</div>
-        <p>The average fluence \(E_p/(\pi w_0^2)\) is 2.83&nbsp;J/cm². With a 1&nbsp;J/cm² threshold, the modified diameter is 27.9&nbsp;µm, and 82&nbsp;% of the pulse energy lands inside it.</p>
+        <p>The average fluence \(E_p/(\pi w_0^2)\) is 2.83&nbsp;J/cm². With a 0.5&nbsp;J/cm² threshold (the table’s stainless steel value for one pulse per spot, measured with 10&nbsp;ps pulses and used here only as an example), the peak fluence is 11.3 times the threshold, the modified diameter is 33.0&nbsp;µm, and 91&nbsp;% of the pulse energy lands inside it.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
@@ -386,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const hl = [];
             if (gauss) hl.push({ y: F0 / 2, label: fth && Math.abs(fth - F0 / 2) < 0.08 * ymax ? '' : 'average', color: 'var(--muted)' });
             if (fth) hl.push({ y: fth, label: 'Fₜₕ', color: 'var(--c5)' });
-            const vl = [{ x: -w * scale, label: '', color: 'var(--border-strong)' }, { x: w * scale, label: gauss ? '1/e² radius' : 'edge', color: 'var(--border-strong)' }];
+            const vl = [{ x: -w * scale, label: '', color: 'var(--muted)' }, { x: w * scale, label: gauss ? '1/e² radius' : 'edge', color: 'var(--muted)' }];
             Plot.draw(plotBox, {
                 height: 260,
                 x: { label: 'Radial position r (' + xu + ')' },
@@ -397,6 +402,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
+    // A value in the threshold table fills the threshold input (in J/cm²) and brings the results into view.
+    const fthIn = document.getElementById('fth'), fthBox = fthIn.closest('.input-unit'), fthUnit = fthBox.querySelector('select');
+    document.querySelectorAll('.use-val').forEach(b => b.addEventListener('click', () => {
+        fthUnit.value = 'J/cm²'; fthUnit.dataset.prev = 'J/cm²';
+        fthIn.value = b.dataset.fth;
+        fthIn.dispatchEvent(new Event('input', { bubbles: true }));   // recalculates and updates the link
+        fthBox.classList.add('filled'); setTimeout(() => fthBox.classList.remove('filled'), 1200);
+        const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        document.getElementById('results-h').closest('section').scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'center' });
+    }));
     emodeSel.addEventListener('change', syncUI);
     profSel.addEventListener('change', syncUI);
     syncUI();

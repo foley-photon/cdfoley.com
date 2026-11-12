@@ -17,9 +17,8 @@
 <meta property="og:image:alt" content="Process Capability (Cpk) Calculator. Calculate Cp, Cpk, Pp, Ppk, Cpm, and expected PPM from raw data or summary statistics, with a histogram, normal fit, and Ppk confidence interval.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
@@ -47,8 +46,8 @@
     .cfig-svg .lim { fill: none; stroke: var(--c5); stroke-width: 1.5; stroke-dasharray: 6 4; }
     .cfig-svg .mean, .cfig-svg .ar, .cfig-svg .arh { fill: none; stroke: var(--text-2); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
 </style>
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -245,7 +244,8 @@
                         <span class="result-note">The nearer limit is 3&nbsp;×&nbsp;Cpk standard deviations from the mean: 1.00 is 3σ, 1.33 is 4σ, 1.67 is 5σ.</span></div>
                     <div class="result"><span class="result-label">Cp</span><output class="result-value" data-out="cp">—</output>
                         <span class="result-note">What Cpk would be with the mean centered between the limits.</span></div>
-                    <div class="result"><span class="result-label">CPL · CPU</span><output class="result-value" data-out="cplu">—</output></div>
+                    <div class="result"><span class="result-label">CPL · CPU</span><output class="result-value" data-out="cplu">—</output>
+                        <span class="result-note">Cpk against each limit alone: CPL for LSL, CPU for USL. Cpk is the smaller of the two.</span></div>
                     <div class="result"><span class="result-label">Ppk <span class="sym">overall</span></span><output class="result-value" data-out="ppk">—</output>
                         <span class="result-note">Close to Cpk for a stable process. Clearly lower: the mean or the spread changed between subgroups.</span></div>
                     <div class="result"><span class="result-label">Pp</span><output class="result-value" data-out="pp">—</output></div>
@@ -549,7 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 const out = data.filter(x => (isFinite(lsl) && x < lsl) || (isFinite(usl) && x > usl)).length;
                 obs = out / N * 1e6;
-                obsNote = out + ' of ' + N + ' values outside the specification; one value is ' + fmt.num(1e6 / N, 3) + ' PPM';
+                obsNote = out + ' of ' + N + ' values outside the specification; at this sample size each value counts as ' + fmt.num(1e6 / N, 3) + ' PPM';
                 if (N >= 8) ad = andersonDarling(data, mu, so);
             } else {
                 mu = v.mu; sw = v.sw; so = isFinite(v.so) ? v.so : v.sw; N = v.n;

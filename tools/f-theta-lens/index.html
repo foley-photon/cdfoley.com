@@ -17,14 +17,20 @@
 <meta property="og:image:alt" content="F-Theta Scan Lens Calculator. F-theta lens calculator for galvo laser scanners: scan field from focal length and scan angle, focused spot size, depth of focus, and position resolution.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<style>.ft-ex th { white-space: normal; }</style>
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<style>
+    .ft-ex th { white-space: normal; }
+    .input-unit select.wl-preset { max-width: 52%; }
+    /* thin subheads that split the results into three groups */
+    .res-cap { font-size: 0.72rem; font-weight: 650; line-height: 1.4; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); background: var(--surface-2); border-radius: 4px; padding: 0.3rem 0.6rem; margin: 0.6rem 0 0; }
+    .res-cap:first-child { margin-top: 0; }
+    .res-cap + .result { border-top: 0; }
+</style>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script type="application/ld+json" id="ld-page">
@@ -137,46 +143,47 @@
                     <div class="input-unit"><input id="d" name="d" value="10" inputmode="decimal" data-positive><select data-dim="length" data-units="mm,µm,cm" data-default="mm"></select></div>
                     <p class="hint">1/e² diameter of the beam reaching the scan mirrors, after any beam expander. It must fit through the scan head’s aperture, for example 10&nbsp;mm or 14&nbsp;mm.</p>
                 </div>
+                <div class="field">
+                    <label for="wl">Wavelength <span class="sym">λ</span></label>
+                    <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select class="wl-preset" id="wl-preset" aria-label="Common laser lines"></select><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <p class="hint">Vacuum wavelength from the laser datasheet. Pick a common laser line from the list or type your own.</p>
+                </div>
                 <div class="field-row">
-                    <div class="field">
-                        <label for="wl">Wavelength <span class="sym">λ</span></label>
-                        <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
-                        <p class="hint">Vacuum wavelength from the laser datasheet.</p>
-                    </div>
                     <div class="field">
                         <label for="m2">Beam quality <span class="sym">M²</span></label>
                         <div class="input-unit"><input id="m2" name="m2" value="1.1" inputmode="decimal" data-min="1" data-label="M²"><span class="unit">—</span></div>
                         <p class="hint">From the laser datasheet; 1 is an ideal Gaussian beam. <a href="/tools/gaussian-beam/#typical-values">Typical values</a>.</p>
                     </div>
-                </div>
-                <div class="field-row">
                     <div class="field">
                         <label for="tol">Depth-of-focus tolerance</label>
                         <div class="input-unit"><input id="tol" name="tol" value="5" inputmode="decimal" data-positive data-label="DOF tolerance"><span class="unit">% growth</span></div>
                         <p class="hint">How much the spot diameter may grow. 41.4&nbsp;% (√2) gives the classic ±z<sub>R</sub> depth of focus.</p>
                     </div>
-                    <div class="field">
-                        <label for="bits">Galvo command resolution</label>
-                        <div class="input-unit"><input id="bits" name="bits" value="16" inputmode="numeric" data-optional data-positive data-max="32" data-label="galvo command resolution" placeholder="optional"><span class="unit">bits</span></div>
-                        <p class="hint">Resolution of the scanner’s command signal, from the scan head or controller datasheet. 16&nbsp;bits is common.</p>
-                    </div>
+                </div>
+                <div class="field">
+                    <label for="bits">Galvo command resolution</label>
+                    <div class="input-unit"><input id="bits" name="bits" value="16" inputmode="numeric" data-optional data-positive data-max="32" data-label="galvo command resolution" placeholder="optional"><span class="unit">bits</span></div>
+                    <p class="hint">Resolution of the scanner’s command signal, from the scan head or controller datasheet. 16&nbsp;bits is common.</p>
                 </div>
             </div>
         </form>
 
         <section class="panel sticky-panel" aria-labelledby="results-h">
-            <div class="panel-head"><h2 id="results-h">Results</h2></div>
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="ang-badge" class="badge"></span></div>
             <div class="panel-body">
                 <div class="results">
+                    <h3 class="res-cap">Field</h3>
                     <div class="result primary"><span class="result-label">Scan field (square, XY)<span class="sym">2fθ</span></span><output class="result-value" data-out="field">—</output></div>
                     <div class="result"><span class="result-label">Field diagonal</span><output class="result-value" data-out="diag">—</output></div>
                     <div class="result"><span class="result-label">Field area</span><output class="result-value" data-out="area">—</output></div>
-                    <div class="result"><span class="result-label">Optical scan half-angle<span class="sym">θ</span></span><output class="result-value" data-out="theta">—</output><span class="result-note" id="theta-note" hidden>Wider than most f-theta lenses accept (about ±20° optical per axis). Check the optical/mechanical setting and that this is the half-angle.</span></div>
+                    <div class="result"><span class="result-label">Optical scan half-angle<span class="sym">θ</span></span><output class="result-value" data-out="theta">—</output><span class="result-note" id="theta-note" style="color:var(--warn)" hidden>Wider than most f-theta lenses accept (about ±20° optical per axis). Check the optical/mechanical setting and that this is the half-angle.</span></div>
                     <div class="result"><span class="result-label">Field angle at the corners<span class="sym">√2θ</span></span><output class="result-value" data-out="corner">—</output><span class="result-note">The f-theta field angle the lens must accept at the field corners, which lie √2 times farther from the axis than the edges. A lens datasheet’s single scan angle may be this one.</span></div>
+                    <h3 class="res-cap">Spot and focus</h3>
                     <div class="result"><span class="result-label">Focused spot diameter (1/e², untruncated)<span class="sym">d<sub>F</sub></span></span><output class="result-value" data-out="spot">—</output></div>
                     <div class="result"><span class="result-label">Rayleigh range<span class="sym">z<sub>R</sub></span></span><output class="result-value" data-out="zr">—</output></div>
                     <div class="result"><span class="result-label" id="dof-label">Depth of focus, total (5&nbsp;% spot growth)</span><output class="result-value" data-out="dof">—</output><span class="result-note">Compare it with how flat your parts and fixture are. More height range needs a z-axis (dynamic focus) or a longer focal length, which also enlarges the spot.</span></div>
-                    <div class="result"><span class="result-label">Resolvable spots across the field</span><output class="result-value" data-out="spots">—</output></div>
+                    <div class="result"><span class="result-label">Resolvable spots across the field</span><output class="result-value" data-out="spots">—</output><span class="result-note">Field side ÷ spot diameter: how many distinct spot positions fit across one axis. Compare it with the pixels of the pattern you want to mark.</span></div>
+                    <h3 class="res-cap">Placement</h3>
                     <div class="result"><span class="result-label">Edge error of an f·tanθ lens</span><output class="result-value" data-out="tanerr">—</output><span class="result-note">How far a standard lens would misplace the spot at the field edge. The f-theta design removes this.</span></div>
                     <div class="result"><span class="result-label">Lateral shift per 1&nbsp;mm height error at the edge (non-telecentric)</span><output class="result-value" data-out="shift">—</output><span class="result-note">Assumes the beam lands at the scan angle θ. The lens datasheet’s landing (telecentricity) angle gives the actual value; a telecentric lens makes it nearly zero.</span></div>
                     <div class="result"><span class="result-label">Lateral shift per 1&nbsp;mm height error at a corner (non-telecentric)</span><output class="result-value" data-out="shiftc">—</output><span class="result-note">√2 times the edge value: the slope at which the beam lands grows in proportion to the distance from the axis.</span></div>
@@ -269,10 +276,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const { fmt, fail } = Calc;
     const dofLabel = document.getElementById('dof-label');
     const thetaNote = document.getElementById('theta-note');
+    const angBadge = document.getElementById('ang-badge');
+
+    // Common laser lines (vacuum wavelength in nm). The list fills the wavelength field and follows what is typed into it.
+    const LINES = [['', 'Custom'], ['10600', 'CO₂, 10.6 µm'], ['1550', 'Er fiber, 1550 nm'], ['1064', 'Nd:YAG, 1064 nm'], ['1030', 'Yb, 1030 nm'],
+        ['780', 'Diode, 780 nm'], ['632.991', 'HeNe, 633 nm'], ['532', 'Nd:YAG doubled, 532 nm'], ['515', 'Yb doubled, 515 nm'], ['355', 'Nd:YAG tripled, 355 nm']];
+    const wlIn = document.getElementById('wl'), wlPre = document.getElementById('wl-preset');
+    wlPre.innerHTML = LINES.map(p => `<option value="${p[0]}">${p[1]}</option>`).join('');
+    const wlUnit = () => wlIn.closest('.input-unit').querySelector('select[data-dim]').value;
+    const syncLine = () => {
+        const u = wlUnit(), nm = u ? Calc.toSI('length', u, Calc.parseNum(wlIn.value)) * 1e9 : NaN;
+        const hit = LINES.find(p => p[0] && Math.abs(nm - p[0]) < 1e-6 * p[0]);
+        wlPre.value = hit ? hit[0] : '';
+    };
+    wlPre.addEventListener('change', e => {
+        if (!wlPre.value) { e.stopPropagation(); return; }   // "Custom": keep it selected instead of re-syncing back to the matching line
+        wlIn.value = fmt.plain(Calc.fromSI('length', wlUnit(), wlPre.value * 1e-9), 6);
+        wlIn.dispatchEvent(new Event('input', { bubbles: true }));
+    });
 
     Calc.create({
         form: '#calc',
         compute(v) {
+            syncLine();
             const th = v.atype === 'mechanical' ? 2 * v.ang : v.ang;     // optical half-angle (rad)
             if (th >= Math.PI / 2) throw fail(v.atype === 'mechanical' ? 'The mechanical half-angle must be below 45° (90° optical).' : 'The optical half-angle must be below 90°.', 'ang');
             const hasBits = isFinite(v.bits);
@@ -286,6 +312,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const sideStr = fmt.si(side, 'm', 4), cut = sideStr.lastIndexOf(' ');
             dofLabel.textContent = 'Depth of focus, total (' + fmt.num(v.tol, 3) + ' % spot growth)';
             thetaNote.hidden = th <= 30 * Math.PI / 180;
+            // amber only when the angle is beyond what f-theta lenses accept; no badge otherwise
+            angBadge.textContent = thetaNote.hidden ? '' : 'Beyond typical lenses';
+            angBadge.className = thetaNote.hidden ? 'badge' : 'badge badge-warn';
 
             return {
                 field: sideStr.indexOf('×') === -1 ? sideStr.slice(0, cut) + ' × ' + sideStr : sideStr + ' × ' + sideStr,
@@ -303,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 lsb: hasBits ? fmt.si(v.f * lsbAng, 'm', 3) + '  (' + fmt.si(lsbAng, 'rad', 3) + ' optical)' : null
             };
         },
-        onError() { thetaNote.hidden = true; }
+        onError() { thetaNote.hidden = true; angBadge.textContent = ''; angBadge.className = 'badge'; syncLine(); }
     });
 });
 </script>

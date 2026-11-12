@@ -17,14 +17,13 @@
 <meta property="og:image:alt" content="Fresnel Equations Calculator. Calculate s- and p-polarized Fresnel reflectance and transmittance vs. angle, the Brewster angle, critical angle, and uncoated window losses.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<style>.input-unit select.fr-preset { max-width: 58%; } .fr-ref th { white-space: normal; }</style>
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<style>.input-unit select.fr-preset { max-width: 58%; } .fr-ref th { white-space: normal; } .fr-swap { display: flex; justify-content: flex-end; margin: -0.35rem 0 0.35rem; }</style>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -122,15 +121,21 @@
                     <div class="input-unit"><input id="n1" name="n1" value="1" inputmode="decimal" data-positive data-label="index n₁"><select class="fr-preset" data-for="n1" aria-label="Incident medium preset"></select></div>
                     <p class="hint">The material the light arrives from: 1 for vacuum or air, or the glass index for light leaving a prism or window.</p>
                 </div>
+                <div class="fr-swap"><button type="button" class="btn btn-ghost btn-sm" id="fr-swap" title="Exchange the two indices to see the same surface from the other side">Swap media</button></div>
                 <div class="field">
                     <label for="n2">Second medium index <span class="sym">n₂</span></label>
                     <div class="input-unit"><input id="n2" name="n2" value="1.5168" inputmode="decimal" data-positive data-label="index n₂"><select class="fr-preset" data-for="n2" aria-label="Second medium preset"></select></div>
-                    <p class="hint">Preset indices are at the stated wavelength and near room temperature. Index varies with wavelength, so use your material’s value at your wavelength (refractiveindex.info lists most materials).</p>
+                    <p class="hint">Preset indices are at the stated wavelength and near room temperature. Index varies with wavelength, so use your material’s value at your wavelength (<a href="https://refractiveindex.info/" target="_blank" rel="noopener">refractiveindex.info</a> lists most materials).</p>
                 </div>
                 <div class="field">
                     <label for="ai">Angle of incidence <span class="sym">θ<sub>i</sub></span></label>
                     <div class="input-unit"><input id="ai" name="ai" value="45" inputmode="decimal" data-nonneg data-label="angle of incidence"><select data-dim="angle" data-units="deg,rad,mrad" data-default="deg"></select></div>
                     <p class="hint">Measured from the surface normal, 0–90°.</p>
+                </div>
+                <div class="field">
+                    <label for="wl">Wavelength <span class="sym">λ₀</span></label>
+                    <div class="input-unit"><input id="wl" name="wl" value="" inputmode="decimal" data-optional data-positive placeholder="optional" data-label="wavelength"><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <p class="hint">Vacuum wavelength. Optional, and used only under total internal reflection: it turns the evanescent depth into a length. The reflectances do not depend on it.</p>
                 </div>
             </div>
         </form>
@@ -147,6 +152,7 @@
                     <div class="result"><span class="result-label">Brewster angle<span class="sym">θ<sub>B</sub></span></span><output class="result-value" data-out="ab">—</output></div>
                     <div class="result"><span class="result-label">Critical angle<span class="sym">θ<sub>c</sub></span></span><output class="result-value" data-out="ac">—</output></div>
                     <div class="result"><span class="result-label">Normal-incidence reflectance<span class="sym">R₀</span></span><output class="result-value" data-out="r0">—</output></div>
+                    <div class="result"><span class="result-label">Evanescent field 1/e depth</span><output class="result-value" data-out="evan">—</output><span class="result-note">How far the field reaches into the second medium: its amplitude falls to 1/e over this distance, and its intensity over half of it. A second surface this close lets light tunnel across (frustrated total internal reflection), which this tool does not model.</span></div>
                     <div class="result"><span class="result-label">Uncoated window transmission at θ<sub>i</sub> (2 surfaces)</span><output class="result-value" data-out="tw">—</output><span class="result-note">Window of index n₂ in medium n₁: incoherent multiple reflections, no absorption, unpolarized light.</span></div>
                 </div>
             </div>
@@ -164,7 +170,7 @@
         <div class="formula">\[ \begin{gathered} r_s = \frac{n_1\cos\theta_i - n_2\cos\theta_t}{n_1\cos\theta_i + n_2\cos\theta_t}, \\[10pt] r_p = \frac{n_2\cos\theta_i - n_1\cos\theta_t}{n_2\cos\theta_i + n_1\cos\theta_t}, \end{gathered} \]</div>
         <p>with power reflectances \(R_s = |r_s|^2\), \(R_p = |r_p|^2\), and \(R = (R_s+R_p)/2\) for unpolarized light. For lossless media \(T = 1 - R\) in each polarization. (Sign conventions for \(r_p\) differ between textbooks, but the reflectances do not.)</p>
         <div class="formula">\[ \begin{gathered} R_0 = \left(\frac{n_1-n_2}{n_1+n_2}\right)^2, \\[10pt] \theta_B = \arctan\frac{n_2}{n_1}, \\[10pt] \theta_c = \arcsin\frac{n_2}{n_1}\;\;(n_1>n_2). \end{gathered} \]</div>
-        <p>At the <strong>Brewster angle</strong> \(R_p = 0\): p-polarized light passes with no reflection loss, and the reflected beam is purely s-polarized. Laser tubes, Brewster windows, and polarizing plates use this. Above the <strong>critical angle</strong>, going from high to low index, no wave propagates into the second medium, and \(R = 1\) (total internal reflection). Only an evanescent field enters it, with an amplitude that falls by 1/e over \(\lambda_0 / \bigl(2\pi\sqrt{n_1^2\sin^2\theta_i - n_2^2}\bigr)\): 0.41 vacuum wavelengths at 45° in BK7, and longer close to the critical angle. A second surface that close lets some light tunnel across (frustrated total internal reflection), which this tool does not model.</p>
+        <p>At the <strong>Brewster angle</strong> \(R_p = 0\): p-polarized light passes with no reflection loss, and the reflected beam is purely s-polarized. Laser tubes, Brewster windows, and polarizing plates use this. Above the <strong>critical angle</strong>, going from high to low index, no wave propagates into the second medium, and \(R = 1\) (total internal reflection). Only an evanescent field enters it, with an amplitude that falls by 1/e over \(\lambda_0 / \bigl(2\pi\sqrt{n_1^2\sin^2\theta_i - n_2^2}\bigr)\): 0.41 vacuum wavelengths at 45° in BK7, and longer close to the critical angle. Under total internal reflection the results give this depth, as a length if you enter a wavelength. A second surface that close lets some light tunnel across (frustrated total internal reflection), which this tool does not model.</p>
         <p>An uncoated window has two surfaces. Summing the incoherent multiple reflections between them gives a transmission of \((1-R)/(1+R)\) per polarization; at normal incidence in air that is \(2n/(n^2+1)\), the “reflection factor” glass makers quote for uncoated plates. That is higher than \((1-R)^2\), the estimate that ignores multiple reflections: barely for glass (91.9&nbsp;% instead of 91.7&nbsp;% for N-BK7) but noticeably for high-index materials (47.0&nbsp;% instead of 40.9&nbsp;% for germanium).</p>
 
         <h2>Reference values</h2>
@@ -265,6 +271,12 @@ document.addEventListener('DOMContentLoaded', () => {
         sel._sync = sync;
     });
     const syncAll = () => document.querySelectorAll('.fr-preset').forEach(s => s._sync());
+    // Swap media: exchange the two indices to look at the same interface from the other side
+    document.getElementById('fr-swap').addEventListener('click', () => {
+        const a = document.getElementById('n1'), b = document.getElementById('n2');
+        [a.value, b.value] = [b.value, a.value];
+        a.dispatchEvent(new Event('input', { bubbles: true }));
+    });
 
     function fresnel(n1, n2, ti) {
         if (n1 === n2) return { tir: false, Rs: 0, Rp: 0, tt: ti };   // no interface: nothing reflects, at any angle
@@ -302,6 +314,12 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (Math.abs(ti - tB) < Math.PI / 180 && F.Rp < 0.01 * F.Rs) { flag.textContent = 'Near Brewster'; flag.className = 'badge badge-ok'; }
             else { flag.textContent = v.n1 < v.n2 ? 'External reflection' : 'Internal reflection'; flag.className = 'badge'; }
 
+            // evanescent amplitude 1/e depth under TIR, in vacuum wavelengths: 1 / (2π √(n₁² sin²θi − n₂²))
+            const q = (v.n1 * Math.sin(ti)) ** 2 - v.n2 * v.n2;
+            const dw = F.tir && q > 0 ? 1 / (2 * Math.PI * Math.sqrt(q)) : Infinity;
+            const evan = !F.tir ? null : !isFinite(dw) ? '∞ (at the critical angle)'
+                : isFinite(v.wl) ? fmt.si(dw * v.wl, 'm', 4) + '  (' + fmt.num(dw, 4) + ' λ₀)' : fmt.num(dw, 4) + ' λ₀';
+
             const pct = x => x < 1e-4 && x > 0 ? fmt.sci(x * 100, 3) + ' %' : fmt.pct(x, 4);
             return {
                 r: pct(R),
@@ -312,6 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ab: same ? 'none (n₁ = n₂)' : deg(tB),
                 ac: isFinite(tc) ? deg(tc) : same ? 'none (n₁ = n₂)' : 'none (n₁ < n₂)',
                 r0: pct(R0),
+                evan,
                 tw: F.tir ? '0 %' : pct((tw(F.Rs) + tw(F.Rp)) / 2)
             };
         },

@@ -296,7 +296,11 @@ test('datasheetOptionsHTML: optgroups, labels and the default row', () => {
     const h = B.datasheetOptionsHTML(PUB);
     assert.deepEqual(plain([...h.matchAll(/<optgroup label="([^"]+)"/g)].map(m => m[1])), ['Clear glass', 'Hard coat', 'Single silver', 'Double silver', 'Triple silver', 'Mixed triple']);
     assert.equal((h.match(/<option /g) || []).length, 19);
-    assert.ok(h.includes('value="vitro-6-sb60-s2" selected'));
+    // the default row is a held-out one with a measured record, so all four columns of the table have values
+    assert.equal(B.DEFAULT_ROW, 'vitro-6-sb70-s2');
+    assert.ok(h.includes('value="vitro-6-sb70-s2" selected'));
+    const def = PUB.rows.find(r => r.id === B.DEFAULT_ROW);
+    assert.ok(def.role === 'check' && def.igdb === 'igdb-5439');
     const label = id => B.rowLabel(PUB.rows.find(r => r.id === id));
     assert.equal(label('vitro-6-sb70-s2'), 'Vitro Solarban 70 on #2, 6/13/6 mm (held out)');
     assert.equal(label('card-3tri-loe180'), 'Cardinal LoE-180 / clear / LoE-180, 3/9.8/3/9.8/3 mm (held out)');
@@ -441,7 +445,7 @@ test('hygiene: beta page head, notice, no indexing tags, local links exist', () 
     }
     // script order of spec section 1
     const scripts = [...PAGE.matchAll(/<script[^>]*src="([^"]+)"/g)].map(m => m[1]).filter(s => !s.startsWith('http'));
-    assert.deepEqual(scripts, ['/assets/js/site.js', '/assets/js/calc.js', '/assets/js/glazing-units.js', '/assets/js/plot.js', '/assets/js/glazing-weights.js', '/assets/js/glazing-engine.js',
+    assert.deepEqual(scripts, ['/assets/katex/katex.min.js', '/assets/katex/contrib/auto-render.min.js', '/assets/js/site.js', '/assets/js/calc.js', '/assets/js/glazing-units.js', '/assets/js/plot.js', '/assets/js/glazing-weights.js', '/assets/js/glazing-engine.js',
         '/assets/js/glazing-materials.js', '/assets/js/glazing-solar-e891.js', '/assets/js/glazing-tmm.js', '/assets/js/glazing-coatings.js', '/assets/js/glazing-open.js',
         '/assets/js/glazing-products.js', './beta-core.js', './selftest.js', './glazing-beta.js']);
     // external links open in a new tab with rel="noopener"
@@ -479,11 +483,122 @@ test('hygiene: the U-factor and R-value converter is on the page, outside the fo
     const js = read('beta/glazing/glazing-beta.js');
     assert.ok(js.indexOf('GU.mountConverter(') > 0 && js.indexOf('GU.mountConverter(') < js.indexOf("Calc.create({ id: 'glzb'"));
     assert.ok(js.includes('if (lastRun) ru.follow(lastRun.U); else ru.clear();'));
-    assert.ok(js.includes('onError: function () { lastRun = null; clearPlot(); ru.clear(); }'));
+    assert.ok(js.includes('onError: function () { lastRun = null; inError = true; clearPlot(); plotEmpty(); ru.clear(); }'));
     assert.ok(js.includes('kpis: { html: B.kpiPendingHTML() }'));
     // one constant: the page scripts carry no private copy of the Btu factor except beta-core.js's Node fallback
     assert.ok(!/5\.678263/.test(js) && !/5\.678263/.test(read('beta/glazing/selftest.js')));
     assert.equal((read('beta/glazing/beta-core.js').match(/5\.678263/g) || []).length, 1);
+});
+
+// UX pass (2026-11): tiles print what the table prints, carry a caption, and the side-by-side view says in one
+// sentence whether the two models agree.
+test('tiles: center-of-glass caption and the table\'s three significant figures; agreementNote', () => {
+    const st = B.readState(values()).state;
+    const r = B.evaluateModels(st, deps());
+    const mc = B.metrics(r.classic.r, 2), mo = B.metrics(r.open.r, 2);
+    // a formatter that drops trailing zeros, as Calc.fmt.num does: the tiles must not use it for in-range values
+    const fmt = { num: (x, s) => String(Number(Number(x).toPrecision(s || 4))) };
+    const k = B.kpiHTML(mc, mo, 'both', fmt);
+    assert.ok(k.startsWith('<div class="kpi-cap">Center of glass</div><div class="kpi">'));
+    assert.ok(B.kpiPendingHTML().startsWith('<div class="kpi-cap">Center of glass</div><div class="kpi">'));
+    assert.equal((k.match(/kpi-cap/g) || []).length, 1);
+    assert.ok(k.includes('<b>1.40</b><small>classic 1.37</small><span>U-factor, W/m²·K</span>'), k);
+    assert.ok(k.includes('<b>69.6 %</b><small>classic 73.8 %</small>'));
+    // the same strings as the table cells
+    const t = B.tableHTML(B.comparisonRows(mc, mo), 'both', fmt);
+    assert.ok(t.includes('<th scope="row">U-factor (W/m²·K)</th><td>1.37</td><td>1.40</td>'));
+
+    // default unit: U agrees (0.007 against 0.01 Btu/h·ft²·°F), SHGC and VT do not; a coating adds the second sentence
+    const note = r.notes.find(n => /^For this configuration/.test(n));
+    assert.equal(note, 'For this configuration the two models differ by more than datasheet tolerance in SHGC and visible transmittance; they agree on U-factor.' +
+        ' The largest differences are usually in UV and solar reflectance, where the classic model’s parametric curves are crudest.');
+    assert.ok(Math.abs(mo.Uip - mc.Uip) <= B.TOL.calibrate.U && Math.abs(mo.SHGC - mc.SHGC) > B.TOL.calibrate.SHGC && 100 * Math.abs(mo.VT - mc.VT) > B.TOL.calibrate.VT);
+    assert.ok(r.notes.indexOf(note) < r.notes.findIndex(n => /^Solar weighting/.test(n)));
+    // uncoated glass is held to the glass-check tolerance and gets no coating sentence
+    const clear = B.evaluateModels(B.readState(values({ p1c: 'none' })).state, deps());
+    assert.ok(clear.notes.includes('For this configuration the two models agree within datasheet tolerance on U-factor, SHGC and visible transmittance.'));
+    // one model only, or a model without a result: no sentence
+    for (const o of [{ view: 'open' }, { view: 'classic' }, { p1g: 'bronze' }]) {
+        assert.ok(!B.evaluateModels(B.readState(values(o)).state, deps()).notes.some(n => /^For this configuration/.test(n)), JSON.stringify(o));
+    }
+    // the function itself: every quantity outside, identical results, missing result
+    const a = r.classic.r, far = { U: a.U + 1, SHGC: a.SHGC + 0.1, Tvis: a.Tvis - 0.1 };
+    assert.equal(B.agreementNote(a, far, false), 'For this configuration the two models differ by more than datasheet tolerance in U-factor, SHGC and visible transmittance.');
+    assert.equal(B.agreementNote(a, a, false), 'For this configuration the two models agree within datasheet tolerance on U-factor, SHGC and visible transmittance.');
+    assert.equal(B.agreementNote(a, null, true), '');
+});
+
+test('hygiene: UX pass on the page (key terms, folds, error state, worked example)', () => {
+    const js = read('beta/glazing/glazing-beta.js'), css = read('beta/glazing/glazing-beta.css');
+    assert.ok(PAGE.includes('<details class="key-terms"><summary>Key terms</summary>'));
+    for (const t of ['U-factor', 'R-value', 'Classic and open-data models', 'Measured record (IGDB)', 'Calibrated and held out', 'ASTM E891 and G173', 'Datasheet tolerance']) {
+        assert.ok(PAGE.includes('<dt>' + t + '</dt>'), t);
+    }
+    assert.ok(PAGE.includes('<a href="#cmp-panel">published datasheets</a>') && PAGE.includes('<a href="#selftest">self-test</a>'));
+    // pane select in the live page's order, Double still the default
+    assert.ok(/<option value="1">Single \(monolithic\)<\/option>\s*<option value="2" selected>Double<\/option>\s*<option value="3">Triple<\/option>/.test(PAGE));
+    // the importer is folded and opens itself when it has saved products or a message
+    assert.ok(PAGE.includes('<details class="fold" id="imp-fold"') && js.includes("$('imp-fold').open = true"));
+    // input error: the outputs hide (shared calc-error-state convention) and one line says what to do
+    assert.ok(PAGE.includes('<p class="hint calc-empty gl-empty">Fix the highlighted input to see results.</p>'));
+    for (const out of ['xsec', 'kpis', 'notes', 'table', 'swatches', 'attrib']) {
+        assert.ok(new RegExp('class="[^"]*calc-hide-on-error[^"]*" data-out="' + out + '"').test(PAGE), out);
+    }
+    // sections of the house pattern
+    for (const h of ['<h2>Typical values</h2>', '<h2>Worked example</h2>', '<h2>Assumptions and limits</h2>', '<h2>References</h2>', '<h2>Related tools</h2>']) assert.ok(PAGE.includes(h), h);
+    assert.ok(PAGE.indexOf('<h2>Typical values</h2>') < PAGE.indexOf('<h2>Worked example</h2>') && PAGE.indexOf('<h2>Worked example</h2>') < PAGE.indexOf('<h2>Assumptions and limits</h2>'));
+    // coatings panel: 0 nm layers are not listed, the tables and the bibliography are folded
+    assert.ok(js.includes('if (!(l.d > 0)) return;') && js.includes('<details class="fold coat-fold"><summary>Layers and calibration residuals</summary>'));
+    assert.ok(js.includes('<details class="fold gl-sec"><summary>Optical constants ('));
+    assert.ok(css.includes('.kpi-cap {') && css.includes('#cmp-out table.cmp tbody th, #cmp-out table.cmp thead th:first-child { position: sticky;'));
+});
+
+// The numbers printed in the page's prose (scale anchors, typical values, worked example) are this engine's.
+test('prose numbers: worked example, typical values and scale anchors reproduce the engine', () => {
+    const run = o => { const st = B.readState(values(o)).state, r = B.evaluateModels(st, deps()); return { mc: B.metrics(r.classic.r, st.np), mo: B.metrics(r.open.r, st.np) }; };
+    const f2 = x => x.toFixed(2), p3 = x => x.toPrecision(3);
+    const d = run({});
+    // worked example
+    assert.deepEqual([p3(d.mo.U), p3(d.mo.Uip), p3(d.mo.SHGC), p3(100 * d.mo.VT)], ['1.40', '0.247', '0.394', '69.6']);
+    assert.equal(d.mo.U.toFixed(4), '1.4048'); assert.equal(d.mo.Rsi.toFixed(4), '0.7118'); assert.equal(p3(d.mo.Rsi), '0.712'); assert.equal(p3(d.mo.Rip), '4.04');
+    assert.deepEqual([p3(d.mc.U), p3(d.mc.Uip), p3(d.mc.Rip), p3(d.mc.Rsi), p3(d.mc.SHGC), p3(100 * d.mc.VT)], ['1.37', '0.241', '4.16', '0.732', '0.368', '73.8']);
+    assert.deepEqual([(d.mo.U - d.mc.U).toFixed(3), (d.mo.Uip - d.mc.Uip).toFixed(3), (d.mo.SHGC - d.mc.SHGC).toFixed(3), (100 * (d.mo.VT - d.mc.VT)).toFixed(2)], ['0.039', '0.007', '0.026', '-4.15']);
+    assert.deepEqual([p3(100 * d.mo.Asol[0]), p3(100 * d.mc.Asol[0]), p3(100 * d.mo.Rsol), p3(100 * d.mc.Rsol), p3(100 * d.mo.Tuv), p3(100 * d.mc.Tuv)], ['35.3', '27.6', '27.1', '37.1', '16.6', '38.5']);
+    for (const s of ['\\(U = 1.40\\)', '\\(R = 1/1.4048 = 0.7118\\)', '5.678263 \\times 0.7118 = 4.04', '+0.039&nbsp;W/m²·K', '−4.15&nbsp;points', '35.3&nbsp;% against 27.6&nbsp;%', '16.6&nbsp;% against 38.5&nbsp;%']) assert.ok(PAGE.includes(s), s);
+    // the Solarban 60 row of the worked example
+    const c = B.datasheetCompare(PUB.rows.find(r => r.id === 'vitro-6-sb60-s2'), deps()), g = k => c.metrics.find(m => m.key === k);
+    assert.deepEqual([g('VT').pub, g('SHGC').pub, g('Uar').pub], [70, 0.39, 0.24]);
+    assert.deepEqual([g('VT').open.toFixed(1), g('SHGC').open.toFixed(3), g('Uar').open.toFixed(3)], ['69.6', '0.398', '0.248']);
+    assert.deepEqual([g('VT').classic.toFixed(1), g('SHGC').classic.toFixed(3), g('Uar').classic.toFixed(3)], ['73.8', '0.372', '0.241']);
+    assert.ok(['VT', 'SHGC', 'Uar'].every(k => B.status(g(k).open - g(k).pub, g(k).tol) === 'ok'));
+    assert.equal(B.status(g('VT').classic - g('VT').pub, g('VT').tol), 'warn');
+    assert.ok(PAGE.includes('the open-data model gives 69.6&nbsp;%, 0.398 and 0.248') && PAGE.includes('The classic model gives 73.8&nbsp;%, 0.372 and 0.241'));
+    // G173 against E891 for the default unit (key terms)
+    assert.equal((run({ sol: 'g173' }).mo.SHGC - d.mo.SHGC).toFixed(3), '0.020');
+    // typical values: open / classic
+    const TV = [
+        ['Single, 6&nbsp;mm clear', { np: '1', p1c: 'none' }],
+        ['Double, clear, air', { p1c: 'none', g1f: 'air' }],
+        ['Double, hard coat on #3, argon', { p1c: 'none', p2c: 'hard', p2s: 'front' }],
+        ['Double, single silver on #2, argon', { p1c: 'single' }],
+        ['Double, double silver on #2, argon (the default)', {}],
+        ['Double, triple silver on #2, argon', { p1c: 'triple' }],
+        ['Triple, 4&nbsp;mm panes, single silver on #2 and #5, 12&nbsp;mm argon', { np: '3', p1t: '4', p2t: '4', p3t: '4', p1c: 'single', p3c: 'single', p3s: 'front', g1w: 0.012, g2w: 0.012 }],
+        ['Triple, 4&nbsp;mm panes, double silver on #2 and #5, 12&nbsp;mm krypton', { np: '3', p1t: '4', p2t: '4', p3t: '4', p1c: 'double', p3c: 'double', p3s: 'front', g1w: 0.012, g2w: 0.012, g1f: 'krypton', g2f: 'krypton' }]
+    ];
+    for (const [name, o] of TV) {
+        const { mc, mo } = run(o);
+        const row = `<tr><td>${name}</td><td class="tv-num">${f2(mo.U)} / ${f2(mc.U)}</td><td class="tv-num">${f2(mo.Rip)} / ${f2(mc.Rip)}</td><td class="tv-num">${f2(mo.SHGC)} / ${f2(mc.SHGC)}</td><td class="tv-num">${(100 * mo.VT).toFixed(0)} / ${(100 * mc.VT).toFixed(0)}&nbsp;%</td></tr>`;
+        assert.ok(PAGE.includes(row), row);
+    }
+    // emissivities quoted under the table
+    assert.deepEqual(['hard', 'single', 'double', 'triple'].map(k => O.COATINGS[k].eps), [0.1635, 0.071, 0.042, 0.022]);
+    assert.deepEqual(['hard', 'single', 'double', 'triple'].map(k => E.COATINGS[k].eps), [0.15, 0.04, 0.025, 0.015]);
+    // scale anchors under the tiles, open-data model: single, clear double, low-e double (the default), low-e triples
+    const tv = i => run(TV[i][1]).mo;
+    assert.deepEqual([tv(0).U.toFixed(1), tv(0).Rip.toFixed(2), tv(1).U.toFixed(1), tv(1).Rip.toFixed(1), tv(4).U.toFixed(1), tv(4).Rip.toFixed(1)], ['5.8', '0.98', '2.7', '2.1', '1.4', '4.0']);
+    assert.deepEqual([tv(7).U.toFixed(1), tv(7).Rip.toFixed(1), tv(6).U.toFixed(1), tv(6).Rip.toFixed(1)], ['0.6', '9.0', '0.8', '7.3']);
+    assert.ok(PAGE.includes('about 5.8&nbsp;W/m²·K (R-0.98) for single glass, 2.7 (R-2.1) for clear double glazing, 1.4 (R-4.0) for low-e double glazing with argon, and 0.6–0.8 (R-9.0 to R-7.3) for low-e triple glazing'));
 });
 
 // Since 2026-11 the Beta nav tab, the home page and the tools hub link to /beta/ on purpose. This tool's page stays

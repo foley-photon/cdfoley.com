@@ -11,6 +11,7 @@
 .kpi { background: var(--surface); padding: 0.7rem 0.8rem; }
 .kpi b { display: block; font-family: var(--mono); font-size: 1.25rem; color: var(--accent); font-variant-numeric: tabular-nums; }
 .kpi span { font-size: 0.78rem; color: var(--muted); }
+.kpi-cap { grid-column: 1 / -1; background: var(--surface-2); padding: 0.35rem 0.8rem; font-size: 0.72rem; font-weight: 650; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
 .xsec svg { display: block; width: 100%; height: auto; }
 .xsec { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.4rem; }
 svg .lbl { fill: var(--text-2); font: 500 13px var(--font); }
@@ -42,9 +43,10 @@ svg .sunh { fill: var(--c2); }
 .imp-list small { display: block; color: var(--muted); }
 .pane-info { font-size: 0.82rem; color: var(--text-2); margin: -0.3rem 0 0.7rem; overflow-wrap: anywhere; }
 .gl-open-err { margin: 0 0 0.9rem; }
-/* Six tiles: U-factor and R-value in both unit systems share the first row; SHGC and visible transmittance fill the second */
-.kpis > .kpi:nth-child(n+5) { grid-column: span 2; }
-@media (max-width: 520px) { .kpis > .kpi:nth-child(n+5) { grid-column: auto; } }
+/* A caption row, then six tiles: U-factor and R-value in both unit systems share the first row; SHGC and visible
+   transmittance (the last two tiles) fill the second */
+.kpis > .kpi:nth-last-child(-n+2) { grid-column: span 2; }
+@media (max-width: 520px) { .kpis > .kpi:nth-last-child(-n+2) { grid-column: auto; } }
 .kpi small { display: block; font-size: 0.78rem; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; margin: 0.1rem 0 0.15rem; }
 .gl-notes { font-size: 0.85rem; color: var(--text-2); margin-top: 0.8rem; }
 .gl-notes p { margin: 0 0 0.25rem; }
@@ -95,6 +97,18 @@ table.cmp tr.r-conv td small { color: var(--muted); }
 .st-groups summary b { font-weight: 600; }
 .gl-credits p { font-size: 0.9rem; color: var(--text-2); overflow-wrap: anywhere; }
 .muted { color: var(--muted); }
+/* Input error: calc.js puts calc-error-state on #glzb-out. The figure, tiles, table and swatches are hidden (the
+   calc-hide-on-error class in the page) and one line says what to do, here and in the chart panel. */
+.gl-empty { margin: 0; }
+.gl-plot-empty { margin: 0; }
+.cmp-key { margin: 0.5rem 0 0; }
+.swatch-hint { margin: 0.4rem 0 0; }
+.coat-card .coat-fold { margin: 0.6rem 0 0.2rem; }
+.coat-fold > .cmp-wrap:first-of-type { margin-top: 0; }
+.coat-fold > .cmp-wrap:last-child { margin-bottom: 0.7rem; }
+.fold > .mat-list { margin: 0 0 0.8rem; }
+#imp-fold > .imp-note { margin-top: 0; }
+.gl-prose .tv-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* Phones: the cross-section (viewBox 480 wide) is drawn at about 0.6 scale, so its labels get larger font sizes in
    SVG units to stay about 8.5 to 9 px on screen; the comparison tables get tighter cells so the Δ column fits. */
@@ -105,4 +119,9 @@ table.cmp tr.r-conv td small { color: var(--muted); }
     table.cmp th, table.cmp td { padding: 0.3rem 0.3rem; }
     table.cmp td { font-size: 0.76rem; }
     table.cmp tbody th { font-size: 0.8rem; }
+    /* the datasheet table scrolls sideways here: its row labels stay in view */
+    #cmp-out table.cmp tbody th, #cmp-out table.cmp thead th:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--border); }
 }
+
+/* Typical values: the glazing names keep a readable width on a phone; the table scrolls sideways instead */
+.prose table.typ-beta th:first-child, .prose table.typ-beta td:first-child { min-width: 9.5rem; }

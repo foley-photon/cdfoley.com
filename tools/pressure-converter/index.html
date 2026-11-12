@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="Vacuum Pressure Unit Converter. Convert pressure between Torr, mTorr, mbar, Pa, kPa, bar, atm, psi, mmHg, and inHg as you type, with the vacuum range and gauge type for each value.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <style>
@@ -32,10 +31,15 @@
     .pc-summary .pc-v { font-size: 0.95rem; color: var(--text); }
     .pc-summary .pc-v.mono { font-family: var(--mono); font-weight: 600; }
     .pc-summary .pc-n { font-size: 0.82rem; color: var(--muted); margin-top: 0.15rem; }
+    /* the two numbers copy on click like any result; here they sit at the left of their column, so the copy icon goes on the right */
+    .pc-summary .result-value { font-size: inherit; text-align: left; margin-left: -0.25rem; }
+    .pc-summary .result-value::after { right: auto; left: 100%; margin: -0.4rem 0 0 0.1rem; }
     .iso-ranges td.num { white-space: nowrap; }
     /* Pressure ladder: a 400-unit-wide viewBox, at most 520 px wide, so labels render at 13.7 px on desktop and,
        with the larger phone sizes, at 11.5 px in the 358 px column of a 390 px screen */
-    .ladder { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; font-family: var(--font); }
+    .ladder { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; font-family: var(--font); cursor: crosshair; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+    .prose .ladder-read { text-align: center; font-size: 0.85rem; color: var(--text-2); max-width: 520px; margin: 0.4rem auto 0; min-height: 1.3em; }
+    .ladder-read b { font-weight: 600; color: var(--text); }
     .ladder text { font-size: 10.5px; fill: var(--text-2); }
     .ladder .lab { font-weight: 650; fill: var(--text); }
     .ladder .seg { font-weight: 600; fill: var(--text); }
@@ -161,7 +165,7 @@
             <h3 class="field-label" style="margin:1.5rem 0 .7rem;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em">US customary</h3>
             <div class="conv-grid">
                 <div class="field"><label for="c-psi">Pounds per square inch</label><div class="input-unit"><input id="c-psi" name="psi" inputmode="decimal"><span class="unit">psi</span></div></div>
-                <div class="field"><label for="c-inhg">Inches of mercury <span class="sym">0 °C</span></label><div class="input-unit"><input id="c-inhg" name="inhg" inputmode="decimal"><span class="unit">inHg</span></div></div>
+                <div class="field"><label for="c-inhg">Inches of mercury <span class="sym">conventional, 0 °C</span></label><div class="input-unit"><input id="c-inhg" name="inhg" inputmode="decimal"><span class="unit">inHg</span></div></div>
             </div>
             <p class="hint">All units are absolute pressure. To convert a gauge reading (psig, barg), first add the local atmospheric pressure, about 14.7&nbsp;psi or 1013&nbsp;mbar at sea level.</p>
 
@@ -178,13 +182,13 @@
                 </div>
                 <div>
                     <div class="pc-k">N₂ mean free path (20&nbsp;°C)</div>
-                    <div class="pc-v mono" id="pc-mfp">—</div>
+                    <div class="pc-v mono"><output class="result-value" id="pc-mfp">—</output></div>
                     <div class="pc-n" id="pc-mfp-note" hidden>λ is under 10 molecular diameters (a dense gas), so these dilute, ideal-gas values lose accuracy.</div>
                     <div class="pc-n"><a href="/tools/mean-free-path/">Other gases, Knudsen number →</a></div>
                 </div>
                 <div>
                     <div class="pc-k">Number density (20&nbsp;°C)</div>
-                    <div class="pc-v mono" id="pc-n">—</div>
+                    <div class="pc-v mono"><output class="result-value" id="pc-n">—</output></div>
                     <div class="pc-n" id="pc-n2"></div>
                 </div>
             </div>
@@ -235,7 +239,8 @@
         </table>
         <figure>
             <svg viewBox="0 0 400 352" class="ladder" role="img" aria-label="Pressure ladder on a log scale from 10⁻¹⁴ to about 3000 mbar. ISO 3529-1:2019 ranges: low vacuum from atmosphere to 1 mbar, medium to 10⁻³ mbar, high to 10⁻⁸ mbar, ultra-high to 10⁻¹¹ mbar, extreme-high below. This converter’s labels: rough to 1 mbar, medium to 10⁻³ mbar, high to 10⁻⁷ mbar, ultra-high to 10⁻¹² mbar, extreme-high below. Typical gauge ranges: piezoresistive diaphragm 2000 to 1 mbar and capacitance diaphragm 1000 to 10⁻⁵ mbar, both reading the same in any gas; Pirani 1000 to 10⁻⁴ mbar, cold cathode 10⁻² to 10⁻⁹ mbar (UHV models to 10⁻¹¹), hot cathode Bayard–Alpert 10⁻³ to 10⁻¹⁰ mbar, and extractor 10⁻⁴ to 10⁻¹² mbar, all gas-dependent."><path class="grid" d="M55 20V290"/><path class="grid" d="M119.4 20V290"/><path class="grid" d="M183.9 20V290"/><path class="grid" d="M248.3 20V290"/><path class="grid" d="M312.8 20V290"/><path class="atm" d="M377.4 16V290"/><rect class="s0" x="312.8" y="20" width="64.6" height="20"/><rect class="s1" x="248.3" y="20" width="64.5" height="20"/><rect class="s0" x="140.9" y="20" width="107.4" height="20"/><rect class="s1" x="76.5" y="20" width="64.5" height="20"/><rect class="s0" x="12" y="20" width="64.5" height="20"/><rect class="s0" x="312.8" y="64" width="64.6" height="20"/><rect class="s1" x="248.3" y="64" width="64.5" height="20"/><rect class="s0" x="162.4" y="64" width="85.9" height="20"/><rect class="s1" x="55" y="64" width="107.4" height="20"/><rect class="s0" x="12" y="64" width="43" height="20"/><rect class="g-ind" x="312.8" y="129" width="70.9" height="8" rx="2"/><rect class="g-ind" x="205.4" y="157" width="171.9" height="8" rx="2"/><rect class="g-dep" x="226.9" y="185" width="150.4" height="8" rx="2"/><rect class="g-dep g-ext" x="76.5" y="213" width="43" height="8" rx="2"/><rect class="g-dep" x="119.4" y="213" width="150.4" height="8" rx="2"/><rect class="g-dep" x="97.9" y="241" width="150.4" height="8" rx="2"/><rect class="g-dep" x="55" y="269" width="171.9" height="8" rx="2"/><path class="axis" d="M12 290H388"/><path class="axis" d="M12 290V293"/><path class="axis" d="M33.5 290V293"/><path class="axis" d="M55 290V295"/><path class="axis" d="M76.5 290V293"/><path class="axis" d="M97.9 290V293"/><path class="axis" d="M119.4 290V295"/><path class="axis" d="M140.9 290V293"/><path class="axis" d="M162.4 290V293"/><path class="axis" d="M183.9 290V295"/><path class="axis" d="M205.4 290V293"/><path class="axis" d="M226.9 290V293"/><path class="axis" d="M248.3 290V295"/><path class="axis" d="M269.8 290V293"/><path class="axis" d="M291.3 290V293"/><path class="axis" d="M312.8 290V295"/><path class="axis" d="M334.3 290V293"/><path class="axis" d="M355.8 290V293"/><path class="axis" d="M377.3 290V295"/><rect class="g-ind" x="12" y="336" width="12" height="8" rx="2"/><rect class="g-dep" x="200" y="336" width="12" height="8" rx="2"/><path class="mark" id="ladder-mark" d="M183.9 16V290" style="display:none"/><text class="tick" x="374.4" y="12" text-anchor="end">1 atm</text><text class="lab" x="12" y="14">ISO 3529-1:2019</text><text class="seg" x="345.1" y="34.5" text-anchor="middle">Low</text><text class="seg" x="280.6" y="34.5" text-anchor="middle">Medium</text><text class="seg" x="194.6" y="34.5" text-anchor="middle">High</text><text class="seg" x="108.7" y="34.5" text-anchor="middle">UHV</text><text class="seg" x="44.2" y="34.5" text-anchor="middle">XHV</text><text class="lab" x="12" y="58">This converter’s labels</text><text class="seg" x="345.1" y="78.5" text-anchor="middle">Rough</text><text class="seg" x="280.6" y="78.5" text-anchor="middle">Medium</text><text class="seg" x="205.4" y="78.5" text-anchor="middle">High</text><text class="seg" x="108.7" y="78.5" text-anchor="middle">UHV</text><text class="seg" x="33.5" y="78.5" text-anchor="middle">XHV</text><text class="lab" x="12" y="104">Typical gauge measuring ranges</text><text class="gl" x="383.7" y="124" text-anchor="end">Piezoresistive diaphragm</text><text class="gl" x="377.3" y="152" text-anchor="end">Capacitance diaphragm</text><text class="gl" x="377.3" y="180" text-anchor="end">Pirani (thermal conductivity)</text><text class="gl" x="76.5" y="208" text-anchor="start">Cold cathode (inverted magnetron)</text><text class="gl" x="97.9" y="236" text-anchor="start">Hot cathode (Bayard–Alpert)</text><text class="gl" x="55" y="264" text-anchor="start">Extractor</text><text class="tick" x="55" y="305" text-anchor="middle">10⁻¹²</text><text class="tick" x="119.4" y="305" text-anchor="middle">10⁻⁹</text><text class="tick" x="183.9" y="305" text-anchor="middle">10⁻⁶</text><text class="tick" x="248.3" y="305" text-anchor="middle">10⁻³</text><text class="tick" x="312.8" y="305" text-anchor="middle">1</text><text class="tick" x="377.3" y="305" text-anchor="middle">10³</text><text class="axt" x="200" y="324" text-anchor="middle">Pressure (mbar), log scale</text><text class="gl" x="28" y="344">Same reading in any gas</text><text class="gl" x="216" y="344">Gas-dependent (N₂ scale)</text></svg>
-            <figcaption>The two range schemes on one pressure scale, with typical measuring ranges of common gauges (limits vary by model). A capacitance diaphragm head covers three to four decades below its full scale, so its bar spans several heads; the light part of the cold-cathode bar is reached only by UHV models. Green gauges read the same in any gas; orange gauges are calibrated for N₂ and need a correction in other gases. The blue line marks the pressure in the converter.</figcaption>
+            <p class="ladder-read" id="ladder-read" aria-live="polite"></p>
+            <figcaption>The two range schemes on one pressure scale, with typical measuring ranges of common gauges (limits vary by model). A capacitance diaphragm head covers three to four decades below its full scale, so its bar spans several heads; the light part of the cold-cathode bar is reached only by UHV models. Green gauges read the same in any gas; orange gauges are calibrated for N₂ and need a correction in other gases. The blue line marks the pressure in the converter. Click or drag on the figure to move it: the converter above takes that pressure, rounded to one digit.</figcaption>
         </figure>
         <p>Two points matter when reading a gauge. Thermal-conductivity (Pirani) and ionization gauges are <strong>gas-dependent</strong> and are normally calibrated for N₂, so in helium or argon they can be off by a large factor. Capacitance diaphragm gauges measure force per area directly and read the same for any gas. And no gauge is as precise as the seven digits above. In nitrogen, a clean hot-cathode ionization gauge is typically good to ±15–25&nbsp;% without calibration (a few percent once calibrated), a cold-cathode gauge to ±30–50&nbsp;%, and a Pirani to 10–15&nbsp;% of the reading between 10⁻³ and 1&nbsp;mbar and to 25–50&nbsp;% toward the ends of its range. In routine use, with mixed gases or an aged gauge, a factor of two is the safer assumption.</p>
 
@@ -323,13 +328,14 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     // pressure ladder figure: x = 12 + (log10(p / mbar) + 14) · 376/17.5 in its viewBox (see the figure's generator)
     const mark = document.getElementById('ladder-mark');
+    const ladder = mark && mark.closest('svg');
 
     const kT20 = Calc.K.kB * 293.15;
     const dN2 = 3.75e-10;                                               // m, hard-sphere diameter of N₂
     const lambdaP = kT20 / (Math.SQRT2 * Math.PI * dN2 ** 2);           // m·Pa for N₂ at 20 °C
 
     const el = id => document.getElementById(id);
-    Calc.converter({
+    const conv = Calc.converter({
         root: '#conv',
         fields,
         sig: 7,
@@ -350,6 +356,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const lg = Math.log10(mbar), on = lg >= -14 && lg <= 3.5;
                 mark.style.display = on ? '' : 'none';
                 if (on) mark.setAttribute('d', 'M' + (12 + (lg + 14) * 376 / 17.5).toFixed(1) + ' 16V290');
+                el('ladder-read').innerHTML = on ? 'Marked: <b>' + fmt.num(mbar, 3) + ' mbar</b>, ' + r[1].charAt(0).toLowerCase() + r[1].slice(1)
+                    : 'The converter’s pressure is off this scale.';
             }
             el('pc-mfp').textContent = fmt.si(lambdaP / p, 'm', 3, { max: 3 });
             el('pc-mfp-note').hidden = lambdaP / p >= 10 * dN2;
@@ -358,6 +366,28 @@ document.addEventListener('DOMContentLoaded', () => {
             el('pc-n2').textContent = fmt.sci(n, 3) + ' m⁻³';
         }
     });
+
+    // The ladder also sets the pressure: a click, a tap, or a mouse drag anywhere on it. This is the inverse of the
+    // mapping above, p / mbar = 10^((x − 12) · 17.5/376 − 14), with x clamped to the axis (12 to 388). The value is
+    // rounded to one digit, about the precision of a pointer on a 17.5-decade scale (one screen pixel is 6 to 12 %).
+    if (ladder) {
+        const setFrom = e => {
+            const box = ladder.getBoundingClientRect();
+            if (!(box.width > 0)) return;
+            const x = Math.max(12, Math.min(388, (e.clientX - box.left) * 400 / box.width));
+            conv.set('mbar', Calc.roundSig(Math.pow(10, (x - 12) * 17.5 / 376 - 14), 1));
+        };
+        let drag = false;
+        ladder.addEventListener('click', setFrom);   // a tap on a touch screen arrives here, a swipe scrolls the page
+        ladder.addEventListener('pointerdown', e => {
+            if (e.pointerType === 'touch' || e.button !== 0) return;
+            drag = true;
+            try { ladder.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+            setFrom(e);
+        });
+        ladder.addEventListener('pointermove', e => { if (drag) setFrom(e); });
+        ['pointerup', 'pointercancel'].forEach(t => ladder.addEventListener(t, () => { drag = false; }));
+    }
 });
 </script>
 </body>

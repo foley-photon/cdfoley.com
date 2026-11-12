@@ -17,18 +17,33 @@
 <meta property="og:image:alt" content="Laser Beam Expander Calculator. Design a Galilean or Keplerian laser beam expander: magnification, lens spacing, output beam diameter and divergence, and the smaller focused spot it gives.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
     .bx-group[hidden] { display: none !important; }
     .bx-group > .field:last-child { margin-bottom: 0.95rem; }
     .bx-modes { margin-bottom: 1.1rem; }
+    .input-unit select.wl-preset { max-width: 52%; }
+    /* two-panel figure: lenses, rays and labels follow the theme */
+    .hfig { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.8rem 1rem; justify-items: center; }
+    .hfig > figcaption { grid-column: 1 / -1; justify-self: stretch; }
+    .hfig-svg { width: 100%; max-width: 440px; height: auto; display: block; font-family: var(--font); }
+    @media (min-width: 800px) { .hfig { grid-template-columns: 1fr 1fr; } .hfig-svg { max-width: none; } }
+    .hfig-svg text { font-size: 12px; fill: var(--text-2); }
+    .hfig-svg .t-title { font-size: 13px; font-weight: 650; fill: var(--text); }
+    .hfig-svg .g-glass { fill: var(--c6); fill-opacity: 0.18; stroke: var(--c6); stroke-width: 1.2; stroke-linejoin: round; }
+    .hfig-svg .g-axis { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.6; }
+    .hfig-svg .g-dim { fill: none; stroke: var(--muted); stroke-width: 1; }
+    .hfig-svg .g-stop { fill: var(--muted); }
+    .hfig-svg .a-ray { fill: none; stroke: var(--c1); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .hfig-svg .a-ray.b { stroke: var(--c2); }
+    .hfig-svg .a-head { fill: var(--c1); }
+    .hfig-svg .a-head.b { fill: var(--c2); }
 </style>
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script type="application/ld+json" id="ld-page">
@@ -167,19 +182,17 @@
                 <div class="field">
                     <label for="divin">Input divergence, full angle <span class="sym">Θ<sub>in</sub></span></label>
                     <div class="input-unit"><input id="divin" name="divin" value="1.2" inputmode="decimal" data-optional data-positive placeholder="blank = from M²" data-label="input divergence"><select data-dim="angle" data-units="µrad,mrad,deg" data-default="mrad"></select></div>
-                    <p class="hint">The 1/e² full angle from the laser datasheet (double a half-angle value). When filled in, it overrides the M² input. Leave blank to calculate it from the diameter and M² (M² times the diffraction limit).</p>
+                    <p class="hint">The 1/e² full angle from the laser datasheet (double a half-angle value). When filled in, it overrides the M² input. Leave blank to calculate it from the diameter and M² (M² times the diffraction limit). The default 1.2&nbsp;mrad implies M² ≈ 2.66: see the <a href="#example">worked example</a>.</p>
                 </div>
-                <div class="field-row">
-                    <div class="field">
-                        <label for="wl">Wavelength <span class="sym">λ</span></label>
-                        <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
-                        <p class="hint">Vacuum wavelength from the laser datasheet. It sets the diffraction limit behind M² and the Rayleigh ranges.</p>
-                    </div>
-                    <div class="field">
-                        <label for="m2">Beam quality <span class="sym">M²</span></label>
-                        <div class="input-unit"><input id="m2" name="m2" value="1" inputmode="decimal" data-min="1" data-label="M²"><span class="unit">—</span></div>
-                        <p class="hint">From the laser datasheet; 1 is a perfect Gaussian beam. Used only when the divergence is blank.</p>
-                    </div>
+                <div class="field">
+                    <label for="wl">Wavelength <span class="sym">λ</span></label>
+                    <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select class="wl-preset" id="wl-preset" aria-label="Common laser lines"></select><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <p class="hint">Vacuum wavelength from the laser datasheet. Pick a common laser line from the list or type your own. It sets the diffraction limit behind M² and the Rayleigh ranges.</p>
+                </div>
+                <div class="field">
+                    <label for="m2">Beam quality <span class="sym">M²</span></label>
+                    <div class="input-unit"><input id="m2" name="m2" value="1" inputmode="decimal" data-min="1" data-label="M²"><span class="unit">—</span></div>
+                    <p class="hint">From the laser datasheet; 1 is a perfect Gaussian beam. Used only when the divergence is blank.</p>
                 </div>
                 <div class="field">
                     <label for="ff">Downstream focusing lens <span class="sym">f<sub>F</sub></span></label>
@@ -200,8 +213,8 @@
                     <div class="result"><span class="result-label">Output divergence, full angle<span class="sym">Θ<sub>out</sub></span></span><output class="result-value" data-out="divout">—</output></div>
                     <div class="result"><span class="result-label">Effective M² of the input beam</span><output class="result-value" data-out="m2eff">—</output><span class="result-note" id="m2note"></span></div>
                     <div class="result"><span class="result-label">Output Rayleigh range (collimated length)</span><output class="result-value" data-out="zrout">—</output><span class="result-note">Distance from the output waist at which the beam has grown by √2 (41&nbsp;%). It is the magnification squared times the input Rayleigh range.</span></div>
-                    <div class="result"><span class="result-label">Internal focus diameter (Keplerian)</span><output class="result-value" data-out="dint">—</output></div>
-                    <div class="result"><span class="result-label">Suggested pinhole (≈ 1.5 × focus)</span><output class="result-value" data-out="pin">—</output><span class="result-note">Passes 98.9&nbsp;% of a TEM₀₀ beam, slightly tighter than the π/2 ≈ 1.57 to 2 times the focus diameter that vendors suggest (see Galilean or Keplerian below).</span></div>
+                    <div class="result"><span class="result-label">Internal focus diameter (Keplerian)</span><output class="result-value" data-out="dint">—</output><span class="result-note">At high peak power this focus can ionize air; evacuate the filter or use a Galilean design (see <a href="#types">Galilean or Keplerian?</a> below).</span></div>
+                    <div class="result"><span class="result-label">Suggested pinhole (≈ 1.5 × focus)</span><output class="result-value" data-out="pin">—</output><span class="result-note">Passes 98.9&nbsp;% of a TEM₀₀ beam, slightly tighter than the π/2 ≈ 1.57 to 2 times the focus diameter that vendors suggest (see <a href="#types">Galilean or Keplerian?</a> below).</span></div>
                     <div class="result"><span class="result-label">Focused spot without expander</span><output class="result-value" data-out="spot0">—</output></div>
                     <div class="result"><span class="result-label">Focused spot with expander</span><output class="result-value" data-out="spot1">—</output><span class="result-note" id="spotnote"></span></div>
                     <div class="result"><span class="result-label">Rayleigh range at focus, with expander</span><output class="result-value" data-out="zrf">—</output><span class="result-note">The price of the smaller spot: the depth of focus shrinks by the magnification squared (to one-ninth with a 3× expander).</span></div>
@@ -222,19 +235,25 @@
         <div class="formula">\[ \begin{gathered} d_F = f_F\,\Theta = \frac{4M^2\lambda f_F}{\pi D} \\[4pt] \Longrightarrow\quad d_{F,\text{expanded}} = \frac{d_{F,\text{direct}}}{|M|}. \end{gathered} \]</div>
         <p>This holds in the lens’s back focal plane for any input beam, because that plane receives the far field of the beam at the lens. The focused waist lies exactly in that plane when the input waist is in the front focal plane, and close to it whenever the input beam’s Rayleigh range is much longer than \(f_F\). A 3× expander therefore gives a spot one-third the size, nine times the peak fluence, and one-ninth the depth of focus (\(z_R \propto d_F^2\)). Expanding the beam is an alternative to a shorter focal length lens, but check that the expanded beam still fits through the scanner mirrors and focusing optics without clipping, and that the lens is still free of spherical aberration at the larger aperture. The <a href="/tools/focused-spot/">focused spot tool</a> includes aperture truncation.</p>
 
-        <h2>Galilean or Keplerian?</h2>
+        <h2 id="types">Galilean or Keplerian?</h2>
+        <figure class="hfig">
+            <svg viewBox="0 0 360 200" class="hfig-svg" role="img" aria-label="Galilean beam expander: a narrow collimated beam enters a diverging lens, spreads without crossing, and is collimated by a larger converging lens. The lenses are 100 mm apart (f2 minus the magnitude of f1), there is no focus between them, and the beam stays upright."><text class="t-title" x="12" y="18">Galilean</text><text x="165" y="40" text-anchor="middle">No internal focus</text><path class="g-axis" d="M14,110 H346"/><path class="g-glass" d="M134,90 H146 Q140,110 146,130 H134 Q140,110 134,90 Z"/><path class="g-glass" d="M240,64 Q252,110 240,156 Q228,110 240,64 Z"/><path class="a-ray" d="M14,98 H140 L240,74 H338"/><path class="a-ray b" d="M14,122 H140 L240,146 H338"/><path class="a-head" d="M346,74 L338,69.5 L338,78.5 Z"/><path class="a-head b" d="M346,146 L338,141.5 L338,150.5 Z"/><text x="140" y="82" text-anchor="middle">f₁ &lt; 0</text><text x="240" y="56" text-anchor="middle">f₂ &gt; 0</text><path class="g-dim" d="M140,169 V179 M140,174 H240 M240,169 V179"/><text x="190" y="193" text-anchor="middle">L = f₂ − |f₁|</text></svg>
+            <svg viewBox="0 0 360 200" class="hfig-svg" role="img" aria-label="Keplerian beam expander: a narrow collimated beam enters a converging lens, comes to a focus where a pinhole can sit, crosses over, and is collimated by a larger converging lens. The lenses are 200 mm apart (f1 plus f2), and the beam comes out inverted."><text class="t-title" x="12" y="18">Keplerian</text><path class="g-axis" d="M14,110 H346"/><path class="g-glass" d="M90,88 Q98,110 90,132 Q82,110 90,88 Z"/><path class="g-glass" d="M290,64 Q302,110 290,156 Q278,110 290,64 Z"/><path class="a-ray" d="M14,98 H90 L290,146 H338"/><path class="a-ray b" d="M14,122 H90 L290,74 H338"/><path class="a-head" d="M346,146 L338,141.5 L338,150.5 Z"/><path class="a-head b" d="M346,74 L338,69.5 L338,78.5 Z"/><rect class="g-stop" x="138.5" y="86" width="3" height="20"/><rect class="g-stop" x="138.5" y="114" width="3" height="20"/><text x="90" y="80" text-anchor="middle">f₁ &gt; 0</text><text x="290" y="56" text-anchor="middle">f₂ &gt; 0</text><text x="160" y="150" text-anchor="middle">Internal focus, pinhole</text><path class="g-dim" d="M90,169 V179 M90,174 H290 M290,169 V179"/><text x="190" y="193" text-anchor="middle">L = f₁ + f₂</text></svg>
+            <figcaption>The two designs, drawn to the same scale for 3× with |f₁| = 50&nbsp;mm and f₂ = 150&nbsp;mm. The two rays are colored to show which edge of the beam is which: the Galilean keeps them on the same side, and the Keplerian crosses them at the internal focus, so its output is inverted. The Keplerian is also twice as long here, 200&nbsp;mm against 100&nbsp;mm.</figcaption>
+        </figure>
         <ul>
             <li><strong>Galilean</strong> has no internal focus, so it is preferred for high-power lasers: there is no risk of air breakdown at high peak power, no heated air at a focus to distort the wavefront at high average power, and no tight focus to damage an optic placed near it. It is also shorter: for the same magnification and output lens, the lens separation is \(f_2 - |f_1|\) instead of \(f_2 + |f_1|\).</li>
             <li><strong>Keplerian</strong> has an accessible internal focus. A pinhole placed there acts as a spatial filter that strips high-spatial-frequency noise, such as scatter from dust on the optics, from the beam. The focus is \(f_1\Theta_\text{in}\) across (1/e²). A pinhole 1.5 times that diameter, the size suggested in the results, passes 98.9&nbsp;% of a TEM₀₀ beam. For a TEM₀₀ beam, vendors recommend from \(\pi/2 \approx 1.57\) times (\(\lambda f_1/w_\text{in}\) for an input 1/e² radius \(w_\text{in}\), passing 99.3&nbsp;%; Edmund Optics) to about 2 times (99.97&nbsp;%, and easier to align; CVI Melles Griot). At high peak power the internal focus can ionize air, so evacuate the filter or use a Galilean design instead.</li>
         </ul>
 
-        <h2>Worked example</h2>
+        <h2 id="example">Worked example</h2>
         <p>A 3&nbsp;mm laser beam with a 1.2&nbsp;mrad full-angle divergence (implied M² ≈ 2.66 at 1064&nbsp;nm) passes through a Galilean expander with \(f_1 = -50\,\text{mm}\) and \(f_2 = 150\,\text{mm}\):</p>
         <ul>
             <li>\(|M| = 3\) and \(L = 100\,\text{mm}\). The output is 9&nbsp;mm in diameter with 0.40&nbsp;mrad divergence.</li>
             <li>With a 100&nbsp;mm focusing lens the spot shrinks from \(100\,\text{mm}\times 1.2\,\text{mrad} = 120\,\mu\text{m}\) to 40&nbsp;µm. The Rayleigh range at focus becomes 0.44&nbsp;mm.</li>
             <li>A Keplerian version (\(f_1 = +50\,\text{mm}\)) needs \(L = 200\,\text{mm}\) and has a 60&nbsp;µm internal focus. A 90&nbsp;µm pinhole would make a suitable spatial filter.</li>
         </ul>
+        <p>The default beam here is given by its measured divergence, which implies M² ≈ 2.66. The <a href="/tools/focused-spot/">focused spot</a>, <a href="/tools/gaussian-beam/">Gaussian beam</a>, and <a href="/tools/f-theta-lens/">f-theta</a> tools start from M² = 1.1 instead, so their default numbers will not match these. To compare like with like, clear the divergence field and enter the same M² in each tool.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
@@ -285,9 +304,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const m2Field = document.getElementById('m2').closest('.field');
     const gL = document.getElementById('grp-lenses'), gD = document.getElementById('grp-design');
 
+    // Common laser lines (vacuum wavelength in nm). The list fills the wavelength field and follows what is typed into it.
+    const LINES = [['', 'Custom'], ['10600', 'CO₂, 10.6 µm'], ['1550', 'Er fiber, 1550 nm'], ['1064', 'Nd:YAG, 1064 nm'], ['1030', 'Yb, 1030 nm'],
+        ['780', 'Diode, 780 nm'], ['632.991', 'HeNe, 633 nm'], ['532', 'Nd:YAG doubled, 532 nm'], ['515', 'Yb doubled, 515 nm'], ['355', 'Nd:YAG tripled, 355 nm']];
+    const wlIn = document.getElementById('wl'), wlPre = document.getElementById('wl-preset');
+    wlPre.innerHTML = LINES.map(p => `<option value="${p[0]}">${p[1]}</option>`).join('');
+    const wlUnit = () => wlIn.closest('.input-unit').querySelector('select[data-dim]').value;
+    const syncLine = () => {
+        const u = wlUnit(), nm = u ? Calc.toSI('length', u, Calc.parseNum(wlIn.value)) * 1e9 : NaN;
+        const hit = LINES.find(p => p[0] && Math.abs(nm - p[0]) < 1e-6 * p[0]);
+        wlPre.value = hit ? hit[0] : '';
+    };
+    wlPre.addEventListener('change', e => {
+        if (!wlPre.value) { e.stopPropagation(); return; }   // "Custom": keep it selected instead of re-syncing back to the matching line
+        wlIn.value = fmt.plain(Calc.fromSI('length', wlUnit(), wlPre.value * 1e-9), 6);
+        wlIn.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
     const calc = Calc.create({
         form: '#calc',
         compute(v) {
+            syncLine();
             gL.hidden = v.mode !== 'lenses';
             gD.hidden = v.mode !== 'design';
             // an entered divergence sets the beam quality, so the M² input is inactive
@@ -318,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const M = -f2 / f1, aM = Math.abs(M);
             const keplerian = f1 > 0 && f2 > 0;
             typeBadge.textContent = (keplerian ? 'Keplerian' : 'Galilean') + (aM >= 1 ? ' expander' : ' reducer');
-            typeBadge.className = 'badge ' + (keplerian ? 'badge-warn' : 'badge-ok');
+            typeBadge.className = 'badge';   // neutral: the type is a classification, not a verdict
 
             const dl = 4 * v.m2 * v.wl / (Math.PI * v.din);            // full angle from M²: M² times the diffraction limit
             const thIn = measured ? v.divin : dl;
@@ -355,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 zrf: hasF ? fmt.si(zrf, 'm', 4) : null
             };
         },
-        onError() { typeBadge.textContent = ''; typeBadge.className = ''; m2note.textContent = ''; spotnote.textContent = ''; }
+        onError() { typeBadge.textContent = ''; typeBadge.className = ''; m2note.textContent = ''; spotnote.textContent = ''; syncLine(); }
     });
 
     // keep field visibility in sync with the mode even when compute fails, and clear unparseable

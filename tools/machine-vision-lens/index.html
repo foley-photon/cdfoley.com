@@ -17,16 +17,31 @@
 <meta property="og:image:alt" content="Machine Vision Lens Calculator. Pick a machine vision lens: focal length for a field of view and working distance, magnification, depth of field, pixel size on the part, and smallest defect.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/vision-data.js"></script>
+<style>
+    .mv-side { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.4rem; margin-bottom: 1rem; }
+    .mv-side svg { display: block; width: 100%; height: auto; }
+    .mv-side .lbl { fill: var(--text-2); font: 500 14px var(--font); }
+    .mv-side .lbl-s { fill: var(--muted); font: 500 12.5px var(--font); }
+    .mv-side .lbl-b { fill: var(--text); font: 650 14px var(--font); }
+    .mv-side .cam { fill: var(--surface-2); stroke: var(--border-strong); stroke-width: 1.2; }
+    .mv-side .sensor { stroke: var(--c4); stroke-width: 3; }
+    .mv-side .lens { fill: var(--c1); fill-opacity: 0.18; stroke: var(--c1); stroke-width: 1.2; }
+    .mv-side .cone { fill: var(--c6); fill-opacity: 0.12; }
+    .mv-side .ray { stroke: var(--c6); stroke-width: 1; fill: none; }
+    .mv-side .axis { stroke: var(--muted); stroke-width: 0.8; stroke-dasharray: 4 4; }
+    .mv-side .plane { stroke: var(--text-2); stroke-width: 1.4; }
+    .mv-side .dof { fill: var(--c3); fill-opacity: 0.14; stroke: var(--c3); stroke-opacity: 0.5; stroke-width: 0.8; }
+    .mv-side .dim { stroke: var(--muted); stroke-width: 0.9; fill: none; }
+</style>
 <script type="application/ld+json" id="ld-page">
 {
  "@context": "https://schema.org",
@@ -180,6 +195,7 @@
         <section class="panel sticky-panel" id="mv-results" aria-labelledby="results-h">
             <div class="panel-head"><h2 id="results-h">Results</h2><span id="limit" class="badge"></span></div>
             <div class="panel-body">
+                <div class="mv-side calc-hide-on-error" id="side"></div>
                 <div class="results">
                     <div class="result primary"><span class="result-label">Field of view (H × V)</span><output class="result-value" data-out="fov">—</output></div>
                     <div class="result"><span class="result-label">Magnification<span class="sym">m = f/(s − f)</span></span><output class="result-value" data-out="m">—</output></div>
@@ -205,7 +221,7 @@
     <div class="tool-layout" style="margin-top:1.5rem">
         <form class="panel" id="inv" autocomplete="off">
             <div class="panel-head"><h2>Which focal length do I need?</h2>
-                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="inv">Reset</button></div>
+                <div class="calc-actions"><button type="button" class="btn btn-ghost btn-sm" data-action="reset" data-for="inv">Reset</button><button type="button" class="btn btn-ghost btn-sm" data-action="share">Copy link</button></div>
             </div>
             <div class="panel-body">
                 <div class="calc-error" role="alert"></div>
@@ -339,17 +355,60 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     // a preset whose numbers no longer match the fields reads as Custom: after an edit, and on load for a link whose
     // values differ from the preset's (an edited link, or one made before a correction to the sensor data)
+    // and Custom flips back to a preset when the three numbers equal one exactly (the chosen preset wins if several share them)
     const syncPreset = () => {
-        const s = V.sensorById(sel.value);
-        if (!s) return;
         const p = Calc.toSI('length', pitchUnit.value, Calc.parseNum(pitchIn.value)) * 1e6;
-        if (Math.abs(p - s.pitch) > 1e-9 || Calc.parseNum(nxIn.value) !== s.nx || Calc.parseNum(nyIn.value) !== s.ny) { sel.value = 'custom'; picker.refresh(); }
+        const nx = Calc.parseNum(nxIn.value), ny = Calc.parseNum(nyIn.value);
+        const same = s => Math.abs(p - s.pitch) < 1e-9 && nx === s.nx && ny === s.ny;
+        const cur = V.sensorById(sel.value);
+        if (cur && same(cur)) return;
+        const hit = V.sensors.find(same);
+        const next = hit ? hit.id : 'custom';
+        if (sel.value !== next) { sel.value = next; picker.refresh(); }
     };
     [pitchIn, nxIn, nyIn].forEach(inp => inp.addEventListener('input', syncPreset));
 
     const len = (x, sig) => fmt.si(x, 'm', sig || 4, { max: 0 });
     const limit = document.getElementById('limit');
     const dofNote = document.getElementById('dof-note');
+
+    // Side view, angles to scale: camera, lens, the cone out to the horizontal field of view, and the depth of field
+    // (the same drawing as the vision system configurator, without the required-field overlay)
+    const sideBox = document.getElementById('side');
+    const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+    const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    function sideSVG(v, o) {
+        const W = 420;
+        const fmm = v.f * 1e3, lw = clamp(20 + 10 * Math.log2(Math.max(fmm, 4) / 4), 20, 60);
+        const x0l = 106, xl = x0l + lw;                         // lens front principal point
+        const tanA = (o.fovA / 2) / v.wd;
+        const Lmax = W - 100 - xl, Lx = Math.min(Lmax, 62 / Math.max(tanA, 1e-9));
+        const xo = xl + Lx, half = Lx * tanA;
+        const cy = Math.max(half, 24) + 32;                     // the drawing is as tall as the cone needs
+        const xN = xl + Lx * o.near / v.wd, xF = isFinite(o.far) ? Math.min(xl + Lx * o.far / v.wd, W - 6) : W - 6;
+        const dN = clamp(xN, xl + 4, xo - 1), dF = clamp(xF, xo + 1, W - 6);
+        const yDim = cy + Math.max(half, 30) + 16, H = yDim + 42;
+        const s = V.sensorById(v.sensor);
+        let g = '';
+        g += '<rect class="cam" x="8" y="' + (cy - 30) + '" width="' + (x0l - 12) + '" height="60" rx="6"/>';
+        g += '<line class="sensor" x1="' + (x0l - 8) + '" y1="' + (cy - 18) + '" x2="' + (x0l - 8) + '" y2="' + (cy + 18) + '"/>';
+        g += '<text class="lbl-b" x="14" y="' + (cy - 5) + '">' + esc(s ? s.name : 'Sensor') + '</text>';
+        g += '<text class="lbl-s" x="14" y="' + (cy + 12) + '">' + (o.sw * 1e3).toFixed(1) + ' × ' + (o.sh * 1e3).toFixed(1) + ' mm</text>';
+        g += '<rect class="lens" x="' + (x0l - 4) + '" y="' + (cy - 22) + '" width="' + (lw + 4) + '" height="44" rx="4"/>';
+        g += '<text class="lbl" x="' + (x0l + lw / 2) + '" y="' + (cy - 36) + '" text-anchor="middle">' + esc(fmt.num(fmm, 3)) + ' mm f/' + esc(fmt.num(v.N, 3)) + '</text>';
+        g += '<rect class="dof" x="' + dN + '" y="' + (cy - half - 8) + '" width="' + (dF - dN) + '" height="' + (2 * half + 16) + '"/>';
+        g += '<polygon class="cone" points="' + xl + ',' + cy + ' ' + xo + ',' + (cy - half) + ' ' + xo + ',' + (cy + half) + '"/>';
+        g += '<line class="ray" x1="' + xl + '" y1="' + cy + '" x2="' + xo + '" y2="' + (cy - half) + '"/><line class="ray" x1="' + xl + '" y1="' + cy + '" x2="' + xo + '" y2="' + (cy + half) + '"/>';
+        g += '<line class="axis" x1="' + xl + '" y1="' + cy + '" x2="' + xo + '" y2="' + cy + '"/>';
+        g += '<line class="plane" x1="' + xo + '" y1="' + (cy - half - 5) + '" x2="' + xo + '" y2="' + (cy + half + 5) + '"/>';
+        g += '<text class="lbl" x="' + Math.min(Math.max(xo + 9, dF + 5), W - 90) + '" y="' + (cy + 4) + '">FOV ' + esc(len(o.fovA, 3)) + '</text>';
+        g += '<text class="lbl" x="' + clamp((dN + dF) / 2, xl + 40, W - 46) + '" y="' + (cy - half - 13) + '" text-anchor="middle" style="fill:var(--c3)">DOF ' + esc(isFinite(o.dof) ? len(o.dof, 3) : '∞') + '</text>';
+        g += '<path class="dim" d="M' + xl + ' ' + (yDim - 5) + 'V' + (yDim + 5) + 'M' + xo + ' ' + (yDim - 5) + 'V' + (yDim + 5) + 'M' + xl + ' ' + yDim + 'H' + xo + '"/>';
+        g += '<text class="lbl" x="' + ((xl + xo) / 2) + '" y="' + (yDim + 15) + '" text-anchor="middle">object distance ' + esc(len(v.wd, 3)) + '</text>';
+        g += '<text class="lbl-s" x="8" y="' + (H - 6) + '">Angles to scale. Green: depth of field.</text>';
+        const label = 'Side view: a ' + fmt.num(fmm, 3) + ' mm lens at ' + len(v.wd, 3) + ' sees a field ' + len(o.fovA, 3) + ' wide; the depth of field is ' + (isFinite(o.dof) ? len(o.dof, 3) : 'unlimited on the far side') + '.';
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(label) + '">' + g + '</svg>';
+    }
 
     Calc.create({
         id: 'mv',
@@ -384,6 +443,8 @@ document.addEventListener('DOMContentLoaded', () => {
             dofNote.textContent = isFinite(far)
                 ? 'In focus from ' + len(near, sigNF) + ' to ' + len(far, sigNF) + ' (c = ' + fmt.si(c, 'm', 3) + ').'
                 : 'At or beyond the hyperfocal distance: in focus from ' + len(near) + ' to infinity.';
+
+            sideBox.innerHTML = sideSVG(v, { fovA: sw / m, near, far, dof, sw, sh });
 
             return {
                 fov: len(sw / m, 4) + ' × ' + len(sh / m, 4),

@@ -17,13 +17,13 @@
 <meta property="og:image:alt" content="Focused Laser Spot Size Calculator. Calculate the focused laser spot size (1/e² beam waist) from wavelength, focal length, beam diameter, and M², with truncation and depth of focus.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<style>.input-unit select.wl-preset { max-width: 52%; }</style>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -119,8 +119,8 @@
                 <div class="calc-error" role="alert"></div>
                 <div class="field">
                     <label for="wl">Wavelength <span class="sym">λ</span></label>
-                    <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
-                    <p class="hint">Vacuum wavelength from the laser datasheet. In air it is 0.03&nbsp;% shorter, which can be ignored here.</p>
+                    <div class="input-unit"><input id="wl" name="wl" value="1064" inputmode="decimal" data-positive><select class="wl-preset" id="wl-preset" aria-label="Common laser lines"></select><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
+                    <p class="hint">Vacuum wavelength from the laser datasheet. Pick a common laser line from the list or type your own. In air it is 0.03&nbsp;% shorter, which can be ignored here.</p>
                 </div>
                 <div class="field">
                     <label for="f">Focal length <span class="sym">f′</span></label>
@@ -160,7 +160,7 @@
                     <div class="result"><span class="result-label">Waist radius<span class="sym">w₀</span></span><output class="result-value" data-out="w0">—</output></div>
                     <div class="result"><span class="result-label">Truncation ratio<span class="sym">T = D<sub>b</sub>/D<sub>t</sub></span></span><output class="result-value" data-out="T">—</output></div>
                     <div class="result"><span class="result-label">Apodization factor<span class="sym">APO</span></span><output class="result-value" data-out="apo">—</output><span class="result-note">4/π ≈ 1.273 means the aperture does not enlarge the spot. Larger values show how much clipping costs.</span></div>
-                    <div class="result"><span class="result-label">Power through aperture</span><output class="result-value" data-out="trans">—</output><span class="result-note">Clipped power heats mirrors and mounts. For scan heads, keep the loss to about 1&nbsp;% (T ≤ 0.66).</span></div>
+                    <div class="result"><span class="result-label">Power through aperture</span><output class="result-value" data-out="trans">—</output><span class="result-note">Clipped power heats mirrors and mounts. For scan heads, keep the loss to about 1&nbsp;% (T ≤ 0.66). The percentage assumes a Gaussian profile; a multimode beam of the same diameter clips slightly differently.</span></div>
                     <div class="result"><span class="result-label">Untruncated spot (APO = 4/π)</span><output class="result-value" data-out="dF0">—</output></div>
                     <div class="result"><span class="result-label">Rayleigh range<span class="sym">z<sub>R</sub></span></span><output class="result-value" data-out="zR">—</output></div>
                     <div class="result"><span class="result-label" id="dof-label">Depth of focus, total</span><output class="result-value" data-out="dof">—</output></div>
@@ -305,9 +305,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const dofLabel = document.getElementById('dof-label');
     const collNote = document.getElementById('coll-note');
 
+    // Common laser lines (vacuum wavelength in nm). The list fills the wavelength field and follows what is typed into it.
+    const LINES = [['', 'Custom'], ['10600', 'CO₂, 10.6 µm'], ['1550', 'Er fiber, 1550 nm'], ['1064', 'Nd:YAG, 1064 nm'], ['1030', 'Yb, 1030 nm'],
+        ['780', 'Diode, 780 nm'], ['632.991', 'HeNe, 633 nm'], ['532', 'Nd:YAG doubled, 532 nm'], ['515', 'Yb doubled, 515 nm'], ['355', 'Nd:YAG tripled, 355 nm']];
+    const wlIn = document.getElementById('wl'), wlPre = document.getElementById('wl-preset');
+    wlPre.innerHTML = LINES.map(p => `<option value="${p[0]}">${p[1]}</option>`).join('');
+    const wlUnit = () => wlIn.closest('.input-unit').querySelector('select[data-dim]').value;
+    const syncLine = () => {
+        const u = wlUnit(), nm = u ? Calc.toSI('length', u, Calc.parseNum(wlIn.value)) * 1e9 : NaN;
+        const hit = LINES.find(p => p[0] && Math.abs(nm - p[0]) < 1e-6 * p[0]);
+        wlPre.value = hit ? hit[0] : '';
+    };
+    wlPre.addEventListener('change', e => {
+        if (!wlPre.value) { e.stopPropagation(); return; }   // "Custom": keep it selected instead of re-syncing back to the matching line
+        wlIn.value = fmt.plain(Calc.fromSI('length', wlUnit(), wlPre.value * 1e-9), 6);
+        wlIn.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
     Calc.create({
         form: '#calc',
         compute(v) {
+            syncLine();
             const truncated = isFinite(v.dt);
             const T = truncated ? v.db / v.dt : 0;
             // M² enters through the embedded Gaussian (diameter D_b/M): APO at its truncation ratio T/M, spot × M²
@@ -353,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
             Plot.clear('#apo-plot');
             collNote.hidden = true;
             regime.textContent = ''; regime.className = 'badge';
+            syncLine();
         },
         after(v) {
             const T = isFinite(v.dt) ? v.db / v.dt : null, M = Math.sqrt(v.m2);

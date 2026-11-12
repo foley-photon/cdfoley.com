@@ -117,9 +117,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!ru) ru = GU.mountConverter({ label: 'the calculator’s center-of-glass result' });
         calc = Calc.create({ id: 'glzb', form: '#glzb', outputs: '#glzb-out', compute: safe(compute),
             // lastRun is null while a measured product is still loading: no result to convert yet
-            after: function () { drawPlot(); if (lastRun) ru.follow(lastRun.U); else ru.clear(); },
+            after: function () { inError = false; drawPlot(); if (lastRun) ru.follow(lastRun.U); else ru.clear(); },
             // no valid result: remove the spectra of the last one, so a resize cannot redraw them (as the live page does)
-            onError: function () { lastRun = null; clearPlot(); ru.clear(); } });
+            // and say why the chart is empty. #glzb-out carries calc-error-state meanwhile (calc.js), which hides its
+            // figure, tiles and table and shows its "fix the input" line.
+            onError: function () { lastRun = null; inError = true; clearPlot(); plotEmpty(); ru.clear(); } });
         // A link may set a select to a value it does not offer, which leaves it blank: restore those defaults.
         var fixed = false;
         if (!$('sol').value) { $('sol').value = S891 ? 'e891' : 'g173'; fixed = true; }
@@ -153,6 +155,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (window.Plot && Plot.clear) { Plot.clear('#glzb-plot'); return; }
         var c = $('glzb-plot');
         if (c) { clearTimeout(c._plotT); c.innerHTML = ''; c._plot = null; }   // plot.js redraws on resize only while _plot is set
+    }
+
+    // The chart's place while an input error is shown; the next Plot.draw replaces it.
+    var inError = false;
+    function plotEmpty() {
+        var c = $('glzb-plot');
+        if (c) c.innerHTML = '<p class="hint gl-plot-empty">Fix the highlighted input to redraw the spectra.</p>';
     }
 
     // compute() may throw only Calc.fail: Calc logs anything else with console.error.
@@ -348,7 +357,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function drawPlot() {
         if (!window.Plot) return;
-        if (!lastRun) { clearPlot(); return; }   // an error or a product still loading: no stale spectra
+        if (!lastRun) { clearPlot(); if (inError) plotEmpty(); return; }   // an error or a product still loading: no stale spectra
         var res = lastRun.res, x = Array.from(E.LAM);
         var ws = lastRun.st.solar === 'E891' && S891 ? S891 : Wt.solar;
         var smax = Math.max.apply(null, ws);
@@ -495,6 +504,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
         h += '</tbody></table>';
+        // The marks carry their meaning in a title only, which a touch screen never shows: say it in words once.
+        h += '<p class="hint cmp-key">Under each model value is its difference from the published value. <span class="s-ok">✓</span> within the tolerance printed under the quantity, ' +
+            '<span class="s-warn">!</span> within twice the tolerance, <span class="s-bad">✗</span> outside twice the tolerance. “(report)” marks a quantity with no tolerance.</p>';
         if (row.igdb) h += '<p class="hint">' + esc(measuredHint(row, c.metrics)) + '</p>';
         if (row.UV != null) h += '<p class="hint">UV transmittance is computed as LBNL WINDOW computes it for datasheets: weighted by the ASTM E891 spectrum from 310 to 380 nm.' +
             ' The results above list UV transmittance from 300 to 380 nm, a slightly larger number.</p>';
@@ -554,40 +566,44 @@ document.addEventListener('DOMContentLoaded', function () {
             var c = C.coatings[key];
             if (!c) return;
             h += '<div class="coat-card"><h3>' + esc(c.label) + '</h3>' + stackSVG(key, c, M);
-            h += '<div class="cmp-wrap"><table class="cmp"><caption>Layers, from the glass outward</caption><thead><tr><th scope="col">#</th><th scope="col">Material</th><th scope="col">Thickness (nm)</th></tr></thead><tbody>';
-            c.layers.forEach(function (l, i) {
+            // The layer and residual tables are folded: the drawing, the emissivity and the calibration rows stay in view.
+            var fold = '<div class="cmp-wrap"><table class="cmp"><caption>Layers, from the glass outward</caption><thead><tr><th scope="col">#</th><th scope="col">Material</th><th scope="col">Thickness (nm)</th></tr></thead><tbody>';
+            var nLayer = 0;
+            c.layers.forEach(function (l) {
+                if (!(l.d > 0)) return;   // a layer the fit removed (0 nm) is not part of the stack
                 var mat = M.materials[l.m];
-                h += '<tr><td>' + (i + 1) + '</td><th scope="row">' + esc(mat ? mat.label : l.m) + '</th><td>' + l.d.toFixed(2) + '</td></tr>';
+                fold += '<tr><td>' + (++nLayer) + '</td><th scope="row">' + esc(mat ? mat.label : l.m) + '</th><td>' + l.d.toFixed(2) + '</td></tr>';
             });
-            h += '</tbody></table></div>';
+            fold += '</tbody></table></div>';
             h += '<p>Coated-face emissivity ε = ' + c.eps + ', inferred ' + esc(c.epsFrom ? 'from the ' + c.epsFrom : '') + '.' +
                 (c.silverNm > 0 ? ' Total silver: ' + c.silverNm.toFixed(2) + ' nm.' : '') + '</p>';
             var cal = (c.calibratedTo || []).map(function (id) { return rowsById[id]; }).filter(Boolean);
             if (cal.length) {
                 h += '<p>Calibrated to: ' + cal.map(function (r) { return esc(B.rowLabel(r)); }).join('; ') + '.</p>';
                 var keys = RES_KEYS.filter(function (k) { return cal.some(function (r) { return c.residuals[r.id] && c.residuals[r.id][k[0]]; }); });
-                h += '<div class="cmp-wrap"><table class="cmp"><caption>Calibration residuals: model / published</caption><thead><tr><th scope="col">Quantity</th>' +
+                fold += '<div class="cmp-wrap"><table class="cmp"><caption>Calibration residuals: model / published</caption><thead><tr><th scope="col">Quantity</th>' +
                     cal.map(function (r) { return '<th scope="col">' + esc(r.id) + '</th>'; }).join('') + '</tr></thead><tbody>';
                 keys.forEach(function (k) {
-                    h += '<tr><th scope="row">' + k[1] + '</th>' + cal.map(function (r) {
+                    fold += '<tr><th scope="row">' + k[1] + '</th>' + cal.map(function (r) {
                         var x = c.residuals[r.id] && c.residuals[r.id][k[0]];
                         return '<td>' + (x ? fv(k[0], Number(x[0])).replace(/^-/, '−') + ' / ' + pubText(k[0], x[1]) : '—') + '</td>';
                     }).join('') + '</tr>';
                 });
-                h += '<tr><th scope="row">Exterior a*, b* (model)</th>' + cal.map(function (r) {
+                fold += '<tr><th scope="row">Exterior a*, b* (model)</th>' + cal.map(function (r) {
                     var x = c.residuals[r.id] && c.residuals[r.id].colorR;
                     return '<td>' + (x ? minus(Number(x[0]), 2) + ', ' + minus(Number(x[1]), 2) : '—') + '</td>';
                 }).join('') + '</tr>';
-                h += '</tbody></table></div>';
+                fold += '</tbody></table></div>';
             } else if (c.calibratedTo) {
                 h += '<p>Calibrated to: ' + c.calibratedTo.map(esc).join(', ') + '.</p>';
             }
             var k0 = E.COATINGS[key];
             if (k0) h += '<p>Classic model, for comparison: ε ' + k0.eps + '; a parametric reflectance curve (visible ' + Math.round(k0.Rv * 1000) / 10 + ' %, infrared ' +
                 Math.round(k0.Rir * 100) + ' %, edge at ' + k0.lc + ' nm, width ' + k0.w + ' nm) with a matching absorptance.</p>';
-            h += '</div>';
+            h += '<details class="fold coat-fold"><summary>Layers and calibration residuals</summary>' + fold + '</details></div>';
         });
-        h += '</div><h3 class="gl-sec">Optical constants</h3><ul class="mat-list">';
+        var nMat = Object.keys(M.materials).length;
+        h += '</div><details class="fold gl-sec"><summary>Optical constants (' + nMat + ' materials, all CC0 or published model parameters)</summary><ul class="mat-list">';
         Object.keys(M.materials).forEach(function (id) {
             var m = M.materials[id];
             h += '<li><b>' + esc(m.label) + '</b> (' + esc(id) + '). ' + esc(m.ref || '') +
@@ -595,7 +611,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 (m.src ? '. Source: <a href="' + esc(m.src) + '" target="_blank" rel="noopener">' + esc(/github\.com/.test(m.src) ? 'refractiveindex.info database file' : 'paper') + '</a>' : '') +
                 '. License: ' + esc(m.license || '') + '.</li>';
         });
-        h += '</ul>';
+        h += '</ul></details>';
         box.innerHTML = h;
     }
 
@@ -681,6 +697,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         $('imp-add').addEventListener('click', function () { add($('imp-text').value, ''); });
         $('imp-pick').addEventListener('click', function () { $('imp-file').click(); });   // a real button: reachable by keyboard
+        // The importer is folded; open it when it has something to show (saved products, or a message about them).
+        if ((imports.length || droppedImports) && $('imp-fold')) $('imp-fold').open = true;
         if (droppedImports) say(false, droppedImports === 1 ? 'One saved import could not be read and was removed.' : droppedImports + ' saved imports could not be read and were removed.');
         $('imp-file').addEventListener('change', function (e) {
             Array.prototype.slice.call(e.target.files).forEach(function (f) {

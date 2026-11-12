@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="Cyclotron Radius &amp; Frequency Calculator. Larmor (cyclotron) radius, frequency, period, magnetic rigidity Bρ, and helix pitch for ions and electrons at any energy, plus the ICR frequency for an m/z.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -31,6 +30,9 @@
 <style>
     .cp-group { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--border); }
     .calc-error + .cp-group { margin-top: 0; padding-top: 0; border-top: 0; }
+    .cy-chips .chip-lbl { font-size: 0.8rem; color: var(--muted); align-self: center; }
+    .cy-chips + .cp-group { margin-top: 1rem; }
+    @media print { .cy-chips { display: none; } }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -121,6 +123,8 @@
             <div class="panel-body">
                 <div class="calc-error" role="alert"></div>
 
+                <div class="chip-row cy-chips" id="cy-chips"><span class="chip-lbl">Examples:</span><button type="button" class="chip" data-sp="e" data-k="1" data-ku="keV" data-b="10" data-bu="mT">Electron gun: 1 keV, 10 mT</button><button type="button" class="chip" data-sp="p" data-k="10" data-ku="MeV" data-b="1.5" data-bu="T">Cyclotron: 10 MeV proton, 1.5 T</button><button type="button" class="chip" data-sp="custom" data-m="500" data-z="1" data-k="0.04" data-ku="eV" data-b="7" data-bu="T">FT-ICR: m/z 500, 7 T</button><button type="button" class="chip" data-sp="p" data-k="1" data-ku="keV" data-b="0.005" data-bu="µT">Solar wind: 1 keV proton, 5 nT</button></div>
+
                 <div class="cp-group">Particle</div>
                 <div class="field">
                     <label for="sp">Particle or ion</label>
@@ -185,7 +189,7 @@
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
         <div class="panel-head"><h2 id="plot-h">Radius vs. kinetic energy</h2></div>
-        <div class="panel-body"><div id="r-plot"></div><p class="hint" id="plot-note" hidden></p></div>
+        <div class="panel-body"><div id="r-plot"></div><p class="hint calc-empty" style="margin:0">Fix the input error above to redraw the chart.</p><p class="hint" id="plot-note" hidden></p></div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
@@ -277,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const note = (id, t) => { notes[id].textContent = t || ''; notes[id].hidden = !t; };
     let last = null;
 
-    Calc.create({
+    const calc = Calc.create({
         form: '#calc',
         compute(v) {
             if (!isFinite(v.z) || v.z === 0 || !Number.isInteger(v.z)) throw Calc.fail('Enter a whole-number charge other than zero (for example 1, 2, or −1).', 'z');
@@ -292,7 +296,8 @@ document.addEventListener('DOMContentLoaded', () => {
             note('r-note', sa < 1e-12 ? 'Along the field (α = 0° or 180°) the particle does not gyrate.'
                 : 'Diameter ' + fmt.si(2 * r, 'm', 4, { max: 3 }) + '. Classical formula: ' + fmt.si(rn, 'm', 5, { max: 3 }) + (r / rn - 1 < 1e-6 ? ', the same to within 1 ppm.' : '; the relativistic radius is ' + fmt.num((r / rn - 1) * 100, 3) + ' % larger.'));
             note('f-note', eps > 1e-6 ? 'Lower than the low-energy value f₀ by the factor γ = ' + fmt.num(k.gam, 6) + '.' : 'Equal to f₀ to within ' + (eps < 1e-9 ? '1 part in 10⁹.' : fmt.num(eps * 1e6, 2) + ' ppm.'));
-            note('v-note', 'β = v/c = ' + fmt.num(k.v / c, 5) + '; across the field ' + fmt.num(k.v * sa / 1e3, 5) + ' km/s, along it ' + fmt.num(k.v * ca / 1e3, 5) + ' km/s.');
+            // the split across and along the field says something only off 90°, where the path is a helix
+            note('v-note', 'β = v/c = ' + fmt.num(k.v / c, 5) + (Math.abs(ca) > 1e-12 ? '; across the field ' + fmt.num(k.v * sa / 1e3, 5) + ' km/s, along it ' + fmt.num(k.v * ca / 1e3, 5) + ' km/s.' : '.'));
             let mzf = null;
             if (isFinite(v.fm) && v.fm > 0) {
                 const mz = K.e * B / (2 * Math.PI * v.fm) / K.u;
@@ -306,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 f0: fmtF(f0),
                 brho: fmt.num(k.p / q, 5) + ' T·m',
                 p: fmtP(k.p),
-                v: fmt.num(k.v / 1e3, 6) + ' km/s',
+                v: fmt.num(k.v / 1e3, 5) + ' km/s',
                 gam: eps < 1e-4 ? '1 + ' + fmt.sci(eps, 4) : fmt.num(k.gam, 6),
                 pitch: Math.abs(ca) < 1e-12 ? '0 (flat circle)' : fmt.si(Math.abs(k.v * ca) / f, 'm', 4, { max: 3 }),
                 mzf
@@ -334,6 +339,15 @@ document.addEventListener('DOMContentLoaded', () => {
             note('plot-note', 'The two curves part where K approaches the rest energy mc² = ' + fmt.si(m * c2 / K.e, 'eV', 4) + '; above it the radius grows in proportion to K instead of √K. The dot is your input.');
         }
     });
+    // example chips: a particle, an energy, and a field, across the field (α = 90°) and with no measured frequency.
+    // A listed particle takes its mass and charge from the shared table; the FT-ICR ion is a custom m/z at thermal energy.
+    document.querySelectorAll('#cy-chips [data-sp]').forEach(b => b.addEventListener('click', () => {
+        const d = b.dataset, s = CP.byId[d.sp];
+        const mass = s && CP.massOf(s.id, s.z);
+        // the default proton keeps the page's own digits, so its chip returns to the unchanged state
+        const mText = !s ? d.m : Math.abs(Calc.parseNum(mIn.defaultValue) - mass) < 1e-12 ? mIn.defaultValue : fmt.plain(mass, 12);
+        calc.set({ sp: d.sp, m: mText, z: String(s ? s.z : d.z), K: d.k, K_u: d.ku, B: d.b, B_u: d.bu, al: '90', fm: '' });
+    }));
 });
 </script>
 </body>

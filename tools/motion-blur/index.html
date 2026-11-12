@@ -17,18 +17,23 @@
 <meta property="og:image:alt" content="Motion Blur &amp; Exposure Time Calculator. Find the maximum exposure or strobe time to image moving parts without motion blur, the blur at a given exposure, and the frame or line-scan rate.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <style>
     .mb-group { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 650; margin: 1.4rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--border); }
     .calc-error + .mb-group { margin-top: 0; padding-top: 0; border-top: 0; }
+    .mb-strip { margin: 1.1rem 0 0; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .mb-strip svg { display: block; width: 100%; height: 17px; margin: 0.15rem 0 0.5rem; overflow: visible; }
+    .mb-strip .mb-lbl { font-size: 0.8rem; color: var(--text-2); }
+    .mb-strip .cell { fill: var(--surface-2); stroke: var(--border-strong); stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .mb-strip .grid { stroke: var(--border-strong); stroke-width: 0.5; vector-effect: non-scaling-stroke; }
+    .mb-strip figcaption { font-size: 0.8rem; color: var(--muted); line-height: 1.45; margin-top: 0.5rem; }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -167,7 +172,7 @@
                         <div class="input-unit"><input id="ln" name="ln" value="4096" inputmode="decimal" data-optional data-positive data-label="pixels per line"><span class="unit">px</span></div>
                     </div>
                 </div>
-                <p class="hint" style="margin:-.4rem 0 .9rem">The width of web the line covers, and the line sensor’s length in pixels from its datasheet. Leave both blank if you have no line-scan camera.</p>
+                <p class="hint" style="margin:-.4rem 0 .9rem">The width of web the line covers, and the line sensor’s length in pixels from its datasheet. Clear both fields if you have no line-scan camera.</p>
             </div>
         </form>
 
@@ -183,11 +188,16 @@
                     <div class="result"><span class="result-label">Minimum frame rate for full coverage</span><output class="result-value" data-out="fps">—</output>
                         <span class="result-note">Check that the camera reaches this frame rate at the resolution you use.</span></div>
                     <div class="result"><span class="result-label">Maximum time between frames</span><output class="result-value" data-out="dt">—</output></div>
-                    <div class="result"><span class="result-label">Line-scan pixel size (across)</span><output class="result-value" data-out="lpx">—</output></div>
+                    <div class="result"><span class="result-label">Line-scan pixel size (across)</span><output class="result-value" data-out="lpx">—</output>
+                        <span class="result-note">This row and the two below are for the optional line-scan camera.</span></div>
                     <div class="result"><span class="result-label">Line rate for square pixels</span><output class="result-value" data-out="lrate">—</output>
                         <span class="result-note">The camera’s maximum line rate must be at least this. If the speed varies, trigger each line from an encoder on the conveyor.</span></div>
                     <div class="result"><span class="result-label">Line period (longest exposure per line)</span><output class="result-value" data-out="lper">—</output></div>
                 </div>
+                <figure class="mb-strip calc-hide-on-error">
+                    <div id="blur-strip" role="img"></div>
+                    <figcaption id="blur-cap"></figcaption>
+                </figure>
             </div>
         </section>
     </div>
@@ -265,6 +275,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const sigFor = agrees => { for (let s = 3; s < 10; s++) if (agrees(s)) return s; return 10; };
     const TOL = 1e-9;                           // relative: an exposure typed equal to t_max is within the limit
 
+    // Picture of the blur: one sharp-edged bar on a strip of pixels, at rest, smeared by the allowed blur, and smeared by
+    // the blur at the entered exposure. A uniform smear of s pixels turns each edge into a ramp s pixels long; once s
+    // exceeds the bar width the peak drops to width/s. The strip is 10 px across unless a blur needs more room.
+    const stripBox = document.getElementById('blur-strip'), stripCap = document.getElementById('blur-cap');
+    const px = x => fmt.num(x, 3) + ' px';
+    function drawStrip(b, allowed, bText, ok) {
+        const need = Math.max(b, allowed) / 0.6;        // bar (0.3 N) + smear + margins must fit in N pixels
+        let N = 10;
+        if (need > 10) { const k = Math.pow(10, Math.floor(Math.log10(need))); N = [1, 2, 5, 10].map(m => m * k).find(x => x >= need); }
+        const W = 320, H = 16, bar = 0.3 * N, x0 = 0.05 * N, s = W / N;
+        const rows = [['At rest', 0, 'var(--text-2)'], ['Allowed: ' + px(allowed), allowed, 'var(--text-2)'],
+            ['Yours: ' + bText + ' px', b, ok ? 'var(--ok)' : 'var(--danger)']];
+        let html = '';
+        rows.forEach((r, i) => {                        // one stretched strip per row: positions scale with the panel width, the labels do not
+            const sm = r[1], len = bar + sm, peak = sm > bar ? bar / sm : 1;
+            const a = Math.min(sm, bar) / len, c = Math.max(sm, bar) / len;
+            let g = '<defs><linearGradient id="mbg' + i + '" gradientUnits="userSpaceOnUse" x1="' + (x0 * s) + '" x2="' + ((x0 + len) * s) + '" y1="0" y2="0">'
+                + '<stop offset="0" stop-opacity="0" style="stop-color:' + r[2] + '"/><stop offset="' + a + '" stop-opacity="' + peak + '" style="stop-color:' + r[2] + '"/>'
+                + '<stop offset="' + c + '" stop-opacity="' + peak + '" style="stop-color:' + r[2] + '"/><stop offset="1" stop-opacity="0" style="stop-color:' + r[2] + '"/></linearGradient></defs>';
+            g += '<rect class="cell" x="0" y="0.5" width="' + W + '" height="' + H + '"/>';
+            g += '<rect x="' + (x0 * s) + '" y="1" width="' + (len * s) + '" height="' + (H - 1) + '" fill="url(#mbg' + i + ')"/>';
+            if (N <= 50) for (let k = 1; k < N; k++) g += '<line class="grid" x1="' + (k * s) + '" x2="' + (k * s) + '" y1="0.5" y2="' + (H + 0.5) + '"/>';
+            html += '<div class="mb-lbl">' + r[0] + '</div><svg viewBox="0 0 ' + W + ' ' + (H + 1) + '" preserveAspectRatio="none" aria-hidden="true">' + g + '</svg>';
+        });
+        stripBox.innerHTML = html;
+        stripBox.setAttribute('aria-label', 'A sharp bar ' + px(bar) + ' wide: at rest, smeared by the allowed ' + px(allowed) + ', and smeared by ' + bText + ' px at the entered exposure.');
+        stripCap.textContent = 'A sharp bar ' + px(bar) + ' wide, as the camera sees it. '
+            + (N <= 50 ? 'Each square is one pixel' : 'The strip is ' + fmt.num(N, 3) + ' px across') + '. The smear runs along the motion.';
+    }
+
     Calc.create({
         form: '#calc',
         compute(v) {
@@ -290,6 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (status.textContent !== verdict) status.textContent = verdict;   // live region: announce only a change
             status.className = ok ? 'badge badge-ok' : 'badge badge-bad';
             status.hidden = false;
+            drawStrip(b, v.blur, fmt.num(b, bSig), ok);
 
             return {
                 tmax: dur(tmax, tSig),

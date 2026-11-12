@@ -5,6 +5,8 @@
 #   bash _scripts/qa-pages.sh tools/fluence/  # specific pages
 # Requires Git Bash, Python 3, and Microsoft Edge.
 cd "$(dirname "$0")/.."
+# The REMPI page carries a prerendered copy of its table and references; say so if it is out of step with the data.
+node _scripts/prerender_rempi.mjs --check >/dev/null 2>&1 || echo "BAD /tools/rempi-schemes/ prerendered blocks are stale: run node _scripts/prerender_rempi.mjs"
 PORT=$(( (RANDOM % 20000) + 20000 ))
 python -m http.server $PORT --bind 127.0.0.1 >/dev/null 2>&1 &
 SERVER=$!

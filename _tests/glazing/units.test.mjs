@@ -31,6 +31,7 @@ function element(tag, cls) {
         closest(sel) {
             if (sel === 'form') return null;
             if (sel === '.input-unit') return this.parent;
+            if (sel === '.field') return null;   // no label: the converter's messages then carry no field name
             throw new Error('stand-in page: closest(' + sel + ')');
         },
         select() {}

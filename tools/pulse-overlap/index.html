@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="Laser Pulse &amp; Hatch Overlap Calculator. Calculate laser pulse overlap and hatch (line) overlap from scan speed, rep rate, spot size, and hatch spacing, plus pulses per spot and required scan speed.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <style>
@@ -33,6 +32,14 @@
     .po-svg .po-axis { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 4 4; }
     .po-legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font-size: 0.82rem; color: var(--text-2); margin-top: 0.4rem; }
     .po-legend span::before { content: ''; display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 0.4rem; vertical-align: -1px; background: color-mix(in srgb, var(--c) 25%, transparent); border: 1.5px solid var(--c); }
+    .po-legend.po-lines span::before { width: 20px; height: 0; border: 0; border-top: 2px solid var(--c); border-radius: 0; background: none; vertical-align: 4px; }
+    .po-legend.po-lines span.po-dash::before { border-top-style: dashed; }
+    .po-svg .po-ax { stroke: var(--border-strong); stroke-width: 1; fill: none; }
+    .po-svg .po-avg { stroke: var(--text); stroke-width: 1; stroke-dasharray: 6 5; }
+    .po-svg .po-tick { fill: var(--muted); font-size: 11px; }
+    #dose { max-width: 820px; margin: 0 auto; }
+    /* on a phone the figures keep a readable size and pan sideways instead of shrinking */
+    @media (max-width: 520px) { #spots, #dose { overflow-x: auto; } #spots .po-svg, #dose .po-svg { min-width: 560px; } }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -142,7 +149,7 @@
                 <div class="field">
                     <label for="h">Hatch spacing (line pitch) <span class="sym">h</span></label>
                     <div class="input-unit"><input id="h" name="h" value="15" inputmode="decimal" data-positive data-label="hatch spacing"><select data-dim="length" data-units="µm,mm" data-default="µm"></select></div>
-                    <p class="hint">The spacing between neighboring lines when filling an area. For a single line, leave any value: only the area results use it.</p>
+                    <p class="hint">The spacing between neighboring lines when filling an area. For a single line, leave it as is and ignore the line-overlap, hatched-area, and fill-time rows.</p>
                 </div>
                 <div class="field-row">
                     <div class="field">
@@ -154,7 +161,7 @@
                         <div class="input-unit"><input id="area" name="area" value="1" inputmode="decimal" data-optional data-label="area"><select data-dim="area" data-units="mm²,cm²,m²,in²" data-default="cm²"></select></div>
                     </div>
                 </div>
-                <p class="hint" style="font-size:.8rem;color:var(--muted);margin:0">Both optional. The target overlap gives the scan speed required. The area gives the hatch-fill time, excluding jumps and turnarounds.</p>
+                <p class="hint" style="margin:0">Both optional. The target overlap gives the scan speed required. The area gives the hatch-fill time, excluding jumps and turnarounds.</p>
             </div>
         </form>
 
@@ -184,8 +191,17 @@
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="viz-h">
         <div class="panel-head"><h2 id="viz-h">Spot layout (to scale)</h2></div>
         <div class="panel-body">
-            <div id="spots"></div>
+            <div id="spots" class="calc-dim-on-error"></div>
             <div class="po-legend"><span style="--c:var(--c1)">Scan line 1</span><span style="--c:var(--c2)">Scan line 2 (offset by h)</span></div>
+        </div>
+    </section>
+
+    <section class="panel" style="margin-top:1.5rem" aria-labelledby="dose-h">
+        <div class="panel-head"><h2 id="dose-h">Accumulated fluence along one scan line</h2></div>
+        <div class="panel-body">
+            <div id="dose" class="calc-dim-on-error"></div>
+            <div class="po-legend po-lines"><span style="--c:var(--c1)">Single pulses</span><span style="--c:var(--c2)">Sum of all pulses</span><span class="po-dash" style="--c:var(--text)">Line average, N<sub>eff,1D</sub>·F₀</span></div>
+            <p class="hint calc-dim-on-error" id="dose-note" style="margin:.5rem 0 0"></p>
         </div>
     </section>
 
@@ -196,7 +212,7 @@
         <p>Overlap is defined against the 1/e² diameter \(d = 2w_0\), as \((2w_0 - \Delta x)/2w_0\) (Račiukaitis et al., 2009). Negative overlap means there are gaps between spots. The scan speed for a target overlap is \(v = d\,f_\text{rep}\,(1 - \text{OL})\).</p>
 
         <h2>Fluence-equivalent pulse number for a Gaussian beam</h2>
-        <p>“Pulses per spot” counts circles, but a Gaussian beam delivers most of its fluence near the center. Summing the Gaussian fluence of every pulse that passes a point on the scan line gives the accumulated dose in units of the peak fluence \(F_0\):</p>
+        <p>“Pulses per spot” counts circles, but a Gaussian beam delivers most of its fluence near the center. Summing the Gaussian fluence of every pulse that passes a point on the scan line gives the accumulated dose in units of the peak fluence \(F_0\). The figure above draws the pulses and their sum for your inputs:</p>
         <div class="formula">\[ \sum_n e^{-2(x - n\Delta x)^2/w_0^2} \;\approx\; \frac{1}{\Delta x}\int_{-\infty}^{\infty} e^{-2x^2/w_0^2}\,dx \;=\; \sqrt{\frac{\pi}{2}}\,\frac{w_0}{\Delta x} \equiv N_\text{eff,1D}. \]</div>
         <p>For a hatched area the same integral runs in two dimensions: \(N_\text{eff,2D} = \dfrac{\pi}{2}\dfrac{w_0^2}{\Delta x\,h}\). Then \(N_\text{eff,2D}F_0 = E_p/(\Delta x\,h)\) exactly: the accumulated fluence is the pulse energy per unit area of the pattern. Summing the discrete pulses numerically confirms both expressions. When \(\Delta x \le w_0\), the point-to-point ripple in the line sum stays within about ±1.5&nbsp;%. With \(h \le w_0\) as well, the area sum stays within about ±3&nbsp;%. At larger pitch or hatch the dose varies from point to point and \(N_\text{eff}\) is only an average.</p>
         <p>Papers count pulses per point in different ways. Many call the number of pulses within the 1/e² diameter, \(d/\Delta x\), the effective pulse number (Skoulas et al., 2017); the fluence-equivalent \(N_\text{eff,1D}\) here is \(\sqrt{\pi/2}/2 \approx 0.63\) times that count. An incubation law such as \(F_\text{th}(N) = F_\text{th}(1)N^{S-1}\) is fitted with one particular count, so use the same definition as the source of your \(S\). The accumulated fluence \(N_\text{eff}F_0\) is a useful dose metric for comparing scan strategies.</p>
@@ -302,6 +318,72 @@ document.addEventListener('DOMContentLoaded', () => {
         svgEl('text', { x: ox, y: 14 }, svg).textContent = 'scan direction →';
     }
 
+    // Fluence along the center of one scan line, in units of the single-pulse peak F₀: the Gaussian profile of each
+    // pulse, their sum, and the line average N_eff,1D. The sum has its maxima at the pulse centers and its minima
+    // midway between them.
+    function drawDose(d, dx) {
+        const box = document.getElementById('dose'), noteEl = document.getElementById('dose-note');
+        box.innerHTML = '';
+        const w = d / 2, nEff = Math.sqrt(Math.PI / 2) * w / dx;
+        const L = Math.max(2.5 * dx, 2.2 * w);                    // half-width of the view: at least five pulses
+        const flatSum = dx < w / 4;                               // ripple below 10⁻³⁰: the sum equals its average
+        const reach = Math.ceil(3.5 * w / dx) + 1;                // pulses beyond 3.5 w₀ add less than 3×10⁻¹¹ F₀
+        const sumAt = x => {
+            if (flatSum) return nEff;
+            let s = 0;
+            for (let n0 = Math.round(x / dx), n = n0 - reach; n <= n0 + reach; n++) s += Math.exp(-2 * (x - n * dx) ** 2 / (w * w));
+            return s;
+        };
+        const sMax = sumAt(0), sMin = sumAt(dx / 2);
+        const yMax = 1.2 * Math.max(sMax, 1);
+        const W = 640, H = 250, x0 = 54, x1 = W - 14, yb = H - 40, yt = 12;
+        const sx = x => x0 + (x + L) / (2 * L) * (x1 - x0), sy = y => yb - y / yMax * (yb - yt);
+        const mm = L >= 1e-3, scale = mm ? 1e3 : 1e6, unit = mm ? 'mm' : 'µm';
+        const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, class: 'po-svg', role: 'img',
+            'aria-label': `Fluence along the scan line: pulses ${len(dx)} apart add up to between ${fmt.num(sMin, 3)} and ${fmt.num(sMax, 3)} times the peak fluence of one pulse, ${fmt.num(nEff, 3)} on average` }, box);
+        // single pulses (when more than 41 are in view, only the middle one)
+        const count = Math.floor(L / dx) * 2 + 1, nShow = count > 41 ? 0 : Math.ceil((L + 2.5 * w) / dx);
+        for (let n = -nShow; n <= nShow; n++) {
+            const c = n * dx, xa = Math.max(-L, c - 2.5 * w), xb = Math.min(L, c + 2.5 * w);
+            if (!(xb > xa)) continue;
+            let p = '';
+            for (let i = 0; i <= 48; i++) { const x = xa + (xb - xa) * i / 48; p += `${i ? 'L' : 'M'}${sx(x).toFixed(1)},${sy(Math.exp(-2 * (x - c) ** 2 / (w * w))).toFixed(1)}`; }
+            svgEl('path', { d: p + `L${sx(xb).toFixed(1)},${yb}L${sx(xa).toFixed(1)},${yb}Z`, fill: 'var(--c1)', 'fill-opacity': 0.1 }, svg);
+            svgEl('path', { d: p, fill: 'none', stroke: 'var(--c1)', 'stroke-width': 1.2, 'stroke-linejoin': 'round' }, svg);
+        }
+        // sum, with the line average dashed on top of it (the two coincide when the pulses overlap well)
+        let p = '';
+        for (let i = 0; i <= 400; i++) { const x = -L + 2 * L * i / 400; p += (i ? 'L' : 'M') + sx(x).toFixed(1) + ',' + sy(sumAt(x)).toFixed(1); }
+        svgEl('path', { d: p, fill: 'none', stroke: 'var(--c2)', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }, svg);
+        svgEl('line', { x1: x0, x2: x1, y1: sy(nEff).toFixed(1), y2: sy(nEff).toFixed(1), class: 'po-avg' }, svg);
+        // axes
+        svgEl('path', { d: `M${x0},${yt}V${yb}H${x1}`, class: 'po-ax' }, svg);
+        const yTicks = [[0, '0']], one = yb - sy(1) > 14;         // labels at least 14 px apart
+        if (one) yTicks.push([1, '1']);
+        if ((!one || Math.abs(sy(nEff) - sy(1)) > 14) && yb - sy(nEff) > 14) yTicks.push([nEff, fmt.num(nEff, 3)]);
+        yTicks.forEach(([y, t]) => {
+            svgEl('line', { x1: x0 - 4, x2: x0, y1: sy(y).toFixed(1), y2: sy(y).toFixed(1), class: 'po-ax' }, svg);
+            svgEl('text', { x: x0 - 8, y: (sy(y) + 4).toFixed(1), 'text-anchor': 'end', class: 'po-tick' }, svg).textContent = t;
+        });
+        const raw = 2 * L * scale / 6, mag = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / mag;
+        const step = (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * mag;
+        for (let k = -Math.floor(L * scale / step + 1e-9); k * step <= L * scale * (1 + 1e-9); k++) {
+            const x = sx(k * step / scale);
+            svgEl('line', { x1: x.toFixed(1), x2: x.toFixed(1), y1: yb, y2: yb + 4, class: 'po-ax' }, svg);
+            svgEl('text', { x: x.toFixed(1), y: yb + 17, 'text-anchor': 'middle', class: 'po-tick' }, svg).textContent = String(parseFloat((k * step).toPrecision(6))).replace('-', '−');
+        }
+        svgEl('text', { x: (x0 + x1) / 2, y: H - 5, 'text-anchor': 'middle' }, svg).textContent = 'Position along the scan line (' + unit + ')';
+        svgEl('text', { x: 14, y: (yb + yt) / 2, 'text-anchor': 'middle', transform: `rotate(-90 14 ${(yb + yt) / 2})` }, svg).textContent = 'Fluence ÷ F₀';
+
+        const ripple = (sMax - sMin) / (sMax + sMin);
+        let text = 'The pulses add up to N<sub>eff,1D</sub> = ' + fmt.num(nEff, 4) + ' times the peak fluence of one pulse, F₀, on average. ';
+        text += ripple < 1e-4 ? 'The sum varies by less than 0.01 % along the line.'
+            : ripple <= 0.05 ? 'The sum varies by ±' + fmt.num(ripple * 100, 2) + ' % along the line.'
+            : 'The sum swings between ' + fmt.num(sMin, 3) + ' F₀ midway between pulses and ' + fmt.num(sMax, 3) + ' F₀ at the pulse centers, so the average hides a large variation.';
+        if (!nShow && count > 1) text += ' Only one of the ' + count + ' pulses in view is drawn.';
+        noteEl.innerHTML = text;   // numbers and fixed strings only
+    }
+
     Calc.create({
         form: '#calc',
         compute(v) {
@@ -339,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 vt: isFinite(v.target) ? speed(v.d * v.f * (1 - v.target / 100)) : null
             };
         },
-        after(v) { drawSpots(v.d, v.v / v.f, v.h); }
+        after(v) { drawSpots(v.d, v.v / v.f, v.h); drawDose(v.d, v.v / v.f); }
     });
 });
 </script>

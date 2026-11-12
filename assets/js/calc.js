@@ -25,6 +25,11 @@
      Throw Calc.fail('message', 'fieldName') to show an inline error.
      Return null for an output to hide its .result row; a string sets text;
      a number is formatted with fmt.num; { html: '…' } sets innerHTML.
+     While an input error shows, the outputs container (opts.outputs, or <body>
+     when there is none) carries the class calc-error-state; site.css uses it
+     for .calc-empty, .calc-hide-on-error and .calc-dim-on-error.
+   Calc.focusable(root) makes .result-value elements added after the page
+     loaded keyboard-reachable click-to-copy targets.
    ========================================================================== */
 (function () {
     'use strict';
@@ -72,6 +77,24 @@
         temperature: { 'K': 1, '°C': 1, '°F': 1 },        // handled specially below
         ratio:       { '': 1, '%': 0.01, 'ppm': 1e-6 }
     };
+
+    /* ── Spectral regions: one table of band edges for every page that names a band ── */
+    // [upper edge as vacuum wavelength in nm, full name, broad name]; a wavelength belongs to the first row whose edge
+    // is above it. Calc.region(nm) → "UV-A", Calc.region(nm, true) → "UV".
+    var REGIONS = [
+        [0.01, 'Gamma ray', 'Gamma ray'], [10, 'X-ray', 'X-ray'], [121, 'Extreme UV (EUV)', 'EUV'], [200, 'Vacuum UV (VUV)', 'VUV'],
+        [280, 'UV-C', 'UV'], [315, 'UV-B', 'UV'], [400, 'UV-A', 'UV'],
+        [450, 'Visible — violet', 'Visible'], [495, 'Visible — blue', 'Visible'], [570, 'Visible — green', 'Visible'],
+        [590, 'Visible — yellow', 'Visible'], [620, 'Visible — orange', 'Visible'], [700, 'Visible — red', 'Visible'],
+        [1400, 'Near-IR (NIR)', 'NIR'], [3000, 'Short-wave IR (SWIR)', 'SWIR'],
+        [8000, 'Mid-wave IR (MWIR)', 'Mid-IR'], [15000, 'Long-wave IR (LWIR)', 'Mid-IR'],
+        [1e6, 'Far-IR / terahertz', 'Far-IR'], [1e9, 'Microwave', 'Microwave'], [Infinity, 'Radio', 'Radio']
+    ];
+    function region(nm, broad) {
+        if (!(nm > 0)) return '';
+        for (var i = 0; i < REGIONS.length; i++) if (nm < REGIONS[i][0]) return REGIONS[i][broad ? 2 : 1];
+        return REGIONS[REGIONS.length - 1][broad ? 2 : 1];
+    }
 
     function toSI(dim, unit, x) {
         if (dim === 'temperature') {
@@ -195,7 +218,7 @@
             sig = sig || 6;
             if (typeof x !== 'number' || !isFinite(x)) return '';
             if (x === 0) return '0';
-            var a = Math.abs(x);
+            var a = Math.abs(roundSig(x, sig));   // decide on the rounded value, as fmt.num does: 9.9999999e-5 → "0.0001", not "1e-4"
             if (a >= 1e-4 && a < 1e7) return plainDecimal(x, sig);
             var s = x.toExponential(sig - 1).split('e');
             return trimNum(s[0]) + 'e' + s[1].replace('+', '');
@@ -331,6 +354,32 @@
         c._desc = undefined;
     }
 
+    // the name a message uses for a field: data-label, else its <label> text without the symbol and hint, else `fallback`.
+    // Lower case for Calc.create ("wavelength"); a converter's labels carry units and names, so only an ordinary first
+    // word loses its capital there ("Sigma level" → "sigma level", but "R-value, in h·ft²·°F/Btu" as written).
+    function labelOf(root, c, fallback, keepCase) {
+        if (c.dataset.label) return c.dataset.label;
+        var l = c.id && root.querySelector('label[for="' + c.id + '"]');
+        if (!l) { var f = c.closest('.field'); l = f && f.querySelector('label, .field-label'); }
+        if (!l) return fallback;
+        var t = l.cloneNode(true);
+        t.querySelectorAll('.sym, .hint').forEach(function (n) { n.remove(); });
+        var s = t.textContent.replace(/\s+/g, ' ').replace(/ ([,.;:])/g, '$1').trim();
+        if (!keepCase) s = s.toLowerCase();
+        else if (/^[A-Z][a-z]/.test(s)) s = s.charAt(0).toLowerCase() + s.slice(1);
+        return s || fallback;
+    }
+    // Input-error state for rich outputs (charts, figures, KPI grids): the outputs container carries .calc-error-state
+    // while a calculator that writes into it shows an error. Calculators without their own container share <body>.
+    function errorState(calc, on) {
+        if (!!calc.inError === on) return;
+        calc.inError = on;
+        var box = calc.outRoot.nodeType === 9 ? calc.outRoot.body : calc.outRoot;
+        if (!box) return;
+        box._calcErrN = (box._calcErrN || 0) + (on ? 1 : -1);
+        box.classList.toggle('calc-error-state', box._calcErrN > 0);
+    }
+
     /* ── Clipboard ──────────────────────────────────────────────────────── */
     // resolves true when the text was copied and false when the browser refused (it never rejects)
     function copyText(text) {
@@ -374,7 +423,7 @@
     function focusable(root) {
         root.querySelectorAll('.result-value').forEach(function (o) {
             if (!o.hasAttribute('tabindex')) o.tabIndex = 0;
-            if (!o.title) o.title = 'Copy value';
+            if (!o.title) o.title = 'Click to copy';
         });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { focusable(document); });
@@ -430,6 +479,7 @@
         if (!root) throw new Error('Calc: form not found');
         var outRoot = opts.outputs ? (typeof opts.outputs === 'string' ? document.querySelector(opts.outputs) : opts.outputs) : document;
         var prefix = opts.id ? opts.id + '.' : '';
+        var self = { outRoot: outRoot, inError: false };
         if (root.tagName === 'FORM') root.addEventListener('submit', function (e) { e.preventDefault(); });
         focusable(outRoot);   // outputs added after the page loaded
 
@@ -573,15 +623,7 @@
         // compute() may unhide a group (a mode switch) whose fields read() let through while hidden: check them now
         function revealed() { return skipped.some(function (c) { return c.closest('[hidden]') === null; }); }
 
-        function labelFor(c) {
-            if (c.dataset.label) return c.dataset.label;
-            var l = c.id && root.querySelector('label[for="' + c.id + '"]');
-            if (!l) { var f = c.closest('.field'); l = f && f.querySelector('label, .field-label'); }
-            if (!l) return c.name;
-            var t = l.cloneNode(true);
-            t.querySelectorAll('.sym, .hint').forEach(function (n) { n.remove(); });
-            return t.textContent.trim().toLowerCase();
-        }
+        function labelFor(c) { return labelOf(root, c, c.name); }
 
         function outputs() { return outRoot.querySelectorAll('[data-out]'); }
         function clearOutputs() { outputs().forEach(function (o) { o.textContent = '—'; }); }
@@ -592,6 +634,7 @@
                 v = read();
                 r = opts.compute(v) || {};
                 errBox.classList.remove('show'); errBox.textContent = '';
+                errorState(self, false);
             } catch (err) {
                 // an exponent being typed: no message and the last results stay (outputs, plots, link) until it is complete
                 if (err && err.pending) { errBox.classList.remove('show'); errBox.textContent = ''; return; }
@@ -603,6 +646,7 @@
                     if (bad) markInvalid(bad, errBox);
                 }
                 clearOutputs();
+                errorState(self, true);
                 if (opts.onError) { try { opts.onError(err); } catch (e) { console.error(e); } }
                 return;
             }
@@ -667,6 +711,7 @@
         var inputs = {};
         names.forEach(function (n) { inputs[n] = root.querySelector('input[name="' + n + '"]'); });
         var errBox = root.querySelector('.calc-error');
+        var hideError = function () { if (errBox) { errBox.classList.remove('show'); errBox.textContent = ''; } };
         var source = opts.initial ? opts.initial.field : names[0];
         var defaultSource = source, defaultValue = opts.initial ? String(opts.initial.value) : inputs[source].value;
         var prefix = opts.id ? opts.id + '.' : '';
@@ -692,15 +737,18 @@
             names.forEach(function (k) { markValid(inputs[k]); });
             if (!isFinite(x) || (opts.positive !== false && !(x > 0))) {
                 // stay quiet while an exponent is still being typed ("1.6e", "1.6e-"); the other fields keep their values
-                if (fromUser && /\d[eE][-+]?$/.test(raw)) { if (errBox) errBox.classList.remove('show'); return false; }
-                if (raw !== '') {
+                if (fromUser && /\d[eE][-+]?$/.test(raw)) { hideError(); return false; }
+                if (raw === '') hideError();   // an emptied field is not an error, and the message for what it held is stale
+                else {
                     markInvalid(inputs[n], errBox);
                     var both = commaReadings(raw);
+                    // the message names the field, as Calc.create's do: “abc” is not a number (sigma level).
+                    var label = labelOf(root, inputs[n], '', true), named = label ? ' (' + label + ')' : '';
                     if (errBox) {
-                        errBox.textContent = both ? '“' + raw + '” is ambiguous: enter ' + both + '.'
-                            : Math.abs(x) === Infinity ? 'That value is out of range.'
-                            : isNaN(x) ? '“' + raw + '” is not a number.'
-                            : opts.positive !== false ? 'Enter a positive number.' : 'Enter a number.';
+                        errBox.textContent = both ? '“' + raw + '” is ambiguous' + named + ': enter ' + both + '.'
+                            : Math.abs(x) === Infinity ? 'That value is out of range' + named + '.'
+                            : isNaN(x) ? '“' + raw + '” is not a number' + named + '.'
+                            : (opts.positive !== false ? 'Enter a positive number' : 'Enter a number') + named + '.';
                         errBox.classList.add('show');
                     }
                 }
@@ -713,7 +761,7 @@
                 if (errBox) { errBox.textContent = msg || 'That value is out of range.'; errBox.classList.add('show'); }
                 return false;
             }
-            if (errBox) errBox.classList.remove('show');
+            hideError();
             names.forEach(function (k) {
                 if (k === n) return;
                 inputs[k].value = fmt.plain(opts.fields[k].from(base), sig);
@@ -753,9 +801,9 @@
 
     window.Calc = {
         create: create, converter: converter, fail: fail, CalcError: CalcError,
-        K: K, UNITS: UNITS, toSI: toSI, fromSI: fromSI,
+        K: K, UNITS: UNITS, toSI: toSI, fromSI: fromSI, REGIONS: REGIONS, region: region,
         parseNum: parseNum, parseList: parseList, fmt: fmt, sup: sup, roundSig: roundSig,
         math: { erf: erf, erfc: erfc, normCdf: normCdf, normInv: normInv, linspace: linspace, logspace: logspace, mean: mean, stdev: stdev },
-        copyText: copyText
+        copyText: copyText, focusable: focusable
     };
 })();

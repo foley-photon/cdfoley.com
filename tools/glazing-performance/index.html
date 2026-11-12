@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="Glazing Performance Calculator: U-Factor, R-Value, SHGC &amp; VT. Free window glazing calculator: build single, double, triple, or vacuum glazing with low-e coatings and gas fills; get U-factor, R-value, SHGC, VT, and spectra.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/glazing-units.js"></script>
@@ -47,6 +46,14 @@
     .kpi span span { display: block; }
     #ru-converter .panel-head { flex-wrap: wrap; }   /* on a phone the button drops under the heading */
     .xsec svg { display: block; width: 100%; height: auto; }
+    /* input error: the last drawing stays, faded (.calc-dim-on-error), under a line that says so */
+    .xsec-wrap { position: relative; }
+    .xsec:empty { min-height: 3.2rem; }
+    .xsec-wait { display: none; position: absolute; inset: 0; margin: 0; align-items: center; justify-content: center; padding: 0 0.6rem; text-align: center; }
+    .xsec-wait span { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0.3rem 0.75rem; font-size: 0.84rem; color: var(--text-2); }
+    .calc-error-state .xsec-wait { display: flex; }
+    #presets { margin: 0 0 0.95rem; }
+    #presets .chip-lbl { font-size: 0.8rem; color: var(--muted); align-self: center; }
     .xsec { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.4rem; }
     svg .lbl { fill: var(--text-2); font: 500 13px var(--font); }
     svg .lbl-s { fill: var(--muted); font: 500 12px var(--font); }
@@ -171,7 +178,8 @@
 
     <header class="page-head">
         <h1>Glazing Performance Calculator: U-Factor, R-Value, SHGC &amp; VT</h1>
-        <p class="lede">How well does a window’s glass insulate, how much solar heat does it let in, and how much daylight? Build a single, double, triple, or vacuum glazing unit pane by pane (clear or low-iron glass, low-e coatings on any surface, and air, argon, krypton, xenon, or vacuum gaps) and get its center-of-glass U-factor, solar heat gain coefficient (SHGC), and visible transmittance (VT), calculated the way NFRC rates them, with the matching R-value in US and SI units, plus reflectance, color, surface temperatures, and spectra. Use it to compare glazing options, see what a coating or a gas fill changes, convert between U-factor and R-value, or evaluate the measured spectra of a specific product.</p>
+        <p class="lede">How well does a window’s glass insulate, how much solar heat does it let in, and how much daylight? Build a single, double, triple, or vacuum glazing unit pane by pane (clear or low-iron glass, low-e coatings on any surface, and air, argon, krypton, xenon, or vacuum gaps) and get its center-of-glass U-factor, solar heat gain coefficient (SHGC), and visible transmittance (VT), calculated the way NFRC rates them, with the matching R-value in US and SI units.</p>
+        <p style="color:var(--text-2);margin:.6rem 0 0">You also get reflectance, color, surface temperatures, and spectra. Use it to compare glazing options, see what a coating or a gas fill changes, convert between U-factor and R-value, or evaluate the measured spectra of a specific product.</p>
         <details class="key-terms"><summary>Key terms</summary><dl>
             <dt>U-factor</dt><dd>The heat that flows through each square meter of glazing for each degree of temperature difference between inside and outside, in W/m²·K (US units: Btu/h·ft²·°F; 1&nbsp;Btu/h·ft²·°F = 5.678&nbsp;W/m²·K). Lower insulates better. The R-value, next, is the same property turned upside down.</dd>
             <dt>R-value</dt><dd>The resistance of the glazing to heat flow: the U-factor turned upside down, so a higher R-value insulates better, and halving the U-factor doubles the R-value. US practice writes it as “R-4”, in h·ft²·°F/Btu. The SI value, in m²·K/W, is often called RSI and is about 5.7 times smaller. The R-values here are center-of-glass values from indoor air to outdoor air, so they include the thin layers of air on the two outer glass faces (the air films). The R-value printed on insulation is for the material alone, without air films, so the two are not directly comparable. A whole window, with its frame and edge, has a lower R-value than its center of glass.</dd>
@@ -192,6 +200,7 @@
             </div>
             <div class="panel-body">
                 <div class="calc-error" role="alert"></div>
+                <div class="chip-row" id="presets" role="group" aria-label="Example glazings"><span class="chip-lbl">Start from:</span><button type="button" class="chip" data-preset="clear">Clear double</button><button type="button" class="chip" data-preset="lowe">Low-e argon (default)</button><button type="button" class="chip" data-preset="triple">Triple krypton</button><button type="button" class="chip" data-preset="vig">Vacuum (VIG)</button></div>
                 <div class="field-row">
                     <div class="field">
                         <label for="np">Panes</label>
@@ -214,7 +223,10 @@
         <section class="panel" id="glz-out" aria-labelledby="out-h">
             <div class="panel-head"><h2 id="out-h">Performance</h2><span class="badge">NFRC 100 / 200</span></div>
             <div class="panel-body">
-                <div class="xsec" data-out="xsec" role="img" aria-label="Cross-section of the glazing unit with surface numbers, coatings, gaps, and winter surface temperatures"></div>
+                <div class="xsec-wrap">
+                    <div class="xsec calc-dim-on-error" id="xsec" role="img" aria-label="Cross-section of the glazing unit with surface numbers, coatings, gaps, and winter surface temperatures"></div>
+                    <p class="xsec-wait"><span id="xsec-wait">Waiting for valid inputs.</span></p>
+                </div>
                 <p class="hint" style="margin:.4rem 0 0">Purple line: low-e coating. Orange: surface temperatures (°C) at NFRC 100 winter conditions, −18&nbsp;°C outside and 21&nbsp;°C inside.</p>
                 <div class="kpis">
                     <div class="kpi-cap">Center of glass</div>
@@ -340,11 +352,11 @@
 
         <h2>Generic glass and low-e coatings</h2>
         <p>Generic panes use a soda-lime glass model: a refractive index near 1.52 and an absorption spectrum set by iron (Rubin, 1985). Ferrous iron (Fe²⁺) absorbs in a broad band centered near 1050&nbsp;nm whose tail reaches into the red. That band cuts near-infrared transmission and gives clear glass its blue-green tint, plainest at the edge. Ferric iron (Fe³⁺) absorbs mainly in the ultraviolet (Shelby, 2015). Low-iron glass has less iron, more of it ferric. For 6&nbsp;mm clear float, the model gives 89&nbsp;% visible and 80&nbsp;% solar transmittance, against 88&nbsp;% and 77&nbsp;% for LBNL’s generic 5.7&nbsp;mm clear glass. For 6&nbsp;mm low-iron glass it gives 91&nbsp;% and 90&nbsp;%, against 91&nbsp;% and 89&nbsp;% for the 5&nbsp;mm low-iron glass of the EnergyPlus dataset.</p>
-        <p>The four generic coatings stand for the main low-e families: a pyrolytic (hard-coat) doped tin oxide with an emissivity of 0.15, and sputtered single-, double-, and triple-silver stacks with emissivities of 0.04, 0.025, and 0.015. These, like all emissivities on this page, are hemispherical values as NFRC&nbsp;301 defines them; a European “corrected emissivity” (EN&nbsp;12898) runs 3–5&nbsp;% lower for low-e coatings, and the <a href="/tools/low-e-sheet-resistance/">low-e coating calculator</a> gives both from a sheet resistance. LBNL’s documentation gives about 0.15 as typical of hard coats (0.1 or less for newer ones), 0.04 of sputtered coatings, and 0.02 for the best available. More silver layers make a steeper rise in near-infrared reflectance, so less solar heat passes for the same daylight. The emissivity of the coated surface sets the radiation across the gap. Real products vary, so use measured spectra for a specific product.</p>
+        <p>The four generic coatings stand for the main low-e families: a pyrolytic (hard-coat) doped tin oxide with an emissivity of 0.15, and sputtered single-, double-, and triple-silver stacks with emissivities of 0.04, 0.025, and 0.015. These, like all emissivities on this page, are hemispherical values as NFRC&nbsp;301 defines them; a European “corrected emissivity” (EN&nbsp;12898) runs 3–5&nbsp;% lower for low-e coatings, and the <a href="/tools/low-e-sheet-resistance/">low-e coating calculator</a> gives both from a sheet resistance. LBNL’s documentation gives about 0.15 as typical of hard coats (0.1 or less for newer ones), 0.04 of sputtered coatings, and 0.02 for the best available. More silver layers make a steeper rise in near-infrared reflectance, so less solar heat passes for the same daylight. The emissivity of the coated surface sets the radiation across the gap. Real products vary, so use measured spectra for a specific product. If you know only the emissivity of your coating, enter it in the optional Emissivity field of the coated pane: it replaces the generic value in the heat-transfer calculation, while the spectra stay those of the chosen family.</p>
         <div class="callout"><p><strong>Surface numbering.</strong> Surfaces are numbered from the outside: a double unit has surfaces #1 (outdoor face) to #4 (indoor face). Moving a coating from #2 to #3 leaves the U-factor and the R-value unchanged but raises SHGC, because the sunlight the coating absorbs then heats the inner pane, whose heat flows mostly indoors. For the default double-silver unit, SHGC is 0.37 with the coating on #2 and 0.42 on #3. So #3 is the usual choice where solar gain is welcome, and #2 where it is not.</p></div>
 
         <h2>Typical values</h2>
-        <p>Center-of-glass results of this calculator for common glazings, with generic layers under NFRC conditions, 1&nbsp;m tall. Double units have 6&nbsp;mm panes and a 12.7&nbsp;mm gap. The R-value is 1/U, from indoor air to outdoor air, so it includes the air films.</p>
+        <p>Center-of-glass results of this calculator for common glazings, with generic layers under NFRC conditions, 1&nbsp;m tall. Double units have 6&nbsp;mm panes and a 12.7&nbsp;mm gap. The R-value is 1/U, from indoor air to outdoor air, so it includes the air films. The “Start from” buttons above the glazing form load four of these rows: clear double with air, the default, the triple with krypton, and the vacuum glazing with pillars 25&nbsp;mm apart.</p>
         <table class="tv">
             <thead><tr><th>Glazing</th><th class="num">U, W/m²·K<br>(Btu/h·ft²·°F)</th><th class="num">R, h·ft²·°F/Btu<br>(m²·K/W)</th><th class="num">SHGC</th><th class="num">VT</th></tr></thead>
             <tbody>
@@ -461,11 +473,15 @@ document.addEventListener('DOMContentLoaded', () => {
             '<option value="lowiron"' + (sel === 'lowiron' ? ' selected' : '') + '>Low-iron (generic)</option>' +
             imports.map(p => '<option value="imp:' + p.id + '"' + (sel === 'imp:' + p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('');
     }
-    const coatOptions = '<option value="none">None</option>' + Object.keys(E.COATINGS).map(k => '<option value="' + k + '">' + E.COATINGS[k].label + ' (ε ≈ ' + E.COATINGS[k].eps + ')</option>').join('');
+    const coatOptions = '<option value="none">None</option>' + Object.keys(E.COATINGS).map(k => '<option value="' + k + '">' + E.COATINGS[k].label.replace(/ low-e$/, '') + ' (ε ≈ ' + E.COATINGS[k].eps + ')</option>').join('');
     const fillOptions = Object.keys(E.FILLS).map(k => '<option value="' + k + '">' + E.FILLS[k].label + '</option>').join('');
 
-    // Static markup for 3 panes and 2 gaps; unused cards are hidden
+    // Static markup for 3 panes and 2 gaps. Cards and fields the default glazing does not use start hidden, so the form
+    // is laid out correctly even when the first calculation stops at an input error (a link with a mistyped value).
+    // BASE is the default state in full; a preset is BASE plus its own changes.
     let html = '';
+    const hid = h => h ? ' hidden' : '';
+    const BASE = { np: '2', H: '1', H_u: 'm' };
     const DEF = [
         { g: 'clear', t: 6, c: 'double', s: 'back' },
         { g: 'clear', t: 6, c: 'none', s: 'front' },
@@ -473,34 +489,66 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     for (let i = 1; i <= 3; i++) {
         const d = DEF[i - 1];
-        html += '<div class="gl-card" data-pane="' + i + '"><h3><span>Pane ' + i + (i === 1 ? ' (outdoors)' : '') + '</span><span data-out="p' + i + 'surf"></span></h3>' +
+        Object.assign(BASE, { ['p' + i + 'g']: d.g, ['p' + i + 't']: String(d.t), ['p' + i + 'c']: d.c, ['p' + i + 's']: d.s, ['p' + i + 'e']: '' });
+        html += '<div class="gl-card" data-pane="' + i + '"' + hid(i > 2) + '><h3><span>Pane ' + i + (i === 1 ? ' (outdoors)' : '') + '</span><span data-out="p' + i + 'surf"></span></h3>' +
             '<div class="field"><label for="p' + i + 'g">Glass</label><select id="p' + i + 'g" name="p' + i + 'g" class="input">' + glassOptions(d.g) + '</select></div>' +
             '<div class="field-row">' +
               '<div class="field" data-gen="' + i + '"><label for="p' + i + 't">Thickness</label><select id="p' + i + 't" name="p' + i + 't" class="input">' + THICK.map(t => '<option value="' + t + '"' + (t === d.t ? ' selected' : '') + '>' + t + ' mm</option>').join('') + '</select></div>' +
               '<div class="field" data-gen="' + i + '"><label for="p' + i + 'c">Low-e coating</label><select id="p' + i + 'c" name="p' + i + 'c" class="input">' + coatOptions.replace('value="' + d.c + '"', 'value="' + d.c + '" selected') + '</select></div>' +
-              '<div class="field" data-side="' + i + '"><label for="p' + i + 's">Coated side</label><select id="p' + i + 's" name="p' + i + 's" class="input"><option value="front"' + (d.s === 'front' ? ' selected' : '') + '>Faces outdoors</option><option value="back"' + (d.s === 'back' ? ' selected' : '') + '>Faces indoors</option></select></div>' +
+              '<div class="field" data-side="' + i + '"' + hid(d.c === 'none') + '><label for="p' + i + 's">Coated side</label><select id="p' + i + 's" name="p' + i + 's" class="input"><option value="front"' + (d.s === 'front' ? ' selected' : '') + '>Faces outdoors</option><option value="back"' + (d.s === 'back' ? ' selected' : '') + '>Faces indoors</option></select></div>' +
+              '<div class="field" data-emis="' + i + '"' + hid(d.c === 'none') + '><label for="p' + i + 'e">Emissivity <span class="sym">optional</span></label><input id="p' + i + 'e" name="p' + i + 'e" class="input" value="" inputmode="decimal" data-optional data-positive data-max="1" data-label="coating emissivity"' + (d.c === 'none' ? '' : ' placeholder="' + E.COATINGS[d.c].eps + '"') + '></div>' +
             '</div>' +
-            (i === 1 ? '<p class="hint" style="margin:-.2rem 0 .8rem">The coated side sets the surface number: on this pane, facing indoors is #2. Choose an imported product in the Glass list to use its measured spectra.</p>' : '') +
+            (i === 1 ? '<p class="hint" style="margin:-.2rem 0 .8rem">The coated side sets the surface number: on this pane, facing indoors is #2. Choose an imported product in the Glass list to use its measured spectra.</p>' +
+                '<p class="hint" data-emis="' + i + '" style="margin:-.2rem 0 .8rem">Leave Emissivity blank to use the generic value shown in the field, or enter the hemispherical emissivity of your own coating, for example from the <a href="/tools/low-e-sheet-resistance/">sheet resistance calculator</a>. It changes the heat transfer; the spectra stay those of the chosen coating family.</p>' : '') +
             '</div>';
         if (i < 3) {
-            html += '<div class="gl-card gap" data-gap="' + i + '"><h3><span>Gap ' + i + '</span></h3><div class="field-row">' +
+            Object.assign(BASE, { ['g' + i + 'f']: 'argon', ['g' + i + 'w']: '12.7', ['g' + i + 'w_u']: 'mm', ['g' + i + 'ps']: '25', ['g' + i + 'ps_u']: 'mm', ['g' + i + 'pd']: '0.5', ['g' + i + 'pd_u']: 'mm' });
+            html += '<div class="gl-card gap" data-gap="' + i + '"' + hid(i > 1) + '><h3><span>Gap ' + i + '</span></h3><div class="field-row">' +
                 '<div class="field"><label for="g' + i + 'f">Fill</label><select id="g' + i + 'f" name="g' + i + 'f" class="input">' + fillOptions.replace('value="argon"', 'value="argon" selected') + '</select></div>' +
                 '<div class="field" data-gas="' + i + '"><label for="g' + i + 'w">Width</label><div class="input-unit"><input id="g' + i + 'w" name="g' + i + 'w" value="12.7" inputmode="decimal" data-positive data-label="gap width"><select data-dim="length" data-units="mm,in" data-default="mm"></select></div></div>' +
-                '<div class="field" data-vac="' + i + '"><label for="g' + i + 'ps">Pillar spacing</label><div class="input-unit"><input id="g' + i + 'ps" name="g' + i + 'ps" value="25" inputmode="decimal" data-positive data-label="pillar spacing"><select data-dim="length" data-units="mm" data-default="mm"></select></div></div>' +
-                '<div class="field" data-vac="' + i + '"><label for="g' + i + 'pd">Pillar diameter</label><div class="input-unit"><input id="g' + i + 'pd" name="g' + i + 'pd" value="0.5" inputmode="decimal" data-positive data-label="pillar diameter"><select data-dim="length" data-units="mm" data-default="mm"></select></div></div>' +
+                '<div class="field" data-vac="' + i + '" hidden><label for="g' + i + 'ps">Pillar spacing</label><div class="input-unit"><input id="g' + i + 'ps" name="g' + i + 'ps" value="25" inputmode="decimal" data-positive data-label="pillar spacing"><select data-dim="length" data-units="mm" data-default="mm"></select></div></div>' +
+                '<div class="field" data-vac="' + i + '" hidden><label for="g' + i + 'pd">Pillar diameter</label><div class="input-unit"><input id="g' + i + 'pd" name="g' + i + 'pd" value="0.5" inputmode="decimal" data-positive data-label="pillar diameter"><select data-dim="length" data-units="mm" data-default="mm"></select></div></div>' +
                 '</div>' +
                 '<p class="hint" data-gapwarn="' + i + '" style="margin:-.2rem 0 .8rem" hidden></p>' +
                 (i === 1 ? '<p class="hint" data-gas="' + i + '" style="margin:-.2rem 0 .8rem">Gas fills are 90&nbsp;% gas and 10&nbsp;% air. Under NFRC winter conditions U is lowest, and the R-value highest, for gaps of about 12&nbsp;mm with air or argon, 8&nbsp;mm with krypton, and 6&nbsp;mm with xenon.</p>' +
-                    '<p class="hint" data-vac="' + i + '" style="margin:-.2rem 0 .8rem">Square grid, typically 0.25–1&nbsp;mm pillars 2–5&nbsp;cm apart. Pillar conduction grows as diameter/spacing²: fewer, thinner pillars insulate better but stress the glass more.</p>' : '') +
+                    '<p class="hint" data-vac="' + i + '" style="margin:-.2rem 0 .8rem" hidden>Square grid, typically 0.25–1&nbsp;mm pillars 2–5&nbsp;cm apart. Pillar conduction grows as diameter/spacing²: fewer, thinner pillars insulate better but stress the glass more.</p>' : '') +
                 '</div>';
         }
     }
     $('stack').innerHTML = html;
 
+    // Which cards and fields show follows the selects alone, so it can be set whether or not the numbers are valid.
+    // Returns true when anything was shown or hidden.
+    function layout() {
+        const np = parseInt($('np').value, 10);
+        let changed = false;
+        const hide = (el, h) => { if (el.hidden !== h) { el.hidden = h; changed = true; } };
+        const all = sel => document.querySelectorAll(sel);
+        for (let i = 1; i <= 3; i++) {
+            hide(document.querySelector('[data-pane="' + i + '"]'), i > np);
+            const isImp = $('p' + i + 'g').value.indexOf('imp:') === 0, c = $('p' + i + 'c').value;
+            all('[data-gen="' + i + '"]').forEach(el => hide(el, isImp));
+            // the side choice orients a coating or an imported product; an uncoated generic pane has none
+            hide(document.querySelector('[data-side="' + i + '"]'), !isImp && c === 'none');
+            document.querySelector('label[for="p' + i + 's"]').textContent = isImp ? 'Front face (as measured)' : 'Coated side';
+            all('[data-emis="' + i + '"]').forEach(el => hide(el, isImp || c === 'none'));
+            $('p' + i + 'e').placeholder = E.COATINGS[c] ? String(E.COATINGS[c].eps) : '';
+            const n0 = 2 * i - 1;
+            document.querySelector('[data-out="p' + i + 'surf"]').textContent = 'surfaces #' + n0 + ' and #' + (n0 + 1);
+            if (i < 3) {
+                hide(document.querySelector('[data-gap="' + i + '"]'), i >= np);
+                const vac = $('g' + i + 'f').value === 'vacuum';
+                all('[data-gas="' + i + '"]').forEach(el => hide(el, vac));
+                all('[data-vac="' + i + '"]').forEach(el => hide(el, !vac));
+            }
+        }
+        return changed;
+    }
+
     // ── Cross-section drawing, laid out at the width of its box so that the labels keep their font size ──
     let lastX = null;
     function xsecSVG(np, layers, gaps, temps, coat) {
-        const box = document.querySelector('[data-out="xsec"]'), cs = box && getComputedStyle(box);
+        const box = $('xsec'), cs = box && getComputedStyle(box);
         const inner = box && box.clientWidth ? box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) : 0;
         const W = Math.round(Math.min(560, Math.max(300, inner || 480))), H = 232, x0 = 78, x1 = W - 78, top = 54, bot = 188;
         const disp = [];
@@ -588,7 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             bar,
             table: '<table class="rb-table"><caption class="visually-hidden">Thermal resistance (R-value) of each layer in SI and US units, its share of the total, and the temperature drop across it at NFRC 100 winter conditions, then the total R-value and the U-factor</caption>' +
-                '<thead><tr><th>Layer</th><th class="num">R<span class="rb-how">m²·K/W</span></th><th class="num">R<span class="rb-how">h·ft²·°F/<wbr>Btu</span></th><th class="num">Share</th><th class="num">ΔT</th></tr></thead><tbody>' + rows + '</tbody>' +
+                '<thead><tr><th>Layer</th><th class="num">R<span class="rb-how">m²·K/W</span></th><th class="num">R<span class="rb-how">h·ft²·°F/<wbr>Btu</span></th><th class="num">Share</th><th class="num">ΔT<span class="rb-how">K</span></th></tr></thead><tbody>' + rows + '</tbody>' +
                 '<tfoot><tr><td>Total: center-of-glass R-value, 1/U</td><td class="num">' + q.Rsi + '</td><td class="num">' + q.Rip + '</td><td class="num">100&nbsp;%</td><td class="num">' + fmt.num(c.Ti - c.To, 3) + '</td></tr>' +
                 '<tr><td>U-factor, 1/R<span class="rb-how">W/m²·K and Btu/h·ft²·°F</span></td><td class="num">' + q.U + '</td><td class="num">' + q.Uip + '</td><td></td><td></td></tr></tfoot></table>'
         };
@@ -620,14 +668,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const np = parseInt(v.np, 10);
             const layers = [], gaps = [], coat = [];
             let uvStart = 300;   // the shortest wavelength every imported layer covers
-            for (let i = 1; i <= 3; i++) {
-                const card = document.querySelector('[data-pane="' + i + '"]');
-                card.hidden = i > np;
-                if (i < 3) document.querySelector('[data-gap="' + i + '"]').hidden = i >= np;
-                if (i > np) continue;
+            layout();
+            for (let i = 1; i <= np; i++) {
                 const gsel = v['p' + i + 'g'], side = v['p' + i + 's'];
                 const isImp = gsel.indexOf('imp:') === 0;
-                document.querySelectorAll('[data-gen="' + i + '"]').forEach(el => { el.hidden = isImp; });
                 let layer;
                 if (isImp) {
                     const p = imports.find(q => 'imp:' + q.id === gsel);
@@ -639,17 +683,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const c = v['p' + i + 'c'];
                     layer = E.pane(gsel, parseFloat(v['p' + i + 't']), c, side);
                     coat.push(c !== 'none' && side === 'front', c !== 'none' && side === 'back');
+                    // an emissivity typed for the coated surface replaces the generic one (heat transfer only; the spectra stay)
+                    const eo = v['p' + i + 'e'];
+                    if (c !== 'none' && isFinite(eo)) { if (side === 'back') layer.eb = eo; else layer.ef = eo; }
                 }
-                // the side choice orients a coating or an imported product; an uncoated generic pane has none
-                document.querySelector('[data-side="' + i + '"]').hidden = !isImp && v['p' + i + 'c'] === 'none';
-                document.querySelector('label[for="p' + i + 's"]').textContent = isImp ? 'Front face (as measured)' : 'Coated side';
                 layers.push(layer);
-                const n0 = 2 * i - 1;
-                document.querySelector('[data-out="p' + i + 'surf"]').textContent = 'surfaces #' + n0 + ' and #' + (n0 + 1);
                 if (i < np) {
                     const fill = v['g' + i + 'f'], vac = fill === 'vacuum';
-                    document.querySelectorAll('[data-gas="' + i + '"]').forEach(el => { el.hidden = vac; });
-                    document.querySelectorAll('[data-vac="' + i + '"]').forEach(el => { el.hidden = !vac; });
                     if (vac && !(v['g' + i + 'pd'] < v['g' + i + 'ps'])) throw Calc.fail('Pillar diameter must be smaller than the spacing.', 'g' + i + 'pd');
                     gaps.push({ fill, width: vac ? 0.0003 : v['g' + i + 'w'], pillarSpacing: v['g' + i + 'ps'], pillarRadius: v['g' + i + 'pd'] / 2 });
                 }
@@ -671,7 +711,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const dp = rh => { const a = 17.62, b = 243.12, g = Math.log(rh) + a * 21 / (b + 21); return b * g / (a - g); };
             const sw = (c, label) => '<span class="sw"><i style="background:rgb(' + c.rgb.join(',') + ')"></i><span>' + label + '<br>L* ' + fmt.num(c.L, 3) + ', a* ' + fmt.num(c.a, 2) + ', b* ' + fmt.num(c.b, 2) + '</span></span>';
             return {
-                xsec: { html: xsecSVG(np, layers, gaps, r.winter.temps, coat) },
                 kU: q.U, kUip: q.Uip, kRip: q.Rip, kRsi: q.Rsi, kSHGC: fmt.num(r.SHGC, 3), kVT: pct(r.Tvis),
                 swatches: { html: sw(r.colorT, 'Transmitted') + sw(r.colorR, 'Reflected, outside') + sw(r.colorRin, 'Reflected, inside') },
                 rvis: pct(r.Rvis) + ' / ' + pct(r.RvisIn),
@@ -691,12 +730,29 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onError() {                             // no valid result: remove the spectra left from the last one (a resize must not redraw them)
             last = null;
-            lastX = null;
             ru.clear();
             document.querySelectorAll('[data-gapwarn]').forEach(el => { el.hidden = true; });
             if (window.Plot) Plot.clear('#glz-plot');
+            // the cross-section of the last valid glazing stays, faded and labeled (site.css .calc-dim-on-error)
+            $('xsec-wait').textContent = lastX ? 'Waiting for valid inputs. Showing the last valid glazing.' : 'Waiting for valid inputs.';
+            // an error in the numbers stops the run before compute(): lay the form out from its selects anyway, and
+            // run once more if that hid the field at fault (a gap width while the fill is vacuum) or showed new ones
+            if (layout()) setTimeout(() => calc.run(), 0);
         },
-        after() { drawPlot(); ru.follow(last.U); }
+        after() { drawPlot(); drawX(); ru.follow(last.U); }
+    });
+    function drawX() { if (lastX) $('xsec').innerHTML = xsecSVG(...lastX); }
+
+    // Example glazings: each sets the whole form, so the result does not depend on what was entered before
+    const PRESETS = {
+        clear:  { p1c: 'none', g1f: 'air' },
+        lowe:   {},
+        triple: { np: '3', p1t: '4', p2t: '4', p3t: '4', p3c: 'double', p3s: 'front', g1f: 'krypton', g1w: '12', g2f: 'krypton', g2w: '12' },
+        vig:    { p1t: '4', p2t: '4', p1c: 'single', g1f: 'vacuum' }
+    };
+    $('presets').addEventListener('click', ev => {
+        const b = ev.target.closest('[data-preset]');
+        if (b) calc.set(Object.assign({}, BASE, PRESETS[b.dataset.preset]));
     });
 
     function drawPlot() {
@@ -721,7 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(drawPlot.t);
         drawPlot.t = setTimeout(() => {
             drawPlot();
-            if (lastX) document.querySelector('[data-out="xsec"]').innerHTML = xsecSVG(...lastX);   // re-laid out at the new width
+            drawX();   // re-laid out at the new width
         }, 150);
     });
 

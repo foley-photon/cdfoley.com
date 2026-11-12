@@ -17,9 +17,8 @@
 <meta property="og:image:alt" content="OEE &amp; Takt Time Calculator. Calculate OEE from availability, performance, and quality with a loss breakdown, plus takt time, minimum stations, and line-balance efficiency.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
@@ -37,6 +36,8 @@
     .wf .l-a { background: var(--c5); }
     .wf .l-p { background: var(--c4); }
     .wf .l-q { background: var(--c2); }
+    .wf .l-a.b, .wf .l-p.b, .wf .l-q.b { opacity: 0.5; }   /* the second loss of a split pair: same color, lighter */
+    .oee-split > .hint { margin: 0 0 0.9rem; }
     .wf .gain { background: repeating-linear-gradient(135deg, var(--warn) 0 3px, transparent 3px 7px); }
     .wf-track > i { position: absolute; top: 0; bottom: 0; border-left: 2px dashed var(--text); }   /* planned time, when the bars overshoot it */
     .wf-why { grid-column: 2; display: flex; gap: 0.45rem; align-items: baseline; font-size: 0.82rem; color: var(--text-2); line-height: 1.4; }
@@ -74,8 +75,8 @@
     .fig .tb-d { fill: var(--c5); }
     @media (max-width: 560px) { .fig text { font-size: 16px; } .fig .eq { font-size: 16.5px; } }
 </style>
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -196,6 +197,25 @@
                         <p class="hint">Parts that passed the first time, without rework.</p>
                     </div>
                 </div>
+                <details class="fold oee-split" id="oee-split">
+                    <summary>Split the losses (optional)</summary>
+                    <p class="hint">Each field is a part of a total entered above. Fill in any of them and the chart below divides that loss into its two causes. Availability, performance, quality, and OEE do not change.</p>
+                    <div class="field">
+                        <label for="setup">Setup and adjustment, part of the downtime</label>
+                        <div class="input-unit"><input id="setup" name="setup" value="" inputmode="decimal" data-optional data-nonneg data-label="setup and adjustment time" placeholder="blank: not split"><select data-dim="time" data-units="min,h,s" data-default="min"></select></div>
+                        <p class="hint">Changeovers, setups, and adjustments. The rest of the downtime counts as equipment failures.</p>
+                    </div>
+                    <div class="field">
+                        <label for="minor">Idling and minor stops, part of the speed loss</label>
+                        <div class="input-unit"><input id="minor" name="minor" value="" inputmode="decimal" data-optional data-nonneg data-label="idling and minor stops" placeholder="blank: not split"><select data-dim="time" data-units="min,h,s" data-default="min"></select></div>
+                        <p class="hint">The summed time of short stops that were not logged as downtime: jams, blocked sensors, waiting a few seconds for a part. The rest of the speed loss counts as reduced speed.</p>
+                    </div>
+                    <div class="field">
+                        <label for="startup">Start-up rejects, part of the rejects</label>
+                        <div class="input-unit"><input id="startup" name="startup" value="" inputmode="numeric" data-optional data-nonneg data-label="start-up rejects" placeholder="blank: not split"><span class="unit">parts</span></div>
+                        <p class="hint">Parts rejected between start-up and stable production. The other rejects (total count minus good count) are process defects and rework.</p>
+                    </div>
+                </details>
             </div>
         </form>
 
@@ -303,7 +323,7 @@
             <li><strong>Performance (speed losses):</strong> idling and minor stoppages, and reduced speed below the design rate.</li>
             <li><strong>Quality (defect losses):</strong> process defects, including parts that must be reworked, and reduced yield between start-up and stable production.</li>
         </ul>
-        <p>The calculator takes one downtime figure and one count of rejects, so the chart shows the three pairs. To see all six, log breakdowns separately from changeovers, short stops separately from slow cycles, and start-up rejects separately from the rest. The three factors do not change.</p>
+        <p>With only the totals entered, the chart shows the three pairs. To see all six, log breakdowns separately from changeovers, short stops separately from slow cycles, and start-up rejects separately from the rest. Then open <strong>Split the losses</strong> under the inputs and enter the setup time, the minor-stop time, and the start-up rejects: the chart divides each loss into its two causes. The three factors do not change.</p>
 
         <h2 id="is-85-world-class">Is 85&nbsp;% world class?</h2>
         <p>The 85&nbsp;% figure comes from Nakajima’s <em>Introduction to TPM</em> (p.&nbsp;28). “Based on our experience,” he gave as ideal conditions an availability above 90&nbsp;%, a performance efficiency above 95&nbsp;%, and a rate of quality products above 99&nbsp;%, and multiplied them to “85+%” (the product is 84.6&nbsp;%). He added that all the companies that had won the PM Prize, the Japanese award for outstanding TPM plants, had an overall equipment effectiveness above 85&nbsp;%, so the figure was “not just a remote goal.”</p>
@@ -414,12 +434,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const Q = v.good / v.total;
             const oee = A * P * Q;
             const theo = v.planned / v.ict;
+            // optional split of each loss into its two causes (the six big losses): each part must fit inside its total
+            const speedLoss = run - v.ict * v.total, rejects = v.total - v.good;
+            if (v.setup > v.down) throw Calc.fail('Setup and adjustment time is part of the downtime, so it cannot be longer than the downtime.', 'setup');
+            if (v.minor > Math.max(0, speedLoss) * (1 + 1e-9)) throw Calc.fail(speedLoss > 0
+                ? 'Idling and minor stops are part of the speed loss, so they cannot be longer than ' + mins(speedLoss) + ' (run time minus ideal cycle time × total count).'
+                : 'There is no speed loss to split: at the ideal cycle time, the parts made account for all of the run time.', 'minor');
+            if (v.startup > rejects) throw Calc.fail('Start-up rejects are part of the rejects, so they cannot be more than ' + fmt.num(rejects, 6) + ' (total count minus good count).', 'startup');
             const badge = document.getElementById('oee-badge');
             const shownOee = Calc.roundSig(oee * 100, 3) / 100;   // judge the value as displayed, so an OEE shown as 85 % never reads "Below"
             if (P > 1) { badge.textContent = 'Performance above 100 %'; badge.className = 'badge badge-warn'; }   // the OEE is not a valid score to rate
             else if (shownOee >= 0.85) { badge.textContent = '≥ Nakajima’s 85 % ideal'; badge.className = 'badge badge-ok'; }
             else { badge.textContent = 'Below Nakajima’s 85 % ideal'; badge.className = 'badge'; }
-            lastOee = { planned: v.planned, run, net: v.total * v.ict, fp: v.good * v.ict, A, P, Q, oee };
+            lastOee = { planned: v.planned, run, net: v.total * v.ict, fp: v.good * v.ict, A, P, Q, oee,
+                // the second cause of each pair, as time; NaN where that loss is not split
+                setup: v.setup, minor: v.minor, startup: v.startup * v.ict };
             return {
                 oee: pct(oee),
                 a: pct(A),
@@ -437,15 +466,18 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         after() { drawWaterfall(lastOee); }
     });
+    // a link (or a reload) that carries split values opens the folded group, so the numbers behind the chart are visible
+    const splitBox = document.getElementById('oee-split');
+    if ([...splitBox.querySelectorAll('input')].some(c => c.value.trim())) splitBox.open = true;
 
     // Where the planned time went: each stage keeps the time left after one pair of the six big losses, so each factor
     // is the ratio of a bar to the bar above it. HTML rows keep their labels at full size on a phone.
     function drawWaterfall(s) {
         const stages = [
             { name: 'Planned production time', t: s.planned },
-            { name: 'Run time', t: s.run, sym: 'A', f: s.A, cls: 'l-a', loss: 'availability loss', why: 'equipment failures, setup and adjustment' },
-            { name: 'Net run time', t: s.net, sym: 'P', f: s.P, cls: 'l-p', loss: 'performance loss', why: 'idling and minor stops, reduced speed' },
-            { name: 'Fully productive time', t: s.fp, sym: 'Q', f: s.Q, cls: 'l-q', loss: 'quality loss', why: 'process defects and rework, start-up rejects' }
+            { name: 'Run time', t: s.run, sym: 'A', f: s.A, cls: 'l-a', loss: 'availability loss', why: 'equipment failures, setup and adjustment', part: s.setup, causes: ['equipment failures', 'setup and adjustment'] },
+            { name: 'Net run time', t: s.net, sym: 'P', f: s.P, cls: 'l-p', loss: 'performance loss', why: 'idling and minor stops, reduced speed', part: s.minor, causes: ['reduced speed', 'idling and minor stops'] },
+            { name: 'Fully productive time', t: s.fp, sym: 'Q', f: s.Q, cls: 'l-q', loss: 'quality loss', why: 'process defects and rework, start-up rejects', part: s.startup, causes: ['process defects and rework', 'start-up rejects'] }
         ];
         const max = Math.max(...stages.map(g => g.t));          // more than the planned time only when performance is above 100 %
         const w = t => (t / max * 100).toFixed(3) + '%';
@@ -454,8 +486,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('oee-wf').innerHTML = stages.map((g, i) => {
             const prev = i ? stages[i - 1].t : g.t, d = prev - g.t;  // d > 0: time lost at this step; d < 0: more than the stage above
             const k = '<span class="k' + (i === stages.length - 1 ? ' fp' : '') + '" style="width:' + w(Math.min(g.t, prev)) + '"></span>';
-            const track = k + (d > 0 ? '<span class="' + g.cls + '" style="width:' + w(d) + '"></span>' : d < 0 ? '<span class="gain" style="width:' + w(-d) + '"></span>' : '');
+            // a split loss is drawn as two segments, the second lighter, each with its own line of text
+            const split = i && d > 0 && isFinite(g.part), b = split ? Math.min(g.part, d) : 0;
+            const seg = (cls, t) => t > 0 ? '<span class="' + cls + '" style="width:' + w(t) + '"></span>' : '';
+            const track = k + (split ? seg(g.cls, d - b) + seg(g.cls + ' b', b) : d > 0 ? seg(g.cls, d) : d < 0 ? seg('gain', -d) : '');
+            const row = (cls, t, what) => '<div class="wf-why"><i class="' + cls + '"></i><span>' + (t > 0 ? '−' + mins(t) + ' (' + share(t) + ')' : 'No') + ' ' + what + '</span></div>';
             const why = !i ? ''
+                : split ? '<div class="wf-why"><span>−' + mins(d) + ' (' + share(d) + ') ' + g.loss + ', split:</span></div>' + row(g.cls, d - b, g.causes[0]) + row(g.cls + ' b', b, g.causes[1])
                 : d < 0 ? '<div class="wf-why warn"><i class="gain"></i><span>' + mins(-d) + ' more than the run time: performance is above 100 %, so check the ideal cycle time and the count.</span></div>'
                 : '<div class="wf-why"><i class="' + g.cls + '"></i><span>' + (d > 0 ? '−' + mins(d) + ' (' + share(d) + ')' : 'No') + ' ' + g.loss + ': ' + g.why + '</span></div>';
             return '<li><div class="wf-head"><span class="wf-name">' + g.name + '</span><span class="wf-val">' + mins(g.t)
@@ -583,6 +620,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const pc = v.pct;                                      // planned cycle time in seconds; NaN when left blank
             const badge = document.getElementById('takt-badge');
             lastTakt = { takt, st, pc, f, u, ft };
+            // Rother's starting point, 15 % under takt, shown in the empty planned-cycle-time box (in that box's unit; short enough for a phone)
+            const pcBox = document.getElementById('pct'), pcUnit = document.querySelector('#takt-calc select[name="pct_u"]');
+            pcBox.placeholder = fmt.num(takt * 0.85 / (pcUnit && pcUnit.value === 'min' ? 60 : 1), 3) + ' = takt − 15 %';
             const out = {
                 takt: fmt.num(takt, 4) + ' s' + (takt >= 120 ? ' (' + fmt.num(takt / 60, 4) + ' min)' : ''),
                 rate: fmt.num(3600 / takt, 4) + ' units/h',

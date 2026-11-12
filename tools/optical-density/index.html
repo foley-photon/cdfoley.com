@@ -17,9 +17,8 @@
 <meta property="og:image:alt" content="Optical Density (OD) &amp; ND Filter Calculator. Convert optical density (OD) to transmission, percent, and dB, stack neutral density (ND) filters, and find the OD needed to cut laser power to a target.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
@@ -28,8 +27,8 @@
     .od-lead { margin: 0 0 0.8rem; }
     .od-filters-hint { margin-top: 0; }
 </style>
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script type="application/ld+json" id="ld-page">
@@ -123,8 +122,8 @@
             <p class="hint od-lead">Type a value in any box; the others follow.</p>
             <div class="conv-grid">
                 <div class="field"><label for="c-od">Optical density <span class="sym">OD</span></label><div class="input-unit"><input id="c-od" name="od" inputmode="decimal"><span class="unit">OD</span></div></div>
-                <div class="field"><label for="c-t">Transmittance <span class="sym">T</span></label><div class="input-unit"><input id="c-t" name="t" inputmode="decimal"><span class="unit">fraction</span></div></div>
-                <div class="field"><label for="c-tp">Transmission</label><div class="input-unit"><input id="c-tp" name="tpct" inputmode="decimal"><span class="unit">%</span></div></div>
+                <div class="field"><label for="c-t">Transmittance <span class="sym">T</span><span class="visually-hidden">, as a fraction</span></label><div class="input-unit"><input id="c-t" name="t" inputmode="decimal"><span class="unit">fraction</span></div></div>
+                <div class="field"><label for="c-tp">Transmittance <span class="sym">%</span><span class="visually-hidden">, in percent</span></label><div class="input-unit"><input id="c-tp" name="tpct" inputmode="decimal"><span class="unit">%</span></div></div>
                 <div class="field"><label for="c-db">Attenuation</label><div class="input-unit"><input id="c-db" name="db" inputmode="decimal"><span class="unit">dB</span></div></div>
                 <div class="field"><label for="c-bl">Blocked</label><div class="input-unit"><input id="c-bl" name="blocked" inputmode="decimal"><span class="unit">%</span></div></div>
             </div>
@@ -165,12 +164,13 @@
             <div class="panel-body">
                 <div class="results">
                     <div class="result primary"><span class="result-label">Total optical density</span><output class="result-value" data-out="odt">—</output></div>
-                    <div class="result"><span class="result-label">Total transmission</span><output class="result-value" data-out="tt">—</output></div>
+                    <div class="result"><span class="result-label">Total transmittance</span><output class="result-value" data-out="tt">—</output></div>
                     <div class="result"><span class="result-label">Total attenuation</span><output class="result-value" data-out="dbt">—</output></div>
                     <div class="result"><span class="result-label">Transmitted power</span><output class="result-value" data-out="pout">—</output></div>
-                    <div class="result"><span class="result-label">Power absorbed / reflected by the stack</span><output class="result-value" data-out="pblk">—</output><span class="result-note">The first filter in the beam takes most of this. Check its damage threshold (see the cautions below).</span></div>
+                    <div class="result"><span class="result-label">Power absorbed / reflected by the stack</span><output class="result-value" data-out="pblk">—</output><span class="result-note">The first filter in the beam takes most of this. Check its damage threshold (see <a href="#assumptions-and-limits">the cautions below</a>).</span></div>
                     <div class="result"><span class="result-label">OD required for target</span><output class="result-value" data-out="odreq">—</output></div>
                     <div class="result"><span class="result-label">Additional OD needed</span><output class="result-value" data-out="odadd">—</output></div>
+                    <div class="result"><span class="result-label">Filters to add <span class="sym">for example</span></span><output class="result-value" data-out="odkit">—</output><span class="result-note">The fewest common catalog values (OD 0.1, 0.2, 0.3, 0.5, 1, 2, 3, 4) that cover the shortfall, rounded up to the next 0.1.</span></div>
                 </div>
             </div>
         </section>
@@ -180,7 +180,7 @@
         <h2>How it is calculated</h2>
         <p>Optical density is the base-10 logarithm of the attenuation. Decibels use ten times the same logarithm:</p>
         <div class="formula">\[ \mathrm{OD} = -\log_{10} T = \log_{10}\frac{P_\text{in}}{P_\text{out}}, \qquad \mathrm{dB} = 10\,\mathrm{OD}, \qquad T = 10^{-\mathrm{OD}}. \]</div>
-        <p>Because these are logarithms, filters in series add: \(\mathrm{OD}_\text{total} = \sum \mathrm{OD}_i\), equivalent to multiplying their transmittances. The OD needed to bring a beam from \(P_\text{in}\) down to \(P_\text{target}\) is \(\log_{10}(P_\text{in}/P_\text{target})\).</p>
+        <p>Because these are logarithms, filters in series add: \(\mathrm{OD}_\text{total} = \sum \mathrm{OD}_i\), equivalent to multiplying their transmittances. The OD needed to bring a beam from \(P_\text{in}\) down to \(P_\text{target}\) is \(\log_{10}(P_\text{in}/P_\text{target})\). When the stack falls short, the calculator rounds the missing OD up to the next 0.1 and suggests filters to add from the common catalog values 0.1, 0.2, 0.3, 0.5, 1, 2, 3, and 4, taking the largest value that fits first. A shortfall of 0.35, for example, gives OD 0.3 + 0.1.</p>
         <table>
             <thead><tr><th class="num">OD</th><th class="num">Transmission</th><th class="num">Attenuation</th></tr></thead>
             <tbody>
@@ -204,7 +204,7 @@
         <h2>Worked example</h2>
         <p>The default inputs: a 2&nbsp;W beam needs to be at or below 1&nbsp;mW for a camera. The required OD is \(\log_{10}(2\,\text{W}/1\,\text{mW}) = 3.30\). Stacking OD 1 + OD 2 + OD 0.5 = OD 3.5 transmits \(2\,\text{W}\times10^{-3.5} = 0.63\)&nbsp;mW, which meets the target. The stack absorbs or reflects 1.999&nbsp;W, and the first filter in the beam (OD 1) takes 1.8&nbsp;W of that. That is a lot for an ND filter: check its damage threshold for your beam size, or pick off a small fraction of the beam first.</p>
 
-        <h2>Assumptions and limits</h2>
+        <h2 id="assumptions-and-limits">Assumptions and limits</h2>
         <ul>
             <li><strong>OD depends on wavelength.</strong> The OD of absorptive ND glass can change by a factor of two or more between the visible and the near-infrared: 1&nbsp;mm of SCHOTT NG9 glass has an internal OD of 1.38 at 550&nbsp;nm, 0.92 at 1060&nbsp;nm, and 0.49 at 1550&nbsp;nm. Metal-coated reflective filters are flatter, but only over their stated range. Use the vendor’s curve at your wavelength rather than the nominal value, and calibrate a filter in your own setup when the number matters.</li>
             <li><strong>Stacking reflective filters</strong> creates multiple reflections between them. Light bouncing between two parallel filters adds to the transmitted beam: with reflectances \(R_1\) and \(R_2\) facing each other, the pair transmits \(T_1T_2/(1 - R_1R_2)\) instead of \(T_1T_2\), so two filters that each reflect 50&nbsp;% pass a third more than the summed OD predicts. With laser light the gap can act as a resonator. Tilt the filters by a few degrees so back-reflections leave the beam path, and don’t let them return into the laser.</li>
@@ -278,6 +278,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Filters that cover a missing OD: the shortfall rounded up to the next 0.1, then the largest common catalog value
+    // that still fits, repeated (0.35 → 0.3 + 0.1). Worked in tenths so that no step carries a rounding error.
+    const KIT = [40, 30, 20, 10, 5, 3, 2, 1];
+    function filterKit(need) {
+        let left = Math.ceil(need * 10 - 1e-9);
+        const picks = [];
+        for (const k of KIT) while (left >= k && picks.length < 9) { picks.push(k / 10); left -= k; }
+        return left > 0 ? null : picks;   // more than nine filters: no suggestion
+    }
+
     const enough = document.getElementById('enough');
     Calc.create({
         form: '#stack',
@@ -291,6 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const T = Math.pow(10, -od);
             const hasP = isFinite(v.pin), hasT = isFinite(v.ptg);
             const req = hasP && hasT ? Math.log10(v.pin / v.ptg) : NaN;
+            const kit = isFinite(req) && req - od > 1e-12 ? filterKit(req - od) : null;
 
             if (isFinite(req)) {
                 const ok = od >= req - 1e-12;
@@ -305,7 +316,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 pout: hasP ? fmt.si(v.pin * T, 'W', 4) : null,
                 pblk: hasP ? fmt.si(v.pin * (1 - T), 'W', 4) : null,
                 odreq: isFinite(req) ? (req > 0 ? fmt.num(req, 4) : '0 (input already at or below target)') : null,
-                odadd: isFinite(req) ? (req - od > 1e-12 ? fmt.num(req - od, 4) : 'none') : null
+                odadd: isFinite(req) ? (req - od > 1e-12 ? fmt.num(req - od, 4) : 'none') : null,
+                odkit: kit ? 'OD ' + kit.join(' + ') : null
             };
         },
         onError() { enough.textContent = ''; enough.className = 'badge'; }   // no stale verdict beside blank results

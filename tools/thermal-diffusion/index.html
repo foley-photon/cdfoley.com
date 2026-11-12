@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="Thermal Diffusion Length &amp; Heat Accumulation Calculator. Calculate laser thermal diffusion length, thermal confinement vs. optical penetration depth, and the repetition rate where heat accumulation begins.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -132,7 +131,7 @@
                         <option value="water">Water, 25&nbsp;°C (0.146&nbsp;mm²/s)</option>
                         <option value="pmma">PMMA (0.11&nbsp;mm²/s)</option>
                     </select>
-                    <p class="hint">Fills in a room-temperature diffusivity from the <a href="#materials">table below</a>. Edit it for your exact alloy or grade.</p>
+                    <p class="hint">Fills in a room-temperature diffusivity from the <a href="#materials">table below</a> and, for the metals, the optical penetration depth at 1064&nbsp;nm. Edit them for your exact alloy, grade, and wavelength.</p>
                 </div>
                 <div class="field">
                     <label for="D">Thermal diffusivity <span class="sym">D = k/(ρc<sub>p</sub>)</span></label>
@@ -157,8 +156,8 @@
                     </div>
                     <div class="field">
                         <label for="delta">Optical penetration depth (optional) <span class="sym">δ</span></label>
-                        <div class="input-unit"><input id="delta" name="delta" value="" inputmode="decimal" data-optional placeholder="e.g. 20" data-label="optical penetration depth"><select data-dim="length" data-units="nm,µm,mm" data-default="nm"></select></div>
-                        <p class="hint">δ = 1/α = λ/(4πκ), with κ the extinction coefficient. At 1064&nbsp;nm it is 8&nbsp;nm in aluminum and 21&nbsp;nm in iron; see <a href="#penetration-depth">typical values</a>.</p>
+                        <div class="input-unit"><input id="delta" name="delta" value="21" inputmode="decimal" data-optional placeholder="e.g. 20" data-label="optical penetration depth"><select data-dim="length" data-units="nm,µm,mm" data-default="nm"></select></div>
+                        <p class="hint">δ = 1/α = λ/(4πκ), with κ the extinction coefficient. At 1064&nbsp;nm it is 8&nbsp;nm in aluminum and 21&nbsp;nm in iron; see <a href="#penetration-depth">typical values</a>. The material list fills it in for metals: the iron value for stainless steel and the titanium value for Ti-6Al-4V. Leave it blank to skip the confinement check.</p>
                     </div>
                 </div>
             </div>
@@ -184,7 +183,7 @@
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
         <div class="panel-head"><h2 id="plot-h">Diffusion length vs. pulse duration</h2></div>
-        <div class="panel-body"><div id="L-plot"></div></div>
+        <div class="panel-body"><div id="L-plot" class="calc-hide-on-error"></div><p class="hint calc-empty" style="margin:0">Fix the input error above to redraw the chart.</p></div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
@@ -219,7 +218,7 @@
         </table>
         <p>These are room-temperature values. Copper, aluminum, silicon, stainless steel 304, and fused silica are the 300&nbsp;K values of Bergman et al. (Appendix&nbsp;A), also reproduced in Çengel and Ghajar’s free appendix. Borofloat&nbsp;33 is from SCHOTT (k at 90&nbsp;°C, c<sub>p</sub> averaged over 20–100&nbsp;°C), water at 25&nbsp;°C and 1&nbsp;atm from the NIST Chemistry WebBook, and PMMA from Çengel and Ghajar. Ti-6Al-4V is a typical datasheet value; such values vary by about ±10&nbsp;% between sources. Soda-lime glass uses the nominal density of float glass, 2500&nbsp;kg/m³ (ISO&nbsp;16293-1 and makers’ data sheets; older handbook tables list 2400–2800 for common glass), with typical k and c<sub>p</sub>. Published values run from 0.94 to 1.0&nbsp;W/(m·K) and from 720 to 880&nbsp;J/(kg·K), which puts the diffusivity between 0.43 and 0.56&nbsp;mm²/s. Alloys, glasses, and polymers vary with composition and supplier: published room-temperature diffusivities of fused silica, for example, range from 0.75&nbsp;mm²/s (Corning) to 0.83&nbsp;mm²/s. Diffusivity also changes with temperature. Between 300&nbsp;K and 800–1000&nbsp;K it falls by about a quarter in copper and aluminum but rises by about a third in stainless steel 304 (Bergman et al., Table&nbsp;A.1). Use measured data for your material when accuracy matters.</p>
         <h3 id="penetration-depth">Typical optical penetration depths</h3>
-        <p>For the optional δ input. These are computed as \(\lambda/(4\pi\kappa)\) at 1064&nbsp;nm from tabulated optical constants of the pure metals (Rakić for aluminum; Johnson and Christy for the others).</p>
+        <p>For the optional δ input. The material list uses these values: copper and aluminum directly, iron for stainless steel 304, and titanium for Ti-6Al-4V. These are computed as \(\lambda/(4\pi\kappa)\) at 1064&nbsp;nm from tabulated optical constants of the pure metals (Rakić for aluminum; Johnson and Christy for the others).</p>
         <table>
             <thead><tr><th>Material</th><th class="num">δ at 1064&nbsp;nm</th></tr></thead>
             <tbody>
@@ -233,7 +232,7 @@
         <p>In materials that are transparent at the laser wavelength, linear absorption is weak and δ is far longer than any thermal length. Ultrashort pulses are then absorbed nonlinearly, near the focus, which this simple picture does not cover.</p>
 
         <h2>Worked example</h2>
-        <p>Stainless steel 304 (D&nbsp;=&nbsp;3.95&nbsp;mm²/s) with 10&nbsp;ns pulses: \(L_\text{th} = 2\sqrt{3.95\ \text{mm}^2/\text{s}\times 10\ \text{ns}} \approx 0.40\ \mu\text{m}\). That is about 20× the optical penetration depth of a metal in the near infrared (δ&nbsp;≈&nbsp;20&nbsp;nm), so the process is not thermally confined. The same steel with 10&nbsp;ps pulses gives 12.6&nbsp;nm, which is comparable to δ. For a 30&nbsp;µm spot, \(t_w = (15\ \mu\text{m})^2/(4D) = 14\ \mu\text{s}\), so heat accumulation sets in around 70&nbsp;kHz. At the default 100&nbsp;kHz the pulse period is 0.70&nbsp;t<sub>w</sub>, so expect accumulation, more so with overlapping pulses. In fused silica the same spot accumulates heat from about 15&nbsp;kHz. In copper the onset is about 2&nbsp;MHz.</p>
+        <p>Stainless steel 304 (D&nbsp;=&nbsp;3.95&nbsp;mm²/s) with 10&nbsp;ns pulses: \(L_\text{th} = 2\sqrt{3.95\ \text{mm}^2/\text{s}\times 10\ \text{ns}} \approx 0.40\ \mu\text{m}\). That is 18.9 times the default optical penetration depth of 21&nbsp;nm (iron at 1064&nbsp;nm), so the process is not thermally confined. The same steel with 10&nbsp;ps pulses gives 12.6&nbsp;nm, which is 0.6 times δ, so that pulse is confined. For a 30&nbsp;µm spot, \(t_w = (15\ \mu\text{m})^2/(4D) = 14\ \mu\text{s}\), so heat accumulation sets in around 70&nbsp;kHz. At the default 100&nbsp;kHz the pulse period is 0.70&nbsp;t<sub>w</sub>, so expect accumulation, more so with overlapping pulses. In fused silica the same spot accumulates heat from about 15&nbsp;kHz. In copper the onset is about 2&nbsp;MHz.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
@@ -284,20 +283,28 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const { fmt } = Calc;
-    const MATS = { cu: 117, al: 97.1, si: 89.2, ss304: 3.95, ti64: 2.88, fs: 0.834, boro: 0.65, sl: 0.53, water: 0.146, pmma: 0.11 };
+    // [diffusivity in mm²/s, optical penetration depth at 1064 nm in nm (metals only; the alloys use their base metal)]
+    const MATS = { cu: [117, 12], al: [97.1, 8], si: [89.2], ss304: [3.95, 21], ti64: [2.88, 21], fs: [0.834], boro: [0.65], sl: [0.53], water: [0.146], pmma: [0.11] };
+    const PRESET_DELTAS = ['8', '12', '21'];
     const matSel = document.getElementById('mat');
     const dIn = document.getElementById('D');
     const dUnit = document.getElementById('D-u');
     const badge = document.getElementById('acc-badge');
     const note = document.getElementById('note'), noteRow = document.getElementById('note-row');
 
-    // preset → diffusivity (runs before calc.js's form-level change handler)
+    const deltaIn = document.getElementById('delta'), deltaUnit = deltaIn.closest('.input-unit').querySelector('select');
+    // preset → diffusivity and, for a metal, penetration depth (runs before calc.js's form-level change handler).
+    // A material without a tabulated depth clears a depth that came from a preset and leaves a typed one alone.
     matSel.addEventListener('change', () => {
         if (matSel.value === 'custom') return;
+        const [D, delta] = MATS[matSel.value];
         dUnit.value = 'mm²/s'; dUnit.dataset.prev = 'mm²/s';
-        dIn.value = MATS[matSel.value];
+        dIn.value = D;
+        if (delta) { deltaUnit.value = 'nm'; deltaUnit.dataset.prev = 'nm'; deltaIn.value = delta; }
+        else if (deltaUnit.value === 'nm' && PRESET_DELTAS.includes(deltaIn.value.trim())) deltaIn.value = '';
     });
     dIn.addEventListener('input', () => { matSel.value = 'custom'; });
+    deltaIn.addEventListener('input', () => { matSel.value = 'custom'; });
 
     const freq = f => fmt.si(f, 'Hz', 3);
 
@@ -347,10 +354,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Math.abs(v.D - 0.834e-6) / 0.834e-6 > 0.01) series.push({ type: 'line', x: taus, y: Lum(0.834e-6), label: 'Fused silica', color: 'var(--c3)', dash: true });
             series.push({ type: 'points', x: [v.tau], y: [2 * Math.sqrt(v.D * v.tau) * 1e6], color: 'var(--c1)', r: 5 });
             const hl = [{ y: v.d / 2 * 1e6, label: 'beam radius w₀', color: 'var(--muted)' }];
+            // tick labels as times (10 fs, 1 ps, 100 ps, …); on a narrow chart every second one, so they never touch
+            const plotBox = document.getElementById('L-plot');
+            const tks = Plot.logTicks(tLo, tHi);
+            const tick = t => {
+                const i = tks.findIndex(k => Math.abs(k - t) <= 1e-9 * t);
+                return plotBox.clientWidth < 60 * tks.length && i % 2 ? '' : fmt.si(t, 's', 3);
+            };
             if (isFinite(v.delta) && v.delta > 0) hl.push({ y: v.delta * 1e6, label: 'optical depth δ', color: 'var(--c5)' });
             Plot.draw('#L-plot', {
                 height: 300,
-                x: { label: 'Pulse duration τ (s)', log: true, min: tLo, max: tHi },
+                x: { label: 'Pulse duration τ', log: true, min: tLo, max: tHi, format: tick },
                 y: { label: 'L = 2√(Dτ) (µm)', log: true },
                 series, hlines: hl, includeLines: false,
                 hover: { format: (x, hits) => 'τ = ' + fmt.si(x, 's', 3) + hits.filter(h => h.series.label).map(h => ' · ' + h.series.label.replace(/ = .*/, '') + ': ' + fmt.si(h.y * 1e-6, 'm', 3)).join('') }

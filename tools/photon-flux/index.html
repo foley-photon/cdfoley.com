@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="Photon Energy &amp; Flux Calculator. Convert laser power or pulse energy to photons per second and per pulse at any wavelength, plus photon flux density and detector photocurrent.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script type="application/ld+json" id="ld-page">
@@ -119,7 +118,17 @@
                 <div class="field">
                     <label for="wl">Wavelength (vacuum) <span class="sym">λ</span></label>
                     <div class="input-unit"><input id="wl" name="wl" value="532" inputmode="decimal" data-positive><select data-dim="length" data-units="nm,µm" data-default="nm"></select></div>
-                    <p class="hint">A wavelength measured in air differs by about 0.03&nbsp;%, which does not matter here.</p>
+                    <div class="chip-row" id="lines" style="margin-top:.5rem" role="group" aria-label="Common laser lines">
+                        <button type="button" class="chip" data-nm="266"><b>Nd:YAG 4ω</b> 266&nbsp;nm</button>
+                        <button type="button" class="chip" data-nm="355"><b>Nd:YAG 3ω</b> 355&nbsp;nm</button>
+                        <button type="button" class="chip" data-nm="532"><b>Nd:YAG 2ω</b> 532&nbsp;nm</button>
+                        <button type="button" class="chip" data-nm="632.991"><b>HeNe</b> 632.99&nbsp;nm</button>
+                        <button type="button" class="chip" data-nm="800"><b>Ti:sapphire</b> 800&nbsp;nm</button>
+                        <button type="button" class="chip" data-nm="1030"><b>Yb:YAG</b> 1030&nbsp;nm</button>
+                        <button type="button" class="chip" data-nm="1064"><b>Nd:YAG</b> 1064&nbsp;nm</button>
+                        <button type="button" class="chip" data-nm="1550"><b>Er fiber</b> 1550&nbsp;nm</button>
+                    </div>
+                    <p class="hint">Pick a common laser line or type your own. A wavelength measured in air differs by about 0.03&nbsp;%, which does not matter here.</p>
                 </div>
                 <div class="field">
                     <label for="p">Average optical power <span class="sym">P</span></label>
@@ -158,7 +167,7 @@
         </form>
 
         <section class="panel sticky-panel" aria-labelledby="results-h">
-            <div class="panel-head"><h2 id="results-h">Results</h2><span id="region" class="badge"></span></div>
+            <div class="panel-head"><h2 id="results-h">Results</h2><span id="region" class="badge" title="Spectral region"></span></div>
             <div class="panel-body">
                 <div class="results">
                     <div class="result primary"><span class="result-label">Photon rate<span class="sym">Φ = P/E<sub>ph</sub></span></span><output class="result-value" data-out="rate">—</output><span class="result-note" id="rate-note" hidden></span></div>
@@ -168,7 +177,7 @@
                     <div class="result"><span class="result-label">Photons per pulse<span class="sym">N<sub>p</sub></span></span><output class="result-value" data-out="perPulse">—</output></div>
                     <div class="result"><span class="result-label">Average photon flux density (over πw²)</span><output class="result-value" data-out="fluxAvg">—</output></div>
                     <div class="result"><span class="result-label">Peak (on-axis) photon flux density</span><output class="result-value" data-out="fluxPeak">—</output></div>
-                    <div class="result"><span class="result-label">Peak photons per pulse per area</span><output class="result-value" data-out="fluencePeak">—</output></div>
+                    <div class="result"><span class="result-label">Peak photon fluence per pulse</span><output class="result-value" data-out="fluencePeak">—</output></div>
                     <div class="result"><span class="result-label">Responsivity at η<span class="sym">ℛ</span></span><output class="result-value" data-out="resp">—</output></div>
                     <div class="result"><span class="result-label">Average photocurrent<span class="sym">I = ℛP</span></span><output class="result-value" data-out="current">—</output></div>
                     <div class="result"><span class="result-label">Photoelectrons per pulse<span class="sym">ηN<sub>p</sub></span></span><output class="result-value" data-out="electrons">—</output></div>
@@ -235,11 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const hc = K.h * K.c;
     const regionEl = document.getElementById('region');
     const rateNote = document.getElementById('rate-note');
-    // same band edges as the energy converter
-    const REGIONS = [[0.01, 'Gamma ray'], [10, 'X-ray'], [121, 'EUV'], [200, 'VUV'], [400, 'UV'], [700, 'Visible'], [1400, 'NIR'], [3000, 'SWIR'], [15000, 'Mid-IR'], [1e6, 'Far-IR'], [1e9, 'Microwave'], [Infinity, 'Radio']];
     const count = (x, unit) => fmt.sci(x, 4) + (unit ? ' ' + unit : '');
 
-    Calc.create({
+    const calc = Calc.create({
         form: '#calc',
         compute(v) {
             const Eph = hc / v.wl;
@@ -266,7 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const R = eta * K.e * v.wl / hc;
 
             const nm = v.wl * 1e9;
-            regionEl.textContent = REGIONS.find(r => nm < r[0])[1];
+            const band = Calc.region(nm, true);                 // same band edges as the energy converter (Calc.REGIONS)
+            regionEl.textContent = band === 'Visible' ? 'Visible light' : band;   // "Visible" alone reads as a state of the panel
 
             return {
                 rate: hasRate ? count(rate, 'photons/s') : '—',
@@ -284,6 +292,11 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         },
         onError() { rateNote.hidden = true; }   // no stale note next to blank results
+    });
+
+    document.getElementById('lines').addEventListener('click', e => {
+        const b = e.target.closest('[data-nm]');
+        if (b) calc.set({ wl: b.dataset.nm, wl_u: 'nm' });
     });
 });
 </script>

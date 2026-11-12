@@ -17,13 +17,12 @@
 <meta property="og:image:alt" content="Mean Free Path &amp; Knudsen Number Calculator. Calculate gas mean free path, Knudsen number and flow regime, number density, molecular speed, impingement rate, and monolayer time from atmosphere to UHV.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -147,6 +146,7 @@
                 <div class="field">
                     <label for="p">Pressure <span class="sym">p</span></label>
                     <div class="input-unit"><input id="p" name="p" value="1e-3" inputmode="decimal" data-positive><select data-dim="pressure" data-units="Pa,mbar,Torr,mTorr,atm,psi" data-default="mbar"></select></div>
+                    <div class="chip-row" id="p-chips" style="margin:.45rem 0 0"><span style="font-size:.8rem;color:var(--muted);align-self:center">Set:</span><button type="button" class="chip" data-p="1013.25">1 atm</button><button type="button" class="chip" data-p="1">1 mbar</button><button type="button" class="chip" data-p="1e-3">10⁻³ mbar</button><button type="button" class="chip" data-p="1e-6">10⁻⁶ mbar</button><button type="button" class="chip" data-p="1e-9">10⁻⁹ mbar</button></div>
                     <p class="hint">Absolute pressure. Pirani and ionization gauges read correctly only in the gas they are calibrated for, usually N₂.</p>
                 </div>
                 <div class="field">
@@ -187,7 +187,7 @@
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="plot-h">
         <div class="panel-head"><h2 id="plot-h">Mean free path vs. pressure</h2></div>
-        <div class="panel-body"><div id="mfp-plot"></div><p class="hint" id="plot-note" hidden></p></div>
+        <div class="panel-body"><div id="mfp-plot"></div><p class="hint calc-empty" style="margin:0">Fix the input error above to redraw the chart.</p><p class="hint" id="plot-note" hidden></p></div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
@@ -378,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return ['Molecular flow', 'badge badge-ok'];
     }
 
-    Calc.create({
+    const calc = Calc.create({
         form: '#calc',
         compute(v) {
             const m = v.M * 1e-3 / K.NA;
@@ -468,6 +468,8 @@ document.addEventListener('DOMContentLoaded', () => {
             plotNote.hidden = false;
         }
     });
+    // pressure chips: each sets the pressure in mbar (1 atm = 1013.25 mbar)
+    document.querySelectorAll('#p-chips [data-p]').forEach(b => b.addEventListener('click', () => calc.set({ p: b.dataset.p, p_u: 'mbar' })));
 });
 </script>
 </body>

@@ -17,9 +17,8 @@
 <meta property="og:image:alt" content="Energy &amp; Wavelength Converter. Convert nm to eV, eV to nm, wavelength to wavenumber (cm-1), frequency, kJ/mol, kcal/mol, Hartree, and kelvin instantly, with CODATA constants.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
@@ -27,14 +26,17 @@
     .spec-bar { container-type: inline-size; }
     @container (max-width: 620px) { .spec-seg:nth-child(2) { font-size: 0; } }                     /* VUV */
     @container (max-width: 480px) { .spec-seg:nth-child(6) { font-size: 0; } }                     /* SWIR */
+    @container (max-width: 430px) { .spec-scale span:nth-child(2), .spec-scale span:nth-child(5) { display: none; } }   /* 100 nm and 100 µm, before they touch their neighbors */
     @container (max-width: 425px) { .spec-seg:nth-child(4) { font-size: 0; } }                     /* VIS */
     @container (max-width: 350px) { .spec-seg:nth-child(5) { font-size: 0; } }                     /* NIR */
-    @container (max-width: 300px) { .spec-seg:nth-child(3) { font-size: 0; } .spec-scale span:nth-child(2), .spec-scale span:nth-child(5) { display: none; } }
+    @container (max-width: 300px) { .spec-seg:nth-child(3) { font-size: 0; } }                     /* UV */
+    /* Wide bar: band names sit at the left of their segment, so the marker at the 1064 nm default does not cut through "NIR" */
+    @container (min-width: 620px) { .spec-seg { justify-content: flex-start; padding-left: 0.45rem; } .spec-seg.vis { justify-content: center; padding-left: 0; } }
     /* Constants table on phones: tighter cells so each value's digit groups (joined by narrow no-break spaces) fit unbroken */
     @media (max-width: 420px) { .const-table th, .const-table td { padding-left: 0.5rem; padding-right: 0.5rem; } }
 </style>
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script type="application/ld+json" id="ld-page">
@@ -294,13 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
         k:       { to: x => x * K.kB,             from: E => E / K.kB }
     };
 
-    const REGIONS = [
-        [0.01, 'Gamma ray'], [10, 'X-ray'], [121, 'Extreme UV (EUV)'], [200, 'Vacuum UV (VUV)'],
-        [280, 'UV-C'], [315, 'UV-B'], [400, 'UV-A'], [450, 'Visible — violet'], [495, 'Visible — blue'],
-        [570, 'Visible — green'], [590, 'Visible — yellow'], [620, 'Visible — orange'], [700, 'Visible — red'],
-        [1400, 'Near-IR (NIR)'], [3000, 'Short-wave IR (SWIR)'], [8000, 'Mid-wave IR (MWIR)'],
-        [15000, 'Long-wave IR (LWIR)'], [1e6, 'Far-IR / terahertz'], [1e9, 'Microwave'], [Infinity, 'Radio']
-    ];
     const regionEl = document.getElementById('region');
     const airEl = document.getElementById('airwl');
     const marker = document.getElementById('spec-marker');
@@ -319,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
         validate: E => (E > 1e-250 && E < 1e250) ? null : 'That value is out of range.',
         after(E) {
             const nm = +(hc / E * 1e9).toPrecision(12);      // drop round-off so 1.69 µm and 1690 nm agree at band edges
-            const region = REGIONS.find(r => nm < r[0])[1];
+            const region = Calc.region(nm);                  // band edges are shared with the photon-flux page (Calc.REGIONS)
             if (regionEl.textContent !== region) regionEl.textContent = region;   // live region: announce real changes only
             airEl.textContent = (nm >= 300 && nm <= 1690)
                 ? 'Standard-air wavelength: ' + Calc.fmt.num(nm / ciddorN(nm), 7) + ' nm' : '';

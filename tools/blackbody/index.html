@@ -17,9 +17,8 @@
 <meta property="og:image:alt" content="Blackbody Radiation Calculator. Planck&#x27;s law calculator: blackbody spectral radiance, Wien peak wavelength, Stefan-Boltzmann power, and the fraction of power in any wavelength band.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
 <style>
@@ -39,8 +38,8 @@
     .bb-fig .d-n { fill: var(--c2); }
     .bb-fig .arr { fill: none; stroke: var(--text-2); stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
 </style>
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <script defer src="/assets/js/plot.js"></script>
@@ -138,13 +137,13 @@
                     <label for="T">Temperature <span class="sym">T</span></label>
                     <div class="input-unit"><input id="T" name="T" value="5772" inputmode="decimal" data-positive data-label="absolute temperature"><select data-dim="temperature" data-units="K,°C" data-default="K"></select></div>
                     <div class="chip-row" id="presets" style="margin-top:.5rem">
-                        <button type="button" class="chip" data-t="300"><b>Room</b> 300 K</button>
-                        <button type="button" class="chip" data-t="1000"><b>Red heat</b> 1000 K</button>
-                        <button type="button" class="chip" data-t="2856"><b>Lamp filament</b> 2856 K</button>
-                        <button type="button" class="chip" data-t="5772"><b>Sun</b> 5772 K</button>
-                        <button type="button" class="chip" data-t="15000"><b>Hot plasma</b> 15 000 K</button>
+                        <button type="button" class="chip" data-t="300" data-l1="8" data-l2="12" data-u="µm" title="Sets 300 K and the band 8–12 µm"><b>Room</b> 300 K</button>
+                        <button type="button" class="chip" data-t="1000" data-l1="3" data-l2="5" data-u="µm" title="Sets 1000 K and the band 3–5 µm"><b>Red heat</b> 1000 K</button>
+                        <button type="button" class="chip" data-t="2856" data-l1="380" data-l2="780" data-u="nm" title="Sets 2856 K and the band 380–780 nm"><b>Lamp filament</b> 2856 K</button>
+                        <button type="button" class="chip" data-t="5772" data-l1="400" data-l2="700" data-u="nm" title="Sets 5772 K and the band 400–700 nm"><b>Sun</b> 5772 K</button>
+                        <button type="button" class="chip" data-t="15000" data-l1="200" data-l2="400" data-u="nm" title="Sets 15 000 K and the band 200–400 nm"><b>Hot plasma</b> 15 000 K</button>
                     </div>
-                    <p class="hint">The temperature of the emitting surface (K = °C + 273.15). The lamp preset is CIE illuminant&nbsp;A, the standard model of a tungsten-filament lamp. For lamps, stars, and plasmas described by a color, brightness, or effective temperature, read “Plasmas, arcs, and lamps” below first.</p>
+                    <p class="hint">The temperature of the emitting surface (K = °C + 273.15). Each preset also sets a band that suits it: 8–12&nbsp;µm at room temperature, 3–5&nbsp;µm at red heat, 380–780&nbsp;nm for the lamp, 400–700&nbsp;nm for the Sun, and 200–400&nbsp;nm for the plasma. The lamp preset is CIE illuminant&nbsp;A, the standard model of a tungsten-filament lamp. For lamps, stars, and plasmas described by a color, brightness, or effective temperature, read “Plasmas, arcs, and lamps” below first.</p>
                 </div>
                 <div class="field">
                     <label for="eps">Emissivity (gray body) <span class="sym">ε</span></label>
@@ -190,7 +189,7 @@
                         <span class="result-note">Emission only, from one side. The net loss to surroundings at T<sub>env</sub> is εσ(T⁴ − T<sub>env</sub>⁴); see Assumptions and limits.</span></div>
                     <div class="result"><span class="result-label">Total radiance<span class="sym">L = M/π</span></span><output class="result-value" data-out="L">—</output></div>
                     <div class="result"><span class="result-label">Total emitted power<span class="sym">M·A</span></span><output class="result-value" data-out="P">—</output></div>
-                    <div class="result"><span class="result-label" id="band-label">Fraction of power in band</span><output class="result-value" data-out="F">—</output></div>
+                    <div class="result"><span class="result-label" id="band-label">Fraction of power in band</span><output class="result-value" data-out="F">—</output><span class="result-note" id="F-note" hidden></span></div>
                     <div class="result"><span class="result-label">In-band exitance</span><output class="result-value" data-out="Mband">—</output></div>
                     <div class="result"><span class="result-label">In-band power</span><output class="result-value" data-out="Pband">—</output></div>
                     <div class="result"><span class="result-label">Photon exitance (total)<span class="sym">M<sub>p</sub></span></span><output class="result-value" data-out="Mp">—</output></div>
@@ -390,6 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const bandLabel = document.getElementById('band-label');
+    const fNote = document.getElementById('F-note');
     const area = v => isFinite(v.area) ? v.area : NaN;
 
     const calc = Calc.create({
@@ -407,6 +407,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const A = area(v);
 
             bandLabel.textContent = 'Fraction of power in ' + fmt.si(v.l1, 'm', 4) + '–' + fmt.si(v.l2, 'm', 4);
+            // a band far out in either tail holds a fraction such as 10⁻⁴⁵ %: say so, and point back to the peak
+            const note = F < 1e-9
+                ? 'Essentially nothing: the band lies far to the ' + (v.l2 < lmax ? 'short' : 'long') + '-wavelength side of this spectrum, which peaks at ' +
+                    fmt.si(lmax, 'm', 4) + '. Try a band near the peak' + (T > 250 && T < 350 ? ', such as 8–12 µm' : '') + '.'
+                : '';
+            fNote.textContent = note;
+            fNote.hidden = !note;
             return {
                 peak: fmt.si(lmax, 'm', 5),
                 peakNu: fmt.si(numax, 'Hz', 5) + '  (' + fmt.si(K.c / numax, 'm', 4) + ')',
@@ -427,6 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onError() {
             bandLabel.textContent = 'Fraction of power in band';
+            fNote.hidden = true;          // no stale note next to blank results
             Plot.clear('#bb-plot');
         },
         after(v, r) {
@@ -466,7 +474,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('presets').addEventListener('click', ev => {
         const b = ev.target.closest('[data-t]');
-        if (b) calc.set({ T: b.dataset.t, T_u: 'K' });
+        // each preset is a complete scenario: the temperature and a band that holds a meaningful share of its power
+        if (b) calc.set({ T: b.dataset.t, T_u: 'K', l1: b.dataset.l1, l1_u: b.dataset.u, l2: b.dataset.l2, l2_u: b.dataset.u });
     });
 });
 </script>

@@ -17,18 +17,33 @@
 <meta property="og:image:alt" content="LIDT Calculator: Laser Damage Threshold Scaling. Scale an optic&#x27;s laser-induced damage threshold (LIDT) to your pulse duration and wavelength, and compare it with your peak fluence or CW power density.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"></noscript>
+<link rel="stylesheet" href="/assets/katex/katex.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" as="script">
-<script async src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
+<link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
+<script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/calc.js"></script>
 <style>
     .lidt-sub { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 1.3rem 0 0.7rem; font-weight: 650; }
     .lidt-sub:first-of-type { margin-top: 0.2rem; }
+    /* margin bar: operating value against the design limit and the scaled LIDT, on a log scale */
+    .lidt-scale { position: relative; padding: 1.55rem 0 2.5rem; margin: 0.1rem 0 0.2rem; font-size: 0.74rem; line-height: 1.25; color: var(--muted); }
+    .lidt-scale:empty { display: none; }
+    .lidt-scale .ls-bar { position: relative; height: 10px; border-radius: 5px; overflow: hidden; border: 1px solid var(--border); }
+    .lidt-scale .ls-zone { position: absolute; top: 0; bottom: 0; }
+    .lidt-scale .ls-ok { background: color-mix(in srgb, var(--ok) 38%, transparent); }
+    .lidt-scale .ls-warn { background: color-mix(in srgb, var(--warn) 45%, transparent); }
+    .lidt-scale .ls-bad { background: color-mix(in srgb, var(--danger) 42%, transparent); }
+    .lidt-scale .ls-tick { position: absolute; top: 1.3rem; width: 0; height: calc(10px + 0.75rem); border-left: 1px solid var(--text-2); }
+    .lidt-scale .ls-dot { position: absolute; top: calc(1.55rem - 3px); width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; border: 2px solid var(--surface); background: var(--ls-c); box-shadow: 0 0 0 1px var(--ls-c); }
+    .lidt-scale .ls-lab { position: absolute; white-space: nowrap; }
+    .lidt-scale .ls-lab b { font-family: var(--mono); font-weight: 600; color: var(--text); }
+    .lidt-scale .ls-op { top: 0; color: var(--ls-c); font-weight: 600; }
+    .lidt-scale .ls-op b { color: var(--ls-c); }
+    .lidt-scale .ls-low { bottom: 0; }
+    .lidt-scale .ls-low b { display: block; }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -130,6 +145,13 @@
                 </div>
 
                 <h3 class="lidt-sub">Datasheet specification</h3>
+                <div class="field">
+                    <label for="preset">Example optic</label>
+                    <select id="preset" name="preset" class="input">
+                        <option value="custom" selected>Custom: enter the datasheet values</option>
+                    </select>
+                    <p class="hint">Fills in the specification below from the <a href="#typical-values">typical values</a> table. Your operating conditions stay as they are.</p>
+                </div>
                 <div class="field" data-show="pulsed">
                     <label for="spec">Specified LIDT <span class="sym">F<sub>spec</sub></span></label>
                     <div class="input-unit"><input id="spec" name="spec" value="10" inputmode="decimal" data-optional data-label="specified LIDT"><select data-dim="fluence" data-units="mJ/cm²,J/cm²" data-default="J/cm²"></select></div>
@@ -162,7 +184,7 @@
                     </div>
                     <div class="field">
                         <label for="sd">Test beam diameter (optional)</label>
-                        <div class="input-unit"><input id="sd" name="sd" value="" inputmode="decimal" data-optional placeholder="1/e²" data-label="test beam diameter"><select data-dim="length" data-units="µm,mm" data-default="mm"></select></div>
+                        <div class="input-unit"><input id="sd" name="sd" value="" inputmode="decimal" data-optional placeholder="e.g. 0.8" data-label="test beam diameter"><select data-dim="length" data-units="µm,mm" data-default="mm"></select></div>
                         <p class="hint">The 1/e² diameter. A test report may give the ISO effective diameter instead: multiply it by 1.41 for a Gaussian beam.</p>
                     </div>
                 </div>
@@ -218,6 +240,7 @@
             <div class="panel-body">
                 <div class="results">
                     <div class="result primary"><span class="result-label">Margin: scaled LIDT ÷ operating value</span><output class="result-value" data-out="margin">—</output></div>
+                    <div class="lidt-scale calc-hide-on-error" id="scale" role="img"></div>
                     <div class="result"><span class="result-label">Scaled LIDT at your conditions</span><output class="result-value" data-out="scaled">—</output></div>
                     <div class="result"><span class="result-label">Design limit (scaled LIDT ÷ safety factor)</span><output class="result-value" data-out="limit">—</output></div>
                     <div class="result"><span class="result-label" id="op-label">Operating value (same convention as spec)</span><output class="result-value" data-out="op">—</output></div>
@@ -282,7 +305,7 @@
         </table>
 
         <h2>Worked example</h2>
-        <p>A mirror is rated 10&nbsp;J/cm² (peak) at 1064&nbsp;nm, 10&nbsp;ns. You want to use it at 532&nbsp;nm with 20&nbsp;ns, 5&nbsp;mJ pulses in a 1.0&nbsp;mm beam. The pulse-duration factor is \(\sqrt{2} = 1.414\). For wavelength, the conservative rule takes the linear factor of 0.5 (the √λ rule would give 0.707). The scaled LIDT is \(10 \times 1.414 \times 0.5 = 7.07\)&nbsp;J/cm². The operating peak fluence is \(2 \times 5\ \text{mJ}/(\pi \times 0.05^2\ \text{cm}^2) = 1.27\)&nbsp;J/cm², so the margin is 5.6×. That is comfortably inside a 2× safety factor.</p>
+        <p>A mirror is rated 10&nbsp;J/cm² (peak) at 1064&nbsp;nm, 10&nbsp;ns. You want to use it at 532&nbsp;nm with 20&nbsp;ns, 5&nbsp;mJ pulses in a 1.0&nbsp;mm beam. The pulse-duration factor is \(\sqrt{2} = 1.414\). For wavelength, the conservative rule takes the linear factor of 0.5 (the √λ rule would give 0.707). The scaled LIDT is \(10 \times 1.414 \times 0.5 = 7.07\)&nbsp;J/cm². The operating peak fluence is \(2 \times 5\ \text{mJ}/(\pi \times 0.05^2\ \text{cm}^2) = 1.27\)&nbsp;J/cm², so the margin is 5.55×. That is comfortably inside a 2× safety factor.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
@@ -345,11 +368,84 @@ document.addEventListener('DOMContentLoaded', () => {
     const lpd = L => fmt.si(L / 100, 'W/cm', 4);                     // L in W/m → W/cm
     const RANGE = 'A result is out of range. Check the input values and units.';
 
+    // Example optics from the typical-values table: [key, label, LIDT, its unit, test wavelength in nm, test pulse duration, its unit].
+    // All are peak values. A preset fills the datasheet fields only.
+    const PRESETS = {
+        pulsed: [
+            ['bbm810', 'Broadband dielectric mirror: 1 J/cm² at 810 nm, 10 ns', 1, 'J/cm²', 810, 10, 'ns'],
+            ['bbm1064', 'Broadband dielectric mirror: 0.5 J/cm² at 1064 nm, 10 ns', 0.5, 'J/cm²', 1064, 10, 'ns'],
+            ['bbmfs', 'Broadband dielectric mirror: 0.205 J/cm² at 800 nm, 99 fs', 0.205, 'J/cm²', 800, 99, 'fs'],
+            ['yag355', 'Nd:YAG laser-line mirror: 3.5 J/cm² at 355 nm, 10 ns', 3.5, 'J/cm²', 355, 10, 'ns'],
+            ['ndr', 'Reflective ND filter, OD 1: 0.05 J/cm² at 355 nm, 10 ns', 0.05, 'J/cm²', 355, 10, 'ns'],
+            ['nda', 'Absorptive ND filter, OD 1: 10 J/cm² at 532 nm, 10 ns', 10, 'J/cm²', 532, 10, 'ns']
+        ],
+        cw: [
+            ['bbmcw', 'Broadband dielectric mirror: 10 kW/cm at 1070 nm', 10, '1e3', 1070],
+            ['achro', 'Cemented achromatic doublet: 350 W/cm at 1550 nm', 350, '1', 1550]
+        ]
+    };
+    const presetSel = document.getElementById('preset');
+    let presetMode = null;
+    function fillPresets(mode) {                 // the list offers the optics of the current laser type
+        if (mode === presetMode || !PRESETS[mode]) return;
+        presetMode = mode;
+        while (presetSel.options.length > 1) presetSel.remove(1);
+        PRESETS[mode].forEach(p => presetSel.add(new Option(p[1], p[0])));
+        presetSel.value = 'custom';
+    }
+    const currentPreset = () => (PRESETS[presetMode] || []).find(p => p[0] === presetSel.value);
+    const setField = (id, value, unit) => {
+        const inp = document.getElementById(id), sel = inp.closest('.input-unit').querySelector('select');
+        inp.value = String(value);
+        if (unit) { sel.value = unit; sel.dataset.prev = unit; }
+    };
+    // preset → datasheet fields (runs before calc.js's form-level change handler)
+    presetSel.addEventListener('change', () => {
+        const p = currentPreset();
+        if (!p) return;
+        setField('swl', p[4], 'nm');
+        if (presetMode === 'cw') setField('slpd', p[2], p[3]);
+        else { setField('spec', p[2], p[3]); setField('stau', p[5], p[6]); document.getElementById('sconv').value = 'peak'; }
+    });
+    const same = (a, b) => Math.abs(a - b) <= 1e-9 * Math.abs(b);
+    // an edited datasheet field no longer describes the example optic: back to Custom
+    function checkPreset(v) {
+        const p = currentPreset();
+        if (!p) return;
+        const ok = same(v.swl, p[4] * 1e-9) && (presetMode === 'cw'
+            ? same(v.slpd * parseFloat(v.lu), p[2] * parseFloat(p[3]))
+            : same(v.spec, Calc.toSI('fluence', p[3], p[2])) && same(v.stau, Calc.toSI('time', p[6], p[5])) && v.sconv === 'peak');
+        if (!ok) presetSel.value = 'custom';
+    }
+
+    // Margin bar. A log scale with 30 % of the width per decade, centered between the design limit and the scaled
+    // LIDT; an operating value more than about 1.5 decades from the center sits at the end of the bar.
+    const scaleBox = document.getElementById('scale');
+    function drawScale(op, limit, scaled, show, state) {
+        const pos = x => 50 + 30 * Math.log10(x / Math.sqrt(limit * scaled));
+        const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+        const a = clamp(pos(limit), 22, 50), b = clamp(pos(scaled), 50, 78), x = clamp(pos(op), 2.5, 97.5);
+        const color = state === 'ok' ? 'var(--ok)' : state === 'warn' ? 'var(--warn)' : 'var(--danger)';
+        const pct = n => n.toFixed(2) + '%';
+        scaleBox.style.setProperty('--ls-c', color);
+        scaleBox.setAttribute('aria-label', 'Operating value ' + show(op) + ', design limit ' + show(limit) + ', scaled LIDT ' + show(scaled) + ', on a logarithmic scale');
+        // numbers and fixed strings only
+        scaleBox.innerHTML =
+            '<span class="ls-lab ls-op" style="' + (x < 50 ? 'left:' + pct(Math.max(0, x - 2.5)) : 'right:' + pct(Math.max(0, 97.5 - x))) + '">Operating <b>' + show(op) + '</b></span>' +
+            '<div class="ls-bar"><span class="ls-zone ls-ok" style="left:0;width:' + pct(a) + '"></span><span class="ls-zone ls-warn" style="left:' + pct(a) + ';width:' + pct(b - a) + '"></span><span class="ls-zone ls-bad" style="left:' + pct(b) + ';right:0"></span></div>' +
+            '<span class="ls-tick" style="left:' + pct(a) + '"></span><span class="ls-tick" style="left:' + pct(b) + '"></span>' +
+            '<span class="ls-dot" style="left:' + pct(x) + '"></span>' +
+            '<span class="ls-lab ls-low" style="right:' + pct(100 - a) + ';text-align:right;padding-right:5px">Design limit<b>' + show(limit) + '</b></span>' +
+            '<span class="ls-lab ls-low" style="left:' + pct(b) + ';padding-left:5px">Scaled LIDT<b>' + show(scaled) + '</b></span>';
+    }
+
     // Show the chosen mode's inputs before calc.js validates them, so a field of the other mode never blocks:
     // at once when the mode changes, and on load for the mode a link asks for (calc.js applies the link afterwards).
-    modeSel.addEventListener('change', () => showFields(modeSel.value));
+    modeSel.addEventListener('change', () => { showFields(modeSel.value); fillPresets(modeSel.value); });
     const linked = new URLSearchParams(location.hash.slice(1)).get('mode');
-    showFields(Array.from(modeSel.options).some(o => o.value === linked) ? linked : modeSel.value);
+    const startMode = Array.from(modeSel.options).some(o => o.value === linked) ? linked : modeSel.value;
+    showFields(startMode);
+    fillPresets(startMode);
     // Keep the specified CW threshold when its unit changes, as the other unit lists do (powers of ten, so nothing is rounded).
     luSel.addEventListener('change', () => {
         const x = Calc.parseNum(slpdIn.value), from = parseFloat(luSel.dataset.prev);
@@ -363,15 +459,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return x;
     }
     function setVerdict(margin, sf) {
-        if (margin >= sf) { verdict.textContent = 'Within design limit'; verdict.className = 'badge badge-ok'; }
-        else if (margin >= 1) { verdict.textContent = 'Below LIDT, above design limit'; verdict.className = 'badge badge-warn'; }
-        else { verdict.textContent = 'Exceeds scaled LIDT'; verdict.className = 'badge badge-bad'; }
+        if (margin >= sf) { verdict.textContent = 'Within design limit'; verdict.className = 'badge badge-ok'; return 'ok'; }
+        if (margin >= 1) { verdict.textContent = 'Below LIDT, above design limit'; verdict.className = 'badge badge-warn'; return 'warn'; }
+        verdict.textContent = 'Exceeds scaled LIDT'; verdict.className = 'badge badge-bad'; return 'bad';
     }
 
     Calc.create({
         form: '#calc',
         compute(v) {
             showFields(v.mode);
+            fillPresets(v.mode);
+            checkPreset(v);
             luSel.dataset.prev = v.lu;
             const w = v.d / 2;
             const rwl = v.wl / v.swl;
@@ -384,7 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const op = 2 * P / v.d;     // W/m: 2P/d is the Thorlabs rule of thumb; the exact Gaussian maximum is √(2/π)·P/w ≈ 1.6 P/d, so this is conservative
                 const margin = scaled / op, ipk = 2 * P / (Math.PI * w * w);
                 if (!(margin > 0 && isFinite(margin) && isFinite(ipk))) throw Calc.fail(RANGE);
-                setVerdict(margin, v.sf);
+                drawScale(op, scaled / v.sf, scaled, lpd, setVerdict(margin, v.sf));
                 opLabel.textContent = 'Operating linear power density (Thorlabs rule, 2P/d)';
                 if (rwl < 0.5 || rwl > 2) notes.push('Scaling across more than a factor of two in wavelength is a rough estimate. Ask for data at your wavelength.');
                 note.textContent = notes.join(' '); noteRow.hidden = !notes.length;
@@ -418,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const margin = scaled / op;
             const Ppk = E / tau, ipk = 2 * Ppk / (Math.PI * w * w);    // rectangular-pulse estimate for display
             if (!(margin > 0 && isFinite(margin) && isFinite(ipk))) throw Calc.fail(RANGE);
-            setVerdict(margin, v.sf);
+            drawScale(op, scaled / v.sf, scaled, fl, setVerdict(margin, v.sf));
             opLabel.textContent = 'Operating fluence (' + (v.sconv === 'avg' ? 'average' : 'peak') + ', same convention as spec)';
 
             // Stuart et al.: thermal (√τ) above ~50–100 ps, ablative below ~10 ps; Thorlabs and Edmund Optics state the rule for 1–100 ns only
@@ -453,6 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onError() {                             // no notes beside blank results
             noteRow.hidden = true;
+            scaleBox.innerHTML = '';
             verdict.textContent = ''; verdict.className = 'badge';
             luSel.dataset.prev = luSel.value;
         }
