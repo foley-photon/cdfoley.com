@@ -1,9 +1,16 @@
-// Absorption Cross-Section Atlas (beta): UI. Data: ./data/index.json (species and dataset metadata) and
-// ./data/s/<n>.json (one spectrum each, loaded when it is shown). Engine: ./xsec.js.
+// Absorption Cross-Section Atlas (beta): UI. Engine: ./xsec.js. Data, all under ./data/:
+//   species.json    the species list (key, formula, name, CAS number, number of datasets): search works once it is in
+//   sp/<key>.json   one species' datasets, loaded when the species is chosen
+//   s/<n>.json      one spectrum, loaded when it is shown
+//   who.json, coarse.json   "Who absorbs here?": one dataset per species at each preset line, and in 2 nm bins
+// The mole fractions of the air view are constants of the engine (AIR_DRY), not data files.
+//   index.json      everything in species.json and sp/ in one 2.8 MB file: read only where those are missing
 import {
     SIGMA_UNITS, LASER_LINES, medianStep, sigmaAtT, beerLambert, nmToCm1, nmToEV, LOSCHMIDT,
     X_AXES, densityFromForm, pulseFromForm, isThinned, tableValue, formatSci, seriesKey, logFloor,
     parseNum, numError, axisText, limitsToNm, limitsFromNm, keepLabels, LINE_RANK,
+    refLabel, AIR_GASES, lineKey, whoAtLine, whoCoarse, whoView, whoNotes, whoDoubt, tempText,
+    AIR, AIR_DRY, AIR_SOURCES, AIR_ARGON, waterSaturation, airAbsorption, fractionText, pathText,
 } from './xsec.js';
 
 const $ = (id) => document.getElementById(id);
@@ -13,11 +20,16 @@ const RANGES = [['VUV', 100, 200], ['UV-C', 200, 280], ['UV-B/A', 280, 400], ['V
 const COLORS = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', 'var(--c6, #0e7490)', 'var(--c7, #a16207)', 'var(--c8, #be185d)'];
 const MAX_SETS = 8;
 
-let index = null; let byKey = new Map();
+let meta = null; let species = []; let byKey = new Map();   // species: [{ k, f, n, cas, ns (number of datasets), file, sets (null until loaded) }]
+let full = null;           // the request for index.json, made only when the split files are missing or do not fit
+let early = null;          // the first molecule's file, asked for while the species list is still on its way
+let who = null; let coarse = null; const whoState = { who: '', coarse: '' };   // '' not asked, 'loading', 'ok' or 'missing'
+let whoAll = false; let whoFrom = ''; let whoLam = ''; let whoFocus = '';   // the long list unfolded; the molecule last loaded from the "Who absorbs here?" table, the wavelength it was loaded at, and the molecule whose button gets the focus back
+const WHO_TOP = 25;
 const cache = new Map();   // dataset id → [[λ, σ], …]
 const inflight = new Map(); const failed = new Set();
 let filter = '';   // the dataset list's filter: '' (all), 'rec' or a source key; not part of the link
-const state = { k: '', on: [], x: 'nm', y: 'cm2', log: true, lines: false, min: '', max: '', lam: '248.4', fw: '', sig: '', p: '1', pu: '133.322368', T: '296', L: '10', F: '10', phi: '1', cv: '1e-17', cu: 'cm2' };
+const state = { k: '', on: [], x: 'nm', y: 'cm2', log: true, lines: false, min: '', max: '', lam: '248.4', fw: '', who: 'air', ws: '', rh: String(AIR.rh), sig: '', p: '1', pu: '133.322368', T: '296', L: '10', F: '10', phi: '1', cv: '1e-17', cu: 'cm2' };
 
 /* ── formatting ─────────────────────────────────────────────────────── */
 const sci = formatSci;
@@ -26,21 +38,14 @@ const bad = (msg) => `<p class="tc-msg tc-bad" role="alert">${esc(msg)}</p>`;
 /** The first field of [[state key, label], …] whose text is not a number, as a message; '' when all are numbers or empty. */
 const firstError = (fields) => { for (const [k, label] of fields) { const m = numError(state[k], label); if (m) return m; } return ''; };
 function F(f) { return `<span class="xs-formula">${esc(f).replace(/([A-Za-z)\]])(\d+)/g, '$1<sub>$2</sub>')}</span>`; }
-/** "Serdyuchenko et al. (2014)": first author's surname and "et al." past two authors; the title when no author is given. */
-function authors(a) {
-    const list = String(a || '').split(/,\s*(?:and\s+)?|\s+and\s+/).map((x) => x.trim()).filter(Boolean);
-    if (!list.length) return '';
-    const sur = (x) => (/et al/.test(x) ? x.replace(/\s*et al\.?/, '') : x).split(/\s+/).pop();
-    if (list.length === 1) return /et al/.test(list[0]) ? `${sur(list[0])} et al.` : sur(list[0]);
-    if (list.length === 2) return `${sur(list[0])} and ${sur(list[1])}`;
-    return `${sur(list[0])} et al.`;
-}
-const refText = (r) => { if (!r) return 'unknown'; const a = authors(r.a) || r.lab || (r.t ? r.t.slice(0, 50) + (r.t.length > 50 ? '…' : '') : 'unknown'); return `${esc(a)}${r.y ? ` (${esc(r.y)})` : ''}`; };
+/** "Serdyuchenko et al. (2014)": first author's surname and "et al." past two authors; the title when no author is given (xsec.js). */
+const refText = (r) => esc(refLabel(r));
 /** The reference line under a dataset: authors and title (and journal) where the source gives them, else its citation text. */
 const citeText = (r) => (r.t || r.j ? `${r.a ? `${r.a.replace(/\.$/, '')}. ` : ''}${r.t || ''}${r.j ? `${r.t ? ', ' : ''}${r.j}` : ''}` : r.c || r.a || '');
 const doiLink = (r) => (r && r.doi ? ` <a href="https://doi.org/${esc(r.doi)}" target="_blank" rel="noopener">doi:${esc(r.doi)}</a>` : '');
-const tText = (T) => (T == null ? 'T not given' : Array.isArray(T) ? `${T[0]}–${T[1]} K` : `${T} K`);
-const srcName = (s) => (index.meta.sources[s] || { short: s }).short || s;
+const tText = tempText;
+const srcName = (s) => ((meta.sources || {})[s] || { short: s }).short || s;
+const getJSON = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); };
 
 /* ── URL state ──────────────────────────────────────────────────────── */
 function readURL() {
@@ -53,6 +58,9 @@ function writeURL() {
     const p = new URLSearchParams();
     if (state.k) p.set('k', state.k);
     if (state.on.length) p.set('on', state.on.join(','));
+    if (state.who === 'all') p.set('who', 'all');
+    if (state.ws === 'sig') p.set('ws', 'sig');   // the air view ordered by σ per molecule, not by absorption in air
+    if (state.rh !== String(AIR.rh)) p.set('rh', state.rh);
     for (const k of ['x', 'y', 'min', 'max', 'lam', 'fw']) if (state[k] && !(k === 'x' && state[k] === 'nm') && !(k === 'y' && state[k] === 'cm2')) p.set(k, state[k]);
     if (!state.log) p.set('log', '0'); if (state.lines) p.set('lines', '1');
     try { history.replaceState(null, '', `${location.pathname}?${p.toString()}${location.hash}`); } catch { /* sandbox */ }
@@ -62,10 +70,10 @@ function writeURL() {
 function search(q) {
     const t = q.trim().toLowerCase(); if (!t) return [];
     const scored = [];
-    for (const s of index.species) {
+    for (const s of species) {
         const f = s.f.toLowerCase(); const n = (s.n || '').toLowerCase();
         let sc = f === t ? 0 : (s.cas && s.cas === t) ? 0 : n === t ? 1 : f.startsWith(t) ? 2 : n.startsWith(t) ? 3 : n.includes(t) ? 4 : f.includes(t) ? 5 : -1;
-        if (sc >= 0) scored.push([sc, -s.sets.length, s]);
+        if (sc >= 0) scored.push([sc, -s.ns, s]);
     }
     return scored.sort((a, b) => a[0] - b[0] || a[1] - b[1]).slice(0, 20).map((x) => x[2]);
 }
@@ -79,7 +87,7 @@ function initCombo() {
             list.innerHTML = `<li class="xs-l-none" aria-disabled="true">No molecule matches “${esc(input.value.trim())}”. Try a formula (SO2), a name, or a CAS number.</li>`;
             list.hidden = false; input.setAttribute('aria-expanded', 'true'); act = -1; return;
         }
-        list.innerHTML = items.map((s, i) => `<li role="option" id="xs-o-${i}" aria-selected="false" data-i="${i}"><span>${F(s.f)}</span><span class="xs-l-name">${esc(s.n || '')}</span><span class="xs-l-n">${s.sets.length}</span></li>`).join('');
+        list.innerHTML = items.map((s, i) => `<li role="option" id="xs-o-${i}" aria-selected="false" data-i="${i}"><span>${F(s.f)}</span><span class="xs-l-name">${esc(s.n || '')}</span><span class="xs-l-n">${s.ns}</span></li>`).join('');
         list.hidden = false; input.setAttribute('aria-expanded', 'true');
     };
     const pick = (i) => { const s = items[i]; if (!s) return; close(); choose(s.k); };
@@ -121,11 +129,52 @@ function defaultSets(s) {
     for (const x of [...rec.slice(1), ...s.sets]) { if (out.length >= 3) break; add(x); }
     return out;
 }
-async function choose(k, keepOn = false) {
+/** index.json, the one file that holds every species' datasets: read once, and only when the split files fail. */
+function loadFull() {
+    full ||= getJSON('./data/index.json');
+    return full.then((d) => {
+        for (const x of d.species) { const s = byKey.get(x.k); if (s && !s.sets) { s.sets = x.sets; s.ns = x.sets.length; } }
+    });
+}
+/** The datasets of one species: its own small file, or index.json where that file is missing or is not this species'. */
+const loading = new Map();
+function loadSpecies(s) {
+    if (s.sets) return Promise.resolve(s);
+    if (!loading.has(s.k)) {
+        loading.set(s.k, (async () => {
+            try {
+                const d = await (early && early.file === s.file ? early.req : getJSON(`./data/sp/${encodeURIComponent(s.file)}.json`));
+                if (!d || d.k !== s.k || !Array.isArray(d.sets) || !d.sets.length) throw new Error('not this molecule');
+                s.sets = d.sets; s.ns = d.sets.length;
+            } catch {
+                await loadFull();
+                if (!s.sets) throw new Error('no datasets listed');
+            } finally { loading.delete(s.k); }
+            return s;
+        })());
+    }
+    return loading.get(s.k);
+}
+let turn = 0;
+/** Show a species. keepOn keeps the datasets a link names; first is the file number of a dataset to show first ("Who absorbs here?"). */
+async function choose(k, keepOn = false, first = '') {
     const s = byKey.get(k); if (!s) return;
+    const mine = ++turn;
+    $('xs-q').value = s.f;
+    if (!s.sets) $('xs-count').textContent = `${s.f}: loading…`;
+    try { await loadSpecies(s); } catch (err) {
+        if (mine === turn) { $('xs-count').textContent = ''; $('xs-sets').innerHTML = bad(`Could not load the datasets of ${s.f} (${err.message}).`); }
+        return;
+    }
+    if (mine !== turn) return;   // a later choice overtook this one
     if (k !== state.k) filter = '';
-    state.k = k; $('xs-q').value = s.f;
-    if (!keepOn) state.on = defaultSets(s);
+    if (!first) whoFrom = '';
+    state.k = k;
+    if (!keepOn) {
+        state.on = defaultSets(s);
+        const x = first && s.sets.find((q) => q.f === first);   // the dataset the reverse lookup ranked this molecule by comes first
+        if (x) state.on = [x.id, ...state.on.filter((id) => id !== x.id)].slice(0, 4);
+    }
     state.on = state.on.filter((id) => s.sets.some((x) => x.id === id));
     if (!state.on.length) state.on = defaultSets(s);   // a link whose on= names no dataset of this molecule
     renderSets();
@@ -304,6 +353,136 @@ document.addEventListener('click', (e) => {
     $('xs-sig-from').textContent = `From the table above at ${state.lam} nm.`; renderCalc();
 });
 
+/* ── who absorbs here? ──────────────────────────────────────────────── */
+/** Fetch who.json (the preset lines) or coarse.json (any wavelength) once, then draw the table again. */
+function loadWho(name) {
+    if (whoState[name]) return;
+    whoState[name] = 'loading';
+    getJSON(`./data/${name}.json`).then((d) => { if (name === 'who') who = d; else coarse = d; whoState[name] = 'ok'; }, () => { whoState[name] = 'missing'; }).then(renderWho);
+}
+/**
+ * The one line above the air table: which gas takes the light, and the 1/e length of the gases that have a value.
+ * missing: the gases of the air view with no row at the wavelength (whoView).
+ */
+function airTakeaway(A, lam, missing = []) {
+    const n = A.sum.length; const f = (r) => F(byKey.get(r.k).f);
+    const list = (x) => (x.length > 1 ? `${x.slice(0, -1).join(', ')} and ${x[x.length - 1]}` : x[0]);
+    // a value the other datasets do not confirm is listed, with what it would give, and stays out of the sum
+    const left = A.left.map((r) => ` ${f(r)} is listed and left out of the sum (${esc(whoDoubt(r).note)}); its listed value would give α ≈ ${sci(r.alpha, 1)} m⁻¹.`).join('');
+    // the three main gases of humid air: without a firm value for one of them the line is not the answer for air
+    const main = ['N2', 'O2', 'H2O']; const gone = main.filter((k) => missing.includes(k)).map((k) => F(byKey.has(k) ? byKey.get(k).f : k));
+    const open = gone.length > 0 || A.left.some((r) => main.includes(r.k));
+    const scope = `${gone.length ? ` No table here for ${list(gone)}, so this is not the whole answer for air: the` : ' The'} sum covers only the gases with a value at this wavelength${A.limits.length ? ', leaves out the upper limits' : ''} and counts absorption only, not scattering.`;
+    if (!n) return A.limits.length || A.left.length ? `<p class="xs-who-take">${A.left.length ? 'No firm value' : 'Only upper limits'} at ${lam} nm for these gases, so there is no sum for air.${left}</p>` : '';
+    const a = (x) => `α ${A.rough ? '≈' : '='} ${sci(x, A.rough ? 1 : 2)} m⁻¹`;
+    const len = (m) => `${A.rough ? '≈ ' : ''}${pathText(m, A.rough ? 1 : 2)}`;
+    const share = (100 * A.top.alpha) / A.total;
+    // a flagged value is never given as firm, and neither is a line with a main gas missing: the gas "has the largest
+    // listed value", it does not "take the most light"; the line says which flag, marks every figure ≈, and gives what
+    // is left without the flagged rows
+    const flagged = [A.top, A.tie].filter((r) => r && r.weak); const soft = flagged.length > 0 || open;
+    const lead = n === 1 ? `<strong>${f(A.top)} is the only one of these gases with a ${A.left.length ? 'firm ' : ''}value at ${lam} nm.</strong> In air it gives ${a(A.top.alpha)}, a 1/e length of ${len(A.top.L)}.`
+        : A.tie ? `<strong>${f(A.top)} and ${f(A.tie)} ${soft ? 'have the largest listed values' : 'take the most light'} in air at ${lam} nm</strong>, within a factor of two of each other (α ${A.rough ? '≈' : '='} ${sci(A.top.alpha, A.rough ? 1 : 2)} and ${sci(A.tie.alpha, A.rough ? 1 : 2)} m⁻¹).`
+            : `<strong>${f(A.top)} ${soft ? 'has the largest listed value' : 'takes the most light'} in air at ${lam} nm</strong>: ${a(A.top.alpha)}, ${share >= 99.5 ? 'over 99' : share.toFixed(0)} % of the listed total.`;
+    const sum = n > 1 ? ` The ${n} gases ${A.left.length ? 'in the sum' : 'with a value'} add up to ${a(A.total)}, a 1/e length of ${len(A.L)}.` : '';
+    const why = [A.sum.some((r) => r.approx) ? 'these are means of σ over 2 nm, not values at the line' : '',
+        ...flagged.map((r) => `the ${f(r)} value is flagged (${esc(whoNotes(r).join('; '))})`),
+        !flagged.length && A.weakShare >= 0.1 ? `flagged values carry ${(100 * A.weakShare).toFixed(0)} % of the sum` : ''].filter(Boolean);
+    const rough = why.length ? ` Rough figures: ${why.join('; ')}.` : '';
+    const firm = (flagged.length || A.weakShare >= 0.1) && A.firmTotal > 0 && n > 1 ? ` Without the flagged values the sum is α ≈ ${sci(A.firmTotal, 1)} m⁻¹, a 1/e length of ≈ ${pathText(1 / A.firmTotal, 1)}.` : '';
+    return `<p class="xs-who-take">${lead}${sum}${rough}${firm}${left}${scope}</p>`;
+}
+/** The fold under the air table: the mole fraction of every gas of the air view, dry and at this humidity, with its source. */
+function airFold(A, rh, open) {
+    const w = A.water; const gases = ['N2', 'O2', 'Ar', ...AIR_GASES.filter((k) => k !== 'N2' && k !== 'O2')];
+    const src = (k) => { const s = AIR_SOURCES[k]; return `${esc(s.label)}: ${esc(s.what)}`; };
+    const rows = gases.map((k) => {
+        if (k === 'H2O') return `<tr><td>${F('H2O')}</td><td class="num">—</td><td class="num">${fractionText(w)}</td><td class="tc-state">Relative humidity ${esc(state.rh.trim())} % at ${AIR.T} K: saturation pressure ${sci(waterSaturation(AIR.T))} Pa, from the Antoine equation of the NIST Chemistry WebBook</td></tr>`;
+        if (k === 'Ar') return `<tr><td>${F('Ar')}</td><td class="num">${fractionText(AIR_ARGON)}</td><td class="num">${fractionText(AIR_ARGON * (1 - w))}</td><td class="tc-state">${src('ussa3')}. No cross sections in the five collections, so argon is never in the table</td></tr>`;
+        const [x, s] = AIR_DRY[k];
+        return `<tr><td>${F(byKey.has(k) ? byKey.get(k).f : k)}</td><td class="num">${fractionText(x, 3)}</td><td class="num">${fractionText(x * (1 - w), 3)}</td><td class="tc-state">${src(s)}</td></tr>`;
+    }).join('');
+    const total = AIR_ARGON + Object.values(AIR_DRY).reduce((s, v) => s + v[0], 0);
+    return `<details class="xs-fold xs-air-fold"${open ? ' open' : ''}><summary>Mole fractions used, and their sources</summary>
+    <div class="tc-table-scroll"><table class="tc-table xs-air-x"><thead><tr><th>Gas</th><th class="num">Dry air</th><th class="num">This air</th><th>Source</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="hint">“This air” is the dry-air share times 1 − x(H₂O), since water vapor displaces dry air. The shares are not renormalized: with the 2026 CO₂ value the dry-air column adds up to ${total.toFixed(4)}. CO, O₃, NO₂, NO, SO₂ and NH₃ vary with place and time; their 1976 values stand for clean air near the surface. α scales with the share, so for other air multiply α by the ratio of the shares.</p></details>`;
+}
+/**
+ * The reverse lookup at the wavelength of "At a laser line": one dataset per molecule (chosen by the build), strongest
+ * first. At a preset line the values are those of the laser-line table; anywhere else, means over a 2 nm bin. The air
+ * view weights each σ by the gas's share of the air (airAbsorption) and opens ordered by that.
+ */
+function renderWho() {
+    const out = $('xs-who'); const lam = num(state.lam);
+    const ok = !numError(state.lam, 'wavelength') && lam > 0;
+    $('xs-who-badge').textContent = ok ? `${lam} nm` : '';
+    if (!ok) { out.innerHTML = '<p class="tc-msg">Enter a wavelength under “At a laser line”.</p>'; return; }
+    const key = lineKey(lam); const name = key ? 'who' : 'coarse';
+    if (whoState[name] !== 'ok') {
+        loadWho(name);
+        out.innerHTML = whoState[name] === 'missing' ? '<p class="tc-msg">This copy of the data has no table for the reverse lookup. Pick a molecule at the top of the page to read its value here.</p>' : '<p class="tc-msg">Loading the table…</p>';
+        return;
+    }
+    const all = (key ? whoAtLine(who, key) : whoCoarse(coarse, lam)).filter((r) => byKey.has(r.k));
+    const air = state.who !== 'all'; const view = whoView(all, air);
+    const had = out.contains(document.activeElement) ? document.activeElement.dataset : {};   // the button that had focus is rebuilt below
+    // the air view: each σ weighted by the gas's share of air at 1 atm and 296 K, and ordered by that unless the reader asks for σ
+    const rh = num(state.rh);
+    const rhErr = !air ? '' : numError(state.rh, 'relative humidity') || (rh == null || rh < 0 || rh > 100 ? 'Enter a relative humidity from 0 to 100 %.' : '');
+    const A = air && !rhErr ? airAbsorption(view.rows, rh) : null;
+    const inAir = A ? new Map(A.rows.map((r) => [r.k, r])) : null;
+    const byAir = !!A && state.ws !== 'sig';
+    const foldOpen = !!out.querySelector('.xs-air-fold')?.open;
+    const shown = A ? (byAir ? A.rows : view.rows.map((r) => inAir.get(r.k))) : whoAll || air ? view.rows : view.rows.slice(0, WHO_TOP);
+    const chips = `<div class="xs-quick xs-who-view" role="group" aria-label="Which molecules to list">${[['air', 'Air and common gases'], ['all', 'All molecules']].map(([k, l]) => `<button type="button" data-who-view="${k}" aria-pressed="${(k === 'air') === air}">${l}</button>`).join('')}</div>`;
+    const sort = A ? `<div class="xs-quick xs-who-sort" role="group" aria-label="Order of the list">${[['', 'By absorption in air'], ['sig', 'By σ per molecule']].map(([k, l]) => `<button type="button" data-who-sort="${k}" aria-pressed="${(k === 'sig') !== byAir}">${l}</button>`).join('')}</div>` : '';
+    const noteOf = (r) => [...whoNotes(r), r.out ? 'not in the sum for air' : ''].filter(Boolean).join('; ');
+    // a flagged value keeps its flag in every column made from it: ≤ for an upper limit (so ≥ for its 1/e length), and ≈ with
+    // two figures for a 2 nm mean and for any other row with a note
+    const airCells = (r) => {
+        const soft = r.approx || r.weak; const mark = r.alpha > 0 && (r.approx || (r.weak && !r.ul)) ? '≈ ' : '';
+        return `<td role="cell" class="num xs-w-x" data-l="in air">${fractionText(r.x)}</td><td role="cell" class="num xs-w-a" data-l="α">${r.ul ? '≤ ' : ''}${mark}${sci(r.alpha, soft ? 1 : 2)}</td><td role="cell" class="num xs-w-L" data-l="1/e length">${r.L == null ? '—' : `${r.ul ? '≥ ' : ''}${mark}${pathText(r.L, soft ? 1 : 2)}`}</td>`;
+    };
+    const notes = shown.some(noteOf);   // the Note column only when a row has something to say
+    const rows = shown.map((r, i) => {
+        const s = byKey.get(r.k); const cur = r.k === state.k;
+        const note = noteOf(r);
+        return `<tr role="row"${cur ? ' class="xs-w-cur"' : ''}><td role="cell" class="num xs-w-n">${i + 1}</td><td role="cell" class="xs-w-mol"><button type="button" class="xs-w-pick" data-who-k="${esc(r.k)}" data-who-f="${esc(r.f)}" title="Show ${esc(s.n || s.f)} with this dataset"${cur ? ' aria-current="true"' : ''}><span class="xs-w-f">${F(s.f)}</span>${s.n ? ` <span class="xs-l-name">${esc(s.n)}</span>` : ''}</button></td><td role="cell" class="num xs-w-sig">${r.ul ? '≤ ' : ''}${r.approx ? `≈ ${sci(r.sigma, 1)}` : sci(r.sigma)}</td>${A ? airCells(r) : ''}<td role="cell" class="xs-w-ref">${esc(r.label)}${r.iso ? `, ${esc(r.iso)}` : ''}${r.rec ? ' <span class="tc-tag xs-rec">rec.</span>' : ''} <span class="tc-state">${esc(srcName(r.src))}</span></td><td role="cell" class="num xs-w-T">${esc(tText(r.T))}</td>${notes ? `<td role="cell" class="tc-state xs-w-note">${esc(note)}</td>` : ''}</tr>`;
+    }).join('');
+    const names = (ks) => { const f = ks.map((k) => F(byKey.has(k) ? byKey.get(k).f : k)); return f.length > 1 ? `${f.slice(0, -1).join(', ')} and ${f[f.length - 1]}` : f[0]; };
+    const count = air
+        ? `${view.rows.length} of these ${AIR_GASES.length} gases ${view.rows.length === 1 ? 'has' : 'have'} data at ${lam} nm.${view.missing.length ? ` No data here for ${names(view.missing)}: no table in the five collections reaches this wavelength for ${view.missing.length === 1 ? 'it' : 'them'}. That is not the same as no absorption.` : ''} Argon, ${fractionText(AIR_ARGON)} of dry air, is in none of the five collections.`
+        : `${view.rows.length} of the ${species.length} molecules ${view.rows.length === 1 ? 'has' : 'have'} data at ${lam} nm${shown.length < view.rows.length ? `; the ${shown.length} strongest are listed` : ''}. A molecule that is not listed has no data here, which is not the same as no absorption.`;
+    const more = shown.length < view.rows.length ? `<div class="tc-actions"><button type="button" class="btn btn-secondary btn-sm" data-who-more="1">Show all ${view.rows.length}</button></div>` : '';
+    const kind = !all.length ? '' : key
+        ? 'Point values at this preset line, from each dataset’s full spectrum: the number the table above gives once the molecule is loaded.'
+        : `${lam} nm is not a preset line, so these are coarse values: the mean of σ from ${all[0].lo} to ${all[0].hi} nm in each dataset, to two figures. Load a molecule for its value at ${lam} nm itself.`;
+    // explicit roles: on a phone the stylesheet lays the rows out as cards, which would otherwise drop the table semantics
+    const th = (label, num) => `<th role="columnheader" scope="col"${num ? ' class="num"' : ''}>${label}</th>`;
+    const table = shown.length ? `<div class="xs-who-wrap"><table class="tc-table xs-who${A ? ' xs-who-air' : ''}" role="table" aria-labelledby="xs-who-h"><thead role="rowgroup"><tr role="row">${th('#', 1)}${th('Molecule')}${th('σ, cm²', 1)}${A ? `${th('In air', 1)}${th('α, m⁻¹', 1)}${th('1/e length', 1)}` : ''}${th('Dataset')}${th('T', 1)}${notes ? th('Note') : ''}</tr></thead><tbody role="rowgroup">${rows}</tbody></table></div>` : '';
+    const loaded = whoFrom && whoFrom === state.k && whoLam === state.lam ? `<p class="hint xs-who-msg" role="status">${F(byKey.get(state.k).f)} is loaded with that dataset: its values are in the table above, its spectrum is in <a href="#xs-plot-h">the plot</a>.</p>` : '';
+    const take = A ? airTakeaway(A, lam, view.missing) : rhErr ? bad(rhErr) : '';
+    const cond = A && shown.length ? `<p class="hint xs-air-cond">Air at 1 atm and ${AIR.T} K as an ideal gas, n = ${sci(A.n)} cm⁻³, at ${esc(state.rh.trim())} % <a href="#xs-rh">relative humidity</a> (${A.water > 0 ? `${fractionText(A.water)} water vapor` : 'dry air'}). α = σ × mole fraction × n, and the 1/e length is 1/α.${byAir ? '' : ' The list is in the order of σ per molecule.'}</p>` : '';
+    $('xs-air-ctl').hidden = !air;
+    out.innerHTML = `${chips}${sort}${loaded}${take}${table}${more}${cond}${A ? airFold(A, rh, foldOpen) : ''}<p class="hint">${count}</p><p class="hint">${kind}${kind && num(state.fw) > 0 ? ' The line width is not applied in this table.' : ''}${shown.length ? ` Press a molecule to load it${shown.some((r) => r.k === state.k) ? '; the shaded row is the one on the plot' : ''}.` : ''}</p>`;
+    // the molecule that was pressed is loaded in steps, and each one draws this table again: its button keeps the focus
+    const back = had.whoK || (whoFocus && (document.activeElement === document.body || !document.activeElement) ? whoFocus : '');
+    if (whoFocus && whoFocus === state.k) whoFocus = '';
+    if (back) out.querySelector(`button[data-who-k="${CSS.escape(back)}"]`)?.focus({ preventScroll: true });
+    else if (had.whoView) out.querySelector(`button[data-who-view="${CSS.escape(had.whoView)}"]`)?.focus({ preventScroll: true });
+    else if (had.whoSort != null) out.querySelector(`button[data-who-sort="${CSS.escape(had.whoSort)}"]`)?.focus({ preventScroll: true });
+    else if (had.whoMore) out.querySelector(`.xs-who tr:nth-child(${WHO_TOP + 1}) button`)?.focus({ preventScroll: true });
+}
+document.addEventListener('click', (e) => {
+    const v = e.target.closest('button[data-who-view]');
+    if (v) { state.who = v.dataset.whoView === 'all' ? 'all' : 'air'; whoAll = false; renderWho(); writeURL(); return; }
+    const o = e.target.closest('button[data-who-sort]');
+    if (o) { state.ws = o.dataset.whoSort === 'sig' ? 'sig' : ''; renderWho(); writeURL(); return; }
+    if (e.target.closest('button[data-who-more]')) { whoAll = true; renderWho(); return; }
+    const b = e.target.closest('button[data-who-k]');
+    if (b) { whoFrom = b.dataset.whoK; whoLam = state.lam; whoFocus = b.dataset.whoK; choose(b.dataset.whoK, false, b.dataset.whoF); }
+});
+
 /* ── absorption and photolysis ──────────────────────────────────────── */
 function renderCalc() {
     const sig = num(state.sig); const p = num(state.p); const pu = num(state.pu); const T = num(state.T); const L = num(state.L);
@@ -342,8 +521,8 @@ function renderConv() {
 
 /* ── sources ────────────────────────────────────────────────────────── */
 function renderSources() {
-    const m = index.meta;
-    $('xs-src').innerHTML = `<p>${index.species.length} molecules and ${index.species.reduce((a, s) => a + s.sets.length, 0)} datasets, built ${esc(m.built || '')}. Each dataset above is listed with the reference its source gives: the paper's authors and title where the source has them, otherwise the source's own citation text. Please cite the original paper, and the compilation it came through, for any value you use.</p>
+    const m = meta;
+    $('xs-src').innerHTML = `<p>${species.length} molecules and ${m.sets ?? species.reduce((a, s) => a + s.ns, 0)} datasets, built ${esc(m.built || '')}. Each dataset above is listed with the reference its source gives: the paper's authors and title where the source has them, otherwise the source's own citation text. Please cite the original paper, and the compilation it came through, for any value you use.</p>
     <ul>${Object.entries(m.sources).map(([k, s]) => `<li><strong>${esc(s.name)}</strong>${s.url ? ` (<a href="${esc(s.url)}" target="_blank" rel="noopener">source</a>)` : ''}. ${esc(s.license || '')}${s.cite ? ` Cite: ${esc(s.cite)}` : ''}</li>`).join('')}</ul>
     <p><strong>No endorsement.</strong> None of the sources above endorses this page. <strong>No warranty.</strong> The data are provided as is; check the original papers.</p>`;
 }
@@ -356,7 +535,7 @@ function downloadCSV() {
     const lines = [`# ${s.n || s.f} (${s.f}) absorption cross sections, from https://cdfoley.com/beta/cross-sections/ on ${new Date().toISOString().slice(0, 10)}`,
         '# Columns: wavelength (nm, as the source gives it), sigma (cm2 molecule-1). Cite the original paper of each dataset.'];
     for (const x of sets) {
-        const r = x.meta.ref || {}; const src = index.meta.sources[x.meta.src] || {};
+        const r = x.meta.ref || {}; const src = (meta.sources || {})[x.meta.src] || {};
         lines.push('#', `# Dataset: ${x.meta.id}`, `# Reference: ${(r.t || r.j || !r.c ? [r.a, r.y && `(${r.y})`, r.t, r.j, r.doi && `doi:${r.doi}`] : [r.c]).filter(Boolean).join(' ') || 'not given'}`,
             `# Temperature: ${tText(x.meta.T)}; wavelength scale: ${x.meta.med}; via ${src.name || x.meta.src} (${src.license || 'see source'})`,
             `# ${x.meta.rec ? 'Recommended by the evaluation the source follows. ' : ''}${x.meta.ul ? 'Upper limits, not measured values. ' : ''}Points as shipped on the site (${isThinned(x.meta) ? `${x.meta.np} of the source's ${x.meta.n0}, thinned` : `all ${x.meta.np}`}).`,
@@ -378,16 +557,24 @@ function syncLims() {
 function markFields() {
     for (const [id, k] of [['xs-lam', 'lam'], ['xs-fw', 'fw'], ['xs-sig', 'sig'], ['xs-p', 'p'], ['xs-T', 'T'], ['xs-L', 'L'], ['xs-F', 'F'], ['xs-phi', 'phi'], ['xs-cv', 'cv']]) $(id).setAttribute('aria-invalid', numError(state[k], k) ? 'true' : 'false');
     for (const id of ['xs-min', 'xs-max']) $(id).setAttribute('aria-invalid', numError($(id).value, id) ? 'true' : 'false');
+    const rh = num(state.rh); $('xs-rh').setAttribute('aria-invalid', rh == null || rh < 0 || rh > 100 ? 'true' : 'false');
 }
-function renderAll() { markFields(); renderPlot(); renderAt(); renderCalc(); renderConv(); writeURL(); }
+function renderAll() { markFields(); renderPlot(); renderAt(); renderWho(); renderCalc(); renderConv(); writeURL(); }
 async function boot() {
     readURL(); const hash = location.hash;
+    if (state.who !== 'all') state.who = 'air';
+    if (state.ws !== 'sig') state.ws = '';
+    const k0 = state.k; state.k = '';   // the molecule of the link is shown once its datasets are loaded (choose)
+    // the first molecule's own file is asked for now, beside the species list, when its key can be its file name
+    const guess = k0 || 'O3';
+    if (/^[A-Za-z0-9+_-]+$/.test(guess)) { early = { file: guess, req: getJSON(`./data/sp/${encodeURIComponent(guess)}.json`) }; early.req.catch(() => {}); }
     $('xs-y').innerHTML = Object.entries(SIGMA_UNITS).map(([k, u]) => `<option value="${k}">${esc(u.label)}</option>`).join('');
     $('xs-cu').innerHTML = Object.entries(SIGMA_UNITS).map(([k, u]) => `<option value="${k}">${esc(u.label)}</option>`).join('');
     const bind = (id, k, ev = 'input', fn = renderAll) => { const el = $(id); if (el.type === 'checkbox') el.checked = !!state[k]; else el.value = state[k]; el.addEventListener(ev, () => { state[k] = el.type === 'checkbox' ? el.checked : el.value; fn(); }); };
     if (!X_AXES[state.x]) state.x = 'nm';
     bind('xs-x', 'x', 'change', () => { syncLims(); renderAll(); }); bind('xs-y', 'y', 'change'); bind('xs-log', 'log', 'change'); bind('xs-lines', 'lines', 'change');
     bind('xs-lam', 'lam'); bind('xs-fw', 'fw');
+    bind('xs-rh', 'rh', 'input', () => { markFields(); renderWho(); writeURL(); });   // the humidity of the air view
     // From and To are typed in the unit of the x axis and kept in nm
     for (const id of ['xs-min', 'xs-max']) {
         $(id).addEventListener('input', () => {
@@ -403,20 +590,29 @@ async function boot() {
     $('xs-ranges').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; state.min = b.dataset.a; state.max = b.dataset.b; syncLims(); renderAll(); });
     $('xs-laser').innerHTML = LASER_LINES.map((L) => `<button type="button" data-nm="${L.nm}">${esc(L.label)}</button>`).join('');
     $('xs-laser').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; state.lam = b.dataset.nm; $('xs-lam').value = state.lam; renderAll(); });
+    // The species list is all the search and the molecule buttons need. A copy of the data without it (built before
+    // the list existed) is read from index.json, which holds every species' datasets too.
     try {
-        const r = await fetch('./data/index.json'); if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        index = await r.json();
-    } catch (err) { $('xs-sets').innerHTML = `<p class="tc-msg tc-bad">Could not load the dataset index (${esc(err.message)}).</p>`; return; }
-    byKey = new Map(index.species.map((s) => [s.k, s]));
-    $('xs-quick').innerHTML = QUICK.map((f) => index.species.find((s) => s.f === f)).filter(Boolean).map((s) => `<button type="button" data-k="${esc(s.k)}">${F(s.f)}</button>`).join('');
+        const d = await getJSON('./data/species.json');
+        if (!d || !d.meta || !Array.isArray(d.species) || !d.species.length) throw new Error('empty');
+        meta = d.meta; species = d.species.map(([k, f, n, cas, ns, file]) => ({ k, f, n: n || '', cas: cas || '', ns, file: file || k, sets: null }));
+    } catch {
+        try {
+            full = getJSON('./data/index.json'); const d = await full;
+            meta = d.meta; species = d.species.map((s) => ({ ...s, ns: s.sets.length, file: s.k }));
+        } catch (err) { $('xs-sets').innerHTML = `<p class="tc-msg tc-bad">Could not load the dataset index (${esc(err.message)}).</p>`; return; }
+    }
+    byKey = new Map(species.map((s) => [s.k, s]));
+    $('xs-quick').innerHTML = QUICK.map((f) => species.find((s) => s.f === f)).filter(Boolean).map((s) => `<button type="button" data-k="${esc(s.k)}">${F(s.f)}</button>`).join('');
     $('xs-quick').addEventListener('click', (e) => { const b = e.target.closest('button[data-k]'); if (b) choose(b.dataset.k); });
     initCombo(); renderSources();
+    renderWho();   // the reverse lookup needs only the species list and its own table, not the first molecule
     $('xs-csv').addEventListener('click', downloadCSV);
     $('xs-reset').addEventListener('click', () => { try { history.replaceState(null, '', location.pathname); } catch { /* sandbox */ } location.reload(); });   // the page without a query is the page as first opened
     $('xs-link').addEventListener('click', async (e) => { try { await navigator.clipboard.writeText(location.href); e.target.textContent = 'Copied'; } catch { prompt('Copy this link:', location.href); } setTimeout(() => { e.target.textContent = 'Copy link'; }, 1500); });
-    const first = byKey.has(state.k) ? state.k : (index.species.find((s) => s.f === 'O3') || index.species[0]).k;
-    await choose(first, byKey.has(state.k) && state.on.length > 0);
+    const first = byKey.has(k0) ? k0 : (species.find((s) => s.f === 'O3') || species[0]).k;
+    await choose(first, byKey.has(k0) && state.on.length > 0);
     const target = hash && /^#[\w-]+$/.test(hash) ? document.getElementById(hash.slice(1)) : null; if (target) target.scrollIntoView();   // the browser scrolled before the list and chart existed
-    window.__xsec = { index: () => index, cache, state };
+    window.__xsec = { index: () => ({ meta, species }), who: () => ({ who, coarse }), cache, state };
 }
 boot();

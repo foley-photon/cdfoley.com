@@ -24,7 +24,7 @@
 <script src="/assets/js/site.js"></script>
 <script defer src="/assets/js/plot.js"></script>
 <link rel="modulepreload" href="./js/xsec.js">
-<link rel="preload" href="./data/index.json" as="fetch" type="application/json" crossorigin>
+<link rel="preload" href="./data/species.json" as="fetch" type="application/json" crossorigin>
 <script type="application/ld+json" id="ld-page">
 {
  "@context": "https://schema.org",
@@ -56,7 +56,7 @@
     "url": "https://cdfoley.com/"
    },
    "dateCreated": "2026-11-07T09:16:59-05:00",
-   "dateModified": "2026-11-12T06:36:37+00:00"
+   "dateModified": "2026-11-12T13:28:07+00:00"
   },
   {
    "@type": "BreadcrumbList",
@@ -90,11 +90,12 @@
     <header class="page-head">
         <span class="eyebrow">Beta</span>
         <h1>Absorption Cross-Section Atlas</h1>
-        <p class="lede">Gas-phase absorption cross sections σ(λ) of about 1000 molecules, from the vacuum ultraviolet to the near infrared, overlaid from five public collections on one plot. Read σ at your laser line, interpolate between measurement temperatures, convert units, and turn a cross section into an absorbance, an optical depth, or the fraction of molecules a pulse photolyzes.</p>
+        <p class="lede">Gas-phase absorption cross sections σ(λ) of about 1000 molecules, from the vacuum ultraviolet to the near infrared, overlaid from five public collections on one plot. Read σ at your laser line, see which molecules absorb there, interpolate between measurement temperatures, convert units, and turn a cross section into an absorbance, an optical depth, or the fraction of molecules a pulse photolyzes.</p>
         <details class="key-terms"><summary>Key terms</summary><dl>
             <dt>Cross section σ</dt><dd>The effective area a molecule presents to a photon: the fraction of light absorbed by a thin layer is σ times the number of molecules per unit area. Units cm² molecule⁻¹.</dd>
             <dt>Molar absorptivity ε</dt><dd>The same quantity per mole and in base 10, as used in solution spectroscopy: ε = σN<sub>A</sub>/(1000 ln 10) in L mol⁻¹ cm⁻¹.</dd>
             <dt>Optical depth τ</dt><dd>τ = σnL for number density n and path L; the transmitted fraction is e<sup>−τ</sup>. Absorbance (base 10) is τ/ln 10.</dd>
+            <dt>Absorption coefficient α</dt><dd>What a gas in a mixture takes from a beam per unit path: α = σ × mole fraction × number density of the mixture. The light falls to 1/e over the path 1/α, the 1/e length.</dd>
             <dt>Quantum yield φ</dt><dd>The fraction of absorbed photons that lead to a given product. Absorption alone does not say what happens next.</dd>
             <dt>Recommended</dt><dd>A dataset an evaluation panel (NASA JPL or IUPAC) chose as the best available at the time of the evaluation.</dd>
         </dl></details>
@@ -173,7 +174,34 @@
             </div>
             <div class="xs-quick" id="xs-laser" aria-label="Laser lines"></div>
             <div id="xs-at"></div>
+            <p class="hint xs-to-who">Which gases absorb at this wavelength, and what takes the light in air: see <a href="#who">Who absorbs here?</a> below.</p>
             <p class="hint xs-scale">For scale, over 10&nbsp;cm at 1&nbsp;Torr and 296&nbsp;K: σ = 10⁻¹⁷&nbsp;cm² absorbs 96&nbsp;% of the light, 10⁻¹⁹&nbsp;cm² absorbs 3.2&nbsp;%, and 10⁻²¹&nbsp;cm² absorbs 0.033&nbsp;%. Strong allowed bands reach about 10⁻¹⁷&nbsp;cm²; <a href="#typical">typical values</a> are listed below.</p>
+        </div>
+    </section>
+
+    <section class="panel" id="who" aria-labelledby="xs-who-h">
+        <div class="panel-head"><h2 id="xs-who-h">Who absorbs here?</h2><span class="badge" id="xs-who-badge"></span></div>
+        <div class="panel-body">
+            <p class="hint xs-who-lead">The molecules with data at the wavelength above, one dataset for each. The list opens on the gases of air, ordered by how much light each takes in air: its cross section times its share of the air. “By σ per molecule” orders them by cross section alone, and “All molecules” shows the rest that way.</p>
+            <div class="field xs-air-ctl" id="xs-air-ctl">
+                <label for="xs-rh">Relative humidity of the air</label>
+                <div class="input-unit"><input id="xs-rh" inputmode="decimal" autocomplete="off" spellcheck="false"><span class="unit">%</span></div>
+                <p class="hint">At 296&nbsp;K and 1&nbsp;atm. It sets the share of water vapor: 0 is dry air, 50&nbsp;% is 1.37&nbsp;% water.</p>
+            </div>
+            <div id="xs-who"></div>
+            <details class="xs-fold xs-who-how"><summary>How one dataset is chosen, and what the ranking can tell you</summary>
+                <ul>
+                    <li><strong>One dataset stands for each molecule.</strong> Among its datasets with a value at the wavelength, the page takes, in this order: measured values before upper limits; optical absorption before electron energy loss spectra, which have low resolution; points no more than 5&nbsp;nm apart around the wavelength; a spectrum before a single measured point or a list of band maxima; the natural sample before a single isotopologue; room temperature (280 to 300&nbsp;K) before no stated temperature before any other temperature (the nearest to 296&nbsp;K first); a dataset an evaluation recommended; the newest; the one with the most points.</li>
+                    <li><strong>The Note column says when the choice is a weak one:</strong> an upper limit, a value measured at one wavelength only, an electron energy loss spectrum, a value interpolated across a gap of more than 5&nbsp;nm, a single isotopologue (named after the reference), a temperature below 250&nbsp;K or above 350&nbsp;K, or a spectrum that is structured at a preset line: “σ spans a factor of 63 within ±0.25&nbsp;nm” means the dataset’s own points that close to the line differ by that much, so the value depends on the resolution and on exactly where the line sits. Treat such a row as a pointer to the data, not as a number to use.</li>
+                    <li><strong>One value is listed and not counted:</strong> O₂ above 245&nbsp;nm. The recommended O₂ table ends at 245&nbsp;nm. Beyond it the rule lands on the one series that runs on to 440&nbsp;nm (Bogumil et al., 2003). At 248.4&nbsp;nm that series is 7 times above the two older tables, at 266&nbsp;nm about 100 times above the high-resolution spectrum, and past 294&nbsp;nm nothing else is there to compare. The row says “not a firm value” and stays out of the sum for air.</li>
+                    <li><strong>Left out:</strong> line-intensity lists, which are not σ against wavelength, and values below 10⁻⁴⁰&nbsp;cm², which are numerical underflow in the source files.</li>
+                    <li><strong>At a preset line</strong> the value is the point value of that dataset’s full spectrum, the number the laser-line table shows for it. <strong>Between the lines</strong> the table uses a coarse list, the mean of σ over 2&nbsp;nm: good for a ranking, not for a calculation.</li>
+                    <li><strong>The ranking compares unlike things:</strong> datasets of different age, resolution and temperature. Neighbors within a factor of two are a tie. In banded spectra (O₂ below 200&nbsp;nm, NO, SO₂, NH₃) the value at one wavelength depends on the resolution and on exactly where the line sits; at a preset line the Note column says so where the chosen dataset shows it. Between the lines the 2&nbsp;nm means average over such structure and carry no such note.</li>
+                    <li><strong>σ is per molecule.</strong> How much light a gas takes also depends on how much of it is there: a major gas with a small σ can absorb more than a trace gas with a large one. The air view therefore weights each σ by the gas’s share of the air, α = σ × mole fraction × number density of air at 1&nbsp;atm and 296&nbsp;K, and opens in the order of α. The shares and their sources are in the fold under the table. For another mixture, put σ, the partial pressure and the path into the calculator below.</li>
+                    <li><strong>The line above the air table</strong> names the gas with the largest α, and a second gas within a factor of two of it, and adds up α over the gases with a value. An upper limit is listed with ≤ (and ≥ for its 1/e length) and left out of the sum. So is the O₂ value above 245&nbsp;nm; the line says what it would have given. A row with any other note, and every 2&nbsp;nm mean, shows α and the length with ≈, to two figures. Where a flagged value leads or carries a tenth of the sum or more, or the values are 2&nbsp;nm means, the figures are marked ≈, the line says why, and it gives the sum without the flagged values. The line says a gas “takes the most light” only when N₂, O₂ and H₂O all have a value in the sum and the leading value is not flagged. Otherwise it says “has the largest listed value” and names the main gases that are missing.</li>
+                    <li><strong>Not listed</strong> means no data at this wavelength in these five collections. It does not mean the molecule is transparent there.</li>
+                </ul>
+            </details>
         </div>
     </section>
 
@@ -231,6 +259,8 @@
         <h2>How it works</h2>
         <ul>
             <li><strong>Values between points</strong> are linear interpolations of the tabulated data. A value at a laser line with a width averages σ over a Gaussian of that full width at half maximum. If the data are tabulated more coarsely than the line, the tool says so: the average is then only an interpolation, and narrow structure (the bands of O₂, NO or SO₂) can make it wrong by large factors. A spectrum with more than 2000 points is thinned for the web to 2000 that keep its shape on a log scale; between the kept points, in banded or noisy regions, σ can differ from the source by large factors. At the preset laser lines the table therefore gives the point value of the full spectrum, which the build stores; anywhere else, and for a line with a width, it says when a value comes from a thinned spectrum.</li>
+            <li><strong>Who absorbs here?</strong> The build picks one dataset per molecule for each wavelength by a fixed rule (measured before upper limit, optical before electron energy loss, points no more than 5&nbsp;nm apart, spectrum before single point or band maxima, natural sample before isotopologue, room temperature, recommended, newest, most points) and stores its σ at each preset laser line, read from the full spectrum, and its mean over each 2&nbsp;nm bin. With each value at a line it stores how far σ ranges among that dataset’s points within 0.25&nbsp;nm of the line (largest over smallest, where three or more points lie there and the ratio is 2 or more). The page sorts those values. It compares one dataset per molecule, not a consensus value.</li>
+            <li><strong>Who absorbs here, in air.</strong> For each gas of the air view the page multiplies σ by the gas’s mole fraction x and by the number density of air, n = p/k<sub>B</sub>T = 2.479&nbsp;×&nbsp;10¹⁹&nbsp;cm⁻³ at 1&nbsp;atm and 296&nbsp;K (ideal gas): α = σxn, shown per meter, and the 1/e length is 1/α. Dry-air shares come from the 1976 U.S. Standard Atmosphere (N₂, O₂, H₂, and typical clean-air values near the surface for CO, O₃, NO₂, NO, SO₂ and NH₃) and from NOAA’s global surface means of mid 2026 (CO₂, CH₄, N₂O). Water vapor comes from the relative humidity: x = RH × p<sub>sat</sub>/p, with p<sub>sat</sub> = 2783&nbsp;Pa at 296&nbsp;K from the Antoine equation of the NIST Chemistry WebBook, and every dry-air share is multiplied by 1 − x. The sum of α runs over the gases with a value at the wavelength; upper limits are left out of it, and so is O₂ above 245&nbsp;nm, where its datasets do not agree.</li>
             <li><strong>Units.</strong> ε (base 10) = σN<sub>A</sub>/(1000 ln 10); ε (base e) = σN<sub>A</sub>/1000; k (cm⁻¹ atm⁻¹ at 273.15 K) = σn₀, with Loschmidt's constant n₀ = 2.686 780 111 × 10¹⁹ cm⁻³ (CODATA 2022). Physicists' units: 1 Mb = 10⁻¹⁸ cm², 1 barn = 10⁻²⁴ cm², 1 Å² = 10⁻¹⁶ cm², a₀² = 2.800 285 × 10⁻¹⁷ cm², and the oscillator-strength density df/dE = σ/(2π²r<sub>e</sub>ħc), so σ in Mb ≈ 109.76 × df/dE in eV⁻¹ (Berkowitz's convention for VUV photoabsorption).</li>
             <li><strong>Beer–Lambert.</strong> n = p/k<sub>B</sub>T, τ = σnL, transmitted fraction e<sup>−τ</sup>, absorbance τ/ln 10.</li>
             <li><strong>Photolysis per pulse.</strong> Photon fluence Φ = F/(hc/λ); fraction excited 1 − e<sup>−σΦ</sup>, fraction photolyzed 1 − e<sup>−σΦφ</sup>, for an optically thin sample and one-photon absorption. The saturation fluence hν/σ is where a fraction 1 − 1/e of the molecules has absorbed. The photolyzed fraction assumes that a molecule which absorbs and does not dissociate is back in the ground state within the pulse; if it is not, the fraction is φ(1 − e<sup>−σΦ</sup>), the same at low fluence and smaller near saturation.</li>
@@ -259,6 +289,11 @@
             <li>Optical depth: τ = σnL = 1.079&nbsp;×&nbsp;10⁻¹⁷ × 3.262&nbsp;×&nbsp;10¹⁶ × 10 = 3.52, an absorbance of 1.529. The cell transmits e<sup>−3.52</sup> = 2.96&nbsp;% and absorbs 97.04&nbsp;%.</li>
             <li>One pulse: a 248.4&nbsp;nm photon carries hc/λ = 7.997&nbsp;×&nbsp;10⁻¹⁹&nbsp;J, so 10&nbsp;mJ/cm² is Φ = 1.250&nbsp;×&nbsp;10¹⁶ photons&nbsp;cm⁻². Then σΦ = 0.1349 and the fraction excited is 1 − e<sup>−0.1349</sup> = 0.1262. With φ = 1 the same fraction is photolyzed.</li>
             <li>Saturation fluence: hν/σ = 7.997&nbsp;×&nbsp;10⁻¹⁹&nbsp;J / 1.079&nbsp;×&nbsp;10⁻¹⁷&nbsp;cm² = 74.11&nbsp;mJ&nbsp;cm⁻², so this pulse is well below saturation.</li>
+            <li>Who absorbs here? At 248.4&nbsp;nm six of the thirteen gases of air have data. Per molecule (“By σ per molecule”) O₃ leads with the same 1.079&nbsp;×&nbsp;10⁻¹⁷&nbsp;cm², then SO₂ (6.575&nbsp;×&nbsp;10⁻²⁰), NO₂ (1.642&nbsp;×&nbsp;10⁻²⁰), N₂O (2.285&nbsp;×&nbsp;10⁻²⁴), O₂ (1.984&nbsp;×&nbsp;10⁻²⁴) and CO₂ (3.601&nbsp;×&nbsp;10⁻²⁵). Two rows carry a note. CO₂: its table has points 36.3&nbsp;nm apart there, so the value is an interpolation across that gap. O₂: not a firm value. No table reaches 248.4&nbsp;nm for N₂, H₂O, CH₄, H₂, CO, NO or NH₃. “All molecules” lists 568 of the 1004.</li>
+            <li>In air, as the panel opens: 1&nbsp;atm and 296&nbsp;K give n = 101&nbsp;325&nbsp;Pa / (1.380649&nbsp;×&nbsp;10⁻²³&nbsp;J/K × 296&nbsp;K) = 2.479&nbsp;×&nbsp;10¹⁹&nbsp;cm⁻³. At 50&nbsp;% relative humidity water vapor is 0.5 × 2783&nbsp;Pa / 101&nbsp;325&nbsp;Pa = 1.37&nbsp;% of the air, so every dry-air share is multiplied by 0.9863.</li>
+            <li>O₃: 40&nbsp;ppb × 0.9863 = 39.5&nbsp;ppb, so α = 1.079&nbsp;×&nbsp;10⁻¹⁷ × 3.945&nbsp;×&nbsp;10⁻⁸ × 2.479&nbsp;×&nbsp;10¹⁹ = 1.055&nbsp;×&nbsp;10⁻⁵&nbsp;cm⁻¹ = 0.00105&nbsp;m⁻¹, a 1/e length of 948&nbsp;m. The other four in the sum are far below: CO₂ ≈&nbsp;3.8&nbsp;×&nbsp;10⁻⁷&nbsp;m⁻¹ (420&nbsp;ppm; its row is flagged, so its figures are marked ≈), SO₂ 1.61&nbsp;×&nbsp;10⁻⁷ (986&nbsp;ppt), NO₂ 4.01&nbsp;×&nbsp;10⁻⁸ (986&nbsp;ppt) and N₂O 1.90&nbsp;×&nbsp;10⁻⁹ (335&nbsp;ppb). The five add up to α = 0.00106&nbsp;m⁻¹, a 1/e length of 947&nbsp;m. The flagged CO₂ value is 0.04&nbsp;% of that sum, so the figures are not marked as rough.</li>
+            <li>O₂ is the open question at this line. Its share is 20.95&nbsp;% × 0.9863 = 20.7&nbsp;% of the air, so its listed value would give α = 1.984&nbsp;×&nbsp;10⁻²⁴ × 0.2066 × 2.479&nbsp;×&nbsp;10¹⁹ = 1.016&nbsp;×&nbsp;10⁻⁵&nbsp;cm⁻¹ ≈&nbsp;0.001&nbsp;m⁻¹, as much as ozone. Load O₂ and compare its datasets at 248.4&nbsp;nm: that series says 1.98&nbsp;×&nbsp;10⁻²⁴&nbsp;cm², two older tables say 2.96 and 2.80&nbsp;×&nbsp;10⁻²⁵, and a high-resolution spectrum between its bands says 2.9&nbsp;×&nbsp;10⁻²⁸. So the page lists the O₂ row last, marks it, and leaves it out of the sum. With 2.96&nbsp;×&nbsp;10⁻²⁵&nbsp;cm² instead, O₂ would add 1.5&nbsp;×&nbsp;10⁻⁴&nbsp;m⁻¹ and the 1/e length would be about 830&nbsp;m.</li>
+            <li>The line above the table therefore says that O₃ has the largest listed value, not that it takes the most light: O₂ is left out, and no table reaches 248.4&nbsp;nm for N₂ or H₂O. The sum has no scattering in it either.</li>
         </ul>
         <h2>Assumptions and limits</h2>
         <ul>
@@ -266,6 +301,12 @@
             <li>Cross sections of banded spectra depend on resolution, temperature and pressure; compare like with like.</li>
             <li>Only tables of σ against wavelength in cm² molecule⁻¹ are shown. Files of another kind are left out: σ against temperature at one wavelength, fit parameters, temperature gradients, the O₂–O₂ collision-induced absorption (in cm⁵ molecule⁻², which needs the square of the O₂ density), and data in relative units. Files marked as upper limits are shown and labeled as such.</li>
             <li>On a log axis, points more than 12 decades below the largest value shown are left out of the plot; some modeled spectra run down to 10⁻³⁰⁰ cm² in their band wings.</li>
+            <li>“Who absorbs here?” picks its one dataset per molecule from file names and point spacing, not from a review of the data. The Note column flags the weak cases it can see; it cannot see a table that is simply wrong. One such case was found by comparing datasets and is named on the page: O₂ above 245&nbsp;nm, which is listed and left out of the sum for air. There may be others. Before using a value, load the molecule and compare its datasets on the plot.</li>
+            <li>A file of band maxima is a list of separate points. The laser-line table and “Who absorbs here?” read it point by point (the nearest listed point within 1&nbsp;nm); the plot still joins the points with a line.</li>
+            <li>“Who absorbs here?” covers the molecules and wavelengths these five collections cover. A molecule with no table at a wavelength is missing from the list whether or not it absorbs there, and the gases of air that no collection tabulates (argon, for one) never appear.</li>
+            <li>The sum for air is not the extinction of air. It has only the gases with a table at the wavelength, no argon, and no scattering: Rayleigh scattering by the air and scattering by aerosols take light too. It also has no collision-induced absorption (the O₂–O₂ files are left out, above), which adds to the oxygen continuum at atmospheric pressure. Above 245&nbsp;nm it has no oxygen at all, because the O₂ datasets there differ by a factor of 7 at 248.4&nbsp;nm and by far more beyond. Whatever O₂ absorbs in that range is missing from the sum.</li>
+            <li>The mole fractions are one typical set, listed with their sources in the fold under the air table. CO₂, CH₄ and N₂O are global surface means of mid 2026. CO, O₃, NO₂, NO, SO₂ and NH₃ are the 1976 Standard Atmosphere’s typical values for clean air near the surface; in city air, indoors or near a discharge they can be many times higher. α scales with the share. Only the relative humidity can be changed; the pressure and temperature of the air are fixed at 1&nbsp;atm and 296&nbsp;K, and the Antoine fit for water holds from 273 to 303&nbsp;K.</li>
+            <li>In air, σ is used as tabulated, most often near 298&nbsp;K and at the resolution and pressure of the measurement. In banded regions (O₂ below 200&nbsp;nm, NO, SO₂) one σ at one wavelength does not give the transmission of a real laser line through air: the bands are narrower than most tables resolve, and their strongest parts saturate first. At 193.3&nbsp;nm the O₂ value sits on the flank of a line: the dataset’s points within 0.25&nbsp;nm span a factor of 63, so the row is flagged and the figures for air are marked ≈. The flag only sees structure that the chosen dataset resolves, and only at the preset lines.</li>
             <li>Absorption is not photolysis: what happens after the photon is absorbed is set by the quantum yields.</li>
         </ul>
         <h2>References</h2>
@@ -274,6 +315,13 @@
             <li>P. F. Bernath, <em>Spectra of Atoms and Molecules</em>, 2nd ed., Oxford University Press (2005), sec. 1.3, “Beer’s Law,” pp. 19–21 (the absorption cross section in cm² per molecule, and its relation to the decadic molar absorption coefficient).</li>
             <li>H. H. Telle and Á. González Ureña, <em>Laser Spectroscopy and Laser Imaging: An Introduction</em>, CRC Press (2018), sec. 7.1, “Concepts of Linear Absorption Spectroscopy,” pp. 163–164 (the Beer–Lambert law written with a cross section and a number density, as used here for the optical depth).</li>
             <li>W. M. Haynes (ed.), <em>CRC Handbook of Chemistry and Physics</em>, 97th ed., CRC Press (2017), sec. 1, “Fundamental Physical Constants,” p. 1-6 (the Loschmidt constant behind the cm⁻¹&nbsp;atm⁻¹ conversion), and sec. 10, “Index of Refraction of Air,” p. 10-255 (the standard-air table behind the air and vacuum note above).</li>
+        </ul>
+        <h3>Composition of air</h3>
+        <ul class="refs">
+            <li><em>U.S. Standard Atmosphere, 1976</em>, National Oceanic and Atmospheric Administration, National Aeronautics and Space Administration and United States Air Force, NOAA-S/T 76-1562, Washington, D.C. (October 1976): Table 3, p. 3 (fractional-volume composition of sea-level dry air: N₂, O₂, Ar, H₂), and Table 15, p. 33 (typical concentrations of trace constituents near the surface: CO, O₃, NO₂, NO, SO₂, NH₃). <a href="https://ntrs.nasa.gov/citations/19770009539" target="_blank" rel="noopener">NASA Technical Reports Server, 19770009539</a>.</li>
+            <li>X. Lan, P. Tans and K. W. Thoning, <em>Trends in globally-averaged CO₂ determined from NOAA Global Monitoring Laboratory measurements</em>, version of 9 October 2026, <a href="https://doi.org/10.15138/9N0H-ZH07" target="_blank" rel="noopener">doi:10.15138/9N0H-ZH07</a> (global monthly mean of July 2026, 426.10&nbsp;ppm).</li>
+            <li>X. Lan, K. W. Thoning and E. J. Dlugokencky, <em>Trends in globally-averaged CH₄, N₂O, and SF₆ determined from NOAA Global Monitoring Laboratory measurements</em>, version 2026-10, <a href="https://doi.org/10.15138/P8XG-AA10" target="_blank" rel="noopener">doi:10.15138/P8XG-AA10</a> (global monthly means of June 2026: CH₄ 1934.57&nbsp;ppb, N₂O 339.86&nbsp;ppb).</li>
+            <li>P. J. Linstrom and W. G. Mallard (eds.), <em>NIST Chemistry WebBook</em>, NIST Standard Reference Database Number 69, <a href="https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&amp;Units=SI&amp;Mask=4" target="_blank" rel="noopener">water, phase change data</a>: Antoine equation parameters for 273 to 303&nbsp;K, fitted by NIST to the data of Bridgeman and Aldrich (1964) (the saturation pressure of water at 296&nbsp;K).</li>
         </ul>
     </article>
 

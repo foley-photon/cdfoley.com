@@ -275,13 +275,20 @@ export function storedAt(meta, x) {
     return Number.isFinite(v) ? v : null;
 }
 /**
+ * A dataset whose points are separate measurements, not a spectrum: a list of band maxima, minima or band heads, which
+ * the MPI-Mainz file names mark (max), (max,min), (peaks-…), (band peaks), (band heads). A line between such points
+ * means nothing, so the table reads them as it reads a dataset of one or two points.
+ */
+export const isPeakList = (meta) => !!meta && /\((?:[^()]*,)?(?:max|min|peaks(?:-[^(),]*)?|band peaks|band heads)(?:,[^()]*)?\)/.test(String(meta.id || ''));
+/**
  * σ of one dataset at λ = x as the table at a laser line shows it: { sigma, covered, coarse, at (the wavelength of the
- * point used, for a dataset of one or two points), full (the value is the build's full-resolution one), thinned (the
- * value comes from a thinned spectrum) }. A dataset of one or two points gives its nearest point within 1 nm, not an
- * interpolation. A point value (fwhm ≤ 0) at a laser line of a thinned dataset is the full-resolution value.
+ * point used, for a dataset of one or two points or a list of band maxima), full (the value is the build's
+ * full-resolution one), thinned (the value comes from a thinned spectrum) }. A dataset of one or two points, or a list
+ * of band maxima, gives its nearest point within 1 nm, not an interpolation. A point value (fwhm ≤ 0) at a laser line
+ * of a thinned dataset is the full-resolution value.
  */
 export function tableValue(meta, data, x, fwhm = 0) {
-    if (data.length < 3) {
+    if (data.length < 3 || isPeakList(meta)) {
         const p = data.reduce((b, q) => (Math.abs(q[0] - x) < Math.abs(b[0] - x) ? q : b));
         const near = Math.abs(p[0] - x) <= 1;
         return { sigma: near ? p[1] : null, covered: near ? 1 : 0, coarse: false, at: p[0], full: false, thinned: false };
@@ -290,6 +297,213 @@ export function tableValue(meta, data, x, fwhm = 0) {
     const r = sigmaLine(data, x, fwhm);
     return { ...r, at: null, full: false, thinned: r.sigma != null && isThinned(meta) };
 }
+/* ── References ────────────────────────────────────────────────────────── */
+/** "Serdyuchenko et al.": the first author's surname, and "et al." past two authors; '' when no author is given. */
+export function authorsShort(a) {
+    const list = String(a || '').split(/,\s*(?:and\s+)?|\s+and\s+/).map((x) => x.trim()).filter(Boolean);
+    if (!list.length) return '';
+    const sur = (x) => (/et al/.test(x) ? x.replace(/\s*et al\.?/, '') : x).split(/\s+/).pop();
+    if (list.length === 1) return /et al/.test(list[0]) ? `${sur(list[0])} et al.` : sur(list[0]);
+    if (list.length === 2) return `${sur(list[0])} and ${sur(list[1])}`;
+    return `${sur(list[0])} et al.`;
+}
+/**
+ * "Sander et al. (2011)": the short label of a dataset's reference (plain text): its authors, else the label the build
+ * made from the file name, else the start of the title. scripts/build_data.py writes the same label into who.json
+ * (ref_label), and the site's data check compares the two.
+ */
+export function refLabel(r) {
+    if (!r) return 'unknown';
+    const a = authorsShort(r.a) || r.lab || (r.t ? r.t.slice(0, 50) + (r.t.length > 50 ? '…' : '') : 'unknown');
+    return `${a}${r.y ? ` (${r.y})` : ''}`;
+}
+
+/* ── Who absorbs here? ─────────────────────────────────────────────────── */
+// The reverse lookup: at one wavelength, every molecule with data there, strongest first. The build chooses one dataset
+// per molecule (scripts/build_data.py pick_key) and stores its σ at each preset laser line in data/who.json, and its mean
+// σ over each 2 nm bin in data/coarse.json for the wavelengths between the lines.
+
+/** The gases of air and the common trace gases, by species key, major constituents first: the default view. */
+export const AIR_GASES = Object.freeze(['N2', 'O2', 'H2O', 'CO2', 'CH4', 'H2', 'N2O', 'CO', 'O3', 'NO2', 'NO', 'SO2', 'NH3']);
+/** The key of the preset laser line at exactly this wavelength, as who.json names it ('193.3'), or null. */
+export function lineKey(nm) {
+    const L = LASER_LINES.find((l) => l.nm === nm);
+    return L ? String(L.nm) : null;
+}
+const whoRow = (sets, f, sigma, extra) => {
+    const s = sets[f]; if (!s) return null;
+    return { k: s[0], f, sigma, label: s[1], T: s[2], src: s[3], rec: !!(s[4] & 1), ul: !!(s[4] & 2), ee: !!(s[4] & 4), peaks: !!(s[4] & 8), iso: s[5] || '', nm: null, at: null, gap: null, wide: false, band: null, approx: false, ...extra };
+};
+/**
+ * The rows of who.json at a preset line, strongest first: [{ k (species key), f (the dataset's file number), sigma,
+ * label, T, src, rec, ul (upper limits), ee (electron energy loss), peaks (a list of band maxima), iso (the
+ * isotopologue measured, or ''), at (the wavelength of the point, for a list of separate points), gap (the distance in
+ * nm between the two points the value is interpolated between, where that is more than 5 nm), wide (gap is set),
+ * band (where the spectrum is structured at the line: the largest over the smallest σ among its points within 0.25 nm,
+ * a whole number from 2 up, 10 000 standing for more), nm (the line), approx: false }]. An empty list when the file
+ * has no such line.
+ */
+export function whoAtLine(who, key) {
+    const rows = who && who.at && who.at[key]; if (!Array.isArray(rows)) return [];
+    return rows.map(([f, sigma, at, gap, band]) => whoRow(who.sets, f, sigma, { nm: +key, at: at ?? null, gap: gap ?? null, wide: gap != null, band: band ?? null })).filter(Boolean);
+}
+/**
+ * The rows of coarse.json at any wavelength, strongest first: as whoAtLine, with approx: true, sigma the mean of σ
+ * over the bin that holds the wavelength (stored as round(100 log₁₀ σ), so good to about 1 %), lo and hi the
+ * edges of that bin in nm, nm the wavelength asked for, and wide true where the dataset's points lie more than 5 nm
+ * apart there.
+ */
+export function whoCoarse(coarse, nm) {
+    if (!coarse || !Array.isArray(coarse.runs) || !(coarse.bin > 0) || !(nm > 0)) return [];
+    const j = Math.floor(nm / coarse.bin); const out = [];
+    for (const [f, j0, v, wide] of coarse.runs) {
+        if (j < j0 || j >= j0 + v.length || v[j - j0] == null) continue;   // null: below the floor in the full spectrum
+        const row = whoRow(coarse.sets, f, 10 ** (v[j - j0] / 100), { nm, approx: true, wide: !!wide, lo: j * coarse.bin, hi: (j + 1) * coarse.bin });
+        if (row) out.push(row);
+    }
+    return out.map((r, i) => [r, i]).sort((a, b) => b[0].sigma - a[0].sigma || a[1] - b[1]).map((x) => x[0]);
+}
+/**
+ * What the table shows of those rows: { rows, missing }. With air true, only the gases of AIR_GASES, and missing lists
+ * the ones of them that have no row (no data at the wavelength), in the order of AIR_GASES; otherwise every row.
+ */
+export function whoView(rows, air) {
+    if (!air) return { rows, missing: [] };
+    const have = new Set(rows.map((r) => r.k));
+    return { rows: rows.filter((r) => AIR_GASES.includes(r.k)), missing: AIR_GASES.filter((k) => !have.has(k)) };
+}
+
+/** A dataset's temperature as text: "298 K", "293–298 K", "T not given". */
+export const tempText = (T) => (T == null ? 'T not given' : Array.isArray(T) ? `${T[0]}–${T[1]} K` : `${T} K`);
+/**
+ * Values the page lists and does not count on, [{ k (species key), above (nm), note }]: the fixed choice of one
+ * dataset per molecule cannot see a table whose level the other tables do not confirm, so the cases found by
+ * comparing a molecule's datasets are named here. O₂ above 245 nm, where the recommended table of Sander et al. (2011)
+ * ends: the one series that runs on to 440 nm (Bogumil et al., 2003) lies 7 times above the two older tables at
+ * 248.4 nm (1.98 against 0.30 and 0.28 × 10⁻²⁴ cm²), about 100 times above the high-resolution spectrum at 266 nm,
+ * and beyond 294 nm it stands alone and falls smoothly without the structure of an absorption.
+ */
+export const WHO_DOUBT = Object.freeze([
+    Object.freeze({ k: 'O2', above: 245, note: 'not a firm value: above 245 nm one series stands for O₂, far above the other O₂ data where they overlap' }),
+]);
+/** The entry of WHO_DOUBT that covers a row of the reverse lookup (its wavelength, or the lower edge of its 2 nm bin), or null. */
+export function whoDoubt(r) {
+    const w = r.approx ? r.lo : r.nm;
+    return (w != null && WHO_DOUBT.find((d) => d.k === r.k && w > d.above)) || null;
+}
+/**
+ * What makes a row of the reverse lookup a weak one, as the Note column says it (plain text, [] for a row with nothing
+ * to say): an upper limit, a single point or band maximum, electron energy loss, a value interpolated across a gap or
+ * points more than 5 nm apart, a spectrum that is structured at the line (band), a temperature below 250 K or above
+ * 350 K, a value the other datasets do not confirm (whoDoubt).
+ */
+export function whoNotes(r) {
+    const T = r.T; const hotCold = T != null && (Array.isArray(T) ? T[1] < 250 || T[0] > 350 : T < 250 || T > 350);
+    const doubt = whoDoubt(r);
+    return [r.ul ? 'upper limit' : '',
+        r.at != null ? (r.peaks ? `a band maximum listed at ${r.at} nm, not a spectrum` : `measured at ${r.at} nm only`) : '',
+        r.ee ? 'electron energy loss, low resolution' : '',
+        r.gap != null ? `interpolated across ${r.gap} nm` : r.wide ? 'points more than 5 nm apart here' : '',
+        r.band != null ? `structured here: σ spans a factor of ${r.band >= 10000 ? 'over 10 000' : r.band} within ±0.25 nm` : '',
+        hotCold ? `at ${tempText(T)}, not room temperature` : '',
+        doubt ? doubt.note : ''].filter(Boolean);
+}
+
+/* ── Who absorbs here, in air ──────────────────────────────────────────── */
+// σ is per molecule. What a gas takes from a beam in air is its absorption coefficient α = σ x n: the cross section
+// times the gas's mole fraction x times the number density n of the air. Ozone has a large σ and is a trace gas; oxygen
+// has a small one and is a fifth of the air.
+
+/** The air the page computes with: 1 atm, 296 K, an ideal gas, and 50 % relative humidity until the reader changes it. */
+export const AIR = Object.freeze({ p: ATM, T: 296, rh: 50 });
+/** Where the mole fractions come from (the page's References give the full entries). */
+export const AIR_SOURCES = Object.freeze({
+    ussa3: Object.freeze({ label: 'U.S. Standard Atmosphere, 1976, Table 3', what: 'sea-level dry air', year: 1976 }),
+    ussa15: Object.freeze({ label: 'U.S. Standard Atmosphere, 1976, Table 15', what: 'typical value near the surface', year: 1976 }),
+    noaaCO2: Object.freeze({ label: 'NOAA Global Monitoring Laboratory, Trends in CO₂', what: 'global monthly mean, July 2026', year: 2026 }),
+    noaaCH4: Object.freeze({ label: 'NOAA Global Monitoring Laboratory, Trends in CH₄', what: 'global monthly mean, June 2026', year: 2026 }),
+    noaaN2O: Object.freeze({ label: 'NOAA Global Monitoring Laboratory, Trends in N₂O', what: 'global monthly mean, June 2026', year: 2026 }),
+});
+/**
+ * Mole fractions in dry air, [fraction, source], for the gases of AIR_GASES other than water. The major gases and H₂
+ * are the sea-level composition of the 1976 Standard Atmosphere (its Table 3); CO₂, CH₄ and N₂O are NOAA's global
+ * surface means of mid 2026 (426.10 ppm, 1934.57 ppb, 339.86 ppb); CO, O₃, NO₂, NO, SO₂ and NH₃ are the 1976 Standard
+ * Atmosphere's typical values near the surface (its Table 15: 190, 40, 1, 0.5, 1 and 4 ppb). The trace gases vary
+ * from place to place and hour to hour; these are one typical clean-air set, not a measurement.
+ */
+export const AIR_DRY = Object.freeze({
+    N2: Object.freeze([0.78084, 'ussa3']), O2: Object.freeze([0.209476, 'ussa3']),
+    CO2: Object.freeze([426.10e-6, 'noaaCO2']), CH4: Object.freeze([1934.57e-9, 'noaaCH4']), H2: Object.freeze([0.5e-6, 'ussa3']),
+    N2O: Object.freeze([339.86e-9, 'noaaN2O']), CO: Object.freeze([190e-9, 'ussa15']), O3: Object.freeze([40e-9, 'ussa15']),
+    NO2: Object.freeze([1e-9, 'ussa15']), NO: Object.freeze([0.5e-9, 'ussa15']), SO2: Object.freeze([1e-9, 'ussa15']), NH3: Object.freeze([4e-9, 'ussa15']),
+});
+/** Argon, the third gas of dry air (1976 Standard Atmosphere, Table 3). None of the five collections tabulates it. */
+export const AIR_ARGON = 0.00934;
+/**
+ * Saturation vapor pressure of water (Pa) at T (K) from 273 to 303 K, null outside: the Antoine equation
+ * log₁₀(p/bar) = 5.40221 − 1838.675/(T − 31.737) of the NIST Chemistry WebBook (coefficients fitted by NIST to the
+ * data of Bridgeman and Aldrich, 1964). 296 K: 10^(5.40221 − 1838.675/264.263) bar = 2783 Pa.
+ */
+export const waterSaturation = (T) => (T >= 273 && T <= 303 ? 1e5 * 10 ** (5.40221 - 1838.675 / (T - 31.737)) : null);
+/** Mole fraction of water vapor in the page's air at a relative humidity rh (%, 0 to 100); null for any other rh. */
+export const waterFraction = (rh = AIR.rh) => (rh >= 0 && rh <= 100 ? ((rh / 100) * waterSaturation(AIR.T)) / AIR.p : null);
+/**
+ * Mole fraction of a gas of AIR_GASES in the page's air at a relative humidity rh (%): water from the humidity, any
+ * other gas its dry-air fraction times (1 − x of water), since the vapor displaces dry air. null for a gas that is
+ * not in the list, and for a humidity outside 0 to 100 %.
+ */
+export function airFraction(k, rh = AIR.rh) {
+    const w = waterFraction(rh);
+    if (w == null) return null;
+    if (k === 'H2O') return w;
+    return AIR_DRY[k] ? AIR_DRY[k][0] * (1 - w) : null;
+}
+/**
+ * The rows of the air view weighted by abundance, at a relative humidity rh (%). Each row gains x (mole fraction in
+ * the air), alpha (the absorption coefficient σ x n in m⁻¹, n the number density of air at 1 atm and 296 K), L (the
+ * 1/e path length 1/α in m), weak (the row carries a note: whoNotes) and out (the value is one the other datasets
+ * do not confirm: whoDoubt). Returns { n (cm⁻³), water (x of water vapor), rows (largest α first; ties keep their
+ * order, and the rows that are out come last), sum (the rows in the total: every row that is neither an upper limit nor out), limits (the upper-limit
+ * rows, left out of the total), left (the rows that are out, left out of the total too), total (m⁻¹), L (m), top
+ * (the first row of sum), tie
+ * (the second, where its α is at least half of the top's: the two are a tie), weakShare (the part of the total that
+ * comes from weak rows), rough (the total is not firm: 2 nm means, a weak row at the top or in a tie with it, or a
+ * tenth or more of the total from weak rows), firmTotal (the total without the weak rows, in m⁻¹) }. Rows of gases
+ * that are not in AIR_GASES are dropped; water in dry air stays, with α = 0 and no length.
+ */
+export function airAbsorption(rows, rh = AIR.rh) {
+    const n = density(AIR.p, AIR.T); const water = waterFraction(rh);
+    const out = rows.map((r, i) => {
+        const x = airFraction(r.k, rh); if (x == null) return null;
+        const alpha = r.sigma * x * n * 100;   // cm⁻¹ to m⁻¹
+        return [{ ...r, x, alpha, L: alpha > 0 ? 1 / alpha : null, weak: whoNotes(r).length > 0, out: !r.ul && !!whoDoubt(r) }, i];
+    }).filter(Boolean).sort((a, b) => a[0].out - b[0].out || b[0].alpha - a[0].alpha || a[1] - b[1]).map((p) => p[0]);
+    const sum = out.filter((r) => !r.ul && !r.out); const limits = out.filter((r) => r.ul); const left = out.filter((r) => r.out);
+    const total = sum.reduce((a, r) => a + r.alpha, 0);
+    const top = sum[0] || null; const tie = sum[1] && sum[1].alpha >= 0.5 * top.alpha ? sum[1] : null;
+    const weakShare = total > 0 ? sum.filter((r) => r.weak).reduce((a, r) => a + r.alpha, 0) / total : 0;
+    const rough = sum.some((r) => r.approx) || !!(top && top.weak) || !!(tie && tie.weak) || weakShare >= 0.1;
+    const firmTotal = sum.filter((r) => !r.weak).reduce((a, r) => a + r.alpha, 0);
+    return { n, water, rows: out, sum, limits, left, total, L: total > 0 ? 1 / total : null, top, tie, weakShare, rough, firmTotal };
+}
+/** A mole fraction for the page: percent from 0.1 %, then ppm, ppb and ppt, to three figures: "20.7 %", "420 ppm", "39.5 ppb"; "0" for none. */
+export function fractionText(x, d = 2) {
+    if (x == null || !Number.isFinite(x)) return '—';
+    if (x === 0) return '0';
+    const [f, u] = x >= 1e-3 ? [100, '%'] : x >= 1e-6 ? [1e6, 'ppm'] : x >= 1e-9 ? [1e9, 'ppb'] : [1e12, 'ppt'];
+    return `${formatSci(x * f, d)} ${u}`;
+}
+/**
+ * A path length in m for the page, to d + 1 figures in the unit that keeps the number readable: "483 m", "1.9 km",
+ * "3.1 mm", "2660 km"; from 10 000 km up, "m × 10<sup>e</sup> km" (HTML).
+ */
+export function pathText(m, d = 2) {
+    if (m == null || !Number.isFinite(m)) return '—';
+    const [f, u] = m >= 1e3 ? [1e-3, 'km'] : m >= 1 ? [1, 'm'] : m >= 1e-2 ? [100, 'cm'] : m >= 1e-3 ? [1e3, 'mm'] : [1e6, 'µm'];
+    const v = +(m * f).toPrecision(d + 1);
+    return `${v < 1e4 ? String(v) : formatSci(v, d)} ${u}`;
+}
+
 /**
  * A number for the page: plain, with d + 1 significant figures, from 10⁻³ up to 10^(d+1) where that needs no
  * exponent; otherwise "m × 10<sup>e</sup>" (HTML). '—' for a missing or non-finite value.

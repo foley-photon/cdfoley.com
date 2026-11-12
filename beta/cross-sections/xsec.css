@@ -135,6 +135,7 @@ table.xs-conv th { font-weight: 500; color: var(--text-2); white-space: normal; 
 .xs-at .xs-a-more { white-space: nowrap; }
 .xs-at .xs-a-use { text-align: right; white-space: nowrap; }
 .xs-scale { margin-top: 0.5rem; }
+.xs-to-who { margin-top: 0.5rem; }
 @container (max-width: 600px) {
     .xs-at-wrap > table.tc-table, .xs-at tbody { display: block; }
     .xs-at thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* read by assistive tech, not shown */
@@ -148,6 +149,67 @@ table.xs-conv th { font-weight: 500; color: var(--text-2); white-space: normal; 
     .xs-at td.xs-a-alt:not(:empty)::after { content: ' ' attr(data-u); font-family: var(--font, inherit); font-size: 0.78rem; color: var(--muted); }
     .xs-at td.xs-a-T { text-align: left; font-size: 0.78rem; color: var(--text-2); }
     .xs-at td.xs-a-note:empty { display: none; }
+}
+
+/* Who absorbs here? Wide: a table. Narrow (a phone): one card per molecule, so that σ is never cut off. */
+.xs-who-lead { margin: 0 0 0.5rem; }
+.xs-who-view { margin-top: 0; }
+.xs-who-wrap { container-type: inline-size; }
+.xs-who-wrap > table.tc-table { display: table; overflow: visible; width: 100%; }
+.xs-who td { vertical-align: baseline; }
+.xs-who .xs-w-n { color: var(--muted); width: 2.4rem; }
+.xs-w-pick { font: inherit; display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.5rem; padding: 0.2rem 0.45rem; margin: -0.2rem -0.45rem; border: 0; border-radius: var(--radius-sm); background: none; color: var(--accent); cursor: pointer; text-align: left; }
+.xs-w-pick:hover { background: var(--accent-soft); }
+.xs-w-pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.xs-w-pick .xs-formula { font-weight: 600; }
+.xs-w-pick .xs-l-name { white-space: normal; font-size: 0.84rem; }
+.xs-who tr.xs-w-cur > td { background: var(--accent-soft); }
+.xs-who-msg { margin: 0 0 0.6rem; color: var(--text-2); }
+.xs-who-how { margin-top: 0.8rem; }
+/* The air view: the order buttons, the one-line answer, the conditions, the humidity field and the fold of mole fractions. */
+.xs-who-sort { margin-top: -0.2rem; }
+.xs-who-take { margin: 0.2rem 0 0.7rem; padding: 0.6rem 0.8rem; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: var(--radius-sm); color: var(--text); font-size: 0.93rem; line-height: 1.5; }
+.xs-who .xs-w-x, .xs-who .xs-w-a, .xs-who .xs-w-L { white-space: nowrap; }
+.xs-air-cond { margin: 0.5rem 0 0.4rem; }
+.xs-air-fold { margin: 0.4rem 0 0.6rem; }
+.xs-air-fold .tc-table-scroll { margin-top: 0.5rem; }
+table.xs-air-x td { vertical-align: baseline; }
+table.xs-air-x td.num { white-space: nowrap; }
+.xs-air-ctl { max-width: 22rem; margin: 0.2rem 0 0.8rem; }
+.xs-air-ctl[hidden] { display: none; }
+#xs-rh { min-width: 4rem; }
+/* On a phone the table of mole fractions keeps its three short columns and puts each source on a line of its own. */
+@media (max-width: 600px) {
+    table.xs-air-x, table.xs-air-x thead, table.xs-air-x tbody { display: block; }
+    table.xs-air-x tr { display: grid; grid-template-columns: 3.4rem 1fr 1fr; align-items: baseline; }
+    table.xs-air-x thead th:last-child { display: none; }
+    table.xs-air-x td:last-child { grid-column: 1 / -1; padding-top: 0; font-size: 0.78rem; }
+    table.xs-air-x td:not(:last-child) { border-bottom: 0; }
+}
+.xs-who-how ul { margin: 0; padding-left: 1.2rem; font-size: 0.86rem; color: var(--text-2); line-height: 1.5; }
+.xs-who-how li + li { margin-top: 0.35rem; }
+@container (max-width: 600px) {
+    .xs-who-wrap > table.tc-table, .xs-who tbody { display: block; }
+    .xs-who thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* read by assistive tech, not shown */
+    .xs-who tr { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) auto; align-items: baseline; gap: 0.1rem 0.5rem; padding: 0.6rem 0.3rem; border-bottom: 1px solid var(--border); }
+    .xs-who td { display: block; border: 0; padding: 0; min-width: 0; grid-column: 2 / -1; }
+    .xs-who td.xs-w-n { grid-column: 1; grid-row: 1; width: auto; text-align: left; }
+    /* the molecule cell spans the card and σ sits over its first line, so a long name gets the full width below */
+    .xs-who td.xs-w-mol { grid-column: 2 / -1; grid-row: 1; }
+    .xs-who .xs-w-f { display: block; margin-right: 9.5rem; overflow-wrap: anywhere; }
+    .xs-who .xs-w-pick { display: block; }
+    .xs-who .xs-w-pick .xs-l-name { display: block; }
+    .xs-who td.xs-w-sig { grid-column: 3; grid-row: 1; font-size: 0.95rem; color: var(--text); }
+    .xs-who td.xs-w-sig::after { content: ' cm²'; font-size: 0.74rem; color: var(--text-2); }
+    /* the air view: share, α and 1/e length each on a line of its own under the name, with its label in front */
+    .xs-who-air td.xs-w-x, .xs-who-air td.xs-w-a, .xs-who-air td.xs-w-L { text-align: left; font-size: 0.88rem; color: var(--text); white-space: normal; }
+    .xs-who-air td.xs-w-x::before, .xs-who-air td.xs-w-a::before, .xs-who-air td.xs-w-L::before { content: attr(data-l); display: inline-block; width: 5.2rem; font-family: var(--font, inherit); font-size: 0.76rem; color: var(--text-2); }
+    .xs-who-air td.xs-w-a::after { content: ' m⁻¹'; font-size: 0.74rem; color: var(--text-2); }
+    .xs-who td.xs-w-ref { font-size: 0.8rem; color: var(--text-2); overflow-wrap: anywhere; }
+    .xs-who td.xs-w-T { text-align: left; font-size: 0.78rem; color: var(--text-2); }
+    .xs-who td.xs-w-note:empty { display: none; }
+    .xs-who tr.xs-w-cur { background: var(--accent-soft); }
+    .xs-who tr.xs-w-cur > td { background: none; }
 }
 
 /* Typical values: three columns that fit a phone without scrolling sideways. */
