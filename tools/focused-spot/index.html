@@ -21,7 +21,9 @@
 <noscript><link rel="stylesheet" href="/assets/katex/katex.min.css"></noscript>
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/css/site.css">
-<style>.input-unit select.wl-preset { max-width: 52%; }</style>
+<style>.input-unit select.wl-preset { max-width: 52%; }
+/* the APO table on a phone: tighter cells so the grade is on the first screen; the comment stays on one or two lines behind the scroll */
+@media (max-width: 560px) { .fs-apo th, .fs-apo td { padding-left: 0.4rem; padding-right: 0.4rem; } .fs-apo td:last-child { min-width: 13rem; } }</style>
 <link rel="preload" href="/assets/katex/contrib/auto-render.min.js" as="script">
 <script async src="/assets/katex/katex.min.js" onload="var s=document.createElement('script');s.src='/assets/katex/contrib/auto-render.min.js';s.onload=function(){if(document.readyState!=='loading'&&window.Site)Site.renderMath()};document.head.appendChild(s)"></script>
 <script src="/assets/js/site.js"></script>
@@ -104,6 +106,7 @@
             <dt>Input beam diameter</dt><dd>The 1/e² diameter of the beam arriving at the lens, after any beam expander.</dd>
             <dt>Clear aperture</dt><dd>The usable diameter of the smallest opening the beam passes: the lens, a scanner mirror, or an iris.</dd>
             <dt>Truncation ratio</dt><dd>Beam diameter divided by aperture diameter, T. Below about 0.4 the aperture has almost no effect; at 0.5 it makes the spot 1.7&nbsp;% larger. At 1 the aperture cuts the beam at its 1/e² edge and passes 86.5&nbsp;% of the power.</dd>
+            <dt>Clipping grade</dt><dd>The badge on the results grades the fraction of the beam’s power that the aperture blocks: Negligible below 0.1&nbsp;%, Light below 2&nbsp;%, Moderate below 10&nbsp;%, and Heavy at 10&nbsp;% or more. It grades lost power only. Clipping also enlarges the spot, which the results show as a separate number.</dd>
             <dt>APO (apodization) factor</dt><dd>The number that sets how large the focused spot is for a given beam and lens: 4/π ≈ 1.27 for an unclipped Gaussian beam, and larger when the aperture clips the beam.</dd>
             <dt>M² (beam quality)</dt><dd>How many times larger the focused spot is than that of an ideal Gaussian beam of the same size through the same lens. 1 is perfect.</dd>
             <dt>Depth of focus</dt><dd>The length along the beam, centered on the focus, over which the spot radius stays within your tolerance. It shrinks with the square of the spot size.</dd>
@@ -160,8 +163,8 @@
                     <div class="result"><span class="result-label">Waist radius<span class="sym">w₀</span></span><output class="result-value" data-out="w0">—</output></div>
                     <div class="result"><span class="result-label">Truncation ratio<span class="sym">T = D<sub>b</sub>/D<sub>t</sub></span></span><output class="result-value" data-out="T">—</output></div>
                     <div class="result"><span class="result-label">Apodization factor<span class="sym">APO</span></span><output class="result-value" data-out="apo">—</output><span class="result-note">4/π ≈ 1.273 means the aperture does not enlarge the spot. Larger values show how much clipping costs.</span></div>
-                    <div class="result"><span class="result-label">Power through aperture</span><output class="result-value" data-out="trans">—</output><span class="result-note">Clipped power heats mirrors and mounts. For scan heads, keep the loss to about 1&nbsp;% (T ≤ 0.66). The percentage assumes a Gaussian profile; a multimode beam of the same diameter clips slightly differently.</span></div>
-                    <div class="result"><span class="result-label">Untruncated spot (APO = 4/π)</span><output class="result-value" data-out="dF0">—</output></div>
+                    <div class="result"><span class="result-label">Power through aperture</span><output class="result-value" data-out="trans">—</output><span class="result-note">The badge grades the clipped fraction (see Key terms). Clipped power heats mirrors and mounts, so scan heads are held to about 1&nbsp;% (T ≤ 0.66). The percentage assumes a Gaussian profile; a multimode beam of the same diameter clips slightly differently.</span></div>
+                    <div class="result"><span class="result-label">Untruncated spot (APO = 4/π)</span><output class="result-value" data-out="dF0">—</output><span class="result-note" id="grow-note"></span></div>
                     <div class="result"><span class="result-label">Rayleigh range<span class="sym">z<sub>R</sub></span></span><output class="result-value" data-out="zR">—</output></div>
                     <div class="result"><span class="result-label" id="dof-label">Depth of focus, total</span><output class="result-value" data-out="dof">—</output></div>
                     <div class="result"><span class="result-label">Convergence half-angle<span class="sym">θ</span></span><output class="result-value" data-out="theta">—</output></div>
@@ -186,19 +189,20 @@
         <p>A larger input beam gives a smaller spot, but only until the aperture starts to clip it. Clipping diffracts light out of the central lobe. The focal profile then moves away from a Gaussian toward an Airy pattern, and the spot stops shrinking in proportion to \(1/D_b\). This calculator does not use a lookup table. It evaluates the Fraunhofer diffraction integral of a truncated Gaussian,</p>
         <div class="formula">\[ U(r) \propto \int_0^{D_t/2} e^{-\rho^2/w_L^2}\, J_0\!\left(\frac{2\pi \rho r}{\lambda f'}\right)\rho\, d\rho , \]</div>
         <p>and finds the radius at which \(|U|^2\) falls to \(e^{-2}\) of its peak. The table gives the result for a TEM₀₀ beam (\(M^2 = 1\)). The widely quoted curve fit in the CVI Melles Griot guide, of the kind Urey derived from the same integral, writes the spot as \(d_F = K\lambda f'/D_t\), so \(K = \mathrm{APO}/T\). It agrees with the integral to within 0.7&nbsp;% for \(T \ge 0.8\) but runs 1–3&nbsp;% low for \(T\) = 0.5–0.7.</p>
-        <table>
-            <thead><tr><th class="num">T = D<sub>b</sub>/D<sub>t</sub></th><th class="num">APO</th><th class="num">Transmitted</th><th>Comment</th></tr></thead>
+        <table class="fs-apo">
+            <thead><tr><th class="num">T = D<sub>b</sub>/D<sub>t</sub></th><th class="num">APO</th><th class="num">Transmitted</th><th>Grade</th><th>Comment</th></tr></thead>
             <tbody>
-                <tr><td class="num">≤ 0.4</td><td class="num">1.27</td><td class="num">&gt; 99.99&nbsp;%</td><td>Effectively untruncated Gaussian</td></tr>
-                <tr><td class="num">0.5</td><td class="num">1.29</td><td class="num">99.97&nbsp;%</td><td>Spot 1.7&nbsp;% larger than untruncated</td></tr>
-                <tr><td class="num">0.66</td><td class="num">1.41</td><td class="num">99.0&nbsp;%</td><td>1&nbsp;% clipped: scan-head limit</td></tr>
-                <tr><td class="num">0.7</td><td class="num">1.45</td><td class="num">98.3&nbsp;%</td><td>Usual lens range: 0.7–1.0</td></tr>
-                <tr><td class="num">0.9</td><td class="num">1.69</td><td class="num">91.5&nbsp;%</td><td>Noticeable side lobes</td></tr>
-                <tr><td class="num">1.0</td><td class="num">1.83</td><td class="num">86.5&nbsp;%</td><td>Aperture at the 1/e² diameter</td></tr>
-                <tr><td class="num">→ ∞</td><td class="num">1.645·T</td><td class="num">→ 0</td><td>Uniform illumination (Airy disk); \(d_F \to 1.645\,\lambda f'/D_t\)</td></tr>
+                <tr><td class="num">≤ 0.4</td><td class="num">1.27</td><td class="num">&gt; 99.99&nbsp;%</td><td>Negligible</td><td>Effectively untruncated Gaussian</td></tr>
+                <tr><td class="num">0.5</td><td class="num">1.29</td><td class="num">99.97&nbsp;%</td><td>Negligible</td><td>Spot 1.7&nbsp;% larger than untruncated</td></tr>
+                <tr><td class="num">0.66</td><td class="num">1.41</td><td class="num">99.0&nbsp;%</td><td>Light</td><td>1&nbsp;% clipped: scan-head limit</td></tr>
+                <tr><td class="num">0.7</td><td class="num">1.45</td><td class="num">98.3&nbsp;%</td><td>Light</td><td>Usual lens range: 0.7–1.0</td></tr>
+                <tr><td class="num">0.9</td><td class="num">1.69</td><td class="num">91.5&nbsp;%</td><td>Moderate</td><td>Noticeable side lobes</td></tr>
+                <tr><td class="num">1.0</td><td class="num">1.83</td><td class="num">86.5&nbsp;%</td><td>Heavy</td><td>Aperture at the 1/e² diameter</td></tr>
+                <tr><td class="num">→ ∞</td><td class="num">1.645·T</td><td class="num">→ 0</td><td>Heavy</td><td>Uniform illumination (Airy disk); \(d_F \to 1.645\,\lambda f'/D_t\)</td></tr>
             </tbody>
         </table>
-        <p>Where to stop is a trade-off between spot size and lost power. For a fixed aperture, going from T = 0.7 to 1 shrinks the spot by only 11&nbsp;% while the clipped power rises from 1.7&nbsp;% to 13.5&nbsp;%, and going on to T = 2 gains about 8&nbsp;% more at a 60&nbsp;% loss. Optics guides give T ≈ 0.7–1.0 as the usual range for focusing lenses (CVI Melles Griot). Scan heads are held to a stricter limit: clipped power heats the mirrors and housing, so the aperture should be at least 1.52 times the beam diameter (T ≤ 0.66, about 1&nbsp;% clipped), with extra margin for beam pointing and alignment errors (Novanta).</p>
+        <p>The grade is the clipping grade the results badge shows. It follows the clipped power alone, \(e^{-2/T^2}\) for a Gaussian beam: Negligible below 0.1&nbsp;% (\(T &lt; 0.538\)), Light below 2&nbsp;% (\(T &lt; 0.715\)), Moderate below 10&nbsp;% (\(T &lt; 0.932\)), and Heavy from there on. The <a href="/tools/aperture-transmission/">aperture transmission</a> tool uses the same grades. The spot grows on its own schedule: at \(T = 0.7\) the clipping is still Light, but the spot of an \(M^2 = 1\) beam is already about 14&nbsp;% larger than the untruncated one.</p>
+        <p>Where to stop is a trade-off between spot size and lost power. For a fixed aperture, going from T = 0.7 to 1 shrinks the spot by only 11&nbsp;% while the clipped power rises from 1.7&nbsp;% to 13.5&nbsp;%, and going on to T = 2 gains about 8&nbsp;% more at a 60&nbsp;% loss. Optics guides give T ≈ 0.7–1.0 as the usual range for focusing lenses (CVI Melles Griot). Filling a lens to T near 1 is common practice when the smallest spot matters, and it still clips 13.5&nbsp;% of the power, which is why the badge reads Heavy there: the grade counts lost power, not whether the choice is a sensible one. Scan heads are held to a stricter limit: clipped power heats the mirrors and housing, so the aperture should be at least 1.52 times the beam diameter (T ≤ 0.66, about 1&nbsp;% clipped), with extra margin for beam pointing and alignment errors (Novanta).</p>
         <p>A multimode beam (\(M^2 > 1\)) is usually only partially coherent across the aperture, so clipping broadens its focus less than it would a TEM₀₀ beam of the same diameter. The calculator therefore evaluates APO at \(T/M\), with \(M = \sqrt{M^2}\): the truncation ratio of the embedded TEM₀₀ beam of diameter \(D_b/M\). Compared with an exact calculation for a partially coherent beam (see the limits below), taking APO at \(T\) instead would overstate the spot at \(T = 1\) by 5.5&nbsp;%, 14&nbsp;%, and 40&nbsp;% for \(M^2 = 1.1\), 1.3, and 5.</p>
 
         <h2>Depth of focus</h2>
@@ -209,7 +213,7 @@
         <h2>Worked example</h2>
         <p>A fiber laser at 1064&nbsp;nm with M² = 1.1 and an 8&nbsp;mm beam, focused by a 100&nbsp;mm lens with a 12&nbsp;mm clear aperture: T = 0.667 and T/M = 0.636, so APO = 1.383 and</p>
         <div class="formula">\[ d_F = 1.383 \times \frac{1.064\,\mu\text{m}\times 100\,\text{mm}\times 1.1}{8\,\text{mm}} \approx 20.2\,\mu\text{m}. \]</div>
-        <p>That gives \(z_R \approx 0.27\,\text{mm}\), and with a 5&nbsp;% growth tolerance the depth of focus is only about 0.18&nbsp;mm in total (±0.09&nbsp;mm about the waist). Without the aperture the spot would be 18.6&nbsp;µm. The 12&nbsp;mm aperture costs about 9&nbsp;% in spot size and 1.1&nbsp;% in power.</p>
+        <p>That gives \(z_R \approx 0.27\,\text{mm}\), and with a 5&nbsp;% growth tolerance the depth of focus is only about 0.18&nbsp;mm in total (±0.09&nbsp;mm about the waist). Without the aperture the spot would be 18.6&nbsp;µm. The 12&nbsp;mm aperture clips 1.1&nbsp;% of the power, which the badge grades as light clipping, and it makes the spot 8.6&nbsp;% larger.</p>
 
         <h2 id="limits">Assumptions and limits</h2>
         <ul>
@@ -304,6 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const regime = document.getElementById('regime');
     const dofLabel = document.getElementById('dof-label');
     const collNote = document.getElementById('coll-note');
+    const growNote = document.getElementById('grow-note');
 
     // Common laser lines (vacuum wavelength in nm). The list fills the wavelength field and follows what is typed into it.
     const LINES = [['', 'Custom'], ['10600', 'CO₂, 10.6 µm'], ['1550', 'Er fiber, 1550 nm'], ['1064', 'Nd:YAG, 1064 nm'], ['1030', 'Yb, 1030 nm'],
@@ -348,18 +353,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 ' closer to the lens, with z<sub>R</sub> and the depth of focus about ' + fmt.num(100 / (1 + 1 / x2), 2) + ' % shorter.';
 
             dofLabel.textContent = 'Depth of focus, total (' + fmt.num(v.tol, 3) + ' % spot growth)';
+            // one ladder with the aperture transmission tool, on the clipped power alone:
+            // negligible below 0.1 %, light below 2 %, moderate below 10 %, heavy at 10 % or more
+            const loss = truncated ? Math.exp(-2 / (T * T)) : 0;
             if (!truncated) { regime.textContent = 'Untruncated'; regime.className = 'badge'; }
-            else if (T <= 0.5) { regime.textContent = 'Negligible clipping'; regime.className = 'badge badge-ok'; }
-            else if (T <= 0.85) { regime.textContent = 'Moderate truncation'; regime.className = 'badge badge-ok'; }
-            else if (T <= 1.1) { regime.textContent = 'Heavy truncation'; regime.className = 'badge badge-warn'; }
-            else { regime.textContent = 'Aperture-limited'; regime.className = 'badge badge-bad'; }
+            else if (loss < 1e-3) { regime.textContent = 'Negligible clipping'; regime.className = 'badge badge-ok'; }
+            else if (loss < 0.02) { regime.textContent = 'Light clipping'; regime.className = 'badge badge-ok'; }
+            else if (loss < 0.1) { regime.textContent = 'Moderate clipping'; regime.className = 'badge badge-warn'; }
+            else { regime.textContent = 'Heavy clipping'; regime.className = 'badge badge-bad'; }
+            // the badge grades lost power; the spot growth is a separate number
+            const grow = dF / dF0 - 1;
+            growNote.textContent = !truncated ? '' : grow < 5e-4 ? 'At this truncation ratio the aperture does not measurably enlarge the spot.'
+                : 'The aperture makes the focused spot ' + fmt.num(100 * grow, grow < 0.1 ? 2 : 3) + ' % larger than this. The badge grades lost power, not spot growth.';
 
             return {
                 dF: fmt.si(dF, 'm', 4),
                 w0: fmt.si(w0, 'm', 4),
                 T: truncated ? fmt.num(T, 4) : 'none',
                 apo: fmt.num(A, 4) + (truncated && v.m2 !== 1 ? '  (at T/M = ' + fmt.num(TM, 4) + ')' : ''),
-                trans: truncated ? fmt.pct(-Math.expm1(-2 / (T * T)), 4) : '100 %',
+                trans: truncated ? fmt.pct(-Math.expm1(-2 / (T * T)), 4) + '  (' + (loss < 1e-4 ? 'less than 0.01 %' : fmt.pct(loss, loss < 1e-3 ? 2 : 3)) + ' clipped)' : '100 %',
                 dF0: truncated ? fmt.si(dF0, 'm', 4) : null,
                 zR: fmt.si(zR, 'm', 4),
                 dof: fmt.si(dof, 'm', 3) + '  (±' + fmt.si(dof / 2, 'm', 3) + ')',
@@ -370,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         onError() {                             // no valid result: clear the chart (its curve and marker follow the inputs) and the note
             Plot.clear('#apo-plot');
             collNote.hidden = true;
+            growNote.textContent = '';
             regime.textContent = ''; regime.className = 'badge';
             syncLine();
         },

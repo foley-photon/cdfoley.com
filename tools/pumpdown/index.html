@@ -34,6 +34,34 @@
     .pd-fold + .pd-fold { margin-top: 0.6rem; }
     .pd-fold .pd-sum { font-weight: 400; color: var(--muted); margin-left: 0.35rem; }
     .pd-fold[open] .pd-sum { display: none; }
+    /* optional pump speed curve: a switch under the pump speed, then a small table of points and a chart of the curve */
+    .pd-check { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.9rem; color: var(--text); margin: -0.25rem 0 0.95rem; cursor: pointer; }
+    .pd-check input { margin-top: 0.22rem; flex-shrink: 0; }
+    .pd-check .pd-opt { color: var(--muted); }
+    .pd-curve { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.8rem 0.9rem 0.9rem; margin: 0 0 0.95rem; }
+    .pd-curve .chip-lbl { font-size: 0.8rem; color: var(--muted); align-self: center; }
+    .pd-curve .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+    .pd-curve .hint { margin: 0.5rem 0 0.8rem; }
+    .pd-cgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 1.9rem; gap: 0.4rem 0.5rem; align-items: center; }
+    .pd-ch { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.2rem 0.4rem; font-size: 0.82rem; font-weight: 550; color: var(--text); }
+    .pd-ch select { font: inherit; font-size: 0.8rem; font-weight: 400; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.15rem 0.3rem; cursor: pointer; }
+    .pd-ch select:focus-visible, .pd-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .pd-cgrid .input { font-family: var(--mono); font-size: 0.93rem; font-variant-numeric: tabular-nums; padding: 0.45rem 0.6rem; }
+    .pd-cgrid .input[aria-invalid="true"] { border-color: var(--danger); color: var(--danger); }
+    .pd-x { font: inherit; font-size: 1.05rem; line-height: 1; width: 1.9rem; height: 1.9rem; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--muted); cursor: pointer; }
+    .pd-x:hover { background: var(--surface-2); color: var(--text); }
+    .pd-cgrid [hidden] { display: none; }
+    .pd-curve .pd-add { margin: 0.5rem 0 0 -0.6rem; }
+    /* what the marked shape stands for, and a way out when the start pressure lies far above the curve */
+    .pd-curve .pd-about { color: var(--text-2); }
+    .pd-guide { border-left: 3px solid var(--warn); padding: 0.1rem 0 0.1rem 0.7rem; color: var(--text); }
+    .pd-guide .btn, .pd-tnote .btn { margin: 0.35rem 0 0; display: block; max-width: 100%; white-space: normal; text-align: left; line-height: 1.35; }
+    /* on a phone the effective speed and its percentage stack, so the value stays beside its label instead of under it */
+    @media (max-width: 480px) { .pd-seff .result-value { max-width: 8.5rem; } }
+    .pd-tnote { color: var(--text); border-left: 3px solid var(--warn); padding-left: 0.6rem; margin-top: 0.3rem; }
+    .pd-curve [hidden], .pd-tnote[hidden] { display: none; }
+    /* a time the note below it calls unusable or too optimistic is struck through and muted, not shown as the result */
+    .result.pd-off .result-value { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 2px; }
     /* chamber, line, and pump schematic: 400 units wide and at most 520 px, so the phone sizes below render at 11.5 px or more at 390 px */
     .pd-fig { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; font-family: var(--font); }
     .pd-fig .box { fill: var(--surface-2); stroke: var(--border-strong); stroke-width: 1.5; }
@@ -123,6 +151,7 @@
         <p class="lede">This calculator answers two questions: how long a chamber takes to pump down, and how much of the pump’s speed actually reaches it through the pumping line. Use it to size a pump or a line, or to see why a pump-down slows near the end. The line’s conductance is recalculated at every pressure, from viscous flow near atmosphere to molecular flow at low pressure; an optional outgassing load and pump base pressure set the lowest pressure the chamber can reach.</p>
         <details class="key-terms"><summary>Key terms</summary><dl>
             <dt>Pumping speed</dt><dd>The volume of gas a pump removes per second at its inlet, in L/s or m³/h, as rated on its datasheet. Roughing pumps are usually rated in m³/h (1&nbsp;m³/h is about 0.28&nbsp;L/s), high vacuum pumps in L/s.</dd>
+            <dt>Speed curve</dt><dd>The datasheet plot of a pump’s speed against the pressure at its inlet. The rated speed is the level part of the curve. The speed falls toward the pump’s base pressure, and for some pumps at the high-pressure end of their range too. Each type of pump has its own shape.</dd>
             <dt>Conductance</dt><dd>How easily gas passes through a pipe, valve, or opening, in the same units as pumping speed. A pipe throttles a pump when its conductance is not much larger than the pump’s speed.</dd>
             <dt>Effective pumping speed</dt><dd>The speed the chamber actually gets once a line, valve, or trap sits between it and the pump. It is always lower than both the pump’s speed and the conductance, and it sets how fast the pressure falls.</dd>
             <dt>Viscous and molecular flow</dt><dd>Near atmosphere gas flows through a pipe like a fluid (viscous flow), and the pipe conducts more the higher the pressure. At low pressure the molecules hit the walls far more often than each other (molecular flow), and the conductance no longer depends on pressure. In between, the flow is transitional.</dd>
@@ -150,7 +179,23 @@
                 <div class="field">
                     <label for="S">Pump speed at its inlet <span class="sym">S</span></label>
                     <div class="input-unit"><input id="S" name="S" value="35" inputmode="decimal" data-positive data-label="pump speed"><select data-dim="throughput" data-units="L/s,m³/h,L/min,cfm" data-default="m³/h"></select></div>
-                    <p class="hint">The rated speed from the pump’s datasheet, measured at its inlet (ISO&nbsp;21360-1). Treated as constant except near the base pressure below. Single-stage rotary-vane pumps slow down sooner, below about 1&nbsp;mbar (10&nbsp;mbar with gas ballast), so for a target there use the speed from the pump’s curve.</p>
+                    <p class="hint">The rated speed from the pump’s datasheet, measured at its inlet (ISO&nbsp;21360-1). Treated as constant except near the base pressure below. Real pumps are not that simple: a single-stage rotary vane pump slows down below about 1&nbsp;mbar (10&nbsp;mbar with gas ballast), a diaphragm pump all the way down from atmosphere, a turbomolecular pump above about 10⁻³&nbsp;mbar. When the pump-down passes through such a range, switch on the speed curve.</p>
+                </div>
+                <label class="pd-check" for="cv"><input type="checkbox" name="cv" id="cv"> <span>Speed varies with pressure <span class="pd-opt">(pick a pump type or enter the pump’s curve)</span></span></label>
+                <div class="pd-curve" id="curve" hidden>
+                    <div class="chip-row" id="cv-shapes" role="group" aria-label="Typical curve shapes by pump type"><span class="chip-lbl">Start from:</span><button type="button" class="chip" data-shape="flat" aria-pressed="false">Flat</button><button type="button" class="chip" data-shape="vane1" aria-pressed="false">Rotary vane, single-stage</button><button type="button" class="chip" data-shape="vane2" aria-pressed="false">Rotary vane, two-stage</button><button type="button" class="chip" data-shape="scroll" aria-pressed="false">Scroll</button><button type="button" class="chip" data-shape="diaph" aria-pressed="false">Diaphragm, two-stage</button><button type="button" class="chip" data-shape="roots" aria-pressed="false">Roots, backed</button><button type="button" class="chip" data-shape="turbo" aria-pressed="false">Turbomolecular</button></div>
+                    <p class="hint">Each shape is typical for its pump type and is scaled to the speed above. None is the data of a particular pump, and pumps of one type differ. For real numbers, replace the points with values read from your own pump’s datasheet curve. A shape stays marked, and follows the pump speed if you change it, until you edit a point.</p>
+                    <p class="hint pd-about" id="cv-about" aria-live="polite"></p>
+                    <p class="hint pd-guide" id="cv-guide" hidden><span id="cv-guide-text"></span><button type="button" class="btn btn-sm" data-fix="range"></button></p>
+                    <div class="pd-cgrid" id="cv-grid" role="group" aria-label="Points of the pump speed curve">
+                        <div class="pd-ch"><span>Inlet pressure</span><select name="cpu" data-dim="pressure" data-units="mbar,Pa,Torr,mTorr,atm" data-default="mbar" aria-label="Unit of the curve’s pressures"></select></div>
+                        <div class="pd-ch"><span>Pump speed</span><select name="csu" data-dim="throughput" data-units="L/s,m³/h,L/min,cfm" data-default="m³/h" aria-label="Unit of the curve’s speeds"></select></div>
+                        <span></span>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-sm pd-add" id="cv-add">+ Add point</button>
+                    <p class="hint">Two to eight points, in any order; blank rows are ignored. Between points the speed follows a straight line on the datasheet’s log-log plot, which is how the chart below is drawn. Outside the table it is held at the nearest point, and the result says so when the pump-down runs out there. The speed above is kept for comparison.</p>
+                    <div id="cv-plot"></div>
+                    <p class="hint calc-hide-on-error" style="margin-bottom:0">The curve as the calculator uses it. Shaded: the inlet pressures this pump-down passes through, which are lower than the chamber’s when the line throttles the pump.</p>
                 </div>
                 <div class="field">
                     <label for="pb">Pump base pressure (optional) <span class="sym">p<sub>pump</sub></span></label>
@@ -242,11 +287,13 @@
             <div class="panel-head"><h2 id="results-h">Results</h2><span id="limit" class="badge"></span></div>
             <div class="panel-body">
                 <div class="results">
-                    <div class="result primary"><span class="result-label">Pump-down time to p₁</span><output class="result-value" data-out="t">—</output></div>
-                    <div class="result"><span class="result-label">Ideal time, pump only<span class="sym">(V/S) ln(p₀/p₁)</span></span><output class="result-value" data-out="tideal">—</output>
-                        <span class="result-note">With no line, gas load, or base pressure.</span></div>
-                    <div class="result"><span class="result-label">Effective speed at p₁<span class="sym">S<sub>eff</sub></span></span><output class="result-value" data-out="seff">—</output>
-                        <span class="result-note">The speed the chamber actually gets. A conductance of at least 2–3 times the pump’s speed keeps it above 67–75&nbsp;% of S.</span></div>
+                    <div class="result primary"><span class="result-label">Pump-down time to p₁</span><output class="result-value" data-out="t">—</output>
+                        <span class="result-note pd-tnote" id="t-note" hidden><span id="t-note-text"></span><button type="button" class="btn btn-sm" data-fix="range" hidden></button></span></div>
+                    <div class="result text" hidden><span class="result-label">Effect of the speed curve</span><output class="result-value" data-out="cmp">—</output></div>
+                    <div class="result"><span class="result-label">Ideal time, pump only<span class="sym" id="tideal-sym">(V/S) ln(p₀/p₁)</span></span><output class="result-value" data-out="tideal">—</output>
+                        <span class="result-note" id="tideal-note">With no line, gas load, or base pressure.</span></div>
+                    <div class="result pd-seff"><span class="result-label">Effective speed at p₁<span class="sym">S<sub>eff</sub></span></span><output class="result-value" data-out="seff">—</output>
+                        <span class="result-note"><span id="seff-cv"></span>The speed the chamber actually gets. A conductance of at least 2–3 times the pump’s speed keeps it above 67–75&nbsp;% of S.</span></div>
                     <div class="result"><span class="result-label">Conductance at p₁<span class="sym">C</span></span><output class="result-value" data-out="c1">—</output>
                         <span class="result-note">The line and any other conductance in series, at the pressure p₁.</span></div>
                     <div class="result"><span class="result-label">Molecular-flow conductance of the line<span class="sym">C<sub>mol</sub></span></span><output class="result-value" data-out="cmol">—</output>
@@ -306,6 +353,23 @@
         <div class="formula">\[ \begin{gathered} S_\text{eff}\,(p_\text{ult} - p_\text{pump}) = Q, \\ p_\text{ult} = p_\text{pump} + \frac{Q}{S_\text{eff}}. \end{gathered} \]</div>
         <p>The calculator integrates the full expression numerically, because the line conductance changes with pressure by orders of magnitude. It integrates in the variable \(\ln(p - p_\text{ult})\), which stays accurate even for a target just above \(p_\text{ult}\). The pump and the line act in series, so their reciprocals add (the same rule as for resistors in parallel):</p>
         <div class="formula">\[ \frac{1}{S_\text{eff}} = \frac{1}{S} + \frac{1}{C}, \qquad \frac{1}{C} = \frac{1}{C_\text{line}} + \frac{1}{C_\text{other}}. \]</div>
+        <p><strong>Pump speed curve (optional).</strong> A real pump’s speed depends on the pressure at its inlet. With “Speed varies with pressure” switched on, \(S\) is read from the table of points. Between two neighboring points \((p_a, S_a)\) and \((p_b, S_b)\) it follows a straight line on log-log axes, the way datasheet curves are drawn:</p>
+        <div class="formula">\[ \begin{gathered} S(p_\text{in}) = S_a \left(\frac{p_\text{in}}{p_a}\right)^{m}, \ m = \frac{\ln(S_b/S_a)}{\ln(p_b/p_a)}. \end{gathered} \]</div>
+        <p>Below the lowest point and above the highest one the speed stays at that point’s value. The curve belongs to the pressure at the pump inlet, not to the chamber pressure, and the two differ whenever the line throttles the pump. At each chamber pressure \(p\) the calculator therefore finds the inlet pressure at which the line delivers exactly what the pump removes,</p>
+        <div class="formula">\[ C(\bar p)\,(p - p_\text{in}) = S(p_\text{in})\,(p_\text{in} - p_\text{pump}), \]</div>
+        <p>by bisection, and continues as above with the speed at that pressure. The equation has a single solution as long as the pump’s throughput \(S\,p_\text{in}\) does not fall as the pressure rises, so a curve that falls faster than \(1/p\) between two points is refused. A flat curve gives the constant-speed result to the last digit. With a curve switched on, “Ideal time, pump only” and the dashed line in the chart follow the curve too: the pump sits directly on the chamber, with no gas load and no base pressure, so \(t = V\int_{p_1}^{p_0} dp/(S(p)\,p)\). Checked against an independent adaptive integration of the same equations for 84 combinations of the seven shapes, line length, gas load, and base pressure, the pump-down times agree to within 0.001&nbsp;%.</p>
+
+        <h2 id="pump-types">Typical speed curves by pump type</h2>
+        <p>Pumps are not all alike. Each type loses speed in its own part of the pressure range, for its own reason. The shapes offered under “Start from” are typical for a type. Each one is the rounded mean of a few published speed curves, with every curve first divided by that pump’s own nominal speed. None is the data of a particular pump. Where the curves are falling, pumps of one type differ by 0.1 to 0.2 of the nominal speed, and the pressure at which the speed reaches zero differs by up to a factor of ten. For real numbers, enter the values from your own pump’s datasheet.</p>
+        <ul>
+            <li><strong>Rotary vane, single-stage, no gas ballast.</strong> Full speed down to 3&nbsp;mbar, then 0.95 of it at 1&nbsp;mbar, 0.8 at 0.3, 0.5 at 0.1, and 0.15 at 0.03&nbsp;mbar. Zero near 0.01 to 0.04&nbsp;mbar. From three curves (two vane pumps and a rotary piston pump). Gas leaks back past the vanes and comes out of the oil. That back flow is small near atmosphere and cancels more and more of the pumping below 1&nbsp;mbar. With gas ballast the fall starts about ten times higher.</li>
+            <li><strong>Rotary vane, two-stage, no gas ballast.</strong> Full speed down to 0.1&nbsp;mbar, then 0.9 at 0.03, 0.75 at 0.01, 0.4 at 0.003, and 0.2 at 0.001&nbsp;mbar. Zero between 10⁻⁴ and 3&nbsp;×&nbsp;10⁻³&nbsp;mbar. From three printed curves of two pumps (a vane pump and a rotary piston pump). The second stage holds the outlet of the first at low pressure, so far less gas leaks back and the speed holds ten times lower.</li>
+            <li><strong>Scroll.</strong> 0.9 at 1000&nbsp;mbar, 1 at 100, 0.97 at 10, 0.9 at 3, 0.77 at 1, 0.58 at 0.3, 0.42 at 0.1, and 0.25 at 0.03&nbsp;mbar. Zero near 0.003 to 0.015&nbsp;mbar. From two curves, which agree within 0.06. No oil seals the gaps between the scrolls, so gas leaks back toward the inlet, and below about 1&nbsp;mbar that leak cancels a growing part of the pumping.</li>
+            <li><strong>Diaphragm, two-stage.</strong> 1 at 1000&nbsp;mbar, 0.9 at 300, 0.8 at 100, 0.7 at 30, 0.45 at 10, and 0.15 at 5&nbsp;mbar. From three curves, which reach zero at 2.5 to 4.5&nbsp;mbar. The two textbooks put the lowest pressure of two-stage pumps higher, at 7 to 14&nbsp;mbar and at about 10&nbsp;mbar, so zero lies between about 2 and 14&nbsp;mbar, depending on the pump. Each stroke leaves a little gas in the dead space under the valves. It expands again into the next stroke and takes up more of it the lower the inlet pressure. Three stages reach about 1 to 4&nbsp;mbar, four about 0.5&nbsp;mbar.</li>
+            <li><strong>Roots, backed by a pump of a fifth to a tenth of its speed.</strong> As a fraction of the Roots pump’s nominal speed: 0.15 at 1000&nbsp;mbar, 0.4 at 100, 0.65 at 10, 0.8 at 1, 0.85 at 0.2, 0.78 at 0.03, 0.6 at 0.01, and 0.35 at 0.003&nbsp;mbar. From three pump combinations. It peaks in the middle. At high pressure the rotors may only work against a small pressure difference, so a bypass opens and the backing pump does most of the work. At low pressure gas slips back through the gaps around the rotors faster than the backing pump clears the outlet.</li>
+            <li><strong>Turbomolecular, nitrogen or air.</strong> Full speed up to 10⁻³&nbsp;mbar, then 0.95 at 0.003, 0.75 at 0.01, 0.5 at 0.03, and 0.25 at 0.1&nbsp;mbar. From seven curves. The blades move gas only in molecular flow, where molecules hit the blades more often than each other. Above about 10⁻³&nbsp;mbar the gas starts to flow as a fluid and the speed falls. The pump needs a roughing pump and takes over at about 0.1&nbsp;mbar.</li>
+        </ul>
+        <p>The curves were read from the figures in O’Hanlon’s textbook (chapters 10 and 11), Leybold’s <em>Fundamentals of Vacuum Technology</em> (Figs. 2.19, 2.53, and 2.54), and the CERN Accelerator School lecture on mechanical pumps. A shape stops where the published curves stop or reach zero. When a pump-down runs past that end, the calculator holds the last speed and marks the result: “Too optimistic” below the low end, where a pump of that type may never arrive, and “Not a usable time” when the start pressure lies more than ten times above a curve that is still falling there, as with a turbomolecular pump from atmosphere. In that case a button sets the start pressure to the top of the curve.</p>
 
         <h2>Conductance of a round tube</h2>
         <p><strong>Molecular flow</strong> (mean free path larger than the tube). For a long tube and for a thin orifice of the same diameter,</p>
@@ -347,10 +411,28 @@
             <li>In molecular flow the same line conducts only 1.8&nbsp;L/s. A turbo pump behind this line would lose most of its speed. High vacuum pumps are mounted directly on the chamber for this reason.</li>
             <li>An unbaked chamber with 5000&nbsp;cm² of internal surface outgassing at 10⁻⁸&nbsp;mbar·L/(s·cm²) adds Q = 5&nbsp;×&nbsp;10⁻⁵&nbsp;mbar·L/s. Through this line, that limits the chamber’s ultimate pressure to about 3&nbsp;×&nbsp;10⁻⁵&nbsp;mbar, however large the pump.</li>
         </ul>
+        <p><strong>With a speed curve.</strong> Take the same chamber and line, and let the pump be a single-stage rotary vane pump. Switch on “Speed varies with pressure” and choose “Rotary vane, single-stage”. The table fills with the typical shape for that type, scaled to 35&nbsp;m³/h: 35&nbsp;m³/h down to 3&nbsp;mbar, then 33.25 at 1&nbsp;mbar, 28 at 0.3&nbsp;mbar, 17.5 at 0.1&nbsp;mbar, and 5.25 at 0.03&nbsp;mbar.</p>
+        <ul>
+            <li>The pump-down to 0.1&nbsp;mbar now takes 64.5&nbsp;s, 1.11 times as long as the 57.8&nbsp;s at constant speed.</li>
+            <li>With the chamber at 0.1&nbsp;mbar the pump inlet is at 0.0648&nbsp;mbar, where the curve gives 11.3&nbsp;m³/h (3.15&nbsp;L/s), 32&nbsp;% of the nominal speed. The chamber gets 2.04&nbsp;L/s, 65&nbsp;% of that. A slower pump is throttled less by the same line: at constant speed the chamber got 34&nbsp;%.</li>
+            <li>The ideal time, for the pump alone on its curve, is 51.9&nbsp;s, against 47.4&nbsp;s at constant speed.</li>
+            <li>A check by hand: with the line length set to 0 and a target of 1&nbsp;mbar the curve only matters between 3 and 1&nbsp;mbar, where the speed falls from 35 to 33.25&nbsp;m³/h. The time is 35.7&nbsp;s, against \((50/9.72)\ln(1013/1) = 35.6\) s at constant speed.</li>
+        </ul>
+        <p>The other shapes, for the same 50&nbsp;L chamber, line, and 35&nbsp;m³/h nominal speed, starting from 1013&nbsp;mbar:</p>
+        <ul>
+            <li><strong>Flat:</strong> 57.8&nbsp;s to 0.1&nbsp;mbar, the default result.</li>
+            <li><strong>Rotary vane, two-stage:</strong> 58.0&nbsp;s. The pump is still at full speed. To 0.01&nbsp;mbar it takes 121&nbsp;s, against 115&nbsp;s at constant speed.</li>
+            <li><strong>Scroll:</strong> 70.4&nbsp;s. It slows below 3&nbsp;mbar and starts 10&nbsp;% low at atmosphere.</li>
+            <li><strong>Diaphragm, two-stage:</strong> 0.1&nbsp;mbar is out of reach. The shape ends at 5&nbsp;mbar and the result is marked “Too optimistic”. To 10&nbsp;mbar it takes 31.8&nbsp;s, against 23.8&nbsp;s at constant speed. Some two-stage pumps stop near 10&nbsp;mbar, so take that time as a rough guide.</li>
+            <li><strong>Roots, backed:</strong> 115&nbsp;s, twice as long. Near atmosphere the shape gives little more than the backing pump’s speed.</li>
+            <li><strong>Turbomolecular:</strong> no usable time from atmosphere. The button sets the range to 0.1 down to 10⁻⁴&nbsp;mbar, which takes 3.64&nbsp;min, against 3.56&nbsp;min at constant speed. The line, not the curve, sets that time: the chamber gets 15&nbsp;% of the pump’s speed.</li>
+        </ul>
 
         <h2>Assumptions and limits</h2>
         <ul>
-            <li><strong>Pump speed.</strong> Constant, except near the pump’s base pressure, where the pump removes \(S\,(p_\text{in} - p_\text{pump})\) as in Leybold’s textbook treatment. Real pump curves can fall off sooner, and at both ends of their range: use the speed near the pressure that dominates the pump-down time, or run the calculation in segments.</li>
+            <li><strong>Pump speed.</strong> Constant unless you enter a speed curve, except near the pump’s base pressure, where the pump removes \(S\,(p_\text{in} - p_\text{pump})\) as in Leybold’s textbook treatment. Real pump curves can fall off sooner, and at both ends of their range: switch on “Speed varies with pressure” and enter points from the datasheet.</li>
+            <li><strong>Speed curve.</strong> The curve is a straight line on log-log axes between your points and level outside them, which is a guess wherever the real curve keeps changing; the calculator says so when the pump-down runs past an end of the table. A datasheet curve holds for the gas it was measured with (the speed of a turbomolecular pump differs from gas to gas) and for one gas-ballast setting. If your points already follow the curve down to zero speed at the base pressure, leave the base pressure field blank, or that fall is counted twice.</li>
+            <li><strong>Typical shapes.</strong> The shapes by pump type are means of a few published curves, not the data of any pump. Pumps of one type differ by 0.1 to 0.2 of the nominal speed where the curve falls, and more near the base pressure, so a time that depends on the falling part of a shape is a rough guide. The shapes hold for air or nitrogen and for a pump in good condition. Worn tip seals, old oil, or an open gas ballast valve move the fall to higher pressure. The rotary vane shapes are for a closed gas ballast valve. The Roots shape assumes a backing pump of a fifth to a tenth of the Roots pump’s speed and a bypass valve, and a smaller backing pump lowers the whole curve. The turbomolecular shape says nothing about the backing pump, which must keep the outlet below the pump’s limit. The shapes already follow the fall toward the base pressure, so leave the base pressure field blank with them.</li>
             <li><strong>Outgassing is time-dependent.</strong> Desorption of water from metal surfaces typically falls roughly as \(1/t\). A constant \(q\) is a snapshot that sets a floor on pressure, but it does not model the slow tail. Below about 10⁻² to 10⁻³&nbsp;mbar, outgassing, not volume, usually sets the pump-down time. Use measured or vendor data for your materials and surface condition.</li>
             <li><strong>Isothermal, quasi-static flow.</strong> Fast roughing from atmosphere cools the gas and can condense water.</li>
             <li><strong>Laminar, subsonic flow in the line.</strong> Near atmosphere the flow in a roughing line is often turbulent: the calculator reports the Reynolds number at p₀, which marks laminar flow below about 2300 and turbulent flow above about 4000, and a turbulent line conducts less than the Poiseuille value. A large pump on a narrow line can also choke it: the gas cannot enter faster than about the speed of sound, which caps the throughput near \(0.68\,p\,\pi d^2/4 \cdot \sqrt{RT/M}\) for air and other diatomic gases (0.73 for helium and argon). The calculator flags both but does not model them, so in those cases the real pump-down near atmosphere is slower than calculated.</li>
@@ -369,11 +451,11 @@
             <li>C. W. Oatley, “The flow of gas through composite systems at very low pressures,” <em>Br. J. Appl. Phys.</em> <strong>8</strong>, 15–19 (1957), <a href="https://doi.org/10.1088/0508-3443/8/1/305" target="_blank" rel="noopener">doi:10.1088/0508-3443/8/1/305</a> (combining the transmission probabilities of elements joined in series).</li>
             <li>F. Sharipov and V. Seleznev, “Data on internal rarefied gas flows,” <em>J. Phys. Chem. Ref. Data</em> <strong>27</strong>, 657–706 (1998), <a href="https://doi.org/10.1063/1.556019" target="_blank" rel="noopener">doi:10.1063/1.556019</a>, free <a href="https://srd.nist.gov/jpcrdreprint/1.556019.pdf" target="_blank" rel="noopener">reprint at NIST</a> (kinetic-theory flow rates of long tubes at any rarefaction, Table&nbsp;7, against which Knudsen’s formula is checked here; exact transmission probabilities, Table&nbsp;30, which confirm Berman’s formula).</li>
             <li>ISO&nbsp;21360-1:2020, Vacuum technology — Standard methods for measuring vacuum-pump performance — Part 1: General description (how a pump’s speed is measured at its inlet).</li>
-            <li>Leybold GmbH, <em>Fundamentals of Vacuum Technology</em>, rev. W. Umrath, Cologne (2016) (the pump-down equation with the pump’s end pressure and a gas load, eqs. 2.39–2.40; how single-stage rotary pumps lose speed at low pressure; outgassing standard values; nominal widths and bores of vacuum fittings).</li>
+            <li>Leybold GmbH, <em>Fundamentals of Vacuum Technology</em>, rev. W. Umrath, Cologne (2016) (the pump-down equation with the pump’s end pressure and a gas load, eqs. 2.39–2.40; how single-stage rotary pumps lose speed below 1&nbsp;mbar, or below 10&nbsp;mbar with gas ballast, sec. 2.3.1.1 and Fig. 2.75; speed curves of two Roots pump combinations and their single-stage and two-stage backing pumps, sec. 2.1.3.1 and Fig. 2.19, with mean speeds by pressure range in sec. 2.3.3; the speed of turbomolecular pumps, constant up to about 10⁻³&nbsp;mbar and different for each gas, sec. 2.1.7 and Figs. 2.53–2.54; outgassing standard values; nominal widths and bores of vacuum fittings).</li>
             <li>E. W. Lemmon, I. H. Bell, M. L. Huber, and M. O. McLinden, “Thermophysical properties of fluid systems,” in <em>NIST Chemistry WebBook</em>, NIST Standard Reference Database 69, P. J. Linstrom and W. G. Mallard, eds., <a href="https://doi.org/10.18434/T4D303" target="_blank" rel="noopener">doi:10.18434/T4D303</a> (retrieved October 2026) (viscosities of the preset gases and their change with temperature).</li>
             <li>P. Chiggiato, “Outgassing properties of vacuum materials for particle accelerators,” lecture notes, CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.07124" target="_blank" rel="noopener">arXiv:2006.07124</a> (2020) (outgassing rates of unbaked and baked steel and of polymers, and the 1/t design rule).</li>
             <li>R. Grinham and A. Chew, “A review of outgassing and methods for its reduction,” <em>Appl. Sci. Converg. Technol.</em> <strong>26</strong>, 95–109 (2017), <a href="https://doi.org/10.5757/ASCT.2017.26.5.95" target="_blank" rel="noopener">doi:10.5757/ASCT.2017.26.5.95</a> (averaged literature outgassing rates for steel and fluoroelastomer, time exponents, and their scatter).</li>
-            <li>J. F. O’Hanlon, <em>A User’s Guide to Vacuum Technology</em>, 3rd ed., Wiley (2003), <a href="https://doi.org/10.1002/0471467162" target="_blank" rel="noopener">doi:10.1002/0471467162</a>, ch. 3 (gas flow and conductance) and ch. 4 (gas release from solids).</li>
+            <li>J. F. O’Hanlon, <em>A User’s Guide to Vacuum Technology</em>, 3rd ed., Wiley (2003), <a href="https://doi.org/10.1002/0471467162" target="_blank" rel="noopener">doi:10.1002/0471467162</a>, ch. 3 (gas flow and conductance), ch. 4 (gas release from solids), ch. 10 (mechanical pumps: speed curves of single-stage and two-stage rotary vane pumps with and without gas ballast, Fig. 10.3; of Roots and rotary pump combinations, Fig. 10.9; of a scroll pump, Fig. 10.13; of diaphragm pumps with two to four stages, Fig. 10.17), and ch. 11 (turbomolecular pumps: speed against inlet pressure, Figs. 11.7 and 11.12).</li>
             <li>K. Jousten (ed.), <em>Handbook of Vacuum Technology</em>, 2nd ed., Wiley-VCH (2016), <a href="https://doi.org/10.1002/9783527688265" target="_blank" rel="noopener">doi:10.1002/9783527688265</a> (ch. 4, gas flow; ch. 5, analytical and numerical calculation of rarefied gas flows).</li>
             <li>S. Dushman, <em>Scientific Foundations of Vacuum Technique</em>, 2nd ed. (rev. J. M. Lafferty), Wiley (1962) (classic conductance formulas, including the series approximation for short tubes).</li>
         </ol>
@@ -386,6 +468,7 @@
         <h3>Free introductions</h3>
         <ul class="refs">
             <li>E. Al-Dmour, “Fundamentals of vacuum physics and technology,” CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://arxiv.org/abs/2006.01464" target="_blank" rel="noopener">arXiv:2006.01464</a> (flow regimes, orifice and tube conductances, effective pumping speed, and gas sources).</li>
+            <li>H. Barfuss, “Mechanical vacuum pumps,” lecture slides, CERN Accelerator School: Vacuum for Particle Accelerators (Glumslöv, 2017), <a href="https://indico.cern.ch/event/565314/contributions/2285745/" target="_blank" rel="noopener">indico.cern.ch/event/565314</a> (how diaphragm, scroll, Roots, and turbomolecular pumps work, with measured speed curves of a two-stage diaphragm pump, of a scroll pump for three gases, and of a turbomolecular pump from molecular to viscous flow).</li>
             <li>P. Chiggiato, “Vacuum technology for ion sources,” CERN Accelerator School: Ion Sources (Senec, 2012), CERN-2013-007, <a href="https://doi.org/10.5170/CERN-2013-007.463" target="_blank" rel="noopener">doi:10.5170/CERN-2013-007.463</a>, <a href="https://arxiv.org/abs/1404.0960" target="_blank" rel="noopener">arXiv:1404.0960</a> (transmission probabilities with Santeler’s formula, effective pumping speed, and the base pressure p = p<sub>0</sub> + Q/S<sub>eff</sub> of a pumped vessel).</li>
             <li>Pfeiffer Vacuum, <em>The Vacuum Technology Book</em> (online), <a href="https://www.pfeiffervacuum.com/global/en/knowledge/vacuum-technology/knowledge-book/table_of_content/" target="_blank" rel="noopener">pfeiffervacuum.com</a> (section 1.2 on flow regimes, the Reynolds-number limits of laminar flow, choked flow, and conductance; 1.3 on desorption, permeation, and bake-out; 2.2–2.3 on pump-down time and pipe conductance).</li>
         </ul>
@@ -460,29 +543,57 @@ document.addEventListener('DOMContentLoaded', () => {
         // (Knudsen's (1 + 2.507 r/λ)/(1 + 3.095 r/λ) with the viscosity-based mean free path)
         const ka = o.d * Math.sqrt(o.M / (K.R * o.T)) / o.eta;
         const Ctrans = pb => Cvisc(pb) + Cmol * (1 + ka * pb) / (1 + 1.2345 * ka * pb);
-        // conductance and effective speed at chamber pressure p. The pump removes S·(p_in − p_pump) at its inlet pressure
-        // p_in and the line carries the same flow, so p_in = p_pump + (p − p_pump)·S_eff/S; the line's mean pressure
-        // (p + p_in)/2 is found by iteration (each step shrinks the error at least fourfold)
-        function at(p) {
-            if (!hasLine && !hasX) return { C: Infinity, Cline: Infinity, Seff: o.S, pbar: p };
-            let pbar = p, C = Infinity, Cline = Infinity, Seff = o.S;
+        // conductance and effective speed at chamber pressure p for a pump of speed S. The pump removes S·(p_in − p_pump)
+        // at its inlet pressure p_in and the line carries the same flow, so p_in = p_pump + (p − p_pump)·S_eff/S; the line's
+        // mean pressure (p + p_in)/2 is found by iteration (each step shrinks the error at least fourfold)
+        function atS(p, S) {
+            if (!hasLine && !hasX) return { C: Infinity, Cline: Infinity, Seff: S, pbar: p, pin: p, S };
+            let pbar = p, C = Infinity, Cline = Infinity, Seff = S, pin = p;
             for (let i = 0; i < 60; i++) {
                 Cline = hasLine ? Ctrans(pbar) : Infinity;
                 C = 1 / ((hasLine ? 1 / Cline : 0) + (hasX ? 1 / o.Cx : 0));
-                Seff = 1 / (1 / o.S + 1 / C);
-                const pin = p > o.pp ? o.pp + (p - o.pp) * Seff / o.S : p;
+                Seff = 1 / (1 / S + 1 / C);
+                pin = p > o.pp ? o.pp + (p - o.pp) * Seff / S : p;
                 const next = (p + pin) / 2;
                 if (Math.abs(next - pbar) < 1e-12 * p) { pbar = next; break; }
                 pbar = next;
             }
-            return { C, Cline, Seff, pbar };
+            return { C, Cline, Seff, pbar, pin, S };
+        }
+        // Optional speed curve: points { p, s } sorted by pressure. The speed at inlet pressure x is interpolated on log-log
+        // axes and held at the end points outside the table (a flat stretch returns its value exactly).
+        const cv = o.curve, nc = cv ? cv.length : 0;
+        const Smax = cv ? Math.max(...cv.map(c => c.s)) : o.S, Smin = cv ? Math.min(...cv.map(c => c.s)) : o.S;
+        function pumpSpeed(x) {
+            if (!cv) return o.S;
+            if (!(x > cv[0].p)) return cv[0].s;
+            if (!(x < cv[nc - 1].p)) return cv[nc - 1].s;
+            let k = 1;
+            while (cv[k].p < x) k++;
+            const a = cv[k - 1], b = cv[k];
+            return a.s === b.s ? a.s : Math.exp(Math.log(a.s) + Math.log(b.s / a.s) * Math.log(x / a.p) / Math.log(b.p / a.p));
+        }
+        // With a curve the pump's speed depends on its inlet pressure, which depends on the speed. The inlet pressure falls
+        // as the speed rises, so it lies between the values for the largest and the smallest speed in the table, and the
+        // point where the loop above returns the inlet pressure it was given is found by bisection in ln p_in. That point
+        // is unique because the pump's throughput S(p_in)·p_in never falls with rising pressure (checked on input).
+        function at(p) {
+            if (!cv) return atS(p, o.S);
+            if (Smax === Smin || (!hasLine && !hasX) || !(p > o.pp)) return atS(p, pumpSpeed(p));
+            let lo = Math.log(atS(p, Smax).pin), hi = Math.log(atS(p, Smin).pin);
+            for (let i = 0; i < 60 && hi - lo > 1e-13; i++) {
+                const mid = (lo + hi) / 2, x = Math.exp(mid);
+                if (atS(p, pumpSpeed(x)).pin > x) lo = mid; else hi = mid;
+            }
+            return atS(p, pumpSpeed(Math.exp((lo + hi) / 2)));
         }
         // net removal at chamber pressure p, S_eff·(p − p_pump): it rises with p (the line's shallow Knudsen dip never reverses it)
         const removal = p => at(p).Seff * (p - o.pp);
-        // ultimate pressure: where the removal equals the gas load (bisection in ln p; S_eff ≤ S puts it at or above p_pump + Q/S)
+        // ultimate pressure: where the removal equals the gas load (bisection in ln p; S_eff ≤ S puts it at or above p_pump + Q/S,
+        // with the largest speed of a curve for S)
         let pult = o.pp;
         if (o.Q > 0) {
-            let lo = Math.log(o.pp + o.Q / o.S), hi = lo;
+            let lo = Math.log(o.pp + o.Q / Smax), hi = lo;
             while (removal(Math.exp(hi)) < o.Q && hi < lo + 230) hi += 2;
             for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (removal(Math.exp(mid)) < o.Q) lo = mid; else hi = mid; }
             pult = Math.exp(hi);
@@ -508,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return { ts, ps, t, reached };
         }
-        return { vbar, Cmol, at, pult, curve };
+        return { vbar, Cmol, at, pult, curve, pumpSpeed };
     }
 
     // The gas and outgassing groups are folded. Each summary line shows what the group holds, and a group opens when
@@ -531,8 +642,183 @@ document.addEventListener('DOMContentLoaded', () => {
     const cBox = document.getElementById('c-plot'), cPanel = document.getElementById('c-panel');
     let last = null;
 
+    // Optional pump speed curve: up to eight (inlet pressure, speed) points. The rows are built here, before Calc.create
+    // runs, so that links and Reset carry them like any other field; rows past the third stay hidden until they are used.
+    const NPTS = 8, MINROWS = 3;
+    const cvOn = document.getElementById('cv'), cvBox = document.getElementById('curve'), cvGrid = document.getElementById('cv-grid');
+    const cvAdd = document.getElementById('cv-add'), cvPlot = document.getElementById('cv-plot');
+    const cpu = form.querySelector('select[name="cpu"]'), csu = form.querySelector('select[name="csu"]');
+    const sIn = document.getElementById('S'), sUnit = sIn.nextElementSibling;
+    const rows = [];
+    for (let i = 1; i <= NPTS; i++) {
+        const mk = (name, what) => {
+            const el = document.createElement('input');
+            el.name = name + i; el.className = 'input'; el.autocomplete = 'off';
+            el.setAttribute('inputmode', 'decimal'); el.setAttribute('aria-label', what + ', point ' + i);
+            el.dataset.optional = ''; el.dataset.positive = ''; el.dataset.label = 'curve ' + what.toLowerCase() + ', point ' + i;
+            return el;
+        };
+        const p = mk('cp', 'Pressure'), sp = mk('cs', 'Speed'), x = document.createElement('button');
+        x.type = 'button'; x.className = 'pd-x'; x.textContent = '×'; x.title = 'Remove this point'; x.setAttribute('aria-label', 'Remove point ' + i);
+        x.addEventListener('click', () => removeRow(i - 1));
+        cvGrid.append(p, sp, x);
+        rows.push({ p, s: sp, x });
+    }
+    let shown = MINROWS;
+    const blank = r => r.p.value.trim() === '' && r.s.value.trim() === '';
+    const lastUsed = () => { let n = 0; rows.forEach((r, i) => { if (!blank(r)) n = i + 1; }); return n; };
+    function syncRows() {
+        shown = Math.min(NPTS, Math.max(MINROWS, shown, lastUsed()));
+        rows.forEach((r, i) => { r.p.hidden = r.s.hidden = r.x.hidden = i >= shown; });
+        cvAdd.hidden = shown >= NPTS;
+    }
+    const rerun = () => form.dispatchEvent(new Event('input', { bubbles: true }));
+    function setRows(pts) {              // pts: [pressure text, speed text] pairs; the rest of the table is cleared
+        rows.forEach((r, i) => { r.p.value = pts[i] ? pts[i][0] : ''; r.s.value = pts[i] ? pts[i][1] : ''; r.p._exact = r.s._exact = null; });
+        shown = MINROWS; syncRows();
+    }
+    function removeRow(k) {
+        const vals = rows.map(r => [r.p.value, r.s.value]), keep = Math.max(MINROWS, shown - 1);
+        vals.splice(k, 1);
+        setRows(vals); shown = keep; syncRows(); rerun();
+        rows[Math.min(k, shown - 1)].p.focus();
+    }
+    cvAdd.addEventListener('click', () => { shown = Math.min(NPTS, shown + 1); syncRows(); rows[shown - 1].p.focus(); });
+    // Typical shapes by pump type, as fractions of the nominal speed against the inlet pressure in mbar. Each is a rounded
+    // mean of several published speed curves, each read off as a fraction of that pump's own nominal speed: the curves
+    // printed in O'Hanlon (ch. 10 and 11), in Leybold's Fundamentals (Figs. 2.19, 2.53, 2.54), and in the CERN Accelerator
+    // School lecture on mechanical pumps (2017). A shape stops where the published curves stop or drop to zero. "name"
+    // and "why" are shown under the chips, "floor" when a pump-down runs below the shape, and "top" marks a pump that
+    // is not run from atmosphere.
+    const SHAPES = {
+        flat:   { pts: [[1000, 1], [1, 1], [0.001, 1]] },
+        vane1:  { pts: [[1000, 1], [3, 1], [1, 0.95], [0.3, 0.8], [0.1, 0.5], [0.03, 0.15]],
+            name: 'a single-stage rotary vane pump running without gas ballast',
+            why: 'The speed holds down to about 1 mbar. Below that, gas leaking back past the vanes and gas coming out of the oil cancel a growing part of what the pump moves, and the speed reaches zero near 0.01 to 0.04 mbar. With gas ballast the fall starts about ten times higher.',
+            floor: 'Single-stage rotary vane pumps reach zero speed near 0.01 to 0.04 mbar.' },
+        vane2:  { pts: [[1000, 1], [0.1, 1], [0.03, 0.9], [0.01, 0.75], [0.003, 0.4], [0.001, 0.2]],
+            name: 'a two-stage rotary vane pump running without gas ballast',
+            why: 'The second stage keeps the outlet of the first at low pressure, so far less gas leaks back and the speed holds ten times lower than with one stage, to about 0.1 mbar, before it falls toward a base pressure between 10⁻⁴ and 3 × 10⁻³ mbar.',
+            floor: 'Two-stage rotary vane pumps reach zero speed between 10⁻⁴ and 3 × 10⁻³ mbar.' },
+        scroll: { pts: [[1000, 0.9], [100, 1], [10, 0.97], [3, 0.9], [1, 0.77], [0.3, 0.58], [0.1, 0.42], [0.03, 0.25]],
+            name: 'a dry scroll pump',
+            why: 'No oil seals the gaps between the scrolls, so some gas always leaks back toward the inlet. Below about 1 mbar that leak cancels a growing part of what the pump moves, and the speed reaches zero near 0.003 to 0.015 mbar. Near atmosphere the speed is about 10 % under its peak.',
+            floor: 'Scroll pumps reach zero speed near 0.003 to 0.015 mbar.' },
+        diaph:  { pts: [[1000, 1], [300, 0.9], [100, 0.8], [30, 0.7], [10, 0.45], [5, 0.15]],
+            name: 'a two-stage diaphragm pump',
+            why: 'Each stroke leaves a little gas in the dead space under the valves. It expands again and takes up part of the next stroke, a larger part the lower the inlet pressure, so the speed falls all the way down from atmosphere and reaches zero somewhere between about 2 and 14 mbar, depending on the pump. Three stages get down to about 1 to 4 mbar, four to about 0.5 mbar.',
+            floor: 'Two-stage diaphragm pumps reach zero speed between about 2 and 14 mbar, depending on the pump.' },
+        roots:  { pts: [[1000, 0.15], [100, 0.4], [10, 0.65], [1, 0.8], [0.2, 0.85], [0.03, 0.78], [0.01, 0.6], [0.003, 0.35]],
+            name: 'a Roots pump with a backing pump of a fifth to a tenth of its speed (enter the nominal speed of the Roots pump above)',
+            why: 'It peaks in the middle. At high pressure the rotors may only work against a small pressure difference, so a bypass valve opens and the backing pump does most of the work. At low pressure gas slips back through the gaps around the rotors, which do not touch, faster than the backing pump clears the outlet.',
+            floor: 'How low a Roots pump goes depends on its backing pump: about 0.003 to 0.03 mbar with a single-stage one, lower with a two-stage one.' },
+        turbo:  { pts: [[0.0001, 1], [0.001, 1], [0.003, 0.95], [0.01, 0.75], [0.03, 0.5], [0.1, 0.25]], top: true,
+            name: 'a turbomolecular pump, for nitrogen or air',
+            why: 'The blades push gas along only while its molecules hit the blades more often than each other. Above about 10⁻³ mbar the gas starts to flow as a fluid and the blades lose their hold on it, so the speed falls. The pump takes over from a roughing pump at about 0.1 mbar and is not run from atmosphere.' }
+    };
+    const shapeText = (f, S) => f === 1 ? sIn.value.trim() : String(Calc.roundSig(f * S, 4));
+    // the shape whose chip is marked, and the pump speed (text and unit) its points were filled in for
+    let held = null, heldKey = '';
+    const speedKey = () => sIn.value.trim() + ' ' + sUnit.value;
+    function fillShape(name, S) {
+        // a factor of 1 keeps the text of the speed field, so a flat curve is the constant speed to the last digit
+        setRows(SHAPES[name].pts.map(([p, f]) => [String(p), shapeText(f, S)]));
+        cpu.value = cpu.dataset.prev = 'mbar'; csu.value = csu.dataset.prev = sUnit.value;
+    }
+    function setShape(name) {
+        const S = Calc.parseNum(sIn.value);
+        if (!(S > 0)) { sIn.focus(); return; }
+        fillShape(name, S);
+        rerun();
+    }
+    document.getElementById('cv-shapes').addEventListener('click', e => { const b = e.target.closest('[data-shape]'); if (b) setShape(b.dataset.shape); });
+    // a shape's chip is marked while the table still holds exactly what the chip filled in (a link restores it too)
+    const cvAbout = document.getElementById('cv-about');
+    function markShape() {
+        const S = Calc.parseNum(sIn.value);
+        // A marked shape is a set of fractions of the pump speed. When the speed or its unit changes and nothing else
+        // has (an edited point unmarks the shape at once, below), the points are filled in again for the new speed.
+        const refilled = !!(held && S > 0 && heldKey !== speedKey());
+        if (refilled) fillShape(held, S);
+        const units = cpu.value === 'mbar' && csu.value === sUnit.value;
+        let marked = null;
+        document.querySelectorAll('#cv-shapes [data-shape]').forEach(b => {
+            const pts = SHAPES[b.dataset.shape].pts;
+            const same = units && S > 0 && rows.every((r, i) => pts[i]
+                ? r.p.value.trim() === String(pts[i][0]) && r.s.value.trim() === shapeText(pts[i][1], S)
+                : blank(r));
+            b.setAttribute('aria-pressed', same ? 'true' : 'false');
+            if (same && !marked) marked = b.dataset.shape;
+        });
+        held = marked; heldKey = marked ? speedKey() : '';
+        // what the marked shape stands for, and why a pump of that type behaves so
+        const sh = marked && SHAPES[marked];
+        const text = !marked ? 'Your own points.'
+            : marked === 'flat' ? 'Flat: the same speed at every pressure, which gives the constant-speed result. Pick the shape of your pump type, or enter your pump’s curve.'
+            : 'A typical shape for ' + sh.name + ', not the data of any one pump. ' + sh.why + ' For real numbers, enter the values from your own pump’s datasheet.';
+        if (cvAbout.textContent !== text) cvAbout.textContent = text;
+        markShape.refilled = refilled;
+        return sh || null;
+    }
+    // When the start pressure lies far above a curve that is still changing at its top (a turbomolecular pump from
+    // atmosphere), the time means nothing. A note under the result and one under the shapes say so, each with a button
+    // that moves the start pressure to the top of the curve (and the target inside the curve, if it is not already).
+    const tNote = document.getElementById('t-note'), tNoteText = document.getElementById('t-note-text');
+    const guide = document.getElementById('cv-guide'), guideText = document.getElementById('cv-guide-text');
+    const fixBtns = [...document.querySelectorAll('[data-fix="range"]')];
+    let fix = null;
+    function setGuide(note, guideMsg, f) {
+        fix = f || null;
+        tNote.hidden = !note; tNoteText.textContent = note || '';
+        tNote.parentElement.classList.toggle('pd-off', !!note);
+        guide.hidden = !(guideMsg && fix); guideText.textContent = guideMsg || '';
+        fixBtns.forEach(b => { b.hidden = !fix; b.textContent = fix ? fix.label : ''; });
+    }
+    fixBtns.forEach(b => b.addEventListener('click', () => {
+        if (!fix) return;
+        const put = (id, pa) => { const inp = document.getElementById(id); inp.value = fmt.plain(Calc.fromSI('pressure', inp.nextElementSibling.value, pa), 4); };
+        put('p0', fix.p0);
+        if (fix.p1) put('p1', fix.p1);
+        rerun();
+    }));
+    // switching the curve on with an empty table starts from the flat shape: nothing changes until a point is edited
+    cvOn.addEventListener('change', () => { if (cvOn.checked && lastUsed() === 0) setShape('flat'); });
+    // a change of unit converts the column and keeps each value (the exact value while the text is unedited, as Calc does)
+    [[cpu, 'pressure', 'p'], [csu, 'throughput', 's']].forEach(([sel, dim, key]) => sel.addEventListener('change', () => {
+        const prev = sel.dataset.prev;
+        if (prev && prev !== sel.value) rows.forEach(r => {
+            const inp = r[key], x = Calc.parseNum(inp.value), ex = inp._exact;
+            if (!isFinite(x)) return;
+            const si = ex && ex.text === inp.value && ex.unit === prev ? ex.si : Calc.toSI(dim, prev, x);
+            inp.value = fmt.plain(Calc.fromSI(dim, sel.value, si), 6);
+            inp._exact = { si, text: inp.value, unit: sel.value };
+        });
+    }));
+    // the points of the table in SI units, sorted by pressure
+    function readCurve(v) {
+        const pts = [];
+        let firstBlank = 0;
+        for (let i = 1; i <= NPTS; i++) {
+            const p = v['cp' + i], sp = v['cs' + i], hasP = isFinite(p), hasS = isFinite(sp);
+            if (!hasP && !hasS) { firstBlank = firstBlank || i; continue; }
+            if (!hasS) throw Calc.fail('Point ' + i + ' of the speed curve has a pressure but no speed.', 'cs' + i);
+            if (!hasP) throw Calc.fail('Point ' + i + ' of the speed curve has a speed but no pressure.', 'cp' + i);
+            pts.push({ p: Calc.toSI('pressure', cpu.value, p), s: Calc.toSI('throughput', csu.value, sp), i });
+        }
+        if (pts.length < 2) throw Calc.fail('Enter at least two points of the speed curve, or switch off “Speed varies with pressure”.', 'cp' + (firstBlank || 1));
+        pts.sort((a, b) => a.p - b.p);
+        for (let k = 1; k < pts.length; k++) {
+            const a = pts[k - 1], b = pts[k], pair = Math.min(a.i, b.i) + ' and ' + Math.max(a.i, b.i);
+            if (a.p === b.p) throw Calc.fail('Points ' + pair + ' of the speed curve have the same pressure.', 'cp' + Math.max(a.i, b.i));
+            // a speed that falls faster than 1/p would mean less gas pumped at the higher pressure (and no unique operating point)
+            if (Math.log(b.s / a.s) < -(1 + 1e-9) * Math.log(b.p / a.p)) throw Calc.fail('Between points ' + pair +
+                ' the speed falls faster than the pressure rises, so the pump would move less gas at the higher pressure. Check those two points.', 'cs' + b.i);
+        }
+        return pts;
+    }
+
     // conductance and effective speed of the reader's line over the whole pressure range, with the flow regimes shaded
-    function drawConductance(m, v, unit) {
+    function drawConductance(m, v, unit, curve) {
         if (!(v.L > 0)) { Plot.clear(cBox); cPanel.hidden = true; return; }
         cPanel.hidden = false;
         const toU = pa => Calc.fromSI('pressure', unit, pa);
@@ -547,12 +833,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let lo = Math.min(v.p1, pMol) / 10;
         const hi = Math.max(v.p0, pVisc * 10), dec = Math.pow(10, Math.ceil(Math.log10(lo)));
         if (dec / lo < 1.8) lo = dec / 2;     // keep the first decade tick clear of the corner, where the y labels end
-        const ps = [], Cs = [], Ss = [];
+        const ps = [], Cs = [], Ss = [], Ps = [];
         for (let i = 0; i <= 240; i++) {
             const p = lo * Math.pow(hi / lo, i / 240), r = m.at(p);
-            ps.push(toU(p)); Cs.push(r.C * 1e3); Ss.push(r.Seff * 1e3);
+            ps.push(toU(p)); Cs.push(r.C * 1e3); Ss.push(r.Seff * 1e3); Ps.push(r.S * 1e3);
         }
-        const yLo = Math.pow(10, Math.floor(Math.log10(Math.min(...Ss)))), yHi = Math.pow(10, Math.ceil(Math.log10(Math.max(...Cs, v.S * 1e3))));
+        const yLo = Math.pow(10, Math.floor(Math.log10(Math.min(...Ss)))), yHi = Math.pow(10, Math.ceil(Math.log10(Math.max(...Cs, ...Ps))));
         const band = (x0, x1, label, color) => ({ type: 'band', x: [toU(x0), toU(x1)], y: [yHi, yHi], y0: [yLo, yLo], label, color, opacity: 0.12 });
         const at1 = m.at(v.p1);
         Plot.draw(cBox, {
@@ -563,27 +849,73 @@ document.addEventListener('DOMContentLoaded', () => {
                 band(lo, pMol, 'Molecular flow', 'var(--c6)'),
                 band(pVisc, hi, 'Viscous flow', 'var(--c4)'),
                 { type: 'line', x: ps, y: Cs, label: 'Conductance C', color: 'var(--c1)' },
-                { type: 'line', x: ps, y: Ss, label: 'Effective speed at the chamber', color: 'var(--c2)' }
+                { type: 'line', x: ps, y: Ss, label: 'Effective speed at the chamber', color: 'var(--c2)' },
+                // with a speed curve the pump's speed changes along the axis: a line in place of the level marker
+                ...(curve ? [{ type: 'line', x: ps, y: Ps, label: 'Pump speed at its inlet', color: 'var(--muted)', dash: true }] : [])
             ],
-            hlines: [{ y: v.S * 1e3, label: 'pump speed S', color: 'var(--muted)' }],
+            hlines: curve ? [] : [{ y: v.S * 1e3, label: 'pump speed S', color: 'var(--muted)' }],
             vlines: [{ x: toU(v.p1), label: 'p₁', color: 'var(--c3)' }],
             ariaLabel: 'Log-log chart of the line conductance and the effective pumping speed versus chamber pressure, with the molecular and viscous flow ranges shaded. At p₁ = ' +
                 fmt.num(toU(v.p1), 3) + ' ' + unit + ' the conductance is ' + fmt.num(at1.C * 1e3, 3) + ' L/s and the effective speed ' + fmt.num(at1.Seff * 1e3, 3) +
-                ' L/s, against a pump speed of ' + fmt.num(v.S * 1e3, 3) + ' L/s.',
-            hover: { format: (x, hits) => hits.length > 1 ? `p = ${fmt.num(hits[0].x, 3)} ${unit} · C = ${fmt.num(hits[0].y, 3)} L/s · speed at chamber = ${fmt.num(hits[1].y, 3)} L/s` : '' }
+                ' L/s, against a pump speed of ' + fmt.num(at1.S * 1e3, 3) + ' L/s' + (curve ? ' there, which follows the speed curve.' : '.'),
+            hover: { format: (x, hits) => hits.length > 1 ? `p = ${fmt.num(hits[0].x, 3)} ${unit} · C = ${fmt.num(hits[0].y, 3)} L/s · speed at chamber = ${fmt.num(hits[1].y, 3)} L/s` +
+                (hits.length > 2 ? ` · pump = ${fmt.num(hits[2].y, 3)} L/s` : '') : '' }
+        });
+    }
+
+    // the speed curve as the calculator uses it: the points, the interpolation between them, the level stretches outside
+    // the table, and the range of pump-inlet pressures this pump-down passes through
+    function drawCurve(m, c, v, curve) {
+        if (!curve) { Plot.clear(cvPlot); return; }
+        const pu = cpu.value, su = csu.value;
+        const toP = pa => Calc.fromSI('pressure', pu, pa), toS = x => Calc.fromSI('throughput', su, x);
+        const pA = curve[0].p, pB = curve[curve.length - 1].p;
+        const in0 = m.at(v.p0).pin, in1 = m.at(c.ps[c.ps.length - 1]).pin, inLo = Math.min(in0, in1), inHi = Math.max(in0, in1);
+        const lo = Math.min(pA, inLo) / 3, hi = Math.max(pB, inHi) * 3;
+        const grid = (a, b, n) => Array.from({ length: n + 1 }, (_, i) => a * Math.pow(b / a, i / n));
+        const line = (xs, extra) => Object.assign({ type: 'line', x: xs.map(toP), y: xs.map(x => toS(m.pumpSpeed(x))), color: 'var(--c1)' }, extra);
+        // the table's own pressures are on the grid, so the corners of the curve are drawn exactly
+        const inside = [...new Set(grid(pA, pB, 120).concat(curve.map(q => q.p)))].sort((a, b) => a - b);
+        // both axes logarithmic, as on a datasheet: the interpolation between two points is then the straight line it is
+        const all = [v.S, ...curve.map(q => q.s)];
+        const yHi = 1.6 * toS(Math.max(...all)), yLo = toS(Math.min(...all)) / 1.6;
+        Plot.draw(cvPlot, {
+            height: 210,
+            x: { label: 'Pressure at the pump inlet (' + pu + ')', log: true, min: toP(lo), max: toP(hi) },
+            y: { label: 'Pump speed (' + su + ')', log: true, min: yLo, max: yHi },
+            series: [
+                { type: 'band', x: [toP(inLo), toP(inHi)], y: [yHi, yHi], y0: [yLo, yLo], label: 'This pump-down', color: 'var(--c3)', opacity: 0.12 },
+                line(inside, { label: 'Speed curve' }),
+                line([lo, pA], { label: 'Held outside the table', dash: true }),
+                line([pB, hi], { dash: true }),
+                { type: 'points', x: curve.map(q => toP(q.p)), y: curve.map(q => toS(q.s)), label: 'Your points', color: 'var(--c1)' }
+            ],
+            hlines: [{ y: toS(v.S), label: 'constant speed S', color: 'var(--muted)' }],
+            ariaLabel: 'Pump speed (' + su + ', log scale) versus pressure at the pump inlet (' + pu + ', log scale): ' + curve.length + ' points from ' +
+                fmt.num(toS(curve[0].s), 3) + ' ' + su + ' at ' + fmt.num(toP(pA), 3) + ' ' + pu + ' to ' + fmt.num(toS(curve[curve.length - 1].s), 3) + ' ' + su + ' at ' +
+                fmt.num(toP(pB), 3) + ' ' + pu + ', held level outside that range. This pump-down passes through inlet pressures from ' +
+                fmt.num(toP(inHi), 3) + ' to ' + fmt.num(toP(inLo), 3) + ' ' + pu + '.',
+            hover: { format: x => `inlet p = ${fmt.num(x, 3)} ${pu} · pump speed = ${fmt.num(toS(m.pumpSpeed(Calc.toSI('pressure', pu, x))), 3)} ${su}` }
         });
     }
 
     Calc.create({
         form: '#calc',
         compute(v) {
+            cvBox.hidden = !v.cv;
+            syncRows();
+            const shape = markShape();
+            // the points were just filled in again for a new pump speed: the values read from the form before that are stale
+            if (markShape.refilled) rows.forEach((r, i) => { v['cp' + (i + 1)] = Calc.parseNum(r.p.value); v['cs' + (i + 1)] = Calc.parseNum(r.s.value); });
+            setGuide(null);
             if (!(v.p1 < v.p0)) throw Calc.fail('The target pressure must be below the start pressure.', 'p1');
             const pp = isFinite(v.pb) ? v.pb : 0;
             if (!(pp < v.p0)) throw Calc.fail('The pump base pressure must be below the start pressure.', 'pb');
             const hasQ = isFinite(v.q) && v.q > 0;
             if (hasQ && !isFinite(v.A)) throw Calc.fail('Enter the internal surface area to use the outgassing rate.', 'A');
             const Q = hasQ ? v.q * v.A : 0;     // Pa·m/s × m² → Pa·m³/s
-            const o = { V: v.V, S: v.S, d: v.d, L: v.L, p0: v.p0, T: v.T, M: v.M * 1e-3, eta: v.eta * 1e-6, Cx: v.Cx, Q, pp };
+            const curve = v.cv ? readCurve(v) : null;
+            const o = { V: v.V, S: v.S, d: v.d, L: v.L, p0: v.p0, T: v.T, M: v.M * 1e-3, eta: v.eta * 1e-6, Cx: v.Cx, Q, pp, curve };
             const m = model(o);
             const r1 = m.at(v.p1);
             const c = m.curve(v.p1);
@@ -593,16 +925,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const lam = K.kB * v.T / (Math.SQRT2 * Math.PI * (v.dm * 1e-10) ** 2 * r1.pbar);
             const kn = lam / v.d;
             const regime = kn < 0.01 ? 'viscous' : kn <= 0.5 ? 'transitional' : 'molecular';
-            const frac = r1.Seff / v.S;
+            const frac = r1.Seff / r1.S;         // against the pump's speed at its inlet pressure (the rated speed without a curve)
             // Reynolds number in the line at p₀, where the mass flow is largest: Re = 4ṁ/(π d η), ṁ = S_eff·(p₀ − p_pump)·M/(RT).
             // Choked: a reservoir at p₀ can push at most C*·p₀·A·√(RT/M) into the line (C* = 0.685 for γ = 1.4, 0.726 for γ = 5/3),
             // and gas still flowing as a continuum at the pump end (velocity S/A, the fastest point) cannot exceed √(RT/M).
-            const S0 = m.at(v.p0).Seff, q0 = S0 * (v.p0 - pp), pin0 = pp + (v.p0 - pp) * S0 / v.S;
+            const r0 = m.at(v.p0), S0 = r0.Seff, q0 = S0 * (v.p0 - pp), pin0 = r0.pin;
             const re = 4 * q0 * o.M / (K.R * v.T) / (Math.PI * v.d * o.eta);
             const area = Math.PI * v.d * v.d / 4, cIso = Math.sqrt(K.R * v.T / o.M);
             const cstar = (v.gas === 'he' || v.gas === 'ar') ? 0.726 : 0.685;   // monatomic gases γ = 5/3, otherwise 1.4 (custom gases use 1.4)
             const knOut = K.kB * v.T / (Math.SQRT2 * Math.PI * (v.dm * 1e-10) ** 2 * pin0) / v.d;
-            const choked = q0 / v.p0 / area > cstar * cIso || (v.S / area > cIso && knOut < 0.01);
+            const choked = q0 / v.p0 / area > cstar * cIso || (r0.S / area > cIso && knOut < 0.01);
             const flow = (re < 2300 ? 'laminar' : re < 4000 ? 'laminar–turbulent transition' : 'turbulent') + (choked ? ', choked' : '');
             // a target within one part per million of the ultimate pressure is treated as unreachable (its time grows without bound)
             const hasUlt = m.pult > 0, atLimit = !c.reached && v.p1 >= m.pult;
@@ -616,10 +948,65 @@ document.addEventListener('DOMContentLoaded', () => {
             // the gas load in the unit family of the outgassing rate
             const qu = v.$unit.q || '';
             const Qout = qu.startsWith('Torr') ? fmt.sci(Q / (K.torr * 1e-3), 3) + ' Torr·L/s' : qu.startsWith('Pa') ? fmt.sci(Q, 3) + ' Pa·m³/s' : fmt.sci(Q * 10, 3) + ' mbar·L/s';
-            last = { m, c, v, unit, Q, pp };
+            // With a speed curve: the same pump-down at the constant speed S for comparison, where the pump sits on its curve
+            // at p₁, and a warning when the pump-down runs past an end of the table where the speed was still changing.
+            let cmp = null, c0 = null, ideal = null, offCurve = false;
+            if (curve) {
+                c0 = model(Object.assign({}, o, { curve: null })).curve(v.p1);
+                // the pump alone on its curve: no line, no gas load, no base pressure (a flat curve gives (V/S) ln(p₀/p₁))
+                ideal = model(Object.assign({}, o, { L: 0, Cx: Infinity, Q: 0, pp: 0 })).curve(v.p1);
+                const su = csu.value, sFmt = x => fmt.num(Calc.fromSI('throughput', su, x), 3) + ' ' + su;
+                const rated = fmt.num(Calc.fromSI('throughput', v.$unit.S, v.S), 3) + ' ' + v.$unit.S;
+                const ratio = c.t / c0.t, n = curve.length;
+                const said = [!c0.reached ? 'A constant ' + rated + ' would not reach p₁' + (c.reached ? '.' : ' either.')
+                    : !c.reached ? 'A constant ' + rated + ' would reach p₁ in ' + fmtTime(c0.t) + '.'
+                    : Math.abs(ratio - 1) < 0.0005 ? 'The same time as with a constant ' + rated + '.'
+                    : Math.abs(ratio - 1) < 0.005 ? 'A constant ' + rated + ' would take ' + fmtTime(c0.t) + ', almost the same.'
+                    : 'A constant ' + rated + ' would take ' + fmtTime(c0.t) + ', so the curve makes this pump-down ' + fmt.num(ratio, 3) + ' times as long.'];
+                said.push('With the chamber at p₁ the pump inlet is at ' + pFmt(r1.pin) + ', where the curve gives S = ' + sFmt(r1.S) + ', ' + fmt.num(r1.S / v.S * 100, 3) + ' % of the constant speed.');
+                const inEnd = m.at(c.ps[c.ps.length - 1]).pin, inLo = Math.min(r0.pin, inEnd), inHi = Math.max(r0.pin, inEnd);
+                const cFmt = pa => fmt.num(Calc.fromSI('pressure', cpu.value, pa), 3) + ' ' + cpu.value;
+                // (an end where the table is already level, or that the pump-down passes by less than a factor of 1.5, is left alone)
+                const low = inLo < curve[0].p / 1.5 && curve[0].s !== curve[1].s;
+                if (low) said.push('Below ' + cFmt(curve[0].p) + ', the end of the table, the speed is held at ' +
+                    sFmt(curve[0].s) + ', and the inlet goes down to ' + cFmt(inLo) + ': add points if the real curve keeps changing there.');
+                // more than a decade above a table whose speed was still falling: most of the time is spent on the held stretch
+                const high = inHi > curve[n - 1].p * 10 && curve[n - 1].s !== curve[n - 2].s;
+                if (high) {
+                    said.push('This curve ends at ' + cFmt(curve[n - 1].p) + ' but the pump-down starts with the inlet at ' +
+                        cFmt(inHi) + ', so the time is not meaningful: above the table the speed is held at ' + sFmt(curve[n - 1].s) +
+                        '. Set the start pressure to the pressure at which this pump takes over, or add points up to the start pressure.');
+                    // offer the curve's own range: start at its top, and a target that lies above it moves to its lowest point
+                    const u0 = v.$unit.p0 || 'mbar', inU = (pa, u) => fmt.num(Calc.fromSI('pressure', u, pa), 4) + ' ' + u;
+                    const top = curve[n - 1].p, moveTarget = !(v.p1 < top);
+                    const why = shape && shape.top ? 'A turbomolecular pump takes over from a roughing pump. It is not run from ' + inU(v.p0, u0) + '. ' : '';
+                    offCurve = true;
+                    setGuide('Not a usable time. The speed curve ends at ' + cFmt(top) + ', far below the start pressure. ' + why +
+                        'Start where this pump takes over, or add points up to the start pressure.',
+                        why + 'This curve ends at ' + cFmt(top) + ', so a time from ' + inU(v.p0, u0) + ' means nothing.',
+                        { p0: top, p1: moveTarget ? curve[0].p : null,
+                          label: 'Set start pressure to ' + inU(top, u0) + (moveTarget ? ' and target to ' + inU(curve[0].p, unit) : '') });
+                } else if (low && curve[0].s < curve[1].s) {
+                    // the speed was still falling where the table stops at the low end: a pump of this kind may never get to p₁
+                    offCurve = true;
+                    setGuide('Too optimistic. Below ' + cFmt(curve[0].p) + ', where the curve stops, the speed is held at ' + sFmt(curve[0].s) +
+                        ' although it was still falling. ' + (shape && shape.floor ? shape.floor + ' A pump of this type may not reach p₁ at all.'
+                            : 'Add the rest of the pump’s curve: it may not reach p₁ at all.'));
+                }
+                if (!high && inHi > curve[n - 1].p * 1.5 && curve[n - 1].s !== curve[n - 2].s) said.push('Above ' + cFmt(curve[n - 1].p) + ', the end of the table, the speed is held at ' +
+                    sFmt(curve[n - 1].s) + ', and the inlet starts at ' + cFmt(inHi) + ': add points if the real curve keeps changing there.');
+                cmp = said.join(' ');
+            }
+            if (offCurve && c.reached) badge('Outside the speed curve', 'badge-warn');
+            const tIdeal = ideal ? ideal.t : v.V / v.S * Math.log(v.p0 / v.p1);
+            last = { m, c, v, unit, Q, pp, curve, c0, ideal, tIdeal };
+            document.getElementById('tideal-note').textContent = 'With no line, gas load, or base pressure.' + (curve ? ' The pump’s speed follows the curve.' : '');
+            document.getElementById('tideal-sym').textContent = curve ? 'V ∫ dp/(S·p)' : '(V/S) ln(p₀/p₁)';
+            document.getElementById('seff-cv').textContent = curve ? 'Here S is the ' + speed(r1.S) + ' the curve gives at the pump inlet. ' : '';
             return {
+                cmp,
                 t: c.reached ? fmtTime(c.t) : atLimit ? 'not reached (p₁ is at the ultimate pressure)' : 'not reached',
-                tideal: fmtTime(v.V / v.S * Math.log(v.p0 / v.p1)),
+                tideal: fmtTime(tIdeal),
                 seff: speed(r1.Seff) + '  (' + fmt.num(frac * 100, 3) + ' % of S)',
                 c1: isFinite(r1.C) ? speed(r1.C) : 'no restriction',
                 cmol: isFinite(m.Cmol) ? speed(m.Cmol) : 'no line',
@@ -632,17 +1019,20 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         onError() {                             // no valid result: no verdict or charts left from the last one
             limit.textContent = ''; limit.className = 'badge';
-            if (window.Plot) { Plot.clear('#pd-plot'); Plot.clear(cBox); }
+            setGuide(null);
+            if (window.Plot) { Plot.clear('#pd-plot'); Plot.clear(cBox); Plot.clear(cvPlot); }
             openFoldWithError();
         },
         after() {
-            const { m, c, v, unit, Q, pp } = last;
+            const { m, c, v, unit, Q, pp, curve, c0, ideal, tIdeal: tIdealEnd } = last;
             const toU = pa => Calc.fromSI('pressure', unit, pa);
-            const parts = [(v.L > 0 || isFinite(v.Cx)) && 'line', Q > 0 && 'gas load', pp > 0 && 'base pressure'].filter(Boolean);
-            const name = parts.length ? 'With ' + (parts.length < 3 ? parts.join(' and ') : parts.slice(0, 2).join(', ') + ', and ' + parts[2]) : 'Calculated';
+            const parts = [curve && 'speed curve', (v.L > 0 || isFinite(v.Cx)) && 'line', Q > 0 && 'gas load', pp > 0 && 'base pressure'].filter(Boolean);
+            const name = parts.length ? 'With ' + (parts.length < 3 ? parts.join(' and ') : parts.slice(0, -1).join(', ') + ', and ' + parts[parts.length - 1]) : 'Calculated';
             const tMax = c.ts[c.ts.length - 1];
             const [k, tu] = tMax > 4 * 86400 ? [1 / 86400, 'days'] : tMax > 3 * 3600 ? [1 / 3600, 'h'] : tMax > 600 ? [1 / 60, 'min'] : [1, 's'];
-            const tIdeal = c.ps.map(p => v.V / v.S * Math.log(v.p0 / p) * k);
+            // the pump alone: at the constant speed, or along its speed curve when there is one
+            const idealP = ideal ? ideal.ps : c.ps;
+            const tIdeal = ideal ? ideal.ts.map(t => t * k) : c.ps.map(p => v.V / v.S * Math.log(v.p0 / p) * k);
             const hl = [{ y: toU(v.p1), label: 'p₁', color: 'var(--c3)' }];
             if (m.pult > 0) hl.push({ y: toU(m.pult), label: 'ultimate pressure', color: 'var(--c5)' });
             Plot.draw('#pd-plot', {
@@ -651,23 +1041,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 y: { label: 'Chamber pressure (' + unit + ')', log: true },
                 series: [
                     { type: 'line', x: c.ts.map(t => t * k), y: c.ps.map(toU), label: name, color: 'var(--c1)' },
+                    // with a speed curve, the same pump-down at the constant speed S
+                    ...(c0 && c0.ts.length > 1 && c0.ps[c0.ps.length - 1] < v.p0
+                        ? [{ type: 'line', x: c0.ts.map(t => t * k), y: c0.ps.map(toU), label: 'Same, at a constant speed S', color: 'var(--c2)' }] : []),
                     // when the gas load holds the pressure above p₀ the curve rises, and an ideal pump-down has no meaning there
-                    ...(c.ps[c.ps.length - 1] < v.p0 ? [{ type: 'line', x: tIdeal, y: c.ps.map(toU), label: 'Ideal (pump only)', color: 'var(--muted)', dash: true }] : [])
+                    ...(c.ps[c.ps.length - 1] < v.p0 ? [{ type: 'line', x: tIdeal, y: idealP.map(toU), label: curve ? 'Ideal (pump only, on its curve)' : 'Ideal (pump only)', color: 'var(--muted)', dash: true }] : [])
                 ],
                 hlines: hl,
                 ariaLabel: 'Chamber pressure (' + unit + ', log scale) versus time (' + tu + '). ' + (c.reached
-                    ? 'The pressure reaches p₁ = ' + fmt.num(toU(v.p1), 3) + ' ' + unit + ' after ' + fmtTime(c.t) + '; the pump alone would take ' + fmtTime(v.V / v.S * Math.log(v.p0 / v.p1)) + '.'
+                    ? 'The pressure reaches p₁ = ' + fmt.num(toU(v.p1), 3) + ' ' + unit + ' after ' + fmtTime(c.t) + '; the pump alone would take ' + fmtTime(tIdealEnd) + '.' +
+                        (c0 && c0.reached ? ' At a constant pump speed it would take ' + fmtTime(c0.t) + '.' : '')
                     : 'The pressure levels off at the ultimate pressure of ' + fmt.num(toU(m.pult), 3) + ' ' + unit + ' without reaching p₁.'),
                 hover: { format: (x, hits) => hits.length ? `t = ${fmt.num(hits[0].x, 3)} ${tu} · p = ${fmt.num(hits[0].y, 3)} ${unit}` : '' }
             });
-            drawConductance(m, v, unit);
+            drawConductance(m, v, unit, curve);
+            drawCurve(m, c, v, curve);
         }
     });
     folds.forEach(f => { if ([...f.querySelectorAll('input[name], select[name]')].some(c => !isDefault(c))) f.open = true; });
     openFoldWithError();
     syncFolds();
     ['input', 'change'].forEach(t => form.addEventListener(t, syncFolds));
-    document.querySelectorAll('[data-action="reset"]').forEach(b => b.addEventListener('click', syncFolds));
+    document.querySelectorAll('[data-action="reset"]').forEach(b => b.addEventListener('click', () => { shown = MINROWS; syncRows(); syncFolds(); }));
 });
 </script>
 </body>

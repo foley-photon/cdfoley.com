@@ -103,6 +103,7 @@
             <dt>1/e² diameter</dt><dd>The usual way to state a laser beam’s size: the diameter where the intensity falls to 13.5&nbsp;% of the center value. A round opening of that size passes 86.5&nbsp;% of the power.</dd>
             <dt>Clear aperture</dt><dd>The usable open diameter of an iris, lens mount, or mirror. Outside it, the optic’s performance is not specified.</dd>
             <dt>Clipping (truncation)</dt><dd>Cutting off the outer part of a beam with an edge. The blocked power heats the mount, and the hard edge diffracts what gets through.</dd>
+            <dt>Clipping grade</dt><dd>The badge on the results grades the fraction of the beam’s power that the edge blocks: Negligible below 0.1&nbsp;%, Light below 2&nbsp;%, Moderate below 10&nbsp;%, and Heavy at 10&nbsp;% or more. It grades lost power only. The ripples that clipping adds are a separate matter, covered below.</dd>
             <dt>Slit</dt><dd>A long, narrow opening that passes a strip of the beam.</dd>
             <dt>Knife-edge profiling</dt><dd>Measuring a beam’s size by moving a razor blade across it while a power meter records how much light gets past.</dd>
             <dt>Diffraction ripples</dt><dd>Rings and intensity ripples that a hard edge puts into the beam downstream of it.</dd>
@@ -153,7 +154,7 @@
             <div class="panel-body">
                 <div class="results">
                     <div class="result primary"><span class="result-label">Transmitted fraction</span><output class="result-value" data-out="t">—</output></div>
-                    <div class="result"><span class="result-label">Clipped (blocked) fraction</span><output class="result-value" data-out="loss">—</output><span class="result-note">This power lands on the edge, where it heats the mount or coating. The hard edge also puts ripples into the transmitted beam: see “Clipping is more than lost power” below.</span></div>
+                    <div class="result"><span class="result-label">Clipped (blocked) fraction</span><output class="result-value" data-out="loss">—</output><span class="result-note">The badge grades this fraction (see Key terms). This power lands on the edge, where it heats the mount or coating. The hard edge also puts ripples into the transmitted beam: see “Clipping is more than lost power” below.</span></div>
                     <div class="result"><span class="result-label" id="ratio-label">Aperture / beam diameter</span><output class="result-value" data-out="ratio">—</output></div>
                     <div class="result"><span class="result-label">Irradiance at the edge, relative to peak</span><output class="result-value" data-out="edge">—</output></div>
                     <div class="result"><span class="result-label" id="need-label">Aperture diameter for target</span><output class="result-value" data-out="need">—</output></div>
@@ -191,6 +192,7 @@
             </tbody>
         </table>
         <p>For a circular aperture: 99&nbsp;% throughput needs \(D_t \ge 1.52\,D_b\), 99.9&nbsp;% needs \(1.86\,D_b\), and 99.99&nbsp;% needs \(2.15\,D_b\). A common design rule (Siegman’s 99&nbsp;% criterion) is to make every aperture at least \(\pi w \approx 1.57\,D_b\) across. A common handbook rule says the same in round numbers: at least \(1.5\,D_b\) (98.9&nbsp;%, with the focused spot about 10&nbsp;% larger) and preferably \(2\,D_b\). Siegman’s criterion is about power; the last column, explained next, is about beam quality.</p>
+        <p>The badge on the results grades the clipped fraction of the power, whatever the geometry: Negligible below 0.1&nbsp;%, Light below 2&nbsp;%, Moderate below 10&nbsp;%, and Heavy at 10&nbsp;% or more. For a circular aperture those boundaries fall at \(D_t = 1.86\,D_b\), \(1.40\,D_b\), and \(1.07\,D_b\). The <a href="/tools/focused-spot/">focused spot</a> tool uses the same grades, and adds how much the clipping enlarges the focus.</p>
 
         <h2>Clipping is more than lost power</h2>
         <p>A hard edge diffracts. Behind a round aperture of radius \(a\), the intensity on the beam axis in the near field differs from that of the unclipped beam by the factor</p>
@@ -208,7 +210,7 @@
         <p>These conversions are exact only for a Gaussian profile. ISO 11146-1 defines beam width by the second moment of the intensity (D4σ), which a single knife-edge width can only approximate. Siegman, Sasnett, and Johnston (1991) showed that a knife-edge width taken at clip levels between about 8.5&nbsp;% and 11.6&nbsp;%, and scaled by the factor that makes it exact for a Gaussian beam (10&nbsp;%/90&nbsp;% with 1.561 is one such pair), comes out only slightly off the second-moment width for a wide range of higher-order and poorer-quality beams.</p>
 
         <h2>Worked example</h2>
-        <p>The default inputs: an 8&nbsp;mm beam passing a 12&nbsp;mm iris \((D_t/D_b = 1.5)\) transmits \(1 - e^{-4.5} = 98.89\,\%\). Entering an input power of 500&nbsp;W (the field is blank by default) shows that about 5.6&nbsp;W lands on the iris. The on-axis intensity downstream ripples by about −20&nbsp;% to +22&nbsp;%. Getting to 99.9&nbsp;% needs an aperture of \(1.858 \times 8 = 14.9\)&nbsp;mm.</p>
+        <p>The default inputs: an 8&nbsp;mm beam passing a 12&nbsp;mm iris \((D_t/D_b = 1.5)\) transmits \(1 - e^{-4.5} = 98.89\,\%\). The other 1.11&nbsp;% is clipped, which the badge grades as light clipping. Entering an input power of 500&nbsp;W (the field is blank by default) shows that about 5.6&nbsp;W lands on the iris. The on-axis intensity downstream ripples by about −20&nbsp;% to +22&nbsp;%. Getting to 99.9&nbsp;% needs an aperture of \(1.858 \times 8 = 14.9\)&nbsp;mm.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
@@ -325,7 +327,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     need = { html: fmt.si(rn * v.d, 'm', 4) + ' (' + fmt.num(rn, 4) + ' D<sub>b</sub>)' };
                 }
             }
-            // one ladder with the focused spot tool: negligible below 0.1 % clipped, light below 2 %, moderate below 10 %, heavy above
+            // one ladder with the focused spot tool, on the clipped power alone:
+            // negligible below 0.1 %, light below 2 %, moderate below 10 %, heavy at 10 % or more
             if (loss < 1e-3) { grade.textContent = 'Negligible clipping'; grade.className = 'badge badge-ok'; }
             else if (loss < 0.02) { grade.textContent = 'Light clipping'; grade.className = 'badge badge-ok'; }
             else if (loss < 0.1) { grade.textContent = 'Moderate clipping'; grade.className = 'badge badge-warn'; }

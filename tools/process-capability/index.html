@@ -27,6 +27,18 @@
     .pc-sub { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 1.1rem 0 0.7rem; font-weight: 650; }
     .pc-sub:first-child { margin-top: 0; }
     .panel-body > .hint { margin: 0.5rem 0 0; }
+    /* non-normal models: the fold in the form, the advice above the results, and the model's own group of rows */
+    .pc-fold { margin: 0.3rem 0 0; }
+    .pc-fold .field:last-of-type { margin-bottom: 0.7rem; }
+    .pc-example { display: flex; flex-wrap: wrap; gap: 0.4rem 0.7rem; align-items: center; margin: 0 0 0.45rem; }
+    .pc-fold .pc-example-hint { margin: 0 0 0.8rem; }
+    .pc-example .field-label { margin: 0; }
+    .pc-advice { margin: 0 0 1rem; font-size: 0.88rem; line-height: 1.5; }
+    .pc-advice .chip-row { margin-top: 0.6rem; }
+    .pc-advice .chip { background: var(--surface); }
+    #nn-head { margin-top: 0; }
+    #nn-normal-head { margin: 1.1rem 0 0.7rem; padding-top: 1.1rem; border-top: 1px solid var(--border); }
+    @media (max-width: 560px) { .pc-fold { padding: 0 0.7rem; } .pc-fold > summary { margin: 0 -0.7rem; } }
     #prob-plot circle.marker { stroke-width: 0.75; }   /* thin outlines, so neighboring points in a dense plot stay visible */
     /* Centered vs. shifted figure: two 360-unit-wide panels, side by side from 800 px, so the 12 px labels render at 11.9-12.4 px */
     .cfig { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.8rem 1rem; justify-items: center; }
@@ -121,7 +133,7 @@
 
     <header class="page-head">
         <h1>Process Capability (Cpk) Calculator</h1>
-        <p class="lede">This Cpk calculator answers a simple question: does the process make parts inside the specification, and with how much room to spare? Paste your measurements in the order they were made, or enter a mean and standard deviations, together with the specification limits. You get Cp, Cpk, Pp, Ppk, and Cpm, the expected and observed parts per million (PPM) out of specification, a normality check, and charts of your data against the limits.</p>
+        <p class="lede">This Cpk calculator answers a simple question: does the process make parts inside the specification, and with how much room to spare? Paste your measurements in the order they were made, or enter a mean and standard deviations, together with the specification limits. You get Cp, Cpk, Pp, Ppk, and Cpm, the expected and observed parts per million (PPM) out of specification, a normality check with lognormal and Box–Cox models for skewed data, and charts of your data against the limits.</p>
         <details class="key-terms"><summary>Key terms</summary><dl>
             <dt>Specification limits</dt><dd>The lowest and highest acceptable values of a characteristic (LSL and USL), from the drawing or the customer’s specification. Some characteristics, such as flatness or burr height, have only an upper limit.</dd>
             <dt>Target</dt><dd>The ideal value, usually the middle of the specification (the nominal).</dd>
@@ -129,7 +141,10 @@
             <dt>σ within and σ overall</dt><dd>Two estimates of the standard deviation σ, the typical spread of the values. σ within comes from the variation inside subgroups, or between consecutive values when parts are measured one at a time. σ overall is the ordinary standard deviation of all the values, so it also includes drifts and shifts during the study.</dd>
             <dt>Cp and Cpk</dt><dd>Cp compares the width of the specification with the width of the process (6&nbsp;σ within) and ignores where the process is centered. Cpk uses the distance from the mean to the nearer limit, so it drops when the process runs off center. A Cpk of 1.33 means the nearer limit is 4&nbsp;σ from the mean.</dd>
             <dt>Pp and Ppk</dt><dd>The same two ratios calculated with σ overall. They describe what the process actually delivered during the study.</dd>
-            <dt>PPM</dt><dd>Parts per million: out-of-specification parts per million parts made; 1000&nbsp;PPM is 0.1&nbsp;%. Expected PPM comes from a normal-distribution model, observed PPM from counting your data.</dd>
+            <dt>PPM</dt><dd>Parts per million: out-of-specification parts per million parts made; 1000&nbsp;PPM is 0.1&nbsp;%. Expected PPM comes from a fitted distribution, the normal one unless you choose another; observed PPM from counting your data.</dd>
+            <dt>Lognormal distribution</dt><dd>A skewed distribution for values above zero, with a long upper tail: the logarithms of the values follow a normal distribution.</dd>
+            <dt>Percentile method</dt><dd>Capability from three points of a fitted distribution in place of the mean and σ: the median, and the values that 0.135&nbsp;% and 99.865&nbsp;% of parts fall below. For a normal distribution these are the mean and the mean ∓&nbsp;3σ, so the index reads the same way.</dd>
+            <dt>Box–Cox transform</dt><dd>A power transform: each value is raised to a power λ, chosen so that the transformed values come as close to a normal distribution as they can. λ = 0 stands for the logarithm. The limits are transformed with the data.</dd>
             <dt>Stable process</dt><dd>A process in statistical control: its values vary randomly around a steady mean with a steady spread, without trends or jumps. A control chart shows whether it is. Capability numbers predict future output only for a stable process.</dd>
         </dl></details>
     </header>
@@ -173,7 +188,7 @@
 51.54 52.46 49.54 49.01 52.26
 52.12 50.06 50.28 50.35 51.40
 49.97 51.57 50.31 49.69 51.76</textarea>
-                        <p class="hint">Separate values with spaces, commas, tabs, or new lines, in the order the parts were made. Each run of <i>n</i> consecutive values is one subgroup, so a table pasted from a spreadsheet should hold one subgroup per row. The example is a laser-scribe line width in µm: 20 subgroups of 5, specification 50&nbsp;±&nbsp;6&nbsp;µm.</p>
+                        <p class="hint">Separate values with spaces, commas, tabs, or new lines, in the order the parts were made. Each run of <i>n</i> consecutive values is one subgroup, so a table pasted from a spreadsheet should hold one subgroup per row. <span id="data-ex">The example is a laser-scribe line width in µm: 20 subgroups of 5, specification 50&nbsp;±&nbsp;6&nbsp;µm.</span></p>
                     </div>
                     <div class="field">
                         <label for="k">Subgroup size <span class="sym">n</span></label>
@@ -189,6 +204,22 @@
                         </select>
                         <p class="hint">R̄/d₂ matches an x̄–R chart and suits subgroups of up to about 10. For larger subgroups, s̄/c₄ or the pooled value is more precise. Minitab’s capability analysis uses the pooled value.</p>
                     </div>
+                    <details class="fold pc-fold" id="nn-fold"><summary>Skewed data: flatness, runout, roughness</summary>
+                        <div class="field">
+                            <label for="nn">Distribution model</label>
+                            <select id="nn" name="nn" class="input">
+                                <option value="off" selected>Normal only</option>
+                                <option value="lognormal">Lognormal fit, percentile method</option>
+                                <option value="boxcox">Box–Cox transform, λ estimated</option>
+                            </select>
+                            <p class="hint">For a characteristic that cannot go below zero and has a long upper tail. Both models need values above zero, at least 8 of them. They use all the values together, so they give Pp and Ppk, not Cp and Cpk. The normal-model results stay on the page for comparison.</p>
+                        </div>
+                        <div class="pc-example">
+                            <span class="field-label" id="nn-ex-l">Example</span>
+                            <button type="button" class="chip" id="nn-example" aria-describedby="nn-ex-l">Flatness, upper limit only</button>
+                        </div>
+                        <p class="hint pc-example-hint">Loads 100 flatness values in µm, in 20 subgroups of 5, with an upper limit of 50&nbsp;µm. Reset brings the line-width example back.</p>
+                    </details>
                 </div>
 
                 <div id="sum-fields" hidden>
@@ -239,6 +270,24 @@
         <section class="panel sticky-panel" id="results" aria-labelledby="results-h">
             <div class="panel-head"><h2 id="results-h">Results</h2><span id="cap-badge" class="badge"></span></div>
             <div class="panel-body">
+                <div class="callout pc-advice calc-hide-on-error" id="nn-advice" hidden><span id="nn-advice-text"></span><div class="chip-row" id="nn-advice-act" hidden><button type="button" class="chip" id="nn-use"></button></div></div>
+                <div class="pc-sub calc-hide-on-error" id="nn-head" hidden>Lognormal model</div>
+                <div class="results calc-hide-on-error" id="nn-box" hidden>
+                    <div class="result primary"><span class="result-label">Ppk <span class="sym" id="nn-method">percentile method</span></span><output class="result-value" data-out="nn-ppk">—</output>
+                        <span class="result-note" data-out="nn-ppk-note">—</span></div>
+                    <div class="result"><span class="result-label">Pp</span><output class="result-value" data-out="nn-pp">—</output></div>
+                    <div class="result"><span class="result-label">PPL · PPU</span><output class="result-value" data-out="nn-plu">—</output>
+                        <span class="result-note">Ppk against each limit alone. Ppk is the smaller of the two.</span></div>
+                    <div class="result"><span class="result-label">Ppk <span class="sym" id="nn-method2">z-score method</span></span><output class="result-value" data-out="nn-ppk2">—</output>
+                        <span class="result-note" data-out="nn-ppk2-note">—</span></div>
+                    <div class="result"><span class="result-label">Expected PPM, <span id="nn-ppm-l">lognormal model</span></span><output class="result-value" data-out="nn-ppm">—</output>
+                        <span class="result-note" data-out="nn-ppm-split">—</span></div>
+                    <div class="result"><span class="result-label">Fit <span class="sym">Anderson–Darling</span></span><output class="result-value" data-out="nn-fit">—</output>
+                        <span class="result-note" data-out="nn-fit-note">—</span></div>
+                    <div class="result"><span class="result-label">λ · 95&nbsp;% interval</span><output class="result-value" data-out="nn-lam">—</output>
+                        <span class="result-note" data-out="nn-lam-note">—</span></div>
+                </div>
+                <div class="pc-sub calc-hide-on-error" id="nn-normal-head" hidden>Normal model</div>
                 <div class="results">
                     <div class="result primary"><span class="result-label">Cpk <span class="sym">within</span></span><output class="result-value" data-out="cpk">—</output>
                         <span class="result-note">The nearer limit is 3&nbsp;×&nbsp;Cpk standard deviations from the mean: 1.00 is 3σ, 1.33 is 4σ, 1.67 is 5σ.</span></div>
@@ -276,13 +325,15 @@
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="hist-h">
         <div class="panel-head"><h2 id="hist-h">Distribution vs. specification</h2></div>
         <div class="panel-body"><div id="hist-plot"></div>
-            <p class="hint">Bars: your measurements. Curves: normal distributions with your mean and σ within (solid) or σ overall (dashed). Red areas: the expected fraction beyond the limits with σ overall; for a capable process they are too thin to see.</p></div>
+            <p class="hint" id="hist-hint">Bars: your measurements. Curves: normal distributions with your mean and σ within (solid) or σ overall (dashed). Red areas: the expected fraction beyond the limits with σ overall; for a capable process they are too thin to see.</p>
+            <p class="hint" id="hist-hint-nn" hidden>Bars: your measurements. Solid curve: the fitted <span data-nn-name>lognormal</span> model. Dashed curve: the normal distribution with your mean and σ overall, which can reach below zero, where no value can fall. Red areas: the expected fraction beyond the limits under the fitted model.</p></div>
     </section>
 
     <section class="panel" style="margin-top:1.5rem" aria-labelledby="prob-h" id="prob-panel">
         <div class="panel-head"><h2 id="prob-h">Normal probability plot</h2></div>
         <div class="panel-body"><div id="prob-plot"></div>
-            <p class="hint">Each point is one measurement, placed by its rank on a scale on which a normal distribution is a straight line: the dashed line is the normal fit with σ overall. Points that bend away from it at the ends mean the tails are not normal, and the expected PPM is then unreliable. Where the line crosses LSL, the scale reads the expected percentage below it; at USL, 100&nbsp;% minus the reading is the percentage above.</p></div>
+            <p class="hint">Each point is one measurement, placed by its rank on a scale on which a normal distribution is a straight line: the dashed line is the normal fit with σ overall. Points that bend away from it at the ends mean the tails are not normal, and the expected PPM is then unreliable. Where the line crosses LSL, the scale reads the expected percentage below it; at USL, 100&nbsp;% minus the reading is the percentage above.</p>
+            <p class="hint" id="prob-hint-nn" hidden>The solid curve is the fitted <span data-nn-name>lognormal</span> model on the same scale. If the points follow the curve and leave the dashed line, the model describes the data and the normal distribution does not.</p></div>
     </section>
 
     <article class="prose" style="margin-top:3rem">
@@ -307,6 +358,23 @@
         <div class="formula">\[ \hat P_{pk} \pm 1.96\,\sqrt{\frac{1}{9N} + \frac{\hat P_{pk}^2}{2(N-1)}} \]</div>
         <p>The normality check is the Anderson–Darling test with the mean and σ estimated from the data: its statistic \(A^2\) is multiplied by \(1 + 0.75/N + 2.25/N^2\), and the p-value comes from the approximation given by Stephens (1986). It needs at least 8 values. The probability plot places the value of rank \(i\) among \(N\), counted from the smallest, at the normal quantile of Filliben’s order-statistic median, \((i - 0.3175)/(N + 0.365)\), with \(1 - 0.5^{1/N}\) for the smallest value and \(0.5^{1/N}\) for the largest (NIST/SEMATECH e-Handbook, §1.3.3.21).</p>
 
+        <h2>Capability for non-normal data</h2>
+        <p>The formulas above describe the process by a mean and a standard deviation, which is enough only for a normal distribution. A characteristic that cannot go below zero, such as flatness, roundness, runout, or burr height, is skewed by nature: the values crowd toward zero and trail off upward. A normal curve fitted to such data puts part of its area below zero and too little in the upper tail, so against an upper limit the normal-model Ppk comes out too high. With raw data, the page can fit one of two models instead, under “Skewed data” in the inputs. Both use all the values together, so they give Pp and Ppk, and both need values above zero.</p>
+        <p><strong>Lognormal fit.</strong> The logarithms of the values are taken as normal, with mean \(m\) and standard deviation \(s\) (divisor \(N - 1\)). The value below which a fraction \(p\) of the fitted distribution lies is \(X_p = e^{\,m + z_p s}\), where \(z_p\) is the normal quantile: −3.000, 0, and 3.000 for 0.135&nbsp;%, 50&nbsp;%, and 99.865&nbsp;%.</p>
+        <p><strong>Box–Cox transform.</strong> The family of Box and Cox (1964) raises each value to a power λ, written so that λ = 0 is the logarithm:</p>
+        <div class="formula">\[ T(x) = \begin{cases} \dfrac{x^{\lambda} - 1}{\lambda} & \lambda \ne 0 \\[8pt] \ln x & \lambda = 0 \end{cases} \]</div>
+        <p>The page takes the λ between −5 and 5 that maximizes the log-likelihood of the transformed values under a normal model (NIST/SEMATECH e-Handbook, §6.5.2):</p>
+        <div class="formula">\[ \begin{aligned} \ell(\lambda) = {}&-\frac{N}{2}\,\ln\!\left[\frac{1}{N}\sum_{i=1}^{N}\bigl(T(x_i) - \bar T\bigr)^2\right] \\[4pt] &+ (\lambda - 1)\sum_{i=1}^{N}\ln x_i \end{aligned} \]</div>
+        <p>The 95&nbsp;% interval for λ is the range in which \(\ell\) stays within 1.92 of its maximum, half the 95&nbsp;% point of a chi-square distribution with one degree of freedom. The transformed values have mean \(m\) and standard deviation \(s\), and \(X_p\) is the value whose transform is \(m + z_p s\). \(T\) increases with \(x\) for every λ, so transformed limits keep their order.</p>
+        <p><strong>Two ways to read a fitted model.</strong> The percentile method of ISO&nbsp;22514-2, called the general geometric method in the AIAG &amp; VDA draft, replaces the mean by the median and 3σ by the distance from the median to the 0.135&nbsp;% or 99.865&nbsp;% point, all in the unit of the data:</p>
+        <div class="formula">\[ \begin{gathered} P_p = \frac{USL - LSL}{X_{99.865} - X_{0.135}} \\[6pt] \begin{aligned} P_{pk} = \min\!\Biggl(&\frac{USL - X_{50}}{X_{99.865} - X_{50}}, \\[2pt] &\frac{X_{50} - LSL}{X_{50} - X_{0.135}}\Biggr) \end{aligned} \end{gathered} \]</div>
+        <p>The z-score method, Bothe’s method in the draft, starts from the fractions the model expects beyond the limits, \(p_L\) below LSL and \(p_U\) above USL, and quotes the index of a normal distribution with the same fractions:</p>
+        <div class="formula">\[ \begin{gathered} z_L = -\Phi^{-1}(p_L) = \frac{m - T(LSL)}{s} \\[6pt] z_U = -\Phi^{-1}(p_U) = \frac{T(USL) - m}{s} \\[6pt] P_{pk} = \frac{\min(z_L,\ z_U)}{3}, \qquad P_p = \frac{z_L + z_U}{6} \end{gathered} \]</div>
+        <p>For these two models, that is the ordinary Ppk formula applied to the transformed values and the transformed limits. For a normal distribution both methods reduce to the formulas at the top of the page. For a skewed one they agree only at 0, where the limit sits on the fitted median, and at 1.00, where it sits on the 0.135&nbsp;% or 99.865&nbsp;% point and 1350&nbsp;PPM lie beyond it. Elsewhere they differ: one measures the distance to the limit in the unit of the data, the other in expected PPM. The expected PPM is the same for both. The page puts the percentile value first for both models, so that their headline numbers can be compared, and shows the z-score value below it. A Box–Cox model with a negative λ can have no finite 99.865&nbsp;% point; then only the transformed-scale value exists, and it comes first. Quote the method with the number.</p>
+        <p><strong>Which model.</strong> Each model is checked with the same Anderson–Darling test, applied to the transformed values. When the normality test rejects your data (p below 0.05), the page tries both models and says which to use: the lognormal fit if the test does not reject it, otherwise the Box–Cox transform if the test does not reject that, otherwise neither. The lognormal fit comes first because it has no extra parameter tuned to the data; with λ estimated, the Box–Cox p-value is somewhat optimistic. A limit at or below zero is left out, since no value above zero can cross it. When the advice names a model’s Ppk as the value to report, the badge above the results judges that value in place of Cpk. When the test rejects the normal model and no model’s value is named, the badge reads “Not normal” and grades nothing.</p>
+        <p><strong>Not rejected is not the same as correct.</strong> A p-value above 0.05 means only that the test found no evidence against a model in these data. With few values it rarely finds any. For a population like the flatness example below (lognormal, standard deviation of the logarithms 0.32), this page’s own test rejects the normal model in about 12&nbsp;% of samples of 10 values, 28&nbsp;% of samples of 25, 52&nbsp;% of samples of 50, and 83&nbsp;% of samples of 100 (20&nbsp;000 simulated samples each). In the samples it lets through, the normal-model Ppk is typically 1.8 to 1.9 where the percentile value of the population is 1.13. So choose the model from what the characteristic is. If it is bounded at zero and you select a model, the page names the model’s Ppk as the cautious value to report even when the normality test does not reject, as long as that value is the lower one.</p>
+        <p>The calculation was checked against SciPy on six data sets: lognormal, gamma, and Weibull samples, the two examples on this page, and the NIST example. λ agrees to 10<sup>−6</sup>, and the transformed mean and standard deviation, the Anderson–Darling statistic, the quantiles, the indices, and the expected PPM agree to at least eight significant figures. For the NIST data the page finds λ = 0.28, as the handbook does.</p>
+
         <h2>Cpk versus Ppk</h2>
         <p>The AIAG SPC manual separates <strong>inherent</strong> variation, from common causes only and estimated within subgroups, from <strong>total</strong> variation, which also includes the drifts and shifts between subgroups and is estimated by the standard deviation of all the readings. Cpk uses the first: it shows what the process could do if the differences between subgroups were removed. Ppk uses the second: it describes what the customer actually received during the study.</p>
         <p>Wheeler (2013) reads the four indices together. Cp is the best case: the process run predictably and on center. Ppk describes the process as it actually ran. For a stable, centered process, all four estimate nearly the same number. When Ppk is clearly below Cpk, the mean or the spread changed between subgroups (tool wear, lot changes, warm-up, set-up differences), and the gap shows what removing those causes is worth. That is a stability problem to fix before quoting capability. Wheeler also warns against calling Pp and Ppk “long-term capability”: an unstable process has no single long-term value to estimate.</p>
@@ -330,7 +398,7 @@
                 <tr><td class="num">2.00</td><td class="num">6σ</td><td class="num">0.002</td><td>Six Sigma (short-term) capability</td></tr>
             </tbody>
         </table>
-        <p>The PPM column is for a centered process with each limit exactly 3, 4, 5, or 6σ from the mean (1.33 and 1.67 are 4/3 and 5/3 rounded), counting both tails of a normal distribution. The link between an index and a defect rate holds only for that model, so read any index as an indicator of the expected fraction nonconforming (Pearn, Kotz, and Johnson, 1992). The badge above the results applies the 1.00, 1.33, and 1.67 thresholds to Cpk.</p>
+        <p>The PPM column is for a centered process with each limit exactly 3, 4, 5, or 6σ from the mean (1.33 and 1.67 are 4/3 and 5/3 rounded), counting both tails of a normal distribution. The link between an index and a defect rate holds only for that model, so read any index as an indicator of the expected fraction nonconforming (Pearn, Kotz, and Johnson, 1992). The badge above the results applies the 1.00, 1.33, and 1.67 thresholds to Cpk, or to the Ppk of a non-normal model when the page names it as the value to report.</p>
         <p>Requirements differ by industry and customer, and a customer’s specific requirements always take precedence. Two common references:</p>
         <table>
             <thead><tr><th>Source</th><th>Minimum index</th></tr></thead>
@@ -346,17 +414,20 @@
         <div class="formula">\[ \begin{gathered} C_p = \frac{56 - 44}{6 \times 1.286} = 1.56 \\[6pt] C_{pk} = \frac{56 - 50.93}{3 \times 1.286} = 1.31 \end{gathered} \]</div>
         <p>The spread alone would support Cpk ≈ 1.56, but the mean sits 0.93&nbsp;µm above target, so Cpk = 1.31 is just short of 1.33. About 40&nbsp;PPM is expected above the USL. Re-centering the process at 50.0&nbsp;µm, for example with a laser-power or focus offset, would raise Cpk to 1.56 and cut the expected nonconforming rate to about 3&nbsp;PPM, without any reduction in variation. Cpm = 1.26 replaces σ with the root-mean-square distance from the target, \(\sqrt{1.293^2 + 0.93^2} = 1.59\)&nbsp;µm.</p>
         <p>Ppk (1.31) is close to Cpk, and an x̄–R chart of the same data in the <a href="/tools/control-chart/">control chart</a> tool shows no points outside its limits and no run-rule signals, so the process looks stable over the study. The normality test gives p = 0.49 and the probability plot is straight, so the normal-model PPM is reasonable. Two warnings about precision remain. The 95&nbsp;% interval for Ppk, 1.11–1.50, shows that 100 values pin the index down only to about ±0.2. And with s̄/c₄ or the pooled standard deviation instead of \(\bar R/d_2\), σ within is 1.361 or 1.339&nbsp;µm and Cpk 1.24 or 1.26: with 20 subgroups, the estimators differ by a few percent from sampling alone.</p>
+        <p><strong>A skewed example.</strong> The chip “Flatness, upper limit only”, under “Skewed data” in the inputs, loads 100 flatness values in µm, in 20 subgroups of 5, with USL = 50&nbsp;µm and no lower limit. The mean is 18.83&nbsp;µm and σ overall is 6.01&nbsp;µm, so the normal model gives Ppk = (50 − 18.83)/(3 × 6.01) = 1.73 and expects 0.107&nbsp;PPM above the limit: a comfortable pass. But the normality test rejects the data (A*² = 1.23, p &lt; 0.005), and on the probability plot the points leave the line at both ends.</p>
+        <p>The logarithms of the values have mean 2.886 and standard deviation 0.3167, and the same test does not reject them (p = 0.47). The fitted median is \(e^{2.886}\) = 17.92&nbsp;µm, and the 99.865&nbsp;% point is \(e^{2.886 + 3 \times 0.3167}\) = 46.34&nbsp;µm:</p>
+        <div class="formula">\[ P_{pk} = \frac{50 - 17.92}{46.34 - 17.92} = 1.13 \]</div>
+        <p>The lognormal model expects 598&nbsp;PPM above the limit, more than 5000 times the normal-model figure, and the z-score method reads 1.08. A process that looked better than 1.67 is in fact marginal. The Box–Cox transform tells the same story: λ = −0.01, with a 95&nbsp;% interval from −0.60 to 0.57 that includes the logarithm, a percentile Ppk of 1.12, a transformed-scale Ppk of 1.07, and 642&nbsp;PPM.</p>
 
         <h2>Assumptions and limits</h2>
         <ul>
             <li><strong>Stability comes first.</strong> A capability index predicts future output only if the process is in statistical control; for an unstable process it describes only the past. Plot a <a href="/tools/control-chart/">control chart</a> before trusting the numbers. ISO&nbsp;22514-2 sorts process behavior into eight time-dependent distribution models; only in models A1 and A2 is the process in statistical control.</li>
-            <li><strong>Normality.</strong> The expected PPM, Z.bench, and the link between any index and a defect rate assume a normal distribution, and that model is least certain in the tails beyond about 3σ, exactly where the PPM is calculated and where few of your data fall to check it. Check the normality test and the probability plot. With several thousand values, or a gauge so coarse that many values repeat, the test also flags departures too small to matter; judge those from the plot. Characteristics bounded at zero, such as flatness, roundness, runout, or burr height, are skewed by nature. For them, fit a suitable distribution (a folded normal for form and position tolerances, for example) or transform the data (Box–Cox, Johnson), and use the quantile method of ISO&nbsp;22514-2 and the AIAG &amp; VDA draft, where \(X_{q}\) is the value below which \(q\)&nbsp;% of the fitted distribution lies:
-                <div class="formula">\[ \begin{gathered} P_p = \frac{USL - LSL}{X_{99.865} - X_{0.135}} \\[6pt] \begin{aligned} P_{pk} = \min\!\Biggl(&\frac{USL - X_{50}}{X_{99.865} - X_{50}}, \\[2pt] &\frac{X_{50} - LSL}{X_{50} - X_{0.135}}\Biggr) \end{aligned} \end{gathered} \]</div>
-                For a normal distribution these reduce to the formulas above. Reading the quantiles straight from the data instead of from a fitted distribution needs about 2000 values or more (AIAG &amp; VDA draft). The draft also describes converting the fitted fraction beyond each limit into an equivalent normal index (Bothe’s method). This calculator does not fit non-normal distributions.</li>
+            <li><strong>Normality.</strong> The expected PPM, Z.bench, and the link between any index and a defect rate assume a normal distribution, and that model is least certain in the tails beyond about 3σ, exactly where the PPM is calculated and where few of your data fall to check it. Check the normality test and the probability plot. With several thousand values, or a gauge so coarse that many values repeat, the test also flags departures too small to matter; judge those from the plot. Characteristics bounded at zero, such as flatness, roundness, runout, or burr height, are skewed by nature. For them, choose a model under “Skewed data” and read it by the percentile or the z-score method described above. Do not wait for the normality test to tell you: below about 50 values it misses a skew of the size in the flatness example more than half the time. Reading the quantiles straight from the data instead of from a fitted distribution needs about 2000 values or more (AIAG &amp; VDA draft).</li>
+            <li><strong>Non-normal models.</strong> A fitted model is an assumption too, and few data check its far tail: with 100 values, the 99.865&nbsp;% point is an extrapolation. The page fits only the lognormal distribution and the Box–Cox family. The AIAG &amp; VDA draft names a folded distribution as the theoretical model for form and position tolerances, and Weibull distributions and the Johnson transformation are common alternatives; none of these is fitted here. Both models need values above zero. A gauge that reads 0.000 for some parts rules them out, and the page does not shift the data to make them fit. The non-normal indices come without a confidence interval; they are at least as uncertain as the normal-model Ppk at the same sample size. Minitab searches the same range of λ, −5 to 5, but minimizes the within-subgroup standard deviation of a standardized transform, so its λ can differ from the maximum-likelihood value here. A skewed histogram can also come from an unstable process or from two mixed streams. A transform hides that instead of fixing it, so look at the control chart first.</li>
             <li><strong>Sample size.</strong> Capability estimates are noisy: 100 values pin Ppk down only to about ±0.2. Use at least 100 values; the AIAG &amp; VDA draft asks for 125, in 25 subgroups of 5, collected over a period long enough for the usual sources of variation (shifts, tool changes, material lots) to act. Report the confidence interval, not just the point estimate.</li>
             <li><strong>Measurement system.</strong> Observed variance is the sum of process and gauge variance, \(\sigma^2_\text{obs} = \sigma^2_\text{process} + \sigma^2_\text{gauge}\), so a poor gauge makes the process look less capable than it is, and coarse resolution makes \(\bar R\) unreliable. The AIAG MSA manual treats %GRR under 10&nbsp;% as acceptable, 10–30&nbsp;% as possibly acceptable depending on the application, and over 30&nbsp;% as unacceptable, with at least five distinct categories (ndc ≥ 5). ISO&nbsp;22514-7 gives an alternative based on measurement uncertainty.</li>
             <li><strong>Rational subgroups.</strong> σ within is only meaningful if each subgroup was collected close together in time under the same conditions. Subgroups that span a shift change inflate \(\bar R\), which lowers Cpk toward Ppk and hides the between-subgroup instability that the comparison is meant to reveal.</li>
-            <li><strong>Other indices.</strong> Many variants exist, such as Cpmk, indices for non-normal data, and multivariate indices; de-Felipe and Benedito (2017) and Yum (2023) review them.</li>
+            <li><strong>Other indices.</strong> Many variants exist, such as Cpmk, further indices for non-normal data, and multivariate indices; de-Felipe and Benedito (2017) and Yum (2023) review them.</li>
         </ul>
 
         <h2>References</h2>
@@ -366,7 +437,7 @@
             <li>ISO&nbsp;22514-2:2026, Statistical methods in process management — Capability and performance — Part 2: Process capability and performance of time-dependent process models, 3rd ed., replacing ISO&nbsp;22514-2:2017 (the eight time-dependent distribution models, and capability for processes that are not in statistical control).</li>
             <li>ISO&nbsp;22514-7:2026, Statistical methods in process management — Capability and performance — Part 7: Capability of measurement processes, 3rd ed., replacing ISO&nbsp;22514-7:2021 (measurement capability based on uncertainty).</li>
             <li>ISO&nbsp;3534-2:2006, Statistics — Vocabulary and symbols — Part 2: Applied statistics (the definitions of process capability and process performance).</li>
-            <li>AIAG and VDA, <em>AIAG &amp; VDA SPC Manual</em>, 1st ed. (2026), <a href="https://www.aiag.org/training-and-resources/manuals/details/spcav-1" target="_blank" rel="noopener">aiag.org</a>, <a href="https://webshop.vda.de/QMC/en/aiag-vda-spc-handbook_englisch" target="_blank" rel="noopener">webshop.vda.de</a> (aligned with ISO&nbsp;22514 and ISO&nbsp;3534); public review draft (Yellow Volume, February 2026), <a href="https://vda-qmc.de/wp-content/uploads/2026/01/AIAG-VDA-SPC-Yellow-Volume.pdf" target="_blank" rel="noopener">vda-qmc.de</a> (capability and performance names, Cw and Cwk, the quantile and z-score methods, 125 parts in 25 subgroups; the content cited on this page is from the draft).</li>
+            <li>AIAG and VDA, <em>AIAG &amp; VDA SPC Manual</em>, 1st ed. (2026), <a href="https://www.aiag.org/training-and-resources/manuals/details/spcav-1" target="_blank" rel="noopener">aiag.org</a>, <a href="https://webshop.vda.de/QMC/en/aiag-vda-spc-handbook_englisch" target="_blank" rel="noopener">webshop.vda.de</a> (aligned with ISO&nbsp;22514 and ISO&nbsp;3534); public review draft (Yellow Volume, February 2026), <a href="https://vda-qmc.de/wp-content/uploads/2026/01/AIAG-VDA-SPC-Yellow-Volume.pdf" target="_blank" rel="noopener">vda-qmc.de</a> (capability and performance names, Cw and Cwk, the quantile and z-score methods of §7.8, transformation to a normal distribution as an alternative to a fitted distribution, the folded distribution for form tolerances, 125 parts in 25 subgroups; the content cited on this page is from the draft).</li>
             <li>AIAG, <em>Statistical Process Control (SPC) Reference Manual</em>, 2nd ed. (2005), ch. IV (inherent and total variation; Cp, Cpk, Pp, and Ppk).</li>
             <li>AIAG, <em>Production Part Approval Process (PPAP)</em>, 4th ed. (2006), §2.2.11 (acceptance criteria for initial process studies).</li>
             <li>AIAG, <em>Measurement Systems Analysis (MSA) Reference Manual</em>, 4th ed. (2010) (%GRR and ndc guidelines).</li>
@@ -378,6 +449,7 @@
             <li>W. L. Pearn, S. Kotz, and N. L. Johnson, “Distributional and inferential properties of process capability indices,” <em>J. Qual. Technol.</em> <strong>24</strong>, 216–231 (1992), <a href="https://doi.org/10.1080/00224065.1992.11979403" target="_blank" rel="noopener">doi:10.1080/00224065.1992.11979403</a> (the indices as indicators of the expected fraction nonconforming).</li>
             <li>S. Kotz and N. L. Johnson, <em>Process Capability Indices</em>, Chapman &amp; Hall (1993), <a href="https://doi.org/10.1007/978-1-4899-4465-8" target="_blank" rel="noopener">doi:10.1007/978-1-4899-4465-8</a> (Cp, Cpk, and Cpm, and their behavior for non-normal data).</li>
             <li>D. R. Bothe, <em>Measuring Process Capability</em>, McGraw-Hill (1997) (capability of non-normal processes, and the equivalent index from the fraction out of specification).</li>
+            <li>G. E. P. Box and D. R. Cox, “An analysis of transformations,” <em>J. R. Stat. Soc. B</em> <strong>26</strong>, 211–243 (1964), <a href="https://doi.org/10.1111/j.2517-6161.1964.tb00553.x" target="_blank" rel="noopener">doi:10.1111/j.2517-6161.1964.tb00553.x</a> (the family of power transformations, with the parameter estimated from the likelihood).</li>
             <li>M. A. Stephens, “Tests based on EDF statistics,” in R. B. D’Agostino and M. A. Stephens (eds.), <em>Goodness-of-Fit Techniques</em>, Marcel Dekker (1986; reissued by Routledge, 2017), ch. 4, pp. 97–194, <a href="https://doi.org/10.1201/9780203753064-4" target="_blank" rel="noopener">doi:10.1201/9780203753064-4</a> (the Anderson–Darling test with estimated mean and σ, and its p-values).</li>
             <li>D. de-Felipe and E. Benedito, “A review of univariate and multivariate process capability indices,” <em>Int. J. Adv. Manuf. Technol.</em> <strong>92</strong>, 1687–1705 (2017), <a href="https://doi.org/10.1007/s00170-017-0273-6" target="_blank" rel="noopener">doi:10.1007/s00170-017-0273-6</a> (a review that compares the indices; accepted version free at <a href="https://upcommons.upc.edu/handle/2117/119718" target="_blank" rel="noopener">upcommons.upc.edu</a>).</li>
             <li>B.-J. Yum, “A bibliography of the literature on process capability indices (PCIs): 2010–2021, Part I,” <em>Qual. Reliab. Eng. Int.</em> <strong>39</strong>, 1413–1438 (2023), <a href="https://doi.org/10.1002/qre.3258" target="_blank" rel="noopener">doi:10.1002/qre.3258</a> (about 1080 books and papers since 2010; free to read).</li>
@@ -391,8 +463,9 @@
         <h3>Free introductions</h3>
         <ul class="refs">
             <li>NIST/SEMATECH, “What is process capability?” <em>e-Handbook of Statistical Methods</em>, §6.1.6, <a href="https://www.itl.nist.gov/div898/handbook/pmc/section1/pmc16.htm" target="_blank" rel="noopener">itl.nist.gov</a> (Cp, Cpk, Cpm, their confidence limits, and non-normal data), and “Normal probability plot,” §1.3.3.21, <a href="https://www.itl.nist.gov/div898/handbook/eda/section3/normprpl.htm" target="_blank" rel="noopener">itl.nist.gov</a>.</li>
+            <li>NIST/SEMATECH, “What to do when data are non-normal,” <em>e-Handbook of Statistical Methods</em>, §6.5.2, <a href="https://www.itl.nist.gov/div898/handbook/pmc/section5/pmc52.htm" target="_blank" rel="noopener">itl.nist.gov</a> (the Box–Cox transformation, its log-likelihood, the interval for λ, and the example data for which this page also finds λ = 0.28).</li>
             <li>D. J. Wheeler, “The problem of long-term capability,” <em>Quality Digest</em> (July 2013), <a href="https://www.spcpress.com/pdf/DJW257.pdf" target="_blank" rel="noopener">spcpress.com</a> (how to read Cp, Pp, Cpk, and Ppk together, with worked examples).</li>
-            <li>Minitab, “Methods and formulas for Normal Capability Analysis,” <em>Minitab Support</em>, <a href="https://support.minitab.com/en-us/minitab/help-and-how-to/quality-and-process-improvement/capability-analysis/how-to/capability-analysis/normal-capability-analysis/methods-and-formulas/methods/" target="_blank" rel="noopener">support.minitab.com</a> (the formulas behind Minitab’s results, including the pooled standard deviation).</li>
+            <li>Minitab, “Methods and formulas for Normal Capability Analysis,” <em>Minitab Support</em>, <a href="https://support.minitab.com/en-us/minitab/help-and-how-to/quality-and-process-improvement/capability-analysis/how-to/capability-analysis/normal-capability-analysis/methods-and-formulas/methods/" target="_blank" rel="noopener">support.minitab.com</a> (the formulas behind Minitab’s results, including the pooled standard deviation), and “Methods and formulas for Box-Cox Transformation,” <a href="https://support.minitab.com/en-us/minitab/help-and-how-to/quality-and-process-improvement/control-charts/how-to/box-cox-transformation/methods-and-formulas/methods-and-formulas/" target="_blank" rel="noopener">support.minitab.com</a> (how Minitab chooses λ).</li>
         </ul>
     </article>
 
@@ -443,12 +516,134 @@ document.addEventListener('DOMContentLoaded', () => {
         return { a, p: Math.min(1, Math.max(0, p)) };
     }
 
+    // ── Non-normal models ───────────────────────────────────────────────────────────────────────────────────────────
+    // Both models say: the values are normal after a Box–Cox transform T(x) = (x^λ − 1)/λ, which is ln x for λ = 0.
+    // The lognormal model fixes λ = 0; the Box–Cox model estimates λ by maximum likelihood (NIST e-Handbook 6.5.2).
+    // expm1 and log1p keep the transform and its inverse exact for small λ.
+    const bcT = (x, lam) => lam === 0 ? Math.log(x) : Math.expm1(lam * Math.log(x)) / lam;
+    function bcInv(y, lam) {
+        if (lam === 0) return Math.exp(y);
+        const u = lam * y;   // the transformed scale ends at −1/λ: below it for λ > 0 (x = 0), above it for λ < 0 (x = ∞)
+        return u > -1 ? Math.exp(Math.log1p(u) / lam) : lam > 0 ? 0 : Infinity;
+    }
+    const P_LO = 0.00135;                    // the 0.135 % point; its mirror is 99.865 % (z = ∓2.99998)
+    const HALF_CHI2_95 = 1.9207294103470307; // half the 95 % point of χ² with one degree of freedom
+    // Profile log-likelihood of λ without its constant, from the logarithms centered on their mean (dividing the
+    // values by their geometric mean changes neither the best λ nor differences of the log-likelihood)
+    function bcProfile(cl) {
+        const n = cl.length, w = new Float64Array(n);
+        return lam => {
+            let m = 0, q = 0;
+            if (lam === 0) { for (let i = 0; i < n; i++) q += cl[i] * cl[i]; return -0.5 * n * Math.log(q / n); }
+            for (let i = 0; i < n; i++) m += (w[i] = Math.expm1(lam * cl[i]));
+            m /= n;
+            for (let i = 0; i < n; i++) q += (w[i] - m) * (w[i] - m);
+            return -0.5 * n * Math.log(q / n / (lam * lam));
+        };
+    }
+    // λ between −5 and 5 that maximizes the likelihood (a scan in steps of 0.25, then a golden-section search), and
+    // the 95 % likelihood-ratio interval: the values of λ whose log-likelihood is within 1.92 of the maximum
+    function bcEstimate(logs) {
+        const lbar = mean(logs), f = bcProfile(logs.map(l => l - lbar));
+        let best = -5, top = -Infinity;
+        for (let i = 0; i <= 40; i++) { const lam = -5 + i * 0.25, v = f(lam); if (v > top) { top = v; best = lam; } }
+        let a = Math.max(-5, best - 0.25), b = Math.min(5, best + 0.25);
+        const g = (Math.sqrt(5) - 1) / 2;
+        let c = b - g * (b - a), d = a + g * (b - a), fc = f(c), fd = f(d);
+        for (let i = 0; i < 60 && b - a > 1e-11; i++) {
+            if (fc > fd) { b = d; d = c; fd = fc; c = b - g * (b - a); fc = f(c); }
+            else { a = c; c = d; fc = fd; d = a + g * (b - a); fd = f(d); }
+        }
+        let lam = (a + b) / 2;
+        if (Math.abs(lam) < 1e-7) lam = 0;   // the search resolves λ to about 1e-8
+        const fmax = Math.max(f(lam), top), target = fmax - HALF_CHI2_95;
+        const edge = dir => {   // step outward until the log-likelihood has dropped by 1.92, then bisect
+            let inside = lam, outside = lam;
+            do { outside += dir * 0.5; if (Math.abs(outside) > 12) return dir * Infinity; } while (f(outside) >= target);
+            inside = outside - dir * 0.5;
+            for (let i = 0; i < 50; i++) { const mid = (inside + outside) / 2; if (f(mid) >= target) inside = mid; else outside = mid; }
+            return (inside + outside) / 2;
+        };
+        return { lam, lo: edge(-1), hi: edge(1), atBound: Math.abs(lam) > 4.9999 };
+    }
+    // A fitted model: the Anderson–Darling test on the transformed values, and the model's z-score, quantiles,
+    // cumulative distribution, and density in the unit of the data. For λ ≠ 0 everything is worked out from
+    // w = (x/G)^λ − 1, with G the geometric mean: T(x) = (G^λ − 1)/λ + G^λ·w/λ is a straight-line function of w, so
+    // the z-score of a value is ±(w − w̄)/s_w. That keeps full precision when λ is far from zero and the transformed
+    // values differ only in their last digits. m and s, the mean and standard deviation of T(x), are for display.
+    function nnFit(logs, lam, extra) {
+        const lbar = mean(logs), sgn = lam < 0 ? -1 : 1;
+        const u = lam === 0 ? logs : logs.map(l => sgn * Math.expm1(lam * (l - lbar)));
+        const ubar = lam === 0 ? lbar : mean(u), su = stdev(u), ok = isFinite(ubar) && isFinite(su) && su > 0;
+        const c = Math.exp(lam * lbar);
+        const z = x => ((lam === 0 ? Math.log(x) : sgn * Math.expm1(lam * (Math.log(x) - lbar))) - ubar) / su;
+        const qz = v => {
+            if (lam === 0) return Math.exp(ubar + v * su);
+            const w = sgn * (ubar + v * su);   // the scale of w ends at −1: x = 0 for λ > 0, x = ∞ for λ < 0
+            return w > -1 ? Math.exp(lbar + Math.log1p(w) / lam) : lam > 0 ? 0 : Infinity;
+        };
+        return Object.assign({
+            lam, ok, z, qz,
+            m: lam === 0 ? ubar : Math.expm1(lam * lbar) / lam + c * sgn * ubar / lam,
+            s: lam === 0 ? su : c * su / Math.abs(lam),
+            ad: ok ? andersonDarling(u, ubar, su) : null,
+            T: x => bcT(x, lam),
+            q: p => qz(normInv(p)),
+            cdf: x => x > 0 ? normCdf(z(x)) : 0,
+            pdf: x => x > 0 ? Math.exp(-0.5 * z(x) ** 2 + (lam === 0 ? 0 : lam * (Math.log(x) - lbar))) * (lam === 0 ? 1 : Math.abs(lam)) / (x * su * Math.sqrt(2 * Math.PI)) : 0
+        }, extra);
+    }
+    // Capability from a fitted model. pct: the percentile method of ISO 22514-2, in the unit of the data, from the
+    // 0.135 %, 50 %, and 99.865 % points. tr: the usual formulas on the transformed scale against transformed limits,
+    // which is the z-score method: zL and zU are the distances from the mean to the limits in standard deviations.
+    // Both give the same expected PPM. A limit at or below zero cannot be crossed by values above zero, so it drops out.
+    function nnCapability(M, lsl, usl) {
+        const hasL = isFinite(lsl) && lsl > 0, hasU = isFinite(usl) && usl > 0;
+        const x0 = M.q(P_LO), x50 = M.q(0.5), x99 = M.q(1 - P_LO);
+        const zL = hasL ? -M.z(lsl) : NaN, zU = hasU ? M.z(usl) : NaN;
+        const pct = {
+            lower: hasL ? (x50 - lsl) / (x50 - x0) : null,
+            upper: hasU ? (isFinite(x99) ? (usl - x50) / (x99 - x50) : NaN) : null,
+            potential: hasL && hasU ? (isFinite(x99) ? (usl - lsl) / (x99 - x0) : NaN) : null
+        };
+        const tr = { lower: hasL ? zL / 3 : null, upper: hasU ? zU / 3 : null, potential: hasL && hasU ? (zL + zU) / 6 : null };
+        [pct, tr].forEach(o => { o.k = Math.min(hasL ? o.lower : Infinity, hasU ? o.upper : Infinity); });
+        if (hasU && !isFinite(x99)) pct.k = NaN;
+        const below = hasL ? normCdf(-zL) * 1e6 : 0, above = hasU ? normCdf(-zU) * 1e6 : 0;
+        return { hasL, hasU, x0, x50, x99, zL, zU, tl: hasL ? M.T(lsl) : NaN, tu: hasU ? M.T(usl) : NaN, pct, tr, below, above, total: below + above };
+    }
+    // ── end of the non-normal models ────────────────────────────────────────────────────────────────────────────────
+
     const rawBox = document.getElementById('raw-fields');
     const sumBox = document.getElementById('sum-fields');
     const estField = document.getElementById('est-field');
     const probPanel = document.getElementById('prob-panel');
     const badge = document.getElementById('cap-badge');
+    const el = id => document.getElementById(id);
+    const nnFold = el('nn-fold'), nnAdvice = el('nn-advice'), nnUse = el('nn-use'), nnBox = el('nn-box');
     let last = null;
+    // the example behind the chip in the form: flatness of 100 parts in µm, 20 subgroups of 5, upper limit 50 µm
+    const LINE_WIDTH = el('data').defaultValue;   // the example the page opens with
+    const FLATNESS = `27.8 18.8 19.5 23.4 20.6
+28.5 12.7 23.6 18.5 26.6
+26.3 23.6 15.3 15.4 19.0
+15.6 10.2 11.7 20.0 13.1
+16.3 17.8 11.8 15.8 26.5
+26.9 20.6 20.8 16.6 18.1
+22.7 11.3 15.7 16.1 22.8
+13.1 31.5 14.4 32.8 17.7
+18.6 29.4 10.6 22.1 30.0
+13.7 22.6 15.1 23.4 16.3
+25.0 15.8 15.5 16.5 13.5
+27.6 22.0 26.3 25.0 27.2
+13.0 20.0 17.3 18.2 18.1
+11.4 11.7 9.3 25.0 17.6
+13.9 18.4 13.9 13.4 15.8
+16.3 13.4 12.4 17.9 38.4
+16.6 26.1 25.1 15.9 10.2
+14.4 18.6 24.2 17.9 14.8
+30.6 18.6 17.4 20.5 10.1
+23.5 9.7 14.8 9.7 13.0`;
 
     // two decimals; a value that rounds to zero shows as 0.00, not −0.00
     const idx = x => {
@@ -487,7 +682,144 @@ document.addEventListener('DOMContentLoaded', () => {
         return String(parseFloat((p <= 50 ? r : 100 - r).toPrecision(7))) + ' %';
     }
 
-    Calc.create({
+    // ── Non-normal models: what to fit, what to say, and what to show ───────────────────────────────────────────────
+    const NN_NAME = { lognormal: 'lognormal', boxcox: 'Box–Cox' };
+    const pTxt = p => p < 0.005 ? 'p < 0.005' : 'p = ' + fmt.num(p, 2);
+    const capFirst = s => s.charAt(0).toUpperCase() + s.slice(1);
+    let nnMemo = { key: null, fits: null };   // both fits depend on the data alone, so they are kept while limits are edited
+    function nnFits(key, data) {
+        if (nnMemo.key === key) return nnMemo.fits;
+        let bad = 0;
+        for (const x of data) if (!(x > 0)) bad++;
+        let fits = { bad };
+        if (!bad) {
+            const logs = data.map(Math.log);
+            const est = bcEstimate(logs);
+            fits = { bad, lognormal: nnFit(logs, 0), boxcox: nnFit(logs, est.lam, est) };
+        }
+        nnMemo = { key, fits };
+        return fits;
+    }
+    // sel: the model chosen in the form. Returns the advice to show (or none), and, when the chosen model can be
+    // used, its capability and its output rows.
+    function nonNormal(sel, key, data, ad, lsl, usl, ppkNormal) {
+        const res = { advice: null, show: false, fails: false, out: {} };
+        const on = sel === 'lognormal' || sel === 'boxcox';
+        if (!data) return res;   // summary statistics: nothing to fit
+        if (!ad) {
+            if (on) res.advice = { warn: true, text: 'A model can be fitted and tested from 8 values or more. Only the normal-model values are shown.' };
+            return res;
+        }
+        const fails = res.fails = ad.p < 0.05;
+        if (!on && !fails) return res;
+        const F = nnFits(key, data), N = data.length;
+        const lead = 'Your data fail the normality test (' + pTxt(ad.p) + ')';
+        const unreliable = ', so the normal-model Ppk and expected PPM are unreliable. ';
+        const cause = 'Look for a cause before quoting capability: two mixed process streams, outliers, a drift, or a gauge with coarse steps.';
+        if (F.bad) {
+            res.advice = { warn: true, text: on
+                ? 'The ' + NN_NAME[sel] + ' model needs values above zero, and ' + F.bad + ' of the ' + N + ' values ' + (F.bad === 1 ? 'is' : 'are') + ' zero or negative. Only the normal-model values are shown.'
+                : lead + unreliable + 'The lognormal and Box–Cox models on this page need values above zero, so they cannot be fitted to these data.' };
+            return res;
+        }
+        const fits = k => F[k].ok && F[k].ad.p >= 0.05;
+        const pOf = k => F[k].ok ? pTxt(F[k].ad.p) : 'no fit';
+        const desc = k => k === 'lognormal' ? 'a lognormal model' : 'a Box–Cox transform with λ = ' + idx(F.boxcox.lam);
+        const useLabel = k => k === 'lognormal' ? 'Use the lognormal fit' : 'Use the Box–Cox transform';
+        const both = 'a lognormal model (' + pOf('lognormal') + ') and a Box–Cox transform (' + pOf('boxcox') + ')';
+        if (!on) {
+            const pick = fits('lognormal') ? 'lognormal' : fits('boxcox') ? 'boxcox' : null;
+            res.advice = pick
+                ? { warn: true, use: pick, useLabel: useLabel(pick), text: lead + unreliable + 'The same test does not reject ' + desc(pick) + ' (' + pOf(pick) + ').' }
+                : { warn: true, text: lead + unreliable + 'The test rejects both ' + both + ' as well. ' + cause };
+            return res;
+        }
+        const M = F[sel], other = sel === 'lognormal' ? 'boxcox' : 'lognormal';
+        const only = ' Only the normal-model values are shown.';
+        if (!M.ok) { res.advice = { warn: true, text: 'The Box–Cox transform could not be calculated for these values: the numbers run out of range.' + only }; return res; }
+        if (isFinite(usl) && usl <= 0) { res.advice = { warn: true, text: 'The USL is at or below zero, so every value is out of specification. A model for values above zero has nothing to add.' + only }; return res; }
+        const c = nnCapability(M, lsl, usl);
+        if (!c.hasL && !c.hasU) { res.advice = { warn: true, text: 'The only limit is an LSL at or below zero. Values above zero cannot cross it, so there is no index to calculate.' + only }; return res; }
+        // The percentile value leads for both models, so that their headlines can be compared. A Box–Cox model with no
+        // finite 99.865 % point has no percentile value: there the transformed-scale value leads.
+        const headPct = sel === 'lognormal' || (c.pct.k !== null && isFinite(c.pct.k));
+        const head = headPct ? c.pct : c.tr, two = c.hasL && c.hasU;
+        Object.assign(res, { show: true, kind: sel, M, cap: c, k: head.k, headPct });
+        const which = headPct ? 'percentile' : 'transformed-scale';
+        const few = N < 100 ? ', and with ' + N + ' values it would often miss a skew' : '';
+        let a;
+        if (!fails && !fits(sel)) a = { text: 'The normality test does not reject the normal model (' + pTxt(ad.p) + ') and rejects ' + desc(sel) + ' (' + pOf(sel) + '): report the normal-model values.' };
+        else if (!fails && head.k <= ppkNormal) a = { report: true, text: 'The normality test does not reject the normal model (' + pTxt(ad.p) + ')' + few + '. Not rejected is not the same as correct. For a characteristic bounded at zero, the '
+            + NN_NAME[sel] + ' ' + which + ' value, Ppk = ' + idx(head.k) + ', is the cautious one to report. The normal model gives ' + idx(ppkNormal) + '.' };
+        else if (!fails) a = { text: 'The normality test does not reject the normal model (' + pTxt(ad.p) + '), and the ' + NN_NAME[sel] + ' model gives the higher Ppk, ' + idx(head.k) + ' against ' + idx(ppkNormal)
+            + '. Report the normal-model values unless you know the characteristic follows this model.' };
+        else if (fits(sel)) a = { report: true, text: lead + (sel === 'lognormal' ? ' and the lognormal model is not rejected (' : ' and are not rejected as normal after the Box–Cox transform (') + pOf(sel) + '): the '
+            + which + ' value, Ppk = ' + idx(head.k) + ', is the one to report. The normal model gives ' + idx(ppkNormal) + ' for the same data.' };
+        else if (fits(other)) a = { warn: true, use: other, useLabel: useLabel(other), text: lead + ', and the test rejects ' + desc(sel) + ' too (' + pOf(sel) + '). It does not reject ' + desc(other) + ' (' + pOf(other) + ').' };
+        else a = { warn: true, text: lead + ', and the test rejects both ' + both + '. Do not quote an index from a rejected model. ' + cause };
+        if (isFinite(lsl) && lsl <= 0) a.text += ' The LSL of ' + fmt.num(lsl, 6) + ' is left out: values above zero cannot cross it.';
+        res.advice = a;
+
+        const q = x => fmt.num(x, 4);
+        const quant = 'Fitted quantiles: 0.135 % at ' + q(c.x0) + ', 50 % at ' + q(c.x50) + ', 99.865 % at ' + q(c.x99) + ', in the unit of the data.';
+        const lamEdge = x => isFinite(x) ? idx(x) : x < 0 ? 'below −12' : 'above 12';
+        const in0 = M.lo <= 0 && M.hi >= 0, in1 = M.lo <= 1 && M.hi >= 1;
+        // four significant figures show the transformed mean, σ, and limits apart only while σ is not tiny beside them
+        const tMax = Math.max(Math.abs(M.m), c.hasL ? Math.abs(c.tl) : 0, c.hasU ? Math.abs(c.tu) : 0);
+        const resolved = isFinite(tMax) && isFinite(M.s) && M.s >= 1e-3 * tMax;
+        res.out = {
+            'nn-ppk': idx(head.k),
+            'nn-ppk-note': headPct ? quant
+                : (resolved ? 'On the transformed scale: mean ' + q(M.m) + ', σ ' + q(M.s) + (c.hasL ? ', LSL ' + q(c.tl) : '') + (c.hasU ? ', USL ' + q(c.tu) : '') + '.'
+                    : 'On the transformed scale, ' + (c.hasL ? 'LSL is ' + fmt.num(c.zL, 3) + ' σ below the mean' : '') + (two ? ' and ' : '') + (c.hasU ? 'USL is ' + fmt.num(c.zU, 3) + ' σ above ' + (two ? 'it' : 'the mean') : '')
+                        + '. With λ this far from zero the transformed values differ only in their last digits, so they are not listed.')
+                    + ' The z-score method gives the same value.',
+            'nn-pp': two ? idx(head.potential) : null,
+            'nn-plu': two ? idx(head.lower) + ' · ' + idx(head.upper) : null,
+            // the other way to read the same model: z-score beside percentile, percentile beside transformed scale
+            'nn-ppk2': headPct ? idx(c.tr.k) : '—',
+            'nn-ppk2-note': sel !== 'boxcox' ? 'The normal-model index with the same expected PPM: the usual formula applied to the logarithms of the values and of the limit' + (two ? 's' : '') + '.'
+                : headPct ? (resolved ? 'The usual formula on the transformed scale: mean ' + q(M.m) + ', σ ' + q(M.s) + (c.hasL ? ', LSL ' + q(c.tl) : '') + (c.hasU ? ', USL ' + q(c.tu) : '') + '.'
+                    : 'The usual formula on the transformed scale, where ' + (c.hasL ? 'LSL is ' + fmt.num(c.zL, 3) + ' σ below the mean' : '') + (two ? ' and ' : '') + (c.hasU ? 'USL is ' + fmt.num(c.zU, 3) + ' σ above ' + (two ? 'it' : 'the mean') : '') + '.')
+                    + ' The z-score method gives the same value.'
+                : 'Not defined: with this λ the fitted model has no finite 99.865 % point.',
+            'nn-ppm': ppm(c.total),
+            'nn-ppm-split': (c.hasL ? ppm(c.below) + ' below LSL' : '') + (two ? ' · ' : '') + (c.hasU ? ppm(c.above) + ' above USL' : ''),
+            'nn-fit': pTxt(M.ad.p),
+            'nn-fit-note': 'A*² = ' + fmt.num(M.ad.a, 3) + (sel === 'lognormal' ? ' for the logarithms of the values' : ' for the transformed values') + '. Normal model: ' + pTxt(ad.p) + '.'
+                + (sel === 'boxcox' ? ' λ was fitted to the same data, so this p-value is somewhat optimistic.' : ''),
+            'nn-lam': sel === 'boxcox' ? idx(M.lam) + ' · ' + lamEdge(M.lo) + ' to ' + lamEdge(M.hi) : null,
+            'nn-lam-note': sel !== 'boxcox' ? null
+                : M.atBound ? 'λ stopped at the search limit of ±5: this transform does not suit the data.'
+                : in0 && in1 ? 'The interval includes both 0 (the logarithm) and 1 (no transform): the data do not pin λ down.'
+                : in0 ? 'The interval includes 0, the logarithm, so a lognormal model fits about as well.'
+                : in1 ? 'The interval includes 1, which is no transform at all.'
+                : 'For reference: 0 is the logarithm, 0.5 the square root, −1 the reciprocal, and 1 no transform.'
+        };
+        return res;
+    }
+    const NN_KEYS = ['nn-ppk', 'nn-ppk-note', 'nn-pp', 'nn-plu', 'nn-ppk2', 'nn-ppk2-note', 'nn-ppm', 'nn-ppm-split', 'nn-fit', 'nn-fit-note', 'nn-lam', 'nn-lam-note'];
+    function showNonNormal(res) {
+        const a = res.advice;
+        nnAdvice.hidden = !a;
+        if (a) {
+            nnAdvice.classList.toggle('callout-warn', !!a.warn);
+            el('nn-advice-text').textContent = a.text;
+            el('nn-advice-act').hidden = !a.use;
+            if (a.use) { nnUse.textContent = a.useLabel; nnUse.dataset.nn = a.use; }
+        }
+        nnBox.hidden = el('nn-head').hidden = el('nn-normal-head').hidden = !res.show;
+        el('hist-hint').hidden = res.show; el('hist-hint-nn').hidden = !res.show; el('prob-hint-nn').hidden = !res.show;
+        if (!res.show) return;
+        const name = NN_NAME[res.kind];
+        el('nn-head').textContent = capFirst(name) + ' model';
+        el('nn-method').textContent = res.headPct ? 'percentile method' : 'transformed scale';
+        el('nn-method2').textContent = !res.headPct ? 'percentile method' : res.kind === 'lognormal' ? 'z-score method' : 'transformed scale';
+        el('nn-ppm-l').textContent = name + ' model';
+        document.querySelectorAll('[data-nn-name]').forEach(n => { n.textContent = name; });
+    }
+
+    const calc = Calc.create({
         form: '#calc',
         outputs: '#results',
         compute(v) {
@@ -572,18 +904,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 ci = idx(O.k - 1.96 * se) + ' – ' + idx(O.k + 1.96 * se);
             }
 
-            const shown = idx(W.k);   // judge the value as displayed, so a Cpk shown as 1.33 never gets the "Marginal" badge
-            const c = shown === null ? W.k : parseFloat(shown.replace('−', '-'));
-            if (c >= 1.67) { badge.textContent = 'Cpk ≥ 1.67'; badge.className = 'badge badge-ok'; }
-            else if (c >= 1.33) { badge.textContent = 'Cpk ≥ 1.33'; badge.className = 'badge badge-ok'; }
-            else if (c >= 1.0) { badge.textContent = 'Marginal (1.00–1.33)'; badge.className = 'badge badge-warn'; }
-            else { badge.textContent = 'Not capable (< 1.00)'; badge.className = 'badge badge-bad'; }
+            // a non-normal model, when one is chosen or the normality test fails (raw data only)
+            const nn = nonNormal(v.nn, v.data, data, ad, lsl, usl, O.k);
+            // the sentence under the data box describes the example that is in the box, and goes when the data are the reader's own
+            const sameData = t => String(v.data || '').trim().split(/\s+/).join(' ') === t.trim().split(/\s+/).join(' ');
+            el('data-ex').textContent = !raw ? '' : sameData(LINE_WIDTH) ? 'The example is a laser-scribe line width in µm: 20 subgroups of 5, specification 50\u00a0±\u00a06\u00a0µm.'
+                : sameData(FLATNESS) ? 'The example is a flatness in µm: 20 subgroups of 5, upper limit 50\u00a0µm, no lower limit.' : '';
+            showNonNormal(nn);
+            // The badge judges Cpk, or the chosen model's Ppk when the advice names it as the value to report, in both cases the
+            // value as displayed, so an index shown as 1.33 never gets the "Marginal" badge
+            const byModel = nn.show && !!nn.advice.report, judged = byModel ? nn.k : W.k;
+            const shown = idx(judged);
+            const c = shown === null ? judged : parseFloat(shown.replace('−', '-'));
+            const name = byModel ? 'Ppk' : 'Cpk', tag = byModel ? ' · ' + NN_NAME[nn.kind] : '';
+            // the normality test rejects the data and no model's value is named: the normal Cpk is not one to grade
+            if (nn.fails && !byModel) { badge.textContent = 'Not normal: see the note'; badge.className = 'badge badge-warn'; }
+            else if (c >= 1.67) { badge.textContent = name + ' ≥ 1.67' + tag; badge.className = 'badge badge-ok'; }
+            else if (c >= 1.33) { badge.textContent = name + ' ≥ 1.33' + tag; badge.className = 'badge badge-ok'; }
+            else if (c >= 1.0) { badge.textContent = byModel ? 'Marginal' + tag : 'Marginal (1.00–1.33)'; badge.className = 'badge badge-warn'; }
+            else { badge.textContent = byModel ? 'Not capable' + tag : 'Not capable (< 1.00)'; badge.className = 'badge badge-bad'; }
 
-            last = { raw, data, mu, sw, so, N, lsl, usl, T };
+            last = { raw, data, mu, sw, so, N, lsl, usl, T, nn: nn.show ? nn : null };
+            const nnOut = {};
+            NN_KEYS.forEach(k => { nnOut[k] = k in nn.out ? nn.out[k] : null; });
             const split = t => (isFinite(lsl) ? ppm(t.below) + ' below LSL' : '') + (isFinite(lsl) && isFinite(usl) ? ' · ' : '') + (isFinite(usl) ? ppm(t.above) + ' above USL' : '');
             // enough significant figures to resolve about σ within / 100 (at least 5), so an offset from target shows
             const sigMu = isFinite(sw) && sw > 0 ? Math.min(12, Math.max(5, Math.ceil(Math.log10(Math.abs(mu) / sw)) + 2)) : 5;
-            return {
+            return Object.assign(nnOut, {
                 cpk: idx(W.k),
                 cp: W.potential === null ? null : idx(W.potential),
                 cplu: (W.lower === null ? '—' : idx(W.lower)) + ' · ' + (W.upper === null ? '—' : idx(W.upper)),
@@ -596,13 +943,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // a note in a row whose value is null must be null too: an empty string would un-hide the row
                 ppmobs: obs === null ? null : ppm(obs), 'obs-note': obs === null ? null : obsNote,
                 zb: zbench(tw.total) + ' · ' + zbench(to.total),
-                normal: ad === null ? null : 'p = ' + (ad.p < 0.005 ? '< 0.005' : fmt.num(ad.p, 2)),
+                normal: ad === null ? null : pTxt(ad.p),
                 'normal-note': ad === null ? null : 'A*² = ' + fmt.num(ad.a, 3) + '. ' + (ad.p >= 0.05 ? 'No evidence against a normal distribution.'
                     : 'The data are probably not normal: treat the expected PPM and Z.bench with caution, and look at the probability plot.'),
                 mean: fmt.num(mu, sigMu) + (isFinite(N) ? ' · ' + N : ''),
                 sw: fmt.num(sw, 4), 'sw-note': swNote,
                 so: fmt.num(so, 4)
-            };
+            });
         },
         onError() {   // no valid result: clear both charts instead of leaving the last ones beside blank outputs
             Plot.clear('#hist-plot'); Plot.clear('#prob-plot');
@@ -610,6 +957,7 @@ document.addEventListener('DOMContentLoaded', () => {
         after() {
             const s = last;
             const specs = [s.lsl, s.usl, s.T].filter(isFinite);
+            const nn = s.nn, model = nn ? nn.M : null, mName = nn ? capFirst(NN_NAME[nn.kind]) + ' fit' : '';
             let lo = Math.min(s.mu - 4 * s.so, s.mu - 4 * s.sw, ...specs);
             let hi = Math.max(s.mu + 4 * s.so, s.mu + 4 * s.sw, ...specs);
             const series = [];
@@ -619,6 +967,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 let dmin = Infinity, dmax = -Infinity;
                 for (const x of s.data) { if (x < dmin) dmin = x; if (x > dmax) dmax = x; }
                 lo = Math.min(lo, dmin); hi = Math.max(hi, dmax);
+                // room for the model's long upper tail, to its 99.865 % point but no more than one data range past the largest value
+                if (nn && nn.cap.x99 > hi) hi = Math.min(nn.cap.x99, dmax + (dmax - dmin));
                 const raw = (dmax - dmin) / Math.max(6, Math.min(25, Math.round(Math.sqrt(s.data.length)))) || s.so;
                 const mag = Math.pow(10, Math.floor(Math.log10(raw)));
                 const w = [1, 2, 2.5, 5, 10].map(m => m * mag).find(x => x >= raw * 0.999);
@@ -631,16 +981,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const xs = linspace(lo, hi, 240);
             const pdf = (x, m, sd) => Math.exp(-0.5 * ((x - m) / sd) ** 2) / (sd * Math.sqrt(2 * Math.PI));
-            series.push({ type: 'line', x: xs, y: xs.map(x => scale * pdf(x, s.mu, s.sw)), label: 'Normal fit (σ within)', color: 'var(--c4)' });
+            // with a non-normal model, its density replaces the σ within curve, and the shaded tails are the model's
+            if (model) series.push({ type: 'line', x: xs, y: xs.map(x => scale * model.pdf(x)), label: mName, color: 'var(--c3)' });
+            else series.push({ type: 'line', x: xs, y: xs.map(x => scale * pdf(x, s.mu, s.sw)), label: 'Normal fit (σ within)', color: 'var(--c4)' });
             series.push({ type: 'line', x: xs, y: xs.map(x => scale * pdf(x, s.mu, s.so)), label: 'Normal fit (σ overall)', color: 'var(--c2)', dash: true });
-            // the expected fraction beyond each limit with σ overall, shaded under the dashed curve (labeled once)
+            // the expected fraction beyond each limit, shaded under the model's curve or the dashed one (labeled once)
+            const dens = model ? x => model.pdf(x) : x => pdf(x, s.mu, s.so);
             const shade = (a, b, label) => {
                 const tx = linspace(a, b, 80);
-                series.push({ type: 'band', x: tx, y: tx.map(x => scale * pdf(x, s.mu, s.so)), y0: tx.map(() => 0), color: 'var(--c5)', opacity: 0.4, label });
+                series.push({ type: 'band', x: tx, y: tx.map(x => scale * dens(x)), y0: tx.map(() => 0), color: 'var(--c5)', opacity: 0.4, label });
             };
-            const shadeLabel = 'Expected out of spec (σ overall)';
-            if (isFinite(s.lsl) && s.lsl > lo) shade(lo, s.lsl, shadeLabel);
-            if (isFinite(s.usl) && s.usl < hi) shade(s.usl, hi, isFinite(s.lsl) && s.lsl > lo ? undefined : shadeLabel);
+            const shadeLabel = 'Expected out of spec (' + (model ? NN_NAME[nn.kind] + ' fit' : 'σ overall') + ')';
+            const lowTail = isFinite(s.lsl) && s.lsl > lo && (!nn || nn.cap.hasL);
+            if (lowTail) shade(model ? Math.max(lo, 0) : lo, s.lsl, shadeLabel);
+            if (isFinite(s.usl) && s.usl < hi) shade(s.usl, hi, lowTail ? undefined : shadeLabel);
             const vlines = [];
             if (isFinite(s.lsl)) vlines.push({ x: s.lsl, label: 'LSL', color: 'var(--c5)' });
             if (isFinite(s.usl)) vlines.push({ x: s.usl, label: 'USL', color: 'var(--c5)' });
@@ -650,8 +1004,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 x: { label: 'Measured value', min: lo, max: hi },
                 y: { label: yLabel, min: 0 },
                 series, vlines: isFinite(s.T) ? vlines.concat({ x: s.T, label: 'Target', color: 'var(--muted)' }) : vlines, legend: true,
-                ariaLabel: (s.raw ? 'Histogram of the ' + s.data.length + ' measurements with normal curves' : 'Normal curves') +
-                    ' for σ within (solid) and σ overall (dashed), against ' + limits + (isFinite(s.T) ? ' and target ' + fmt.num(s.T, 6) : '') +
+                ariaLabel: (model ? 'Histogram of the ' + s.data.length + ' measurements with the fitted ' + NN_NAME[nn.kind] + ' model (solid) and the normal curve for σ overall (dashed), against '
+                    : (s.raw ? 'Histogram of the ' + s.data.length + ' measurements with normal curves' : 'Normal curves') + ' for σ within (solid) and σ overall (dashed), against ') + limits + (isFinite(s.T) ? ' and target ' + fmt.num(s.T, 6) : '') +
                     '. Shaded areas beyond the limits show the expected fraction out of specification.',
                 hover: { format: (x, hits) => 'x = ' + fmt.num(x, 5) + hits.map(h => ' · ' + h.series.label + ': ' + fmt.num(h.y, 3)).join('') }
             });
@@ -670,26 +1024,42 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const zr = Math.max(3.3, Math.abs(pz[0]) + 0.3, Math.abs(pz[pz.length - 1]) + 0.3);
             const lineX = linspace(lo, hi, 120);
+            // the fitted model on the same scale: at each z, the value the model puts there (a curve, not a straight line)
+            const mx = [], mz = [];
+            if (model) linspace(-zr, zr, 160).forEach(z => { const x = model.qz(z); if (x >= lo && x <= hi) { mx.push(x); mz.push(z); } });
             Plot.draw('#prob-plot', {
                 height: 260,
                 x: { label: 'Measured value', min: lo, max: hi },
                 y: { label: 'Cumulative %', min: -zr, max: zr, ticks: 6, format: pctLabel },
                 series: [
                     { type: 'line', x: lineX, y: lineX.map(x => (x - s.mu) / s.so), label: 'Normal fit (σ overall)', color: 'var(--c2)', dash: true },
+                    ...(mx.length > 1 ? [{ type: 'line', x: mx, y: mz, label: mName, color: 'var(--c3)' }] : []),
                     { type: 'points', x: px, y: pz, label: 'Measurements', color: 'var(--c1)', r: 3 }
                 ],
                 vlines, legend: true,
-                ariaLabel: 'Normal probability plot of the ' + n + ' measurements against ' + limits + ': values that follow the dashed straight line are consistent with a normal distribution.',
+                ariaLabel: 'Normal probability plot of the ' + n + ' measurements against ' + limits + ': values that follow the dashed straight line are consistent with a normal distribution.'
+                    + (model ? ' The solid curve is the fitted ' + NN_NAME[nn.kind] + ' model.' : ''),
                 hover: {
                     format: (x, hits) => {
                         const h = hits.find(t => t.series.type === 'points');
                         if (!h) return 'x = ' + fmt.num(x, 5);
-                        return 'x = ' + fmt.num(h.x, 5) + ' · plotted at ' + fmt.num(normCdf(h.y) * 100, 3) + ' % · normal fit: ' + fmt.num(normCdf((h.x - s.mu) / s.so) * 100, 3) + ' %';
+                        return 'x = ' + fmt.num(h.x, 5) + ' · plotted at ' + fmt.num(normCdf(h.y) * 100, 3) + ' % · normal fit: ' + fmt.num(normCdf((h.x - s.mu) / s.so) * 100, 3) + ' %'
+                            + (model ? ' · ' + NN_NAME[nn.kind] + ' fit: ' + fmt.num(model.cdf(h.x) * 100, 3) + ' %' : '');
                     }
                 }
             });
         }
     });
+
+    // the advice chip switches to the model it names; the example chip loads a one-sided, skewed data set
+    nnUse.addEventListener('click', () => {
+        calc.set({ nn: nnUse.dataset.nn });
+        nnFold.open = true;
+        const out = document.querySelector('[data-out="nn-ppk"]');
+        if (!nnBox.hidden && out) out.focus();
+    });
+    el('nn-example').addEventListener('click', () => calc.set({ mode: 'raw', data: FLATNESS, k: '5', est: 'rbar', lsl: '', usl: '50', target: '', nn: 'lognormal' }));
+    if (el('nn').value !== 'off') nnFold.open = true;   // a shared link with a model chosen opens the fold
 });
 </script>
 </body>
