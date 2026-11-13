@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Block Drop: Free Falling-Blocks Puzzle Game</title>
-<meta name="description" content="Play Block Drop free online: turn and drop falling blocks to clear lines as the speed climbs. Hold, next-piece preview, ghost piece, keys or touch; no ads.">
+<meta name="description" content="Play Block Drop free online: clear lines as falling blocks speed up, race to 40 lines, or score big in 2 minutes. Hold, ghost piece, stats, keys or touch.">
 <link rel="canonical" href="https://cdfoley.com/games/block-drop/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Block Drop">
-<meta property="og:description" content="Play Block Drop free online: turn and drop falling blocks to clear lines as the speed climbs. Hold, next-piece preview, ghost piece, keys or touch; no ads.">
+<meta property="og:description" content="Play Block Drop free online: clear lines as falling blocks speed up, race to 40 lines, or score big in 2 minutes. Hold, ghost piece, stats, keys or touch.">
 <meta property="og:url" content="https://cdfoley.com/games/block-drop/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-block-drop.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Block Drop Game. Play Block Drop free online: turn and drop falling blocks to clear lines as the speed climbs. Hold, next-piece preview, ghost piece, keys or touch; no ads.">
+<meta property="og:image:alt" content="Block Drop Game. Play Block Drop free online: clear lines as falling blocks speed up, race to 40 lines, or score big in 2 minutes. Hold, ghost piece, stats, keys or touch.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -24,16 +24,44 @@
 <script src="/assets/js/games.js"></script>
 <style>
     #board { display: block; border-radius: var(--radius-lg); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-    .bd-pad { grid-template-columns: repeat(4, 1fr); touch-action: none; user-select: none; -webkit-user-select: none; max-width: 520px; }
-    .bd-pad .wide { grid-column: span 2; }
-    .bd-pad button { height: 56px; font-size: 1.15rem; }
+    #cvbox:not([style]) { width: min(100%, 580px); }   /* before the script sizes the canvas */
+    .bd-pad { touch-action: none; user-select: none; -webkit-user-select: none; }
+    .bd-left { grid-template-columns: repeat(2, 1fr); }
+    .bd-right { grid-template-columns: repeat(2, 1fr); }
+    .bd-right .wide { grid-column: span 2; }
+    .bd-pad button { height: 52px; font-size: 1.15rem; }
+    @media (orientation: landscape) and (max-height: 560px) {
+        .game-shell { max-width: none !important; }   /* a phone held sideways: the pads go to the edges, under the thumbs */
+        .bd-left { width: 124px; }
+        .bd-right { width: 84px; grid-template-columns: 1fr; }
+        .bd-right .wide { grid-column: auto; }
+        .bd-pad button { height: 50px; }
+    }
+    .chip.hot { border-color: var(--ok); background: var(--ok-soft); }
+    .chip.hot b { color: var(--ok); }
+    .bd-choose { display: grid; gap: 0.5rem; justify-items: center; }
+    .bd-modes { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; }
+    .bd-modes .btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+    .bd-choose .bd-note { font-size: 0.88rem; max-width: 30ch; }
+    .bd-choose label[hidden] { display: none; }
+    .bd-choose label { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.88rem; color: var(--text-2); }
+    .bd-choose select { padding: 0.3rem 0.45rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: 0.88rem; }
+    .bd-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem; }
     .bd-set { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 0.7rem 1rem; align-items: center; font-size: 0.9rem; margin-bottom: 0.9rem; }
     .bd-set label { color: var(--text); }
     .bd-set output { font-family: var(--mono); color: var(--text-2); margin-left: 0.3rem; font-variant-numeric: tabular-nums; }
     .bd-set input[type="range"] { width: 100%; accent-color: var(--accent); }
     .bd-set .bd-row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: center; justify-content: space-between; }
     .bd-fold p { font-size: 0.9rem; color: var(--text-2); }
+    .bd-stats .tbl { overflow-x: auto; }
+    .bd-stats table { width: 100%; border-collapse: collapse; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+    .bd-stats th, .bd-stats td { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+    .bd-stats th:first-child, .bd-stats td:first-child { text-align: left; }
+    .bd-stats thead th { color: var(--text-2); font-weight: 600; }
     @media (max-width: 480px) { .bd-set { grid-template-columns: 1fr; gap: 0.3rem; } .bd-set input[type="range"] { margin-bottom: 0.5rem; } }
+    @media (pointer: coarse) { .game-bar .btn, .game-overlay .btn, .bd-choose select { min-height: 40px; min-width: 40px; } }
+    @media (max-height: 560px) { .bd-choose .bd-note { display: none; } }
+    .game-overlay.ov-start { justify-content: flex-start; padding-top: clamp(1rem, 7%, 3rem); }   /* Start stays in view on a laptop's first screen */
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -43,7 +71,7 @@
    "@type": "VideoGame",
    "name": "Block Drop",
    "url": "https://cdfoley.com/games/block-drop/",
-   "description": "Play Block Drop free online: turn and drop falling blocks to clear lines as the speed climbs. Hold, next-piece preview, ghost piece, keys or touch; no ads.",
+   "description": "Play Block Drop free online: clear lines as falling blocks speed up, race to 40 lines, or score big in 2 minutes. Hold, ghost piece, stats, keys or touch.",
    "genre": "Puzzle",
    "gamePlatform": "Web browser",
    "playMode": "SinglePlayer",
@@ -100,37 +128,63 @@
             <h1>Block Drop Game</h1>
             <p class="lede">Turn and steer the falling pieces to fill rows from wall to wall. A full row clears, and every 10 rows the level goes up and the pieces fall faster. Keep the stack from reaching the top.</p>
         </header>
-        <div class="game-bar">
-            <div class="chips"><span class="chip">Score<b id="score">0</b></span><span class="chip">Lines<b id="lines">0</b></span><span class="chip">Level<b id="level">1</b></span><span class="chip">Best<b id="best">0</b></span></div>
-            <div class="game-actions">
-                <select id="start-level" aria-label="Starting level"></select>
-                <button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button>
-                <button class="btn btn-secondary btn-sm" type="button" id="pause" disabled>Pause</button>
-                <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
+        <div class="game-play" id="play">
+            <div class="game-bar">
+                <div class="chips"><span class="chip" id="chip1"><span id="k1">Score</span><b id="v1">0</b></span><span class="chip" id="chip2"><span id="k2">Lines</span><b id="v2">0</b></span><span class="chip" id="chip3"><span id="k3">Level</span><b id="v3">1</b></span><span class="chip" id="chip-best">Best<b id="best">0</b></span></div>
+                <div class="game-actions">
+                    <button class="btn btn-secondary btn-sm" type="button" id="pause" disabled>Pause</button>
+                    <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
+                    <button class="btn btn-secondary btn-sm game-full" type="button" id="full"></button>
+                </div>
             </div>
-        </div>
-        <div class="game-stage">
-            <div class="arcade-box">
-                <canvas id="board" tabindex="0" role="application" aria-label="Block Drop well" aria-describedby="help"></canvas>
-                <div class="game-overlay" id="overlay">
-                    <h2 id="ov-title">Block Drop</h2>
-                    <p id="ov-text"><kbd>←</kbd> <kbd>→</kbd> move, <kbd>↑</kbd> turn, <kbd>Space</kbd> drops, <kbd>C</kbd> holds. On a touch screen, use the buttons or drag and tap the well.</p>
-                    <button class="btn btn-primary" type="button" id="start">Start</button>
+            <div class="game-row">
+                <div class="touch-pad game-pad bd-pad bd-left" role="group" aria-label="Move and turn">
+                    <button type="button" id="t-left" aria-label="Move left">◀</button>
+                    <button type="button" id="t-right" aria-label="Move right">▶</button>
+                    <button type="button" id="t-ccw" aria-label="Turn counterclockwise">⟲</button>
+                    <button type="button" id="t-cw" aria-label="Turn clockwise">⟳</button>
+                </div>
+                <div class="game-stage">
+                    <div class="arcade-box" id="cvbox">
+                        <canvas id="board" tabindex="0" role="application" aria-label="Block Drop well" aria-describedby="help"></canvas>
+                        <div class="game-overlay ov-start" id="overlay">
+                            <h2 id="ov-title">Block Drop</h2>
+                            <p id="ov-text"><kbd>←</kbd> <kbd>→</kbd> move, <kbd>↑</kbd> turn, <kbd>Space</kbd> drops, <kbd>C</kbd> holds. On a touch screen, use the buttons or drag and tap the well.</p>
+                            <div class="bd-btns">
+                                <button class="btn btn-primary" type="button" id="start">Start</button>
+                                <button class="btn btn-secondary" type="button" id="menu" hidden>Change mode</button>
+                                <button class="btn btn-secondary" type="button" id="sound">Sound on</button>
+                            </div>
+                            <div class="bd-choose" id="choose">
+                                <div class="bd-modes" role="group" aria-label="Mode">
+                                    <button class="btn btn-secondary btn-sm" type="button" data-mode="endless" aria-pressed="true">Endless</button>
+                                    <button class="btn btn-secondary btn-sm" type="button" data-mode="race" aria-pressed="false">40 lines</button>
+                                    <button class="btn btn-secondary btn-sm" type="button" data-mode="timed" aria-pressed="false">2 minutes</button>
+                                </div>
+                                <label id="start-level-row">Start level <select id="start-level"></select></label>
+                                <p class="bd-note" id="mode-note"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="touch-pad game-pad bd-pad bd-right" role="group" aria-label="Drop and hold">
+                    <button type="button" id="t-soft" class="wide" aria-label="Soft drop">▼</button>
+                    <button type="button" id="t-hold">Hold</button>
+                    <button type="button" id="t-drop" aria-label="Hard drop">Drop</button>
                 </div>
             </div>
         </div>
         <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
-        <div class="touch-pad bd-pad" role="group" aria-label="Touch controls">
-            <button type="button" id="t-left" aria-label="Move left">◀</button>
-            <button type="button" id="t-right" aria-label="Move right">▶</button>
-            <button type="button" id="t-ccw" aria-label="Turn counterclockwise">⟲</button>
-            <button type="button" id="t-cw" aria-label="Turn clockwise">⟳</button>
-            <button type="button" id="t-soft" class="wide" aria-label="Soft drop">▼</button>
-            <button type="button" id="t-hold">Hold</button>
-            <button type="button" id="t-drop" aria-label="Hard drop">Drop</button>
-        </div>
-        <p class="game-help" id="help"><strong>Keys:</strong> <kbd>←</kbd> <kbd>→</kbd> move (hold to slide), <kbd>↓</kbd> soft drop, <kbd>Space</kbd> hard drop, <kbd>↑</kbd> or <kbd>X</kbd> turn clockwise, <kbd>Z</kbd> turn counterclockwise, <kbd>C</kbd> or <kbd>Shift</kbd> hold, and <kbd>P</kbd> or <kbd>Esc</kbd> pause. <strong>Touch:</strong> use the buttons, or on the well drag sideways to move, tap to turn, drag down to soft drop, flick down to hard drop, and flick up to hold.</p>
+        <p class="game-help" id="help"><strong>Keys:</strong> <kbd>←</kbd> <kbd>→</kbd> move (hold to slide), <kbd>↓</kbd> soft drop, <kbd>Space</kbd> hard drop, <kbd>↑</kbd> or <kbd>X</kbd> turn clockwise, <kbd>Z</kbd> turn counterclockwise, <kbd>C</kbd> or <kbd>Shift</kbd> hold, <kbd>P</kbd> or <kbd>Esc</kbd> pause, <kbd>R</kbd> restart, and <kbd>M</kbd> sound on or off. <strong>Touch:</strong> use the buttons, or on the well drag sideways to move, tap to turn, drag down to soft drop, flick down to hard drop, and flick up to hold. The square button next to New game shows the game full screen.</p>
+        <p class="game-help"><strong>Modes:</strong> <em>Endless</em> goes on until the stack reaches the top, and the pieces fall faster every 10 lines. <em>40 lines</em> is a race: clear 40 lines as fast as you can, and your best time counts. <em>2 minutes</em> gives you two minutes to score as much as you can. Choose the mode and the starting level on the start screen, or pause and pick <em>Change mode</em>. 40 lines and 2 minutes always start at level 1, so every best time and score is set on the same footing. New game starts over in the same mode.</p>
         <p class="game-help"><strong>How to play:</strong> the pieces come in shuffled sets of all seven shapes, so you never wait more than 12 pieces for any shape. The outline at the bottom (the ghost) shows where the piece will land. Hold sets the current piece aside for later, once per piece. Clearing 1, 2, 3, or 4 rows at once scores 100, 300, 500, or 800 points times the level; a soft drop adds 1 point per row and a hard drop 2. The game ends when the stack reaches the top of the well.</p>
+        <details class="fold bd-fold bd-stats" id="stats-box">
+            <summary>Statistics</summary>
+            <div class="tbl"><table><thead><tr><th scope="col">Mode</th><th scope="col">Played</th><th scope="col">Best</th><th scope="col">Most lines</th></tr></thead><tbody id="stats"></tbody></table></div>
+            <p id="totals"></p>
+            <p>A game counts as played when it starts. Statistics and best scores stay in this browser.</p>
+            <p><button class="btn btn-secondary btn-sm" type="button" id="reset-stats">Reset statistics</button></p>
+        </details>
         <details class="fold bd-fold">
             <summary>Control settings</summary>
             <div class="bd-set">
@@ -157,7 +211,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const G = window.Games, $ = id => document.getElementById(id);
+    const G = window.Games, $ = id => document.getElementById(id), play = $('play');
     // Well: 10 columns × 22 rows, the top 2 hidden. Logical canvas units, with a side panel on each side, or on a
     // narrow screen one slim column on the right (Hold, Next, Level), which leaves room for a larger well.
     const COLS = 10, ROWS = 22, HIDDEN = 2, C = 30, PAD = 8, WY = PAD, WW = COLS * C, WH = (ROWS - HIDDEN) * C, H = WY + WH + PAD;
@@ -176,18 +230,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const LOCK_MS = 500, MAX_RESETS = 15, SOFT_MS = 40, CLEAR_MS = 280, QUEUE = 5;
     const LINE_PTS = [0, 100, 300, 500, 800], CLEAR_NAME = ['', 'Single', 'Double', 'Triple', 'Quad'];
     const DEFAULTS = { das: 160, arr: 40 };
+    // Modes: endless (until the stack tops out), a race to 40 lines (best time), and a 2-minute score attack.
+    const GOAL = 40, LIMIT = 120000;
+    const MODES = {
+        endless: { name: 'Endless', key: 'blocks-best', note: 'Clear lines as the pieces speed up. Play until the stack reaches the top.' },
+        race: { name: '40 lines', key: 'blocks-best-race', note: 'Clear 40 lines as fast as you can.' },
+        timed: { name: '2 minutes', key: 'blocks-best-timed', note: 'Score as much as you can in two minutes.' }
+    };
     const cv = $('board'), ctx = cv.getContext('2d'), view = { ctx, scale: 1 };
-    // Canvas sizing as in games.js (to the width of the game area and at most 74% of the window height), here with
-    // a logical width that follows the layout.
-    const cvBox = cv.parentElement, cvHost = cvBox.parentElement;
+    // Canvas sizing: the width of the game area and the height the play block leaves free (Games.space), with a
+    // logical width that follows the layout.
+    const cvBox = $('cvbox'), cvHost = cvBox.parentElement;
+    let sizeKey = '';
     function fit() {
         const avail = cvHost.clientWidth;
+        if (!avail) return false;
         lay = avail < NARROW_PX ? LAYOUTS.narrow : LAYOUTS.wide; WX = lay.WX; W = lay.W;
-        const maxH = Math.max(260, innerHeight * 0.74), dpr = Math.min(2, devicePixelRatio || 1);
-        const cssW = Math.max(200, Math.floor(Math.min(avail, maxH * W / H))), cssH = Math.round(cssW * H / W);
+        const room = Math.max(200, G.space(cvBox, play)), dpr = Math.min(2, devicePixelRatio || 1);
+        const cssW = Math.max(160, Math.floor(Math.min(avail, room * W / H))), cssH = Math.round(cssW * H / W), key = lay.name + cssW + 'x' + cssH + '@' + dpr;
+        if (key === sizeKey) return false;                // unchanged: keep the drawing (resizing a canvas clears it)
+        sizeKey = key;
         cvBox.style.width = cssW + 'px'; cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px';
         cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
         view.scale = cv.width / W;
+        return true;
     }
     view.begin = () => ctx.setTransform(view.scale, 0, 0, view.scale, 0, 0);
     fit();
@@ -218,8 +284,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let board = emptyBoard(), bag = [], queue = [], cur = null, hold = null, holdUsed = false;
     let score = 0, lines = 0, level = 1, startLevel = 1, state = 'title', paused = false, overAt = 0;
-    let fallAcc = 0, lockT = 0, lockResets = 0, lowest = 0, clearing = null, banner = null, trail = null;
-    let best = +G.get('blocks-best', 0) || 0, srFlip = false;
+    let fallAcc = 0, lockT = 0, lockResets = 0, lowest = 0, clearing = null, banner = null, trail = null, srFlip = false;
+    let mode = MODES[G.get('blocks-mode', 'endless')] ? G.get('blocks-mode', 'endless') : 'endless';
+    let playMs = 0, finishMs = 0, prevBest = 0, bestShown = false, hotT = 0;
+    const bests = {};
+    for (const m in MODES) bests[m] = Math.max(0, +G.get(MODES[m].key, 0) || 0);
+    const STATS0 = () => ({ endless: { games: 0, lines: 0, level: 0 }, race: { games: 0, finished: 0, lines: 0 }, timed: { games: 0, lines: 0 }, total: { lines: 0, quads: 0, pieces: 0 } });
+    const stats = STATS0();
+    { const s = G.getJSON('blocks-stats'); if (s && typeof s === 'object') for (const k in stats) Object.assign(stats[k], s[k] || {}); }
     const settings = {
         das: clampNum(+G.get('blocks-das', DEFAULTS.das), 50, 300, DEFAULTS.das),
         arr: clampNum(+G.get('blocks-arr', DEFAULTS.arr), 0, 100, DEFAULTS.arr),
@@ -238,6 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function takeNext() { const t = queue.shift(); while (queue.length < QUEUE) queue.push(fromBag()); return t; }
     const gravityMs = lv => Math.max(1000 / 60, 1000 * Math.pow(0.82, Math.min(lv, 20) - 1));
+    const clock = (ms, tenths) => { const s = Math.max(0, ms) / 1000, m = Math.floor(s / 60), r = s - m * 60; return m + ':' + (tenths ? r.toFixed(1).padStart(4, '0') : String(Math.floor(r)).padStart(2, '0')); };
+    const fmtBest = m => !bests[m] ? '—' : m === 'race' ? clock(bests[m], true) : G.fmt(bests[m]);
 
     function fits(t, r, x, y) {
         for (const [cx, cy] of SHAPES[t].rot[r]) {
@@ -292,83 +366,143 @@ document.addEventListener('DOMContentLoaded', () => {
         G.tone(420, 300, 0.07, 'sine', 0.03);
         const next = hold || takeNext(); hold = t; spawn(next);
     }
-    function addScore(n) { score += n; hud(); }
+    function addScore(n) { score += n; checkBest(); hud(); }
+    // A new best in the middle of a game (endless and 2 minutes): light up the Best chip once and say so.
+    function checkBest() {
+        if (bestShown || mode === 'race' || prevBest <= 0 || score <= prevBest) return;
+        bestShown = true; hotT = 2200; $('chip-best').classList.add('hot');
+        if (banner) banner.sub += ' · New best'; else banner = { text: 'New best', sub: G.fmt(score), life: 1100 };
+        setTimeout(() => G.tone(784, 1568, 0.18, 'triangle', 0.03), 120);
+        say('New best score.');
+    }
 
     function lock() {
         for (const [cx, cy] of SHAPES[cur.t].rot[cur.r]) board[cur.y + cy][cur.x + cx] = cur.t;
-        cur = null; holdUsed = false;
+        cur = null; holdUsed = false; stats.total.pieces++;
         const full = [];
         for (let y = 0; y < ROWS; y++) if (board[y].every(Boolean)) full.push(y);
         if (!full.length) { G.noise(0.05, 0.04, 600); return afterLock(); }
         const n = full.length, before = level, pts = LINE_PTS[n] * level;
         score += pts; lines += n; level = startLevel + Math.floor(lines / 10);
+        stats.total.lines += n; if (n === 4) stats.total.quads++;
         clearing = { rows: full, t: 0 };
         banner = { text: CLEAR_NAME[n], sub: '+' + G.fmt(pts), life: 1100 };
         [523, 659, 784, 1046].slice(0, n).forEach((f, k) => setTimeout(() => G.tone(f, f * 1.01, 0.12, 'square', 0.03), k * 70));
         let msg = CLEAR_NAME[n] + ': ' + n + (n > 1 ? ' lines' : ' line') + ' cleared.';
-        if (level > before) {
+        if (mode === 'race' && lines >= GOAL && !finishMs) finishMs = Math.max(1, playMs);   // the race ends with this clear
+        else if (level > before) {
             msg += ' Level ' + level + '.';
             banner.sub += ' · Level ' + level;
             setTimeout(() => G.tone(660, 1320, 0.25, 'square', 0.03), 320);
         }
-        say(msg + ' ' + G.fmt(lines) + ' lines, score ' + G.fmt(score) + '.');
+        checkBest();
+        say(msg + ' ' + (mode === 'race' ? Math.max(0, GOAL - lines) + ' to go.' : G.fmt(lines) + ' lines, score ' + G.fmt(score) + '.'));
         hud();
     }
     function finishClear() {
         for (const y of clearing.rows) { board.splice(y, 1); board.unshift(new Array(COLS).fill('')); }   // rows in ascending order
         clearing = null;
+        if (finishMs) return endGame('done');
         afterLock();
     }
     function afterLock() {                            // blocks left above the top of the well end the game
         for (let y = 0; y < HIDDEN; y++) if (board[y].some(Boolean)) return gameOver();
         spawn(takeNext());
     }
-    function gameOver() {
+    function gameOver() { endGame('over'); }
+    // kind: 'over' (the stack reached the top), 'done' (40 lines cleared), or 'time' (2 minutes are up)
+    function endGame(kind) {
         state = 'over'; paused = false; overAt = performance.now(); clearInput();
-        const record = score > best && score > 0;
-        saveBest();
-        $('ov-title').textContent = 'Game over';
-        $('ov-text').textContent = 'Score ' + G.fmt(score) + ', ' + G.fmt(lines) + (lines === 1 ? ' line' : ' lines') + ', level ' + level + (record ? ' — a new best!' : '. Best ' + G.fmt(best) + '.');
-        $('start').textContent = 'Play again'; $('overlay').hidden = false;
+        const st = stats[mode]; st.lines = Math.max(st.lines || 0, lines);
+        if (mode === 'endless') st.level = Math.max(st.level || 0, level);
+        let record = false, title = 'Game over', text;
+        if (mode === 'race') {
+            if (kind === 'done') {
+                st.finished = (st.finished || 0) + 1;
+                record = !bests.race || finishMs < bests.race;
+                if (record) { bests.race = finishMs; G.set(MODES.race.key, Math.round(finishMs)); }
+                title = 'Finished!';
+                text = '40 lines in ' + clock(finishMs, true) + (record ? ', a new best!' : '. Best ' + fmtBest('race') + '.');
+            } else text = 'The stack reached the top after ' + G.fmt(lines) + (lines === 1 ? ' line' : ' lines') + ' of 40.' + (bests.race ? ' Best ' + fmtBest('race') + '.' : '');
+        } else {
+            record = score > bests[mode] && score > 0;
+            saveBest();
+            if (kind === 'time') title = 'Time!';
+            text = 'Score ' + G.fmt(score) + ', ' + G.fmt(lines) + (lines === 1 ? ' line' : ' lines') + (mode === 'endless' ? ', level ' + level : '') + (record ? ', a new best!' : bests[mode] ? '. Best ' + fmtBest(mode) + '.' : '.');
+        }
+        saveStats(); renderStats();
+        showOverlay(title, text, 'Play again', true);
         $('pause').disabled = true; $('pause').textContent = 'Pause';
-        say('Game over. ' + $('ov-text').textContent);
-        G.tone(392, 98, 0.7, 'sawtooth', 0.035);
+        say(title + ' ' + text);
+        if (record || kind === 'done') [523, 659, 784, 1046, 1318].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.16, 'triangle', 0.03), k * 90));
+        else G.tone(392, 98, 0.7, 'sawtooth', 0.035);
         hud(); draw();
     }
-    function saveBest() { if (score > best) { best = score; G.set('blocks-best', best); } }
+    function saveBest() { if (mode !== 'race' && score > bests[mode]) { bests[mode] = score; G.set(MODES[mode].key, score); } }
+    const saveStats = () => G.setJSON('blocks-stats', stats);
 
-    function newGame() {
-        G.audio(); saveBest();
+    function showOverlay(title, text, startLabel, choose) {
+        $('ov-title').textContent = title; $('ov-text').textContent = text;
+        $('start').textContent = startLabel; $('choose').hidden = !choose; $('menu').hidden = choose;
+        $('overlay').classList.toggle('ov-start', startLabel === 'Start');
+        $('overlay').hidden = false;
+    }
+    function setMode(m) {
+        if (!MODES[m] || state === 'play') return;      // the mode buttons show only between games
+        mode = m; G.set('blocks-mode', m);
+        document.querySelectorAll('.bd-modes button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m ? 'true' : 'false'));
+        $('mode-note').textContent = MODES[m].note;
+        $('start-level-row').hidden = m !== 'endless';    // 40 lines and 2 minutes always start at level 1
+        if (state !== 'play') { resetBoard(); hud(); draw(); }
+    }
+    function resetBoard() {
         board = emptyBoard(); bag = []; queue = []; while (queue.length < QUEUE) queue.push(fromBag());
-        hold = null; holdUsed = false; score = 0; lines = 0; startLevel = +$('start-level').value || 1; level = startLevel;
-        clearing = null; banner = null; trail = null; clearInput();
+        hold = null; holdUsed = false; score = 0; lines = 0; startLevel = mode === 'endless' ? +$('start-level').value || 1 : 1; level = startLevel;
+        clearing = null; banner = null; trail = null; playMs = 0; finishMs = 0; cur = null;
+    }
+    function newGame() {
+        G.audio(); if (state === 'play') saveBest();
+        resetBoard(); clearInput();
+        prevBest = mode === 'race' ? 0 : bests[mode]; bestShown = false; hotT = 0; $('chip-best').classList.remove('hot');
+        stats[mode].games++; saveStats(); renderStats();
         state = 'play'; paused = false;
         $('overlay').hidden = true; $('pause').disabled = false; $('pause').textContent = 'Pause';
-        spawn(takeNext()); hud(); wake(); cv.focus({ preventScroll: true }); showStage();
-        say('New game, level ' + level + '.');
+        spawn(takeNext()); hud(); if (fit()) draw();     // size the well for the new chips now, so the scroll below sees the final size
+        wake(); cv.focus({ preventScroll: true }); G.reveal(play);
+        say('New game, ' + MODES[mode].name + ', level ' + level + '.');
     }
-    function showStage() {                            // scroll just enough to show the whole well (and the touch buttons) below the sticky header
-        const pad = document.querySelector('.bd-pad'), last = getComputedStyle(pad).display !== 'none' ? pad : cv;
-        const head = document.querySelector('.site-header'), top = cv.getBoundingClientRect().top - (head ? head.offsetHeight : 0) - 8;
-        const dy = top < 0 ? top : Math.min(top, last.getBoundingClientRect().bottom + 8 - innerHeight);
-        if (dy > 0 || top < 0) window.scrollBy({ top: dy, behavior: 'instant' });
+    function toMenu() {                               // abandon the game in progress and show the start screen
+        if (state === 'play') saveBest();
+        state = 'title'; paused = false; clearInput(); resetBoard();
+        $('pause').disabled = true; $('pause').textContent = 'Pause';
+        showOverlay('Block Drop', 'Pick a mode and a starting level.', 'Start', true);
+        hud(); draw();
+        document.querySelector('.bd-modes button[aria-pressed="true"]').focus({ preventScroll: true });
     }
     function setPause(p) {
         if (state !== 'play' || paused === p) return;
         paused = p; clearInput();
         $('pause').textContent = p ? 'Resume' : 'Pause';
         if (p) {
-            $('ov-title').textContent = 'Paused'; $('ov-text').textContent = 'Press P or Esc, or the button, to carry on.';
-            $('start').textContent = 'Resume'; $('overlay').hidden = false;
-            say('Paused. Level ' + level + ', ' + G.fmt(lines) + ' lines, score ' + G.fmt(score) + '.');
+            showOverlay('Paused', 'Press P or Esc, or the button, to carry on.', 'Resume', false);
+            say('Paused. ' + (mode === 'race' ? G.fmt(lines) + ' of 40 lines, ' + clock(playMs) + '.' : 'Level ' + level + ', ' + G.fmt(lines) + ' lines, score ' + G.fmt(score) + '.'));
         } else { $('overlay').hidden = true; say('Resumed.'); cv.focus({ preventScroll: true }); wake(); }
         draw();
     }
+    // Score chips: what matters in each mode. Only changed text is written (this runs every frame in a timed mode).
+    const shown = {};
+    function put(id, text) { if (shown[id] !== text) { shown[id] = text; $(id).textContent = text; } }
     function hud() {
-        $('score').textContent = G.fmt(score); $('lines').textContent = G.fmt(lines); $('level').textContent = level;
-        $('best').textContent = G.fmt(Math.max(best, score));
+        if (mode === 'race') {
+            put('k1', 'Time'); put('v1', clock(finishMs || playMs, true)); put('k2', 'Lines'); put('v2', Math.min(lines, GOAL) + '/' + GOAL); put('k3', 'Level'); put('v3', String(level));
+        } else if (mode === 'timed') {
+            put('k1', 'Time'); put('v1', clock(Math.ceil((LIMIT - playMs) / 1000) * 1000)); put('k2', 'Score'); put('v2', G.fmt(score)); put('k3', 'Lines'); put('v3', G.fmt(lines));
+        } else {
+            put('k1', 'Score'); put('v1', G.fmt(score)); put('k2', 'Lines'); put('v2', G.fmt(lines)); put('k3', 'Level'); put('v3', String(level));
+        }
+        put('best', mode === 'race' || !Math.max(bests[mode], score) ? fmtBest(mode) : G.fmt(Math.max(bests[mode], score)));
     }
-    function say(msg) { srFlip = !srFlip; $('sr').textContent = msg + (srFlip ? ' ' : ''); }   // the flip re-announces a repeated message
+    function say(msg) { srFlip = !srFlip; $('sr').textContent = msg + (srFlip ? ' ' : ''); }   // the flip re-announces a repeated message
 
     // Input: held directions with auto-repeat (a delay, then one cell per interval), soft drop while held.
     function pressDir(d) {
@@ -395,6 +529,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function update(ms) {
         if (state !== 'play' || paused) return;
+        if (!finishMs) playMs += ms;
+        if (hotT > 0 && (hotT -= ms) <= 0) $('chip-best').classList.remove('hot');
+        if (mode !== 'endless') hud();
+        if (mode === 'timed' && playMs >= LIMIT) { playMs = LIMIT; endGame('time'); return; }
         if (banner && (banner.life -= ms) <= 0) banner = null;
         if (trail && (trail.life -= ms) <= 0) trail = null;
         autoShift(ms);
@@ -430,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const c = bgx; c.setTransform(view.scale, 0, 0, view.scale, 0, 0);
         c.fillStyle = pal.bg; c.fillRect(0, 0, W, H);
         roundBox(c, lay.hold.x, lay.hold.y, lay.PW, lay.hold.h, 'Hold');
-        roundBox(c, lay.level.x, lay.level.y, lay.PW, lay.level.h, 'Level');
+        roundBox(c, lay.level.x, lay.level.y, lay.PW, lay.level.h, '');      // its label depends on the mode
         roundBox(c, lay.next.x, lay.next.y, lay.PW, lay.next.h, 'Next');
         c.fillStyle = pal.well; c.fillRect(WX, WY, WW, WH);
         c.beginPath();
@@ -450,6 +588,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const b = SHAPES[t].box, ox = cx - (b.x1 - b.x0 + 1) * s / 2 - b.x0 * s, oy = cy - (b.y1 - b.y0 + 1) * s / 2 - b.y0 * s;
         for (const [x, y] of SHAPES[t].cells) block(t, ox + x * s, oy + y * s, s);
     }
+    // The third panel: the level and the lines to the next one, the lines left in a race, or the time left.
+    function panel() {
+        if (mode === 'race') { const left = Math.max(0, GOAL - lines), w = left === 1 ? 'line' : 'lines'; return { label: '40 lines', num: String(left), frac: Math.min(1, lines / GOAL), two: [w, 'to go'], one: w + ' to go' }; }
+        if (mode === 'timed') return { label: 'Time', num: clock(Math.ceil((LIMIT - playMs) / 1000) * 1000), frac: Math.min(1, playMs / LIMIT), two: ['level', String(level)], one: 'Level ' + level };
+        const into = lines % 10, togo = (10 - into) + (10 - into === 1 ? ' line' : ' lines');
+        return { label: 'Level', num: String(level), frac: into / 10, two: [togo, 'to go'], one: togo + ' to go' };
+    }
     const px = x => WX + x * C, py = y => WY + (y - HIDDEN) * C;
     function draw() {
         if (!pal) readPalette();
@@ -457,16 +602,18 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(bg, 0, 0);
         view.begin();
         // side panels
-        const PW = lay.PW, ho = lay.hold, lv = lay.level, nx = lay.next, lx = lv.x + PW / 2;
+        const PW = lay.PW, ho = lay.hold, lv = lay.level, nx = lay.next, lx = lv.x + PW / 2, pn = panel();
         if (hold) { ctx.globalAlpha = holdUsed ? 0.35 : 1; mini(hold, ho.x + PW / 2, ho.y + ho.cy, ho.s); ctx.globalAlpha = 1; }
         ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-        ctx.fillStyle = pal.text; ctx.font = '800 ' + lv.num + 'px ' + pal.font; ctx.fillText(String(level), lx, lv.y + lv.numY);
-        const into = lines % 10, bx = lv.x + 14, bw = PW - 28, by = lv.y + lv.barY, togo = (10 - into) + (10 - into === 1 ? ' line' : ' lines');
+        ctx.fillStyle = pal.text2; ctx.font = '600 18px ' + pal.font; ctx.fillText(pn.label, lx, lv.y + 26);
+        const numPx = Math.round(lv.num * (pn.num.length >= 4 ? 0.66 : pn.num.length === 3 ? 0.85 : 1));
+        ctx.fillStyle = pal.text; ctx.font = '800 ' + numPx + 'px ' + pal.font; ctx.fillText(pn.num, lx, lv.y + lv.numY);
+        const bx = lv.x + 14, bw = PW - 28, by = lv.y + lv.barY;
         ctx.fillStyle = pal.grid; ctx.beginPath(); ctx.roundRect(bx, by, bw, 10, 5); ctx.fill();
-        if (into) { ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.roundRect(bx, by, bw * into / 10, 10, 5); ctx.fill(); }
+        if (pn.frac > 0) { ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.roundRect(bx, by, Math.max(10, bw * pn.frac), 10, 5); ctx.fill(); }
         ctx.fillStyle = pal.text2; ctx.font = '500 ' + lv.font + 'px ' + pal.font;
-        if (lv.text.length > 1) { ctx.fillText(togo, lx, by + lv.text[0]); ctx.fillText('to go', lx, by + lv.text[1]); }
-        else ctx.fillText(togo + ' to go', lx, by + lv.text[0]);
+        if (lv.text.length > 1) { ctx.fillText(pn.two[0], lx, by + lv.text[0]); ctx.fillText(pn.two[1], lx, by + lv.text[1]); }
+        else ctx.fillText(pn.one, lx, by + lv.text[0]);
         queue.forEach((t, i) => mini(t, nx.x + PW / 2, nx.y + (i ? nx.y1 + i * nx.step : nx.y0), i ? nx.s : nx.s0));
         // well
         ctx.save(); ctx.beginPath(); ctx.rect(WX, WY, WW, WH); ctx.clip();
@@ -524,15 +671,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Frame loop: runs only while a game is in play (not paused, over, or in a hidden tab).
     let raf = 0, last = 0, firstFrame = true;
-    const stats = { frames: 0, sum: 0, worst: 0, slow: 0, work: 0, workMax: 0 };
+    const perf = { frames: 0, sum: 0, worst: 0, slow: 0, work: 0, workMax: 0 };
     function frame(t) {
         raf = 0;
         const dt = t - last; last = t;
-        if (!firstFrame) { stats.frames++; stats.sum += dt; stats.worst = Math.max(stats.worst, dt); if (dt > 20) stats.slow++; }
+        if (!firstFrame) { perf.frames++; perf.sum += dt; perf.worst = Math.max(perf.worst, dt); if (dt > 20) perf.slow++; }
         firstFrame = false;
         const w0 = performance.now();
         update(Math.min(50, Math.max(0, dt))); draw();
-        const w = performance.now() - w0; stats.work += w; stats.workMax = Math.max(stats.workMax, w);
+        const w = performance.now() - w0; perf.work += w; perf.workMax = Math.max(perf.workMax, w);
         if (state === 'play' && !paused) raf = requestAnimationFrame(frame);
     }
     function wake() { if (!raf) { last = performance.now(); firstFrame = true; raf = requestAnimationFrame(frame); } }
@@ -540,6 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Keyboard. Letters go by the key's label; arrows, Space, and Shift by position.
     const isField = el => el && el.matches && el.matches('input, select, textarea');
     const isControl = el => el && el.matches && el.matches('button, a, summary');
+    const canStart = () => state === 'title' || (state === 'over' && performance.now() - overAt > 700);
     document.addEventListener('keydown', e => {
         if (e.ctrlKey || e.metaKey || e.altKey || isField(e.target)) return;
         const k = e.key.length === 1 ? e.key.toLowerCase() : '', playing = state === 'play';
@@ -552,11 +700,14 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (e.code === 'Space') {
             if (e.repeat) { /* no repeated hard drops */ }
             else if (playing) hardDrop();
-            else if (state === 'title' || (state === 'over' && performance.now() - overAt > 700)) newGame();
+            else if (canStart()) newGame();
         }
         else if (k === 'c' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') { if (!e.repeat) doHold(); }
-        else if (k === 'p' || e.code === 'Escape') { if (!e.repeat) setPause(!paused); }
-        else if (e.code === 'Enter') { if (state === 'title' || (state === 'over' && performance.now() - overAt > 700)) newGame(); else handled = false; }
+        else if (e.code === 'Escape' && playing && paused && G.isFull(play)) handled = false;   // a second Esc leaves the full view; the game stays paused
+        else if (k === 'p' || e.code === 'Escape') { if (!e.repeat) setPause(!paused); if (!playing) handled = false; }
+        else if (k === 'r') { if (!e.repeat && (playing || canStart())) newGame(); else handled = false; }
+        else if (k === 'm') { if (!e.repeat) $('sound').click(); handled = false; }
+        else if (e.code === 'Enter') { if (canStart()) newGame(); else handled = false; }
         else handled = false;
         if (handled && (playing || state === 'play' || e.target === cv)) e.preventDefault();   // also when the key just started a game
     });
@@ -618,15 +769,17 @@ document.addEventListener('DOMContentLoaded', () => {
     cv.addEventListener('pointercancel', endGesture);
     cv.addEventListener('contextmenu', e => e.preventDefault());
 
-    // Buttons and settings
-    for (let i = 1; i <= 10; i++) $('start-level').add(new Option('Start level ' + i, String(i)));
+    // Buttons, mode, and settings
+    for (let i = 1; i <= 10; i++) $('start-level').add(new Option(String(i), String(i)));
     $('start-level').value = String(clampNum(+G.get('blocks-start', 1), 1, 10, 1));
-    $('start-level').addEventListener('change', () => G.set('blocks-start', $('start-level').value));
+    $('start-level').addEventListener('change', () => { G.set('blocks-start', $('start-level').value); if (state !== 'play') { resetBoard(); hud(); draw(); } });
+    document.querySelectorAll('.bd-modes button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
     $('start').addEventListener('click', () => { if (state === 'play' && paused) setPause(false); else newGame(); });
+    $('menu').addEventListener('click', toMenu);
     $('new').addEventListener('click', newGame);
     $('pause').addEventListener('click', () => { setPause(!paused); if (!paused) cv.focus({ preventScroll: true }); });
     G.soundButton($('sound'));
-    $('sound').addEventListener('click', () => { if (state === 'play' && !paused) cv.focus({ preventScroll: true }); });   // so Space keeps hard-dropping
+    G.fullButton($('full'));
     function showSettings() {
         $('das').value = settings.das; $('arr').value = settings.arr; $('ghost').checked = settings.ghost;
         $('das-out').textContent = settings.das + ' ms'; $('arr-out').textContent = settings.arr ? settings.arr + ' ms' : '0 ms (instant)';
@@ -639,31 +792,49 @@ document.addEventListener('DOMContentLoaded', () => {
         G.set('blocks-das', settings.das); G.set('blocks-arr', settings.arr); G.set('blocks-ghost', '1'); showSettings(); draw();
     });
     showSettings();
+    function renderStats() {
+        const row = (m, best, most) => '<tr><th scope="row">' + MODES[m].name + '</th><td>' + G.fmt(stats[m].games) + '</td><td>' + best + '</td><td>' + most + '</td></tr>';
+        $('stats').innerHTML = row('endless', fmtBest('endless'), G.fmt(stats.endless.lines) + (stats.endless.level ? ' (level ' + stats.endless.level + ')' : ''))
+            + row('race', fmtBest('race') + (stats.race.finished ? ' (' + G.fmt(stats.race.finished) + ' finished)' : ''), G.fmt(stats.race.lines))
+            + row('timed', fmtBest('timed'), G.fmt(stats.timed.lines));
+        const t = stats.total;
+        $('totals').textContent = 'All modes: ' + G.fmt(t.lines) + (t.lines === 1 ? ' line' : ' lines') + ' cleared, ' + G.fmt(t.quads) + ' four-line clears, and ' + G.fmt(t.pieces) + (t.pieces === 1 ? ' piece' : ' pieces') + ' placed.';
+    }
+    let resetArmed = null;
+    $('reset-stats').addEventListener('click', () => {
+        const btn = $('reset-stats');
+        if (!resetArmed) { btn.textContent = 'Click again to reset'; resetArmed = setTimeout(() => { resetArmed = null; btn.textContent = 'Reset statistics'; }, 4000); return; }
+        clearTimeout(resetArmed); resetArmed = null; btn.textContent = 'Reset statistics';
+        Object.assign(stats, STATS0()); for (const m in MODES) { bests[m] = 0; G.set(MODES[m].key, 0); }
+        saveStats(); renderStats(); hud(); say('Statistics reset.');
+    });
+    renderStats();
 
     // Pause when the tab is hidden or the window loses focus; keep the best score if the page closes mid-game.
     document.addEventListener('visibilitychange', () => { if (document.hidden) setPause(true); });
     window.addEventListener('blur', () => { clearInput(); setPause(true); });
-    window.addEventListener('pagehide', saveBest);
+    window.addEventListener('pagehide', () => { if (state === 'play') saveBest(); saveStats(); });
     const repaint = () => { readPalette(); draw(); };
     document.addEventListener('themechange', repaint);
     matchMedia('(prefers-color-scheme: dark)').addEventListener('change', repaint);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { bgKey = ''; draw(); });
+    // Refit whenever the room for the well may have changed (window, bar, pads, full screen); a new size or layout
+    // rebuilds the cached background.
+    G.watch([play, cvHost].concat(Array.from(play.children)), () => { if (fit()) draw(); });
 
-    let hostW = -1;
-    const refit = () => requestAnimationFrame(() => { fit(); draw(); });   // a new size or layout rebuilds the cached background
-    new ResizeObserver(() => { if (cvHost.clientWidth !== hostW) { hostW = cvHost.clientWidth; refit(); } }).observe(cvHost);
-    window.addEventListener('resize', refit);
-
-    hud(); draw();
+    setMode(mode); hud(); draw();
     window.__blocks = {
-        newGame, shift, rotate, hardDrop, softStep, doHold, pressDir, releaseDir, setPause, update, draw, input, settings, stats,
+        newGame, shift, rotate, hardDrop, softStep, doHold, pressDir, releaseDir, setPause, setMode, toMenu, update, draw, input, settings, perf, stats: perf, get gameStats() { return stats; }, bests,   // stats keeps its old meaning (frame timing)
         fromBag, gravityMs, KICKS, KICKS_I, SHAPES, get layout() { return lay.name; },
-        get state() { return { state, paused, score, lines, level, hold, holdUsed, queue: queue.slice(), cur: cur && { ...cur }, clearing: !!clearing, lockT, lockResets, best }; },
+        get state() { return { state, paused, mode, score, lines, level, playMs, finishMs, hold, holdUsed, queue: queue.slice(), cur: cur && { ...cur }, clearing: !!clearing, lockT, lockResets, best: bests[mode], bestShown }; },
         get board() { return board.map(r => r.map(c => c || '.').join('')); },
         setBoard(rows) { board = emptyBoard(); rows.forEach((s, i) => { const y = ROWS - rows.length + i; for (let x = 0; x < COLS; x++) board[y][x] = s[x] === '.' ? '' : s[x]; }); draw(); },
         setCur(t, r, x, y) { cur = { t, r: r || 0, x, y }; lowest = y; lockT = 0; lockResets = 0; fallAcc = 0; draw(); },
         setQueue(q) { queue = q.slice(); },
-        sim(ms, stepMs) { const s = stepMs || 1000 / 60; for (let t = 0; t < ms; t += s) update(s); draw(); }
+        setLines(n) { lines = n; level = startLevel + Math.floor(lines / 10); hud(); },
+        forceOver() { if (state === 'play') gameOver(); },
+        sim(ms, stepMs) { const s = stepMs || 1000 / 60; for (let t = 0; t < ms && (state === 'play'); t += s) update(s); draw(); },
+        fit: () => ({ w: cv.clientWidth, h: cv.clientHeight, layout: lay.name, overflow: G.overflow(play) }), revealPlay: () => G.reveal(play, true)
     };
 });
 </script>

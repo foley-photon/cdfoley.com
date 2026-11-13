@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hangman: Free Science &amp; Engineering Word Game</title>
-<meta name="description" content="Play Science Hangman free online: 309 science and engineering words in nine categories and three levels, each with a one-line definition. No ads.">
+<meta name="description" content="Play Science Hangman free online: 306 science and engineering words in nine categories and three levels, each with a definition, plus a daily word. No ads.">
 <link rel="canonical" href="https://cdfoley.com/games/hangman/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Hangman: science and engineering words">
-<meta property="og:description" content="Play Science Hangman free online: 309 science and engineering words in nine categories and three levels, each with a one-line definition. No ads.">
+<meta property="og:description" content="Play Science Hangman free online: 306 science and engineering words in nine categories and three levels, each with a definition, plus a daily word. No ads.">
 <meta property="og:url" content="https://cdfoley.com/games/hangman/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-hangman.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Science Hangman. Play Science Hangman free online: 309 science and engineering words in nine categories and three levels, each with a one-line definition. No ads.">
+<meta property="og:image:alt" content="Science Hangman. Play Science Hangman free online: 306 science and engineering words in nine categories and three levels, each with a definition, plus a daily word. No ads.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -23,34 +23,50 @@
 <script src="/assets/js/site.js"></script>
 <script src="/assets/js/games.js"></script>
 <style>
-    .hm-opts { margin-bottom: .8rem; }
-    .hm-opts label { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; color: var(--text-2); }
-    .hm { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 1.4rem; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.2rem; }
+    .hm-opts { align-items: center; }
+    .hm-day { font-size: .85rem; color: var(--text-2); }
+    .hm-day[hidden], .hm-opts select[hidden] { display: none; }
+    /* The word panel: the gallows (sized so the whole game fits the window) beside the word, or above it on a phone */
+    .hm { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1.2rem; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.2rem; }
     .hm:focus { outline: none; }
-    .hm svg { width: 100%; height: auto; color: var(--text); }
+    .hm svg { display: block; height: var(--art, 220px); width: auto; aspect-ratio: 200 / 220; color: var(--text); }
     .hm .part { opacity: 0; transition: opacity .25s; }
     .hm .part.on { opacity: 1; }
     .hm .x-eyes { display: none; } .hm.lost .x-eyes { display: inline; }
     .hm-cat { color: var(--muted); font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: .5rem; }
     .hm-word { display: flex; flex-wrap: wrap; column-gap: .9em; row-gap: .35em; font: 700 1.6rem/1.2 var(--mono); }
     .hm-word .grp { display: flex; gap: .25em; }
-    .hm-word .grp span { width: 1.3em; text-align: center; border-bottom: 3px solid var(--border-strong); min-height: 1.35em; }
+    .hm-word .grp span { width: 1.3em; text-align: center; border-bottom: 3px solid var(--border-input); min-height: 1.35em; }
     .hm-word .grp span.sep { width: .7em; border-bottom: 0; }
     .hm-word span.missed { color: var(--danger); text-decoration: underline dotted; text-underline-offset: .15em; }
-    .hm-clue { margin: .9rem 0 0; padding: .55rem .8rem; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: var(--radius-sm); color: var(--text-2); font-size: .95rem; }
-    .hm-result { margin-top: 1rem; padding: .8rem 1rem; border-radius: var(--radius-sm); background: var(--surface-2); }
-    .hm-result p { margin: .2rem 0 .6rem; color: var(--text-2); }
-    .hm-result .meta { font-size: .85rem; color: var(--muted); }
-    .hm-result strong.win { color: var(--ok); } .hm-result strong.loss { color: var(--danger); }
-    .kb { display: grid; gap: .35rem; margin-top: 1rem; }
+    .hm-clue { margin: .8rem 0 0; padding: .5rem .75rem; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: var(--radius-sm); color: var(--text-2); font-size: .92rem; }
+    /* The keyboard, and the result that takes its place (at least as tall, so nothing below moves) when a word is finished */
+    .kb { display: grid; gap: .35rem; }
+    .kb.away { display: none; }
     .kb-row { display: flex; justify-content: center; gap: .3rem; }
     .kb button { flex: 0 1 2.7rem; min-width: 0; height: 3rem; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 700 1rem var(--font); cursor: pointer; padding: 0; touch-action: manipulation; }
     .kb button:hover:not([aria-disabled="true"]) { border-color: var(--accent); }
     .kb button.hit { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
     .kb button.miss { opacity: .35; text-decoration: line-through; }
     .kb button[aria-disabled="true"] { cursor: default; }
+    .hm-result { min-height: var(--kbh, 0px); padding: .6rem .9rem; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface-2); }
+    .hm-result[hidden] { display: none; }
+    .hm-res-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem .8rem; }
+    .hm-res-top strong { font-size: 1.05rem; }
+    .hm-result strong.win { color: var(--ok); } .hm-result strong.loss { color: var(--danger); }
+    .hm-result p { margin: .4rem 0 0; color: var(--text-2); font-size: .93rem; line-height: 1.45; }
+    .hm-result .meta { font-size: .8rem; line-height: 1.35; color: var(--muted); }
+    @media (max-width: 620px) { .hm-result { padding: .5rem .75rem; } .hm-result p { margin-top: .3rem; font-size: .9rem; line-height: 1.4; } .hm-result .meta { font-size: .78rem; } }
+    @media (max-width: 620px) { .hm { grid-template-columns: minmax(0, 1fr); gap: .5rem; padding: .7rem .8rem; } .hm svg { margin: 0 auto; } }
+    @media (max-height: 560px) { .hm { padding: .45rem .8rem; gap: .9rem; } .hm-cat { margin-bottom: .25rem; } .hm-clue { margin-top: .4rem; padding: .3rem .6rem; font-size: .85rem; }
+        .kb { gap: .3rem; } .kb button { height: 2.5rem; } .hm-result { padding: .4rem .7rem; } .hm-result p { margin-top: .25rem; font-size: .86rem; } }
+    @media (pointer: coarse) { .game-play .btn-sm, .hm-opts select { min-height: 40px; } .game-full { min-width: 40px; } }
+    @media (prefers-reduced-motion: reduce) { .hm .part { transition: none; } }
+    .hm-below { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-top: 1rem; }
     .hm-stats { margin-top: 1.2rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); padding: .2rem .9rem; }
+    .hm-stats + .hm-stats { margin-top: .7rem; }
     .hm-stats summary { cursor: pointer; font-weight: 650; padding: .5rem 0; }
+    .hm-stats h3 { font-size: .95rem; margin: .9rem 0 .4rem; }
     .hm-nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr)); gap: .5rem; margin: .3rem 0 .9rem; }
     .hm-nums div { background: var(--surface-2); border-radius: var(--radius-sm); padding: .45rem .6rem; }
     .hm-nums b { display: block; font: 650 1.15rem var(--mono); color: var(--text); }
@@ -60,8 +76,10 @@
     .hm-table th:first-child, .hm-table td:first-child { text-align: left; }
     .hm-table thead th { color: var(--text-2); font-weight: 600; }
     .hm-stats .btn { margin: .8rem 0 .7rem; }
-    @media (max-width: 620px) { .hm { grid-template-columns: minmax(0, 1fr); } .hm svg { max-width: 170px; margin: 0 auto; display: block; } }
-    @media (prefers-reduced-motion: reduce) { .hm .part { transition: none; } }
+    .hm-gloss { margin: 0 0 .8rem; padding: 0; list-style: none; font-size: .9rem; }
+    .hm-gloss li { padding: .3rem 0; border-bottom: 1px solid var(--border); color: var(--text-2); }
+    .hm-gloss li b { color: var(--text); font-weight: 650; }
+    .hm-gloss-note { font-size: .88rem; color: var(--text-2); margin: .2rem 0 .6rem; }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -71,7 +89,7 @@
    "@type": "VideoGame",
    "name": "Science Hangman",
    "url": "https://cdfoley.com/games/hangman/",
-   "description": "Play Science Hangman free online: 309 science and engineering words in nine categories and three levels, each with a one-line definition. No ads.",
+   "description": "Play Science Hangman free online: 306 science and engineering words in nine categories and three levels, each with a definition, plus a daily word. No ads.",
    "genre": "Word game",
    "gamePlatform": "Web browser",
    "playMode": "SinglePlayer",
@@ -126,43 +144,50 @@
     <div class="game-shell" style="max-width:720px">
         <header class="page-head" style="margin-bottom:1rem">
             <h1>Science Hangman</h1>
-            <p class="lede">Guess the science or engineering word one letter at a time. Six wrong guesses and the round is lost. Every word comes with a one-line definition, so you learn something either way.</p>
+            <p class="lede">Guess the science or engineering word one letter at a time. Six wrong guesses and the round is lost. Every word comes with a one-line definition, so you learn something either way. Play by category and level, or try the daily word.</p>
         </header>
-        <div class="game-actions hm-opts">
-            <label>Category <select id="cat"></select></label>
-            <label>Level <select id="level"><option value="0">All levels</option><option value="1">Easy</option><option value="2">Medium</option><option value="3">Hard</option></select></label>
-            <button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button>
-        </div>
-        <div class="game-bar">
-            <div class="chips"><span class="chip">Streak<b id="streak">0</b></span><span class="chip">Best streak<b id="best">0</b></span><span class="chip">Wrong<b id="misses">0/6</b></span></div>
-            <div class="game-actions">
-                <button class="btn btn-secondary btn-sm" type="button" id="clue">Clue</button>
-                <button class="btn btn-secondary btn-sm" type="button" id="hint">Reveal letter</button>
-                <button class="btn btn-primary btn-sm" type="button" id="new">New word</button>
+        <div class="game-play" id="play">
+            <div class="game-actions hm-opts">
+                <select id="cat" aria-label="Daily word or category"></select>
+                <select id="level" aria-label="Level"><option value="0">All levels</option><option value="1">Easy</option><option value="2">Medium</option><option value="3">Hard</option></select>
+                <span class="hm-day" id="day" hidden></span>
+            </div>
+            <div class="game-bar">
+                <div class="chips"><span class="chip"><span id="streak-label">Streak</span><b id="streak">0</b></span><span class="chip"><span id="best-label">Best streak</span><b id="best">0</b></span><span class="chip">Wrong<b id="misses">0/6</b></span></div>
+                <div class="game-actions">
+                    <button class="btn btn-secondary btn-sm" type="button" id="clue">Clue</button>
+                    <button class="btn btn-secondary btn-sm" type="button" id="hint">Reveal letter</button>
+                    <button class="btn btn-primary btn-sm" type="button" id="new">New word</button>
+                    <button class="btn btn-secondary btn-sm game-full" type="button" id="full"></button>
+                </div>
+            </div>
+            <div class="hm" id="hm" tabindex="-1">
+                <svg viewBox="0 0 200 220" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round">
+                    <path d="M20 205H120M45 205V15H140V40" stroke-width="6"/>
+                    <path d="M45 50L75 15" stroke-width="4" opacity=".6"/>
+                    <circle class="part" cx="140" cy="60" r="20"/>
+                    <path class="part" d="M140 80V140"/>
+                    <path class="part" d="M140 96L114 122"/>
+                    <path class="part" d="M140 96L166 122"/>
+                    <path class="part" d="M140 140L118 178"/>
+                    <path class="part" d="M140 140L162 178"/>
+                    <g class="x-eyes" stroke-width="2.5"><path d="M131 53l6 6M137 53l-6 6M143 53l6 6M149 53l-6 6"/></g>
+                </svg>
+                <div>
+                    <div class="hm-cat" id="catlabel"></div>
+                    <div class="hm-word" id="word" role="img"></div>
+                    <p class="hm-clue" id="cluetext" hidden></p>
+                </div>
+            </div>
+            <div class="hm-dock">
+                <div class="kb" id="kb" role="group" aria-label="Letters"></div>
+                <div class="hm-result" id="result" role="region" aria-labelledby="res-title" hidden><div class="hm-res-top"><strong id="res-title"></strong><button class="btn btn-primary btn-sm" type="button" id="next">Next word</button></div><p id="res-def"></p><p class="meta" id="res-meta"></p></div>
             </div>
         </div>
-        <div class="hm" id="hm" tabindex="-1">
-            <svg viewBox="0 0 200 220" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round">
-                <path d="M20 205H120M45 205V15H140V40" stroke-width="6"/>
-                <path d="M45 50L75 15" stroke-width="4" opacity=".6"/>
-                <circle class="part" cx="140" cy="60" r="20"/>
-                <path class="part" d="M140 80V140"/>
-                <path class="part" d="M140 96L114 122"/>
-                <path class="part" d="M140 96L166 122"/>
-                <path class="part" d="M140 140L118 178"/>
-                <path class="part" d="M140 140L162 178"/>
-                <g class="x-eyes" stroke-width="2.5"><path d="M131 53l6 6M137 53l-6 6M143 53l6 6M149 53l-6 6"/></g>
-            </svg>
-            <div>
-                <div class="hm-cat" id="catlabel"></div>
-                <div class="hm-word" id="word" role="img"></div>
-                <p class="hm-clue" id="cluetext" hidden></p>
-                <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
-                <div class="hm-result" id="result" hidden><strong id="res-title"></strong><p id="res-def"></p><p class="meta" id="res-meta"></p><button class="btn btn-primary btn-sm" type="button" id="next">Next word</button></div>
-            </div>
-        </div>
-        <div class="kb" id="kb" role="group" aria-label="Letters"></div>
-        <p class="game-help"><strong>How to play.</strong> Type letters on your keyboard or tap them above. Stuck? <strong>Clue</strong> shows the word’s definition and <strong>Reveal letter</strong> fills in one letter; each costs one wrong guess, and neither can use up your last one. Press <kbd>Enter</kbd> for the next word. Pick a category and a level (Easy words are everyday science; Hard ones are specialist terms). Words you have not played yet come first. Your streak counts words solved in a row; skipping a word after you start guessing ends it.</p>
+        <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
+        <div class="hm-below"><button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button></div>
+        <p class="game-help"><strong>How to play.</strong> Type letters on your keyboard or tap them on the screen. Stuck? <strong>Clue</strong> shows the word’s definition and <strong>Reveal letter</strong> fills in one letter; each costs one wrong guess, and neither can use up your last one. Press <kbd>Enter</kbd> for the next word. Pick a category and a level (Easy words are everyday science; Hard ones are specialist terms). Words you have not played yet come first. Your streak counts words solved in a row; skipping a word after you start guessing ends it. The square button next to New word shows the game full screen.</p>
+        <p class="game-help"><strong>Daily word.</strong> Choose <em>Daily word</em> in the first menu for one word a day, the same for everyone, drawn from every category. You get one try; if you leave partway, your guesses are kept until midnight. Solve it on days in a row to build a daily streak, kept apart from your practice streak.</p>
         <details class="hm-stats" id="stats">
             <summary>Your stats</summary>
             <div class="hm-nums">
@@ -172,6 +197,13 @@
                 <div><b id="st-best">0</b><span>Best streak</span></div>
                 <div><b id="st-words">0</b><span>Different words solved</span></div>
             </div>
+            <h3>Daily word</h3>
+            <div class="hm-nums">
+                <div><b id="sd-played">0</b><span>Days played</span></div>
+                <div><b id="sd-won">0</b><span>Days solved</span></div>
+                <div><b id="sd-streak">0</b><span>Daily streak</span></div>
+                <div><b id="sd-best">0</b><span>Best daily streak</span></div>
+            </div>
             <table class="hm-table">
                 <caption class="visually-hidden">Different words solved in each category and level</caption>
                 <thead><tr><th scope="col">Category</th><th scope="col">Easy</th><th scope="col">Medium</th><th scope="col">Hard</th></tr></thead>
@@ -180,6 +212,11 @@
             <button class="btn btn-secondary btn-sm" type="button" id="reset">Reset stats</button>
             <p class="visually-hidden" id="st-note" aria-live="polite"></p>
         </details>
+        <details class="hm-stats" id="glossary">
+            <summary>Your word list (<span id="gl-count">0</span>)</summary>
+            <p class="hm-gloss-note">Every word you have solved, with its definition, by category.</p>
+            <div id="gl-list"></div>
+        </details>
     </div>
 </main>
 
@@ -187,7 +224,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const G = window.Games, $ = id => document.getElementById(id);
+    const G = window.Games, $ = id => document.getElementById(id), play = $('play');
     // [word, level (1 easy, 2 medium, 3 hard), definition]. A definition doubles as the Clue, so it never contains the word itself.
     const WORDS = {
         'Physics': [
@@ -285,7 +322,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ['OUTGASSING', 2, 'The release of gas that was dissolved in or stuck to a material, a main gas load in high vacuum.'],
             ['TURBOPUMP', 2, 'A high-vacuum pump whose rotor, spinning at tens of thousands of rpm, knocks gas molecules toward the exhaust.'],
             ['FLANGE', 2, 'A rim used to bolt two parts of a vacuum system together around a seal.'],
-            ['BAKEOUT', 2, 'Heating a vacuum system, often to 150–250 °C, to drive water vapor off its inner surfaces.'],
             ['ADSORPTION', 2, 'Molecules of a gas or liquid sticking to a surface, rather than soaking into the bulk.'],
             ['DESORPTION', 2, 'Molecules leaving a surface they were stuck to.'],
             ['CONDUCTANCE', 2, 'In vacuum work, how easily gas flows through a tube or opening, in liters per second.'],
@@ -295,7 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ['VIEWPORT', 2, 'A sealed window for looking or shining light into a vacuum chamber.'],
             ['FORELINE', 3, 'The line connecting a high-vacuum pump’s exhaust to the backing pump behind it.'],
             ['VIRTUAL LEAK', 3, 'Slow gas release from a trapped pocket inside the chamber, such as a sealed-off screw hole, that mimics air coming in.'],
-            ['GETTER', 3, 'A reactive material that removes gas by chemically binding it, such as the silvery barium film inside vacuum tubes.'],
             ['PIRANI', 3, 'A vacuum gauge, named for its inventor, that infers pressure from how fast gas carries heat away from a hot wire.'],
             ['ROUGHING', 3, 'The first stage of evacuation, from atmosphere down to the crossover pressure where a high-vacuum pump can take over.'],
             ['FEEDTHROUGH', 3, 'A sealed connector that carries electricity, motion, gas, or liquid through a vacuum wall.'],
@@ -327,7 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ['QUENCHING', 2, 'Cooling hot metal rapidly, often in water or oil, to lock in a hard structure.'],
             ['TOUGHNESS', 2, 'The energy a material can absorb before it fractures.'],
             ['AMORPHOUS', 2, 'Lacking long-range atomic order, as glass does.'],
-            ['TEMPERING', 3, 'Reheating hardened steel below its transformation range to trade some hardness for toughness.'],
             ['AUSTENITE', 3, 'The face-centered cubic form of iron, found in steel at high temperature and in many stainless steels.'],
             ['MARTENSITE', 3, 'A very hard, brittle phase that forms when steel is cooled too fast for carbon to diffuse out.'],
             ['SINTERING', 3, 'Bonding a powder into a solid by heating it below its melting point.'],
@@ -524,9 +558,10 @@ document.addEventListener('DOMContentLoaded', () => {
     for (const [cat, list] of Object.entries(WORDS)) list.forEach(([w, level, def]) => ALL.push({ word: w, level, def, cat }));
     const ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'], MAX = 6;
     const isL = ch => ch >= 'A' && ch <= 'Z';
-    let cur = null, word = '', guessed = new Set(), misses = 0, over = true, clueShown = false, deck = [], deckKey = '';
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    let cur = null, word = '', guessed = new Set(), misses = 0, over = true, clueShown = false, deck = [], deckKey = '', mode = 'practice', today = '';
     let streak = +G.get('hangman-streak', 0) || 0, best = +G.get('hangman-best', 0) || 0;
-    let stats = loadStats();
+    let stats = loadStats(), dstats = loadDailyStats();
 
     function loadStats() {
         const s = G.getJSON('hangman-stats'), ok = s && typeof s === 'object';
@@ -537,12 +572,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const saveStats = () => G.setJSON('hangman-stats', stats);
 
-    $('cat').innerHTML = '<option value="all">All categories</option>' + Object.keys(WORDS).map(c => '<option>' + c.replace('&', '&amp;') + '</option>').join('');
-    const savedCat = G.get('hangman-cat', 'all'); if (savedCat === 'all' || WORDS[savedCat]) $('cat').value = savedCat;
+    // ── Daily word ────────────────────────────────────────────────────────────────────────────
+    // One word a day, the same for everyone: day n of the calendar (local date) takes word n of a fixed shuffle of the
+    // whole list, so a word comes back only after every other word has had its day.
+    const EPOCH = Date.UTC(2026, 0, 1);
+    const dayKey = d => { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    const dayNumber = key => { const [y, m, d] = key.split('-').map(Number); return Math.round((Date.UTC(y, m - 1, d) - EPOCH) / 864e5); };
+    const ORDERED = (() => {
+        let s = 20261112;
+        const rnd = () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+        const a = ALL.slice().sort((x, y) => (x.word < y.word ? -1 : 1));
+        for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+        return a;
+    })();
+    const dailyWord = key => ORDERED[((dayNumber(key) % ORDERED.length) + ORDERED.length) % ORDERED.length];
+    function loadDailyStats() {   // last: the last day solved; done: the last day finished, solved or not
+        const s = G.getJSON('hangman-daily-stats'), ok = s && typeof s === 'object';
+        const n = v => (ok && Number.isFinite(+v) && +v >= 0 ? Math.floor(+v) : 0), k = v => (ok && typeof v === 'string' && /^\d{4}-\d\d-\d\d$/.test(v) ? v : '');
+        const out = { played: n(s && s.played), won: n(s && s.won), streak: n(s && s.streak), best: n(s && s.best), last: k(s && s.last), done: k(s && s.done) };
+        if (out.won > out.played) out.played = out.won;
+        return out;
+    }
+    const saveDailyStats = () => G.setJSON('hangman-daily-stats', dstats);
+    const dailyStreak = () => (dstats.last && dayNumber(dayKey()) - dayNumber(dstats.last) <= 1 ? dstats.streak : 0);   // it lasts while the last solve was today or yesterday
+    const saveDaily = () => { if (mode === 'daily') G.setJSON('hangman-daily', { day: today, guessed: [...guessed].join(''), misses, clue: clueShown }); };
+    const longDate = key => { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); };
+
+    $('cat').innerHTML = '<option value="daily">Daily word</option><option value="all">All categories</option>' + Object.keys(WORDS).map(c => '<option>' + esc(c) + '</option>').join('');
+    const savedCat = G.get('hangman-cat', 'all'); if (savedCat === 'all' || savedCat === 'daily' || WORDS[savedCat]) $('cat').value = savedCat;
     const savedLevel = G.get('hangman-level', '0'); if (/^[0-3]$/.test(savedLevel)) $('level').value = savedLevel;
     $('kb').innerHTML = ROWS.map(r => '<div class="kb-row">' + [...r].map(l => '<button type="button" data-l="' + l + '" aria-label="' + l + '">' + l + '</button>').join('') + '</div>').join('');
     G.soundButton($('sound'));
+    G.fullButton($('full'));
 
+    // The gallows shrinks or grows so the options, the bar, the word and the keyboard all fit the window at once
+    const art = $('hm').querySelector('svg'), narrow = matchMedia('(max-width: 620px)');
+    function sizeArt() {
+        const hm = $('hm'), room = G.space(hm), panel = hm.getBoundingClientRect().height, now = art.getBoundingClientRect().height;
+        if (!panel) return;
+        const want = Math.round(Math.max(64, Math.min(narrow.matches ? 190 : 220, now + room - panel)));
+        if (Math.abs(want - now) >= 1) hm.style.setProperty('--art', want + 'px');
+    }
+    G.watch([play, $('hm'), $('word'), $('cluetext'), $('kb'), $('result')], () => { fit(); sizeArt(); });
+
+    function applyCat() {
+        mode = $('cat').value === 'daily' ? 'daily' : 'practice';
+        $('level').hidden = mode === 'daily'; $('day').hidden = mode !== 'daily';
+        if (mode === 'daily') { today = dayKey(); $('day').textContent = longDate(today); }
+        $('streak-label').textContent = mode === 'daily' ? 'Daily streak' : 'Streak';
+        $('best-label').textContent = mode === 'daily' ? 'Best daily' : 'Best streak';
+        $('new').title = mode === 'daily' ? 'One daily word a day. Choose a category for more words.' : '';
+    }
     function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
     // Draw without replacement: words never played come first, then the rest, reshuffled when the deck runs out.
     function draw() {
@@ -556,18 +636,35 @@ document.addEventListener('DOMContentLoaded', () => {
         return deck.shift();
     }
     function markSeen() { if (!stats.seen.includes(word)) stats.seen.push(word); }
+    const hideResult = () => { $('result').hidden = true; $('kb').classList.remove('away'); };
     function newWord() {
         const refocus = document.activeElement === $('next');
-        cur = draw(); word = cur.word;
-        guessed = new Set(); misses = 0; over = false; clueShown = false;
-        $('result').hidden = true; $('cluetext').hidden = true; $('hm').classList.remove('lost');
-        render(); say('New word: ' + cur.cat + ', ' + LEVELS[cur.level].toLowerCase() + ', ' + describe() + '.');
-        if (refocus) $('hm').focus({ preventScroll: true });   // the Next button just hid itself; keep keyboard focus in the game
+        $('hm').classList.remove('lost'); hideResult();
+        if (mode === 'daily') startDaily();
+        else {
+            cur = draw(); word = cur.word;
+            guessed = new Set(); misses = 0; over = false; clueShown = false;
+            $('cluetext').hidden = true;
+            render(); say('New word: ' + cur.cat + ', ' + LEVELS[cur.level].toLowerCase() + ', ' + describe() + '.');
+        }
+        if (refocus && !over) $('hm').focus({ preventScroll: true });   // the Next button just hid itself; keep keyboard focus in the game
+    }
+    function startDaily() {
+        today = dayKey(); cur = dailyWord(today); word = cur.word;
+        const s = G.getJSON('hangman-daily'), same = !!(s && typeof s === 'object' && s.day === today && typeof s.guessed === 'string');
+        guessed = new Set(same ? [...s.guessed].filter(isL) : []);
+        clueShown = !!(same && s.clue);
+        const wrong = [...guessed].filter(l => !word.includes(l)).length;
+        misses = same ? Math.min(MAX, Math.max(wrong + (clueShown ? 1 : 0), Number.isFinite(+s.misses) ? Math.floor(+s.misses) : 0)) : 0;
+        over = dstats.done === today;
+        $('cluetext').textContent = 'Clue: ' + cur.def; $('cluetext').hidden = !clueShown || over;
+        if (over) showResult(dstats.last === today, false);
+        else { render(); say('Daily word for ' + longDate(today) + ': ' + describe() + '.' + (guessed.size ? ' Your guesses so far are kept.' : '')); }
     }
     const letterCount = () => [...word].filter(isL).length;
     function describe() { const n = word.split(' ').length; return (n > 1 ? n + ' words, ' : '') + letterCount() + ' letters'; }
     function render(final) {
-        $('catlabel').textContent = cur.cat + ' · ' + LEVELS[cur.level] + ' · ' + describe();
+        $('catlabel').textContent = (mode === 'daily' ? 'Daily word · ' : cur.cat + ' · ' + LEVELS[cur.level] + ' · ') + describe();
         const w = $('word');
         w.innerHTML = word.split(' ').map(g => '<span class="grp">' + [...g].map(ch => !isL(ch) ? '<span class="sep">' + ch + '</span>'
             : guessed.has(ch) ? '<span>' + ch + '</span>' : final ? '<span class="missed">' + ch + '</span>' : '<span></span>').join('') + '</span>').join('');
@@ -579,20 +676,22 @@ document.addEventListener('DOMContentLoaded', () => {
             b.classList.toggle('hit', hit); b.classList.toggle('miss', used && !hit);
             b.setAttribute('aria-label', l + (hit ? ', in the word' : used ? ', not in the word' : ''));
         });
-        $('misses').textContent = misses + '/' + MAX; $('streak').textContent = streak; $('best').textContent = best;
+        $('misses').textContent = misses + '/' + MAX;
+        $('streak').textContent = mode === 'daily' ? dailyStreak() : streak; $('best').textContent = mode === 'daily' ? dstats.best : best;
         $('hint').disabled = over || misses >= MAX - 1;
         $('clue').disabled = over || clueShown || misses >= MAX - 1;
+        $('new').disabled = mode === 'daily';
     }
     // Size the letters so a word stays on one line, even 15 letters on a phone; a long phrase may break between words
     function fit() {
-        const w = $('word'), rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16, avail = (w.clientWidth - 4) / rem;
+        const w = $('word'); if (!word || !w.clientWidth) return;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16, avail = (w.clientWidth - 4) / rem;
         const em = g => [...g].reduce((s, ch) => s + (isL(ch) ? 1.3 : 0.7), 0) + (g.length - 1) * 0.25;
         const gs = word.split(' '), whole = gs.reduce((s, g) => s + em(g), 0) + (gs.length - 1) * 0.9, longest = Math.max(...gs.map(em));
         let size = avail / whole;
         if (size < 1.1 && gs.length > 1) size = Math.min(1.35, avail / longest);
         w.style.fontSize = Math.max(0.6, Math.min(1.6, Math.floor(size * 100) / 100)) + 'rem';
     }
-    window.addEventListener('resize', fit);
     const pattern = () => word.split(' ').map(g => [...g].map(ch => (!isL(ch) ? 'hyphen' : guessed.has(ch) ? ch : 'blank')).join(' ')).join(', next word: ');
     const say = msg => { $('sr').textContent = msg; };
     function guess(l) {
@@ -606,27 +705,48 @@ document.addEventListener('DOMContentLoaded', () => {
     function check() {
         if ([...word].every(l => !isL(l) || guessed.has(l))) finish(true);
         else if (misses >= MAX) finish(false);
-        else render();
+        else { render(); saveDaily(); }
     }
-    const nice = () => DISPLAY[word] || word.charAt(0) + word.slice(1).toLowerCase();
+    const niceW = w => DISPLAY[w] || w.charAt(0) + w.slice(1).toLowerCase();
     function finish(won) {
         over = true;
         stats.played++; markSeen();
-        if (won) {
-            stats.won++; if (!stats.solved.includes(word)) stats.solved.push(word);
-            streak++; if (streak > best) { best = streak; G.set('hangman-best', best); }
-            [523, 659, 784].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.12, 'square', 0.03), k * 100));
-        } else { streak = 0; $('hm').classList.add('lost'); G.tone(300, 90, 0.5, 'sawtooth', 0.035); }
-        G.set('hangman-streak', streak); saveStats();
+        if (won && !stats.solved.includes(word)) stats.solved.push(word);
+        if (won) stats.won++;
+        let note = '';
+        if (mode === 'daily') {
+            dstats.played++; dstats.done = today;
+            if (won) { dstats.streak = dailyStreak() + 1; dstats.last = today; dstats.won++; if (dstats.streak > dstats.best) { dstats.best = dstats.streak; if (dstats.streak > 1) note = 'new best'; } }
+            else dstats.streak = 0;
+            saveDailyStats(); saveDaily();
+        } else {
+            if (won) { streak++; if (streak > best) { best = streak; G.set('hangman-best', best); if (streak > 1) note = 'new best'; } }
+            else streak = 0;
+            G.set('hangman-streak', streak);
+        }
+        saveStats();
+        if (won) [523, 659, 784].concat(note ? [1046] : []).forEach((f, k) => setTimeout(() => G.tone(f, f, 0.12, 'square', 0.03), k * 100));
+        else G.tone(300, 90, 0.5, 'sawtooth', 0.035);
+        showResult(won, true, note);
+        renderStats();
+    }
+    function showResult(won, fresh, note) {
+        $('hm').classList.toggle('lost', !won);
         render(!won);
         $('cluetext').hidden = true;
-        $('res-title').textContent = won ? 'Solved: ' + word : 'Out of guesses. The answer was ' + word + '.';
+        const daily = mode === 'daily', run = daily ? dailyStreak() : streak;
+        let title = won ? (daily ? 'Daily word solved!' : 'Solved!') : 'Out of guesses.';
+        if (won && note === 'new best') title += ' New best ' + (daily ? 'daily streak' : 'streak') + ': ' + run + '.';
+        else if (won && run > 1) title += ' ' + (daily ? 'Daily streak' : 'Streak') + ' ' + run + '.';
+        $('res-title').textContent = title;
         $('res-title').className = won ? 'win' : 'loss';
-        $('res-def').textContent = nice() + ': ' + cur.def;
-        $('res-meta').textContent = cur.cat + ' · ' + LEVELS[cur.level] + ' · ' + solvedCount() + ' of ' + ALL.length + ' words solved so far';
-        $('result').hidden = false; $('next').focus({ preventScroll: true });
-        say($('res-title').textContent + ' ' + $('res-def').textContent);
-        renderStats();
+        $('res-def').textContent = niceW(word) + ': ' + cur.def;
+        $('res-meta').textContent = daily ? longDate(today) + ' · a new daily word comes at midnight · ' + solvedCount() + ' of ' + ALL.length + ' words solved so far'
+            : cur.cat + ' · ' + LEVELS[cur.level] + ' · ' + solvedCount() + ' of ' + ALL.length + ' words solved so far';
+        $('next').textContent = daily ? 'Practice words' : 'Next word';
+        if (!$('kb').classList.contains('away')) $('result').style.setProperty('--kbh', $('kb').offsetHeight + 'px');
+        $('result').hidden = false; $('kb').classList.add('away');
+        if (fresh) { $('next').focus({ preventScroll: true }); say(title + ' ' + $('res-def').textContent); }
     }
     function hint() {
         if (over || misses >= MAX - 1) return;
@@ -651,40 +771,72 @@ document.addEventListener('DOMContentLoaded', () => {
         $('st-played').textContent = stats.played; $('st-won').textContent = stats.won;
         $('st-rate').textContent = stats.played ? Math.round(100 * stats.won / stats.played) + '%' : '–';
         $('st-best').textContent = best; $('st-words').textContent = solvedCount() + ' of ' + ALL.length;
+        $('sd-played').textContent = dstats.played; $('sd-won').textContent = dstats.won; $('sd-streak').textContent = dailyStreak(); $('sd-best').textContent = dstats.best;
         const solved = new Set(stats.solved);
-        $('st-cats').innerHTML = Object.keys(WORDS).map(c => '<tr><th scope="row">' + c.replace('&', '&amp;') + '</th>' + [1, 2, 3].map(lv => {
+        $('st-cats').innerHTML = Object.keys(WORDS).map(c => '<tr><th scope="row">' + esc(c) + '</th>' + [1, 2, 3].map(lv => {
             const list = ALL.filter(w => w.cat === c && w.level === lv);
             return '<td>' + list.filter(w => solved.has(w.word)).length + '/' + list.length + '</td>';
         }).join('') + '</tr>').join('');
+        renderGlossary();
     }
+    // Your word list: every word solved, with its definition, by category (built when the panel is open)
+    function renderGlossary() {
+        const solved = new Set(stats.solved.filter(w => known.has(w)));
+        $('gl-count').textContent = solved.size;
+        if (!$('glossary').open) return;
+        let html = '';
+        for (const c of Object.keys(WORDS)) {
+            const all = ALL.filter(w => w.cat === c), mine = all.filter(w => solved.has(w.word)).sort((a, b) => (a.word < b.word ? -1 : 1));
+            if (!mine.length) continue;
+            html += '<h3>' + esc(c) + ' <small>(' + mine.length + ' of ' + all.length + ')</small></h3><ul class="hm-gloss">' + mine.map(w => '<li><b>' + esc(niceW(w.word)) + '</b>: ' + esc(w.def) + '</li>').join('') + '</ul>';
+        }
+        $('gl-list').innerHTML = html || '<p class="hm-gloss-note">Solve a word and it shows up here.</p>';
+    }
+    $('glossary').addEventListener('toggle', renderGlossary);
     let resetArmed = 0;
     $('reset').addEventListener('click', () => {
         if (!resetArmed) { resetArmed = setTimeout(() => { resetArmed = 0; $('reset').textContent = 'Reset stats'; }, 4000); $('reset').textContent = 'Press again to reset'; $('st-note').textContent = 'Press again to erase your stats.'; return; }
         clearTimeout(resetArmed); resetArmed = 0;
         stats = { played: 0, won: 0, solved: [], seen: [] }; saveStats();
+        dstats = { played: 0, won: 0, streak: 0, best: 0, last: '', done: dstats.done }; saveDailyStats();   // today's daily word stays played
         streak = 0; best = 0; G.set('hangman-streak', 0); G.set('hangman-best', 0);
         $('reset').textContent = 'Reset stats'; $('st-note').textContent = 'Stats reset.';
-        deckKey = ''; renderStats(); $('streak').textContent = streak; $('best').textContent = best;
+        deckKey = ''; renderStats(); render(over && !$('result').hidden && $('hm').classList.contains('lost'));
     });
 
     $('kb').addEventListener('click', e => { const b = e.target.closest('button'); if (b && b.getAttribute('aria-disabled') !== 'true') guess(b.dataset.l); });
-    // Leaving a word after guessing on it counts as a loss and ends the streak
-    const abandon = () => { if (!over && guessed.size) { streak = 0; G.set('hangman-streak', 0); stats.played++; markSeen(); saveStats(); renderStats(); } };
-    $('new').addEventListener('click', () => { abandon(); newWord(); });
-    $('next').addEventListener('click', newWord);
+    // Leaving a practice word after guessing on it counts as a loss and ends the streak (a daily word keeps your guesses instead)
+    const abandon = () => { if (mode === 'practice' && !over && guessed.size) { streak = 0; G.set('hangman-streak', 0); stats.played++; markSeen(); saveStats(); renderStats(); } };
+    $('new').addEventListener('click', () => { if (mode === 'daily') return; abandon(); newWord(); G.reveal(play); });
+    $('next').addEventListener('click', () => {
+        if (mode === 'daily') { $('cat').value = 'all'; G.set('hangman-cat', 'all'); applyCat(); }
+        newWord(); G.reveal(play);
+    });
     $('hint').addEventListener('click', hint);
     $('clue').addEventListener('click', clue);
-    $('cat').addEventListener('change', () => { abandon(); G.set('hangman-cat', $('cat').value); newWord(); });
-    $('level').addEventListener('change', () => { abandon(); G.set('hangman-level', $('level').value); newWord(); });
+    $('cat').addEventListener('change', () => { abandon(); G.set('hangman-cat', $('cat').value); applyCat(); newWord(); G.reveal(play); });
+    $('level').addEventListener('change', () => { abandon(); G.set('hangman-level', $('level').value); newWord(); G.reveal(play); });
     document.addEventListener('keydown', e => {
         if (e.ctrlKey || e.metaKey || e.altKey || (e.target.matches && e.target.matches('input, select, textarea'))) return;
         const l = /^[a-z]$/i.test(e.key) ? e.key.toUpperCase() : /^Key[A-Z]$/.test(e.code) && e.key.length === 1 && e.key.charCodeAt(0) > 127 ? e.code.slice(3) : '';
         if (l) { e.preventDefault(); guess(l); }
-        else if (e.key === 'Enter' && over && !(e.target.matches && e.target.matches('button, a, summary'))) { e.preventDefault(); newWord(); }
+        else if (e.key === 'Enter' && over && !(e.target.matches && e.target.matches('button, a, summary'))) { e.preventDefault(); $('next').click(); }
     });
+    // A tap anywhere in the game brings all of it into view, like a typed letter does
+    play.addEventListener('click', () => G.reveal(play));
+    applyCat();
     renderStats();
     newWord();
-    window.__hangman = { WORDS, ALL, guess, hint, clue, newWord, get stats() { return stats; }, get state() { return { word, def: cur.def, category: cur.cat, level: cur.level, misses, over, streak, best, clueShown, guessed: [...guessed] }; } };
+    window.__hangman = {
+        WORDS, ALL, guess, hint, clue, newWord,
+        pick: w => { const e = ALL.find(x => x.word === w); if (!e) return false; if (mode === 'daily') { $('cat').value = 'all'; applyCat(); }
+            cur = e; word = e.word; guessed = new Set(); misses = 0; over = false; clueShown = false; $('hm').classList.remove('lost'); $('cluetext').hidden = true; hideResult(); render(); return true; },
+        daily: () => { $('cat').value = 'daily'; applyCat(); newWord(); },
+        dailyWord: key => dailyWord(key || dayKey()).word,
+        get stats() { return stats; }, get dailyStats() { return { ...dstats, streak: dailyStreak(), today: dayKey() }; },
+        get state() { return { word, def: cur.def, category: cur.cat, level: cur.level, misses, over, streak, best, clueShown, guessed: [...guessed], mode }; },
+        fit: () => ({ art: Math.round(art.getBoundingClientRect().height), overflow: G.overflow(play) }), reveal: () => G.reveal(play, true)
+    };
 });
 </script>
 </body>

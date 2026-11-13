@@ -7,8 +7,9 @@
 .game-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
 .game-actions select { padding: 0.35rem 0.5rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: 0.85rem; }
 .game-stage { position: relative; }
-.game-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.7rem; text-align: center;
-    background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(2px); border-radius: var(--radius-lg); z-index: 50; padding: 1rem; }
+.game-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; justify-content: safe center; gap: 0.7rem; text-align: center;
+    background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(2px); border-radius: var(--radius-lg); z-index: 50; padding: 1rem;
+    overflow-y: auto; overscroll-behavior: contain; }   /* on a small board the message scrolls instead of spilling out */
 .game-overlay[hidden] { display: none; }
 .game-overlay h2 { margin: 0; font-size: 1.6rem; }
 .game-overlay p { margin: 0; color: var(--text-2); }
@@ -29,6 +30,52 @@
 .touch-pad button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 @media (pointer: coarse) { .touch-pad { display: grid; } }
 
+/* Fit layout. .game-play wraps everything needed while playing (options, score bar, board, touch pad), and games.js
+   (Games.fit, or Games.canvas in fit mode) sizes the board so that the whole block fits on screen at once, below
+   the sticky header. Games.reveal() scrolls it into view when a game starts. */
+.game-play { display: flex; flex-direction: column; gap: 0.6rem; }
+.game-play > .game-bar, .game-play > .game-actions { margin: 0; }           /* the block's gap spaces its rows */
+.game-play .game-bar { gap: 0.4rem 0.6rem; }
+.game-play .chips { gap: 0.35rem; }
+.game-play .chip { padding: 0.24rem 0.7rem; line-height: 1.4; }
+.game-play > .touch-pad, .game-play > .game-pad { width: 100%; margin: 0 auto; }
+.game-box { position: relative; margin: 0 auto; }                         /* a fitted board and the overlay over it */
+.game-full { padding-left: 0.5rem; padding-right: 0.5rem; }                /* the icon-only full screen button */
+/* On a short or narrow screen the site header scrolls away with the page on a game page, so the game can use the
+   whole window. */
+@media (max-height: 560px), (max-width: 600px) { body:has(.game-play) .site-header { position: relative; } }
+/* No scroll anchoring on a game page: when the score bar wraps to a second row, the play block grows downward
+   instead of the page scrolling the score out of view. */
+html:has(.game-play), body:has(.game-play) { overflow-anchor: none; }
+/* Full screen (Games.fullButton): the Fullscreen API, or where there is none (iPhone) a view that covers the window */
+.game-play:fullscreen { background: var(--bg); padding: 12px; overflow-y: auto; justify-content: center; justify-content: safe center; }
+.game-play:-webkit-full-screen { background: var(--bg); padding: 12px; overflow-y: auto; justify-content: center; }
+.game-play::backdrop { background: var(--bg); }
+.game-play.game-focus { position: fixed; inset: 0; z-index: 300; background: var(--bg); overflow-y: auto; justify-content: center; justify-content: safe center;
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
+.game-play:fullscreen > :not(.game-pad), .game-play.game-focus > :not(.game-pad) { width: min(100%, 60rem); align-self: center; }
+html.game-focus-on { overflow: hidden; }
+/* Short screens (a phone held sideways): tighter rows, smaller touch buttons, compact messages */
+@media (max-height: 560px) {
+    .game-play { gap: 0.4rem; }
+    .game-play:fullscreen { padding: 4px; }
+    .game-play.game-focus { padding: 4px max(4px, env(safe-area-inset-right)) 4px max(4px, env(safe-area-inset-left)); }
+    .touch-pad button { height: 48px; }
+    .game-overlay { gap: 0.45rem; padding: 0.6rem; }
+    .game-overlay h2 { font-size: 1.25rem; }
+    .game-overlay p { font-size: 0.9rem; line-height: 1.45; }
+}
+/* Board and touch pads: in a .game-row the pads (class game-pad) sit under the board, side by side; on a phone held
+   sideways they move beside it, a pad before the stage in the markup on the left and one after it on the right. */
+.game-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 0.5rem; }
+.game-row > .game-stage { order: -1; flex: 1 0 100%; min-width: 0; }
+.game-row > .game-pad { flex: 1 1 0; min-width: 0; max-width: 320px; }
+@media (orientation: landscape) and (max-height: 560px) {
+    .game-row { flex-wrap: nowrap; align-items: center; gap: 0.8rem; }
+    .game-row > .game-stage { order: 0; flex: 1 1 0; }
+    .game-row > .game-pad { flex: 0 0 auto; max-width: none; }   /* a pad built on fr columns needs a width here */
+}
+
 /* Games hub */
 .game-group { margin-top: 2.2rem; }
 .game-group > h2 { font-size: 1.25rem; margin: 0 0 0.9rem; }
@@ -36,3 +83,16 @@
 .game-card svg { width: 100%; height: auto; border-radius: var(--radius-sm); margin-bottom: 0.8rem; display: block; }
 .game-card h3 { margin-bottom: 0.3rem; }
 .game-card p { color: var(--text-2); font-size: 0.93rem; margin: 0; }
+
+/* Settings dialogs on a short screen (a phone held sideways): the options sit in two columns without their help
+   lines, so the whole dialog and its Done button fit without scrolling. */
+@media (max-height: 560px) {
+    dialog#settings-dlg { padding: 0.7rem 0.9rem 0.8rem; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 16px); }
+    dialog#settings-dlg[open]:has(> fieldset), dialog#settings-dlg[open]:has(> .ms-set) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.2rem; align-content: start; }
+    dialog#settings-dlg > h2, dialog#settings-dlg > .btn:last-child, dialog#settings-dlg > .ms-set { grid-column: 1 / -1; }
+    dialog#settings-dlg > .ms-set { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem 1.2rem; margin-bottom: 0.6rem; }
+    dialog#settings-dlg > h2 { margin-bottom: 0.4rem; font-size: 1.05rem; }
+    dialog#settings-dlg fieldset { margin-bottom: 0.4rem; }
+    dialog#settings-dlg small, dialog#settings-dlg fieldset > p, dialog#settings-dlg .ms-set p { display: none; }
+    dialog#settings-dlg > .btn:last-child { justify-self: start; position: sticky; bottom: 0; }
+}

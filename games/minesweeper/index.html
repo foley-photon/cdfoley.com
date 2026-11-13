@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Minesweeper: Free Online Game</title>
-<meta name="description" content="Play Minesweeper free online: beginner to expert and custom boards, a safe first click, optional no-guess boards, chording, and stats. No ads, no sign-up.">
+<meta name="description" content="Play Minesweeper free online: beginner to expert, custom, and a daily board. Safe first click, no-guess boards, hints, chording, and stats. No ads, no sign-up.">
 <link rel="canonical" href="https://cdfoley.com/games/minesweeper/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Minesweeper">
-<meta property="og:description" content="Play Minesweeper free online: beginner to expert and custom boards, a safe first click, optional no-guess boards, chording, and stats. No ads, no sign-up.">
+<meta property="og:description" content="Play Minesweeper free online: beginner to expert, custom, and a daily board. Safe first click, no-guess boards, hints, chording, and stats. No ads, no sign-up.">
 <meta property="og:url" content="https://cdfoley.com/games/minesweeper/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-minesweeper.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Minesweeper. Play Minesweeper free online: beginner to expert and custom boards, a safe first click, optional no-guess boards, chording, and stats. No ads, no sign-up.">
+<meta property="og:image:alt" content="Minesweeper. Play Minesweeper free online: beginner to expert, custom, and a daily board. Safe first click, no-guess boards, hints, chording, and stats. No ads, no sign-up.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -23,7 +23,9 @@
 <script src="/assets/js/site.js"></script>
 <script src="/assets/js/games.js"></script>
 <style>
-    .ms-scroll { overflow-x: auto; padding-bottom: 0.4rem; }
+    .ms-box { width: fit-content; max-width: 100%; }
+    .ms-scroll { overflow: auto; max-width: 100%; border-radius: var(--radius-sm); }
+    .ms-scroll.pan { overscroll-behavior: contain; }
     .ms-board { --cell: 30px; display: grid; gap: 2px; width: max-content; margin: 0 auto; padding: 8px; background: var(--border); border-radius: var(--radius-sm); user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
     .ms-board button { width: var(--cell); height: var(--cell); border: 0; border-radius: 4px; padding: 0; font: 700 calc(var(--cell) * 0.52) var(--mono); line-height: 1; cursor: pointer; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
         background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, var(--surface)) 0%, color-mix(in srgb, var(--accent) 34%, var(--surface)) 100%); color: var(--text); }
@@ -36,18 +38,25 @@
     .ms-board button.boom { background: var(--danger); color: #fff; }
     .ms-board button.wrong { background: var(--warn-soft); color: var(--danger); }
     .ms-board button.q { color: var(--text-2); }
-    .n1 { color: #2563eb !important; } .n2 { color: #16a34a !important; } .n3 { color: #dc2626 !important; } .n4 { color: #1e3a8a !important; }
+    .ms-board button.hint { box-shadow: inset 0 0 0 3px var(--ok); position: relative; z-index: 1; animation: ms-hint 1s ease-in-out 3; }
+    @keyframes ms-hint { 50% { box-shadow: inset 0 0 0 3px var(--ok), 0 0 0 3px color-mix(in srgb, var(--ok) 45%, transparent); } }
+    @media (prefers-reduced-motion: reduce) { .ms-board button.hint { animation: none; } }
+    .n1 { color: #2563eb !important; } .n2 { color: #15803d !important; } .n3 { color: #dc2626 !important; } .n4 { color: #1e3a8a !important; }
     .n5 { color: #9a3412 !important; } .n6 { color: #0e7490 !important; } .n7 { color: var(--text) !important; } .n8 { color: var(--muted) !important; }
     :root[data-theme="dark"] .n1 { color: #60a5fa !important; } :root[data-theme="dark"] .n2 { color: #4ade80 !important; } :root[data-theme="dark"] .n3 { color: #f87171 !important; } :root[data-theme="dark"] .n4 { color: #a5b4fc !important; } :root[data-theme="dark"] .n5 { color: #fdba74 !important; } :root[data-theme="dark"] .n6 { color: #22d3ee !important; }
     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .n1 { color: #60a5fa !important; } :root:not([data-theme="light"]) .n2 { color: #4ade80 !important; } :root:not([data-theme="light"]) .n3 { color: #f87171 !important; } :root:not([data-theme="light"]) .n4 { color: #a5b4fc !important; } :root:not([data-theme="light"]) .n5 { color: #fdba74 !important; } :root:not([data-theme="light"]) .n6 { color: #22d3ee !important; } }
     .face { font-size: 1.2rem; line-height: 1; padding: 0.3rem 0.6rem; }
-    .ms-custom { display: flex; flex-wrap: wrap; align-items: end; gap: 0.6rem; margin: -0.2rem 0 0.8rem; font-size: 0.85rem; color: var(--text-2); }
+    .ms-icon { padding-left: 0.5rem; padding-right: 0.5rem; }
+    .ms-custom { display: flex; flex-wrap: wrap; align-items: end; justify-content: center; gap: 0.6rem; font-size: 0.85rem; color: var(--text-2); }
     .ms-custom[hidden] { display: none; }
     .ms-custom label { display: grid; gap: 0.15rem; }
     .ms-custom input { width: 5.2rem; padding: 0.3rem 0.45rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: 0.9rem; }
-    .ms-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.4rem 0.8rem; min-height: 2.2rem; margin: -0.2rem 0 0.5rem; text-align: center; }
-    .ms-status p { margin: 0; font-weight: 600; color: var(--text); }
-    .ms-opts { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; justify-content: center; margin-top: 0.8rem; }
+    .ms-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.3rem 0.8rem; min-height: 2.2rem; text-align: center; }
+    .ms-status p { margin: 0; font-weight: 600; font-size: 0.95rem; color: var(--text); }
+    .ms-status p.win { color: var(--ok); }
+    .ms-status p.lose { color: var(--danger); }
+    .ms-status p.muted { color: var(--text-2); font-weight: 500; }
+    .ms-pause { background: var(--surface); backdrop-filter: none; border-radius: var(--radius-sm); }
     .ms-stats { max-width: 760px; margin: 1.2rem auto 0; }
     .ms-stats .tbl { overflow-x: auto; }
     .ms-stats table { width: 100%; border-collapse: collapse; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
@@ -55,6 +64,14 @@
     .ms-stats th:first-child, .ms-stats td:first-child { text-align: left; }
     .ms-stats thead th { color: var(--text-2); font-weight: 600; }
     .ms-stats p { font-size: 0.85rem; color: var(--text-2); margin: 0.6rem 0; }
+    .ms-dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 1.1rem 1.1rem 1rem; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+    .ms-dialog::backdrop { background: rgba(10, 15, 28, .55); }
+    .ms-dialog h2 { margin: 0 0 0.8rem; font-size: 1.2rem; }
+    .ms-set { display: grid; gap: 0.8rem; margin: 0 0 1rem; }
+    .ms-set .toggle { font-size: 0.95rem; color: var(--text); font-weight: 600; }
+    .ms-set p { margin: 0.15rem 0 0 1.55rem; font-size: 0.85rem; color: var(--text-2); }
+    @media (max-height: 560px) { .ms-long { display: none; } .ms-status:has(> p:empty):has(> #again[hidden]) { display: none; } }   /* a phone held sideways: every row counts */
+    @media (pointer: coarse) { .game-bar .btn, .game-bar select, .ms-custom input, .ms-custom .btn, .ms-status .btn { min-height: 40px; min-width: 40px; } .ms-set .toggle input { width: 20px; height: 20px; } }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -64,7 +81,7 @@
    "@type": "VideoGame",
    "name": "Minesweeper",
    "url": "https://cdfoley.com/games/minesweeper/",
-   "description": "Play Minesweeper free online: beginner to expert and custom boards, a safe first click, optional no-guess boards, chording, and stats. No ads, no sign-up.",
+   "description": "Play Minesweeper free online: beginner to expert, custom, and a daily board. Safe first click, no-guess boards, hints, chording, and stats. No ads, no sign-up.",
    "genre": "Puzzle",
    "gamePlatform": "Web browser",
    "playMode": "SinglePlayer",
@@ -121,87 +138,119 @@
             <h1>Minesweeper</h1>
             <p class="lede">Clear every square that doesn’t hide a mine. Each number counts the mines touching that square. Your first click is always safe, and it always opens an area.</p>
         </header>
-        <div class="game-bar">
-            <div class="chips"><span class="chip">Mines<b id="left">10</b></span><span class="chip">Time<b id="time">0</b></span><span class="chip">Best<b id="best">—</b></span></div>
-            <div class="game-actions">
-                <select id="level" aria-label="Board">
-                    <option value="beginner">Beginner · 9 × 9 · 10</option>
-                    <option value="intermediate">Intermediate · 16 × 16 · 40</option>
-                    <option value="expert">Expert · 30 × 16 · 99</option>
-                    <option value="custom">Custom…</option>
-                </select>
-                <button class="btn btn-secondary btn-sm" type="button" id="flagmode" aria-pressed="false">🚩 Flag mode</button>
-                <button class="btn btn-secondary btn-sm face" type="button" id="face" aria-label="New game">🙂</button>
+        <div class="game-play" id="play">
+            <div class="game-bar">
+                <div class="chips"><span class="chip">Mines<b id="left">10</b></span><span class="chip">Time<b id="time">0</b></span><span class="chip">Best<b id="best">—</b></span></div>
+                <div class="game-actions">
+                    <select id="level" aria-label="Board">
+                        <option value="beginner">Beginner 9 × 9</option>
+                        <option value="intermediate">Intermediate 16 × 16</option>
+                        <option value="expert">Expert 30 × 16</option>
+                        <option value="daily">Daily board</option>
+                        <option value="custom">Custom…</option>
+                    </select>
+                    <button class="btn btn-secondary btn-sm" type="button" id="flagmode" aria-pressed="false" aria-label="Flag mode"><span>🚩 Flag<span class="ms-long"> mode</span></span></button>
+                    <button class="btn btn-secondary btn-sm" type="button" id="hint" title="Show a square that must be safe (adds 10 seconds)">Hint</button>
+                    <button class="btn btn-secondary btn-sm" type="button" id="pause" disabled>Pause</button>
+                    <button class="btn btn-secondary btn-sm face" type="button" id="face" aria-label="New game" title="New game">🙂</button>
+                    <button class="btn btn-secondary btn-sm ms-icon" type="button" id="settings" aria-label="Settings" title="Settings" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button>
+                    <button class="btn btn-secondary btn-sm game-full" type="button" id="full"></button>
+                </div>
+            </div>
+            <form class="ms-custom" id="custom" novalidate hidden>
+                <label>Width<input type="number" id="cw" min="5" max="40" value="20" inputmode="numeric"></label>
+                <label>Height<input type="number" id="ch" min="5" max="30" value="12" inputmode="numeric"></label>
+                <label>Mines<input type="number" id="cm" min="1" max="231" value="40" inputmode="numeric"></label>
+                <button class="btn btn-secondary btn-sm" type="submit">Start</button>
+                <span id="custom-note">5–40 wide, 5–30 high.</span>
+            </form>
+            <div class="ms-status"><p id="msg" role="status" aria-live="polite"></p><button class="btn btn-primary btn-sm" type="button" id="again" hidden>Play again</button></div>
+            <div class="game-stage">
+                <div class="game-box ms-box" id="box">
+                    <div class="ms-scroll" id="scroll"><div class="ms-board" id="board" role="group" aria-label="Minesweeper board" aria-describedby="ms-keys"></div></div>
+                    <div class="game-overlay ms-pause" id="paused" hidden><h2>Paused</h2><p>The clock is stopped and the board is hidden.</p><button class="btn btn-primary" type="button" id="resume">Resume</button></div>
+                </div>
             </div>
         </div>
-        <form class="ms-custom" id="custom" novalidate hidden>
-            <label>Width<input type="number" id="cw" min="5" max="40" value="20" inputmode="numeric"></label>
-            <label>Height<input type="number" id="ch" min="5" max="30" value="12" inputmode="numeric"></label>
-            <label>Mines<input type="number" id="cm" min="1" max="231" value="40" inputmode="numeric"></label>
-            <button class="btn btn-secondary btn-sm" type="submit">Start</button>
-            <span id="custom-note">5–40 wide, 5–30 high.</span>
-        </form>
-        <div class="ms-status"><p id="msg" role="status" aria-live="polite"></p><button class="btn btn-primary btn-sm" type="button" id="again" hidden>Play again</button></div>
-        <div class="game-stage">
-            <div class="ms-scroll" id="scroll"><div class="ms-board" id="board" role="group" aria-label="Minesweeper board" aria-describedby="ms-keys"></div></div>
-        </div>
-        <div class="ms-opts">
-            <label class="toggle"><input type="checkbox" id="noguess"> No-guess boards</label>
-            <label class="toggle"><input type="checkbox" id="qmarks"> Question marks</label>
-            <label class="toggle"><input type="checkbox" id="chordclick" checked> Click a number to chord</label>
-        </div>
         <p class="visually-hidden" id="sr" aria-live="polite"></p>
-        <p class="game-help"><strong>Click</strong> or tap a square to reveal it. <strong>Right-click</strong> or <strong>long-press</strong> to flag a mine; with <em>Flag mode</em> on, a tap flags and a long-press reveals. When a number has all its mines flagged, click it to open its other neighbors at once (chording); a middle-click or both mouse buttons also chord. <span id="ms-keys">Keyboard: <kbd>Tab</kbd> to the board, arrow keys move, <kbd>Enter</kbd> or <kbd>Space</kbd> reveals, <kbd>F</kbd> flags, <kbd>C</kbd> chords.</span> The face starts a new game.</p>
-        <p class="game-help"><strong>No-guess boards</strong> can always be cleared by logic from your first click, with no 50/50 guesses. <strong>Question marks</strong> adds a “?” step after the flag, for squares you’re unsure of. The timer pauses while this tab is hidden.</p>
+        <p class="game-help"><strong>Click</strong> or tap a square to reveal it. <strong>Right-click</strong> or <strong>long-press</strong> to flag a mine; with <em>Flag mode</em> on, a tap flags and a long-press reveals. When a number has all its mines flagged, click it to open its other neighbors at once (chording); a middle-click or both mouse buttons also chord. <span id="ms-keys">Keyboard: <kbd>Tab</kbd> to the board, arrow keys move, <kbd>Enter</kbd> or <kbd>Space</kbd> reveals, <kbd>F</kbd> flags, <kbd>C</kbd> chords, <kbd>H</kbd> shows a hint, <kbd>P</kbd> pauses, and <kbd>N</kbd> starts a new game.</span> The face also starts a new game, and the square button shows the game full screen.</p>
+        <p class="game-help"><strong>Boards.</strong> Beginner has 10 mines, Intermediate 40, and Expert 99. The <em>daily board</em> is a 16 × 16 board with 40 mines, the same for everyone that day. It starts with an area already open, it never needs a guess, and your streak counts the days in a row you clear it. On a tall, narrow screen a wide board stands on its side, and on a small touch screen a big board scrolls inside its frame.</p>
+        <p class="game-help"><strong>Hints.</strong> <em>Hint</em> marks a square that must be safe, worked out only from the numbers showing and the mine count. Each hint adds 10 seconds to your time. If nothing is certain, it says so, and the board needs a guess there (a no-guess board never does). The clock stops while the game is paused or this tab is hidden.</p>
+        <p class="game-help"><strong>Settings</strong> (the slider button): <em>No-guess boards</em> can always be cleared by logic from your first click. <em>Question marks</em> adds a “?” step after the flag, for squares you’re unsure of. You can turn off chording by a plain click, and turn the sound on or off.</p>
         <details class="fold ms-stats" id="stats-box">
             <summary>Statistics</summary>
             <div class="tbl"><table><thead><tr><th scope="col">Board</th><th scope="col">Played</th><th scope="col">Won</th><th scope="col">Win %</th><th scope="col">Best</th><th scope="col">Streak</th><th scope="col">Best streak</th></tr></thead><tbody id="stats"></tbody></table></div>
-            <p>Finished games on the three standard boards count, with no-guess boards kept separately. Abandoned and custom games aren’t counted. Statistics stay in this browser.</p>
+            <p>Finished games on the three standard boards count, with no-guess boards kept separately. The daily board counts days: your first finished game on that day’s board is the day’s result (replays are practice), a day is won when that game clears the board, and its streak counts the days in a row. Abandoned and custom games aren’t counted. Statistics stay in this browser.</p>
             <p><button class="btn btn-secondary btn-sm" type="button" id="reset-stats">Reset statistics</button></p>
         </details>
     </div>
 </main>
 
+<dialog class="ms-dialog" id="settings-dlg" aria-labelledby="set-title">
+    <h2 id="set-title">Settings</h2>
+    <div class="ms-set">
+        <div><label class="toggle"><input type="checkbox" id="noguess"> No-guess boards</label><p>Every new board can be cleared by logic from your first click. Kept apart in the statistics.</p></div>
+        <div><label class="toggle"><input type="checkbox" id="qmarks"> Question marks</label><p>A second right-click or long-press marks a square “?”.</p></div>
+        <div><label class="toggle"><input type="checkbox" id="chordclick"> Click a number to chord</label><p>Off: only a middle-click, both buttons, or <kbd>C</kbd> chords.</p></div>
+        <div><label class="toggle"><input type="checkbox" id="sound"> Sound</label></div>
+    </div>
+    <button class="btn btn-primary btn-sm" type="button" id="set-close">Done</button>
+</dialog>
+
 <div id="site-footer"></div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const G = window.Games, $ = id => document.getElementById(id), board = $('board');
-    const LEVELS = { beginner: [9, 9, 10], intermediate: [16, 16, 40], expert: [30, 16, 99] };
-    const NAMES = { beginner: 'Beginner', intermediate: 'Intermediate', expert: 'Expert' };
-    const OPEN = 1, FLAG = 2, QUERY = 3;
+    const G = window.Games, $ = id => document.getElementById(id), board = $('board'), scroll = $('scroll'), box = $('box'), play = $('play');
+    const stage = box.parentElement, coarse = matchMedia('(pointer: coarse)');
+    const LEVELS = { beginner: [9, 9, 10], intermediate: [16, 16, 40], expert: [30, 16, 99], daily: [16, 16, 40] };
+    const NAMES = { beginner: 'Beginner', intermediate: 'Intermediate', expert: 'Expert' }, STD = Object.keys(NAMES);
+    const OPEN = 1, FLAG = 2, QUERY = 3, PENALTY = 10;
     const opt = { noguess: G.get('mines-noguess', '0') === '1', qmarks: G.get('mines-qmarks', '0') === '1', chord: G.get('mines-chordclick', '1') !== '0' };
-    let W, H, M, N, NB, mine, adj, st, level, started, over, won, opened, flags, ngBoard, focusI = 0, flagMode = false;
+    let W = 0, H, M, N, NB, mine, adj, st, level, laid, started, over, won, paused = false, opened, flags, ngBoard, hints = 0, hintAt = -1, focusI = 0, flagMode = false, dailyDate = '';
     let elapsed = 0, runFrom = null, tick = null;
-    const stats = G.getJSON('mines-stats') || {};
+    const loaded = G.getJSON('mines-stats'), stats = loaded && typeof loaded === 'object' ? loaded : {};
+    // The daily board: one result per day, and a streak of days in a row cleared
+    const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const today = () => dayKey(new Date());
+    const dayBefore = s => { const [y, m, d] = s.split('-').map(Number); return dayKey(new Date(y, m - 1, d - 1)); };
+    const daily = Object.assign({ days: 0, wins: 0, streak: 0, bestStreak: 0, best: null, last: '', lastWin: '', todayBest: null, todayDate: '', done: '' }, G.getJSON('mines-daily') || {});
+    let dailyReplay = false;    // today's board was already finished: a replay is practice and changes no statistics
+    const dailyStreak = () => (daily.lastWin === today() || daily.lastWin === dayBefore(today()) ? daily.streak : 0);
 
     const neighbors = i => { const x = i % W, y = (i / W) | 0, out = []; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < W && ny < H) out.push(ny * W + nx); } return out; };
     const label = (i, what) => 'Row ' + ((i / W | 0) + 1) + ', column ' + (i % W + 1) + ': ' + what;
     const say = t => { $('sr').textContent = t; };
+    const setMsg = (t, cls) => { $('msg').textContent = t; $('msg').className = cls || ''; };
 
-    // ── Clock: counts only while the game runs and the tab is visible ──
+    // ── Clock: counts only while the game runs, isn't paused, and the tab is visible ──
     const clockMs = () => elapsed + (runFrom !== null ? performance.now() - runFrom : 0);
     const showTime = () => { $('time').textContent = Math.floor(clockMs() / 1000); };
     function runClock() { if (runFrom === null) runFrom = performance.now(); clearInterval(tick); tick = setInterval(showTime, 250); }
-    function pauseClock() { if (runFrom !== null) { elapsed += performance.now() - runFrom; runFrom = null; } clearInterval(tick); tick = null; }
-    document.addEventListener('visibilitychange', () => { if (!started || over) return; if (document.hidden) pauseClock(); else runClock(); });
+    function pauseClock() { if (runFrom !== null) { elapsed += performance.now() - runFrom; runFrom = null; } clearInterval(tick); tick = null; showTime(); }
+    document.addEventListener('visibilitychange', () => { if (!started || over || paused) return; if (document.hidden) pauseClock(); else runClock(); });
 
     // ── Statistics ──
-    const statKey = () => level === 'custom' ? null : level + (ngBoard ? '-ng' : '');
+    const statKey = () => STD.includes(level) ? level + (ngBoard ? '-ng' : '') : null;
     function rec(key) {
-        if (!stats[key]) { const old = key in LEVELS ? +G.get('mines-best-' + key, 0) : 0; stats[key] = { played: 0, won: 0, best: old || null, streak: 0, bestStreak: 0 }; }
+        if (!stats[key]) { const old = key in NAMES ? +G.get('mines-best-' + key, 0) : 0; stats[key] = { played: 0, won: 0, best: old || null, streak: 0, bestStreak: 0 }; }
         return stats[key];
     }
     const fmtSec = s => s == null ? '—' : (s < 100 ? s.toFixed(1) : Math.round(s)) + ' s';
-    function showBest() { const k = level === 'custom' ? null : level + (opt.noguess ? '-ng' : ''); $('best').textContent = k && stats[k] && stats[k].best ? fmtSec(stats[k].best) : '—'; }
+    function showBest() {
+        let b = null;
+        if (level === 'daily') b = daily.todayDate === today() ? daily.todayBest : null;
+        else if (STD.includes(level)) { const k = level + (opt.noguess ? '-ng' : ''); b = stats[k] && stats[k].best; }
+        $('best').textContent = b ? fmtSec(b) : '—';
+    }
     function renderStats() {
-        const keys = []; for (const l in LEVELS) keys.push(l); for (const l in LEVELS) if (stats[l + '-ng']) keys.push(l + '-ng');
-        $('stats').innerHTML = keys.map(k => {
-            const s = stats[k] || { played: 0, won: 0, best: null, streak: 0, bestStreak: 0 }, l = k.replace('-ng', '');
-            return '<tr><th scope="row">' + NAMES[l] + (k.endsWith('-ng') ? ', no-guess' : '') + '</th><td>' + s.played + '</td><td>' + s.won + '</td><td>' + (s.played ? Math.round(100 * s.won / s.played) + '%' : '—') + '</td><td>' + fmtSec(s.best) + '</td><td>' + s.streak + '</td><td>' + s.bestStreak + '</td></tr>';
-        }).join('');
+        const keys = STD.slice(); for (const l of STD) if (stats[l + '-ng']) keys.push(l + '-ng');
+        const row = (name, s) => '<tr><th scope="row">' + name + '</th><td>' + s.played + '</td><td>' + s.won + '</td><td>' + (s.played ? Math.round(100 * s.won / s.played) + '%' : '—') + '</td><td>' + fmtSec(s.best) + '</td><td>' + s.streak + '</td><td>' + s.bestStreak + '</td></tr>';
+        $('stats').innerHTML = keys.map(k => row(NAMES[k.replace('-ng', '')] + (k.endsWith('-ng') ? ', no-guess' : ''), stats[k] || { played: 0, won: 0, best: null, streak: 0, bestStreak: 0 })).join('')
+            + row('Daily board (days)', { played: daily.days, won: daily.wins, best: daily.best, streak: dailyStreak(), bestStreak: daily.bestStreak });
     }
     function record(didWin, secs) {
+        if (level === 'daily') return recordDaily(didWin, secs);
         const k = statKey(); if (!k) return false;
         const s = rec(k); s.played++;
         let best = false;
@@ -209,6 +258,36 @@ document.addEventListener('DOMContentLoaded', () => {
         else s.streak = 0;
         G.setJSON('mines-stats', stats); renderStats(); showBest();
         return best;
+    }
+    function recordDaily(didWin, secs) {
+        const d = dailyDate;
+        dailyReplay = daily.done === d;      // the first finished game of the day is the day's result
+        if (dailyReplay) return false;
+        daily.done = d;
+        if (daily.last !== d) { daily.days++; daily.last = d; }
+        let best = false;
+        if (didWin) {
+            if (daily.lastWin !== d) { daily.wins++; daily.streak = daily.lastWin === dayBefore(d) ? daily.streak + 1 : 1; daily.bestStreak = Math.max(daily.bestStreak, daily.streak); daily.lastWin = d; }
+            if (daily.todayDate !== d || !daily.todayBest || secs < daily.todayBest) { best = daily.todayDate === d && !!daily.todayBest; daily.todayDate = d; daily.todayBest = secs; }
+            if (!daily.best || secs < daily.best) daily.best = secs;
+        }
+        G.setJSON('mines-daily', daily); renderStats(); showBest();
+        return best;
+    }
+
+    // ── Board size: the largest cells that keep the bar, status line, and whole board on screen ──
+    const MIN_CELL = () => (coarse.matches ? 24 : 18);           // fingers need bigger squares; then a big board scrolls in its frame
+    const rawCell = (w, h, availW, room) => Math.min(Math.floor((availW - 16 - (w - 1) * 2) / w), Math.floor((room - 16 - (h - 1) * 2) / h));
+    const room = () => Math.floor(G.space(scroll, play));
+    function sizeCells() {
+        if (!W) return;
+        const availW = stage.clientWidth, r = room();
+        const cell = Math.max(MIN_CELL(), Math.min(36, rawCell(W, H, availW, r)));
+        if (board.style.getPropertyValue('--cell') !== cell + 'px') board.style.setProperty('--cell', cell + 'px');
+        const bw = W * cell + (W - 1) * 2 + 16, bh = H * cell + (H - 1) * 2 + 16;
+        const mh = bh > r ? Math.max(120, r) + 'px' : '';
+        if (scroll.style.maxHeight !== mh) scroll.style.maxHeight = mh;
+        scroll.classList.toggle('pan', bw > availW + 0.5 || bh > r + 0.5);
     }
 
     // ── Board ──
@@ -221,37 +300,56 @@ document.addEventListener('DOMContentLoaded', () => {
         G.setJSON('mines-custom', [w, h, m]);
         return [w, h, m];
     }
-    function sizeCells() {
-        const avail = $('scroll').clientWidth;
-        const cell = Math.max(24, Math.min(36, Math.floor((avail - 16 - (W - 1) * 2) / W)));
-        board.style.setProperty('--cell', cell + 'px');
-    }
-    function newGame() {
+    function newGame(user) {
         level = $('level').value; G.set('mines-level', level);
         $('custom').hidden = level !== 'custom';
         let [w, h, m] = level === 'custom' ? customSize() : LEVELS[level];
-        // On a narrow portrait screen a wide board stands on its side, so it needs much less sideways scrolling.
-        if (w > h && $('scroll').clientWidth < w * 26 + 16 && window.innerHeight > window.innerWidth) [w, h] = [h, w];
+        // A wide board stands on its side when that gives bigger squares (a tall, narrow screen).
+        if (w !== h && level !== 'daily') { const aw = stage.clientWidth, r = room(); if (rawCell(h, w, aw, r) > rawCell(w, h, aw, r) + 1) [w, h] = [h, w]; }
         const hadFocus = board.contains(document.activeElement);
         W = w; H = h; M = m; N = W * H;
         NB = Array.from({ length: N }, (_, i) => neighbors(i));
         mine = new Uint8Array(N); adj = new Uint8Array(N); st = new Uint8Array(N);
-        started = false; over = false; won = false; opened = 0; flags = 0; ngBoard = false;
+        laid = false; started = false; over = false; won = false; opened = 0; flags = 0; ngBoard = false; hints = 0; hintAt = -1;
+        paused = false; $('paused').hidden = true; $('pause').disabled = true; $('pause').textContent = 'Pause';
         pauseClock(); elapsed = 0; runFrom = null; showTime();
-        $('face').textContent = '🙂'; $('msg').textContent = ''; $('again').hidden = true;
+        $('face').textContent = '🙂'; setMsg((coarse.matches ? 'Tap' : 'Click') + ' any square to start.', 'muted'); $('again').hidden = true;
         focusI = Math.min(focusI, N - 1);
         board.setAttribute('aria-label', 'Minesweeper board, ' + W + ' columns by ' + H + ' rows, ' + M + ' mines');
         board.style.gridTemplateColumns = 'repeat(' + W + ', var(--cell))';
         board.innerHTML = Array.from({ length: N }, (_, i) => '<button type="button" data-i="' + i + '" tabindex="' + (i === focusI ? 0 : -1) + '" aria-label="' + label(i, 'hidden') + '"></button>').join('');
         sizeCells(); showBest(); update();
-        if (hadFocus) board.children[focusI].focus();
+        if (level === 'daily') {
+            const s = dailyLayout(); openArea(s);
+            board.children[focusI].tabIndex = -1; focusI = s; board.children[s].tabIndex = 0;
+            const d = new Date();
+            setMsg('Daily board for ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + (daily.done === dailyDate ? '. You finished it today, so this is practice.' : ', the same for everyone today.'));
+        }
+        if (hadFocus) board.children[focusI].focus({ preventScroll: true });
+        if (user) { sizeCells(); G.reveal(play); }
     }
-    function randomLayout(safe) {
+    function randomLayout(safe, rand) {
         mine.fill(0);
         const banned = new Set([safe, ...NB[safe]]), pool = [];
         for (let i = 0; i < N; i++) if (!banned.has(i)) pool.push(i);
-        for (let k = 0; k < M; k++) { const j = k + Math.floor(Math.random() * (pool.length - k)); [pool[k], pool[j]] = [pool[j], pool[k]]; mine[pool[k]] = 1; }
+        for (let k = 0; k < M; k++) { const j = k + Math.floor(rand() * (pool.length - k)); [pool[k], pool[j]] = [pool[j], pool[k]]; mine[pool[k]] = 1; }
         for (let i = 0; i < N; i++) { let s = 0; for (const j of NB[i]) s += mine[j]; adj[i] = s; }
+    }
+    // A small seeded generator (an FNV-1a hash of the text feeding mulberry32): the same date gives the same board.
+    function seeded(text) {
+        let h = 2166136261;
+        for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+        let a = h >>> 0;
+        return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    }
+    function dailyLayout(date) {
+        dailyDate = date || today();
+        const rand = seeded('cdfoley-minesweeper-' + dailyDate);
+        const start = (3 + Math.floor(rand() * (W - 6))) + (3 + Math.floor(rand() * (H - 6))) * W;
+        let tries = 0;
+        while (tries++ < 5000) { randomLayout(start, rand); if (solvable(start)) { ngBoard = true; break; } }
+        laid = true;
+        return start;
     }
     // Can every safe square be opened from `start` by logic alone? The solver sees only what a player sees: open
     // squares' numbers and the mine count. It opens squares that must be safe and marks squares that must be mines,
@@ -293,12 +391,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return open === N - M;
     }
+    // For a hint: the squares that must be safe given only what the player can see now (open numbers and the mine
+    // count), by the same three rules, repeated as long as they mark new mines or safe squares.
+    function safeNow() {
+        const K = new Uint8Array(N); let known = 0;                    // 0 unknown, 1 open, 2 must be a mine, 3 must be safe
+        for (let i = 0; i < N; i++) if (st[i] === OPEN) K[i] = 1;
+        const markMine = i => { if (!K[i]) { K[i] = 2; known++; } }, markSafe = i => { if (!K[i]) K[i] = 3; };
+        for (let pass = 0, progress = true; progress && pass < N; pass++) {
+            progress = false;
+            const cons = [];
+            for (let i = 0; i < N; i++) if (K[i] === 1 && adj[i]) {
+                const u = []; let r = adj[i];
+                for (const j of NB[i]) { if (K[j] === 0) u.push(j); else if (K[j] === 2) r--; }
+                if (!u.length) continue;
+                if (r === 0) { u.forEach(markSafe); progress = true; }
+                else if (r === u.length) { u.forEach(markMine); progress = true; }
+                else cons.push({ u, r });
+            }
+            if (progress) continue;
+            const byCell = new Map();
+            cons.forEach((c, ci) => c.u.forEach(j => { if (!byCell.has(j)) byCell.set(j, []); byCell.get(j).push(ci); }));
+            pairs: for (let a = 0; a < cons.length; a++) {
+                const A = cons[a], seen = new Set();
+                for (const j of A.u) for (const b of byCell.get(j)) {
+                    if (b === a || seen.has(b)) continue; seen.add(b);
+                    const B = cons[b], onlyA = A.u.filter(x => !B.u.includes(x)), onlyB = B.u.filter(x => !A.u.includes(x));
+                    if ((onlyA.length || onlyB.length) && A.r - B.r === onlyA.length) { onlyA.forEach(markMine); onlyB.forEach(markSafe); progress = true; break pairs; }
+                }
+            }
+            if (progress) continue;
+            let unk = 0; for (let i = 0; i < N; i++) if (!K[i]) unk++;
+            if (unk && known === M) { for (let i = 0; i < N; i++) markSafe(i); progress = true; }
+            else if (unk && M - known === unk) { for (let i = 0; i < N; i++) markMine(i); progress = true; }
+        }
+        const out = []; for (let i = 0; i < N; i++) if (K[i] === 3) out.push(i);
+        return out;
+    }
     function layMines(safe) {
-        ngBoard = false;
-        if (!opt.noguess) { randomLayout(safe); return; }
+        ngBoard = false; laid = true;
+        if (!opt.noguess) { randomLayout(safe, Math.random); return; }
         const t = performance.now();
-        do { randomLayout(safe); if (solvable(safe)) { ngBoard = true; return; } } while (performance.now() - t < 2500);
-        $('msg').textContent = 'No guess-free layout turned up for these settings, so this board may need a guess.';
+        do { randomLayout(safe, Math.random); if (solvable(safe)) { ngBoard = true; return; } } while (performance.now() - t < 2500);
+        setMsg('No guess-free layout turned up for these settings, so this board may need a guess.');
     }
     function update() { $('left').textContent = M - flags; }
     function paint(i) {
@@ -311,10 +445,13 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (s === QUERY) { b.className = 'q'; b.textContent = '?'; b.setAttribute('aria-label', label(i, 'question mark')); }
         else { b.className = ''; b.textContent = ''; b.setAttribute('aria-label', label(i, 'hidden')); }
     }
-    function reveal(i) {
-        if (st[i] === OPEN || st[i] === FLAG) return 0;
-        if (!started) { started = true; layMines(i); runClock(); }
-        if (mine[i]) { lose(i); return 0; }
+    function begin() {                                       // the first move of a game starts the clock
+        if (started) return;
+        started = true; runClock(); $('pause').disabled = false; G.reveal(play);
+        if ($('msg').className === 'muted') setMsg('');
+    }
+    function showEnd() { $('again').hidden = false; sizeCells(); G.reveal(play); }   // the longer status line may take room from the board
+    function openArea(i) {
         const before = opened, stack = [i];
         while (stack.length) {
             const k = stack.pop();
@@ -322,8 +459,16 @@ document.addEventListener('DOMContentLoaded', () => {
             st[k] = OPEN; opened++; paint(k);
             if (adj[k] === 0) for (const j of NB[k]) if (st[j] !== OPEN && st[j] !== FLAG) stack.push(j);
         }
-        if (opened === N - M) win();
         return opened - before;
+    }
+    function reveal(i) {
+        if (st[i] === OPEN || st[i] === FLAG) return 0;
+        if (!laid) layMines(i);
+        begin();
+        if (mine[i]) { lose(i); return 0; }
+        const n = openArea(i);
+        if (opened === N - M) win();
+        return n;
     }
     function chord(i) {
         if (st[i] !== OPEN || !adj[i]) return 0;
@@ -338,8 +483,35 @@ document.addEventListener('DOMContentLoaded', () => {
         st[i] = was === 0 ? FLAG : was === FLAG && opt.qmarks ? QUERY : 0;
         flags += (st[i] === FLAG) - (was === FLAG);
         paint(i); update();
+        G.tone(st[i] === FLAG ? 880 : 620, st[i] === FLAG ? 700 : 520, 0.05, 'triangle', 0.025);
     }
-    function finish() { over = true; pauseClock(); }
+    function clearHint() { if (hintAt >= 0 && board.children[hintAt]) board.children[hintAt].classList.remove('hint'); hintAt = -1; }
+    function hint() {
+        if (over || paused || !W) return;
+        clearHint();
+        if (!laid) { setMsg('Your first click is always safe, and it opens an area.', 'muted'); say($('msg').textContent); return; }
+        const safe = safeNow(), pick = safe.find(i => st[i] !== FLAG), i = pick !== undefined ? pick : safe[0];
+        if (i === undefined) { setMsg('Nothing is certain from what is showing, so this board needs a guess here.'); say($('msg').textContent); return; }
+        begin();
+        hints++; elapsed += PENALTY * 1000; showTime();
+        hintAt = i; const b = board.children[i]; b.classList.add('hint');
+        board.children[focusI].tabIndex = -1; focusI = i; b.tabIndex = 0;
+        if (board.contains(document.activeElement) || document.activeElement === $('hint') || document.activeElement === document.body) b.focus({ preventScroll: true });
+        if (scroll.classList.contains('pan')) b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        setMsg(st[i] === FLAG ? 'Hint: that flag is on a safe square (+10 s).' : 'Hint: the marked square is safe (+10 s).');
+        say($('msg').textContent + ' ' + label(i, 'safe') + '.');
+        G.tone(740, 990, 0.12, 'sine', 0.03);
+    }
+    function setPause(p) {
+        if (p && (!started || over)) return;
+        if (paused === p) return;
+        paused = p;
+        $('paused').hidden = !p; $('pause').textContent = p ? 'Resume' : 'Pause';
+        if (p) { pauseClock(); $('resume').focus({ preventScroll: true }); say('Paused.'); }
+        else { if (!document.hidden) runClock(); board.children[focusI].focus({ preventScroll: true }); say('Resumed.'); }
+    }
+    function finish() { over = true; paused = false; $('paused').hidden = true; pauseClock(); $('pause').disabled = true; $('pause').textContent = 'Pause'; clearHint(); }
+    const withHints = () => (hints ? ' with ' + hints + (hints > 1 ? ' hints' : ' hint') : '');
     function lose(i) {
         finish(); $('face').textContent = '😵';
         for (let k = 0; k < N; k++) {
@@ -348,8 +520,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const b = board.children[i]; b.classList.add('boom'); b.textContent = '💥'; b.setAttribute('aria-label', label(i, 'the mine you hit'));
         record(false);
-        $('msg').textContent = 'Boom! You hit a mine with ' + opened + ' of ' + (N - M) + ' safe squares cleared.';
-        $('again').hidden = false;
+        setMsg('Boom! You hit a mine with ' + opened + ' of ' + (N - M) + ' safe squares cleared.' + (level === 'daily' ? (dailyReplay ? ' Replays of the daily board don’t count.' : ' That is today’s result; you can replay the board for practice.') : ''), 'lose');
+        showEnd();
+        G.noise(0.5, 0.12, 700); G.tone(150, 50, 0.45, 'sawtooth', 0.035);
     }
     function win() {
         finish(); won = true; $('face').textContent = '😎';
@@ -357,22 +530,29 @@ document.addEventListener('DOMContentLoaded', () => {
         update();
         const secs = Math.max(0.1, Math.round(clockMs() / 100) / 10);
         $('time').textContent = secs < 100 ? secs.toFixed(1) : Math.round(secs);
-        const best = record(true, secs);
-        $('msg').textContent = 'Cleared in ' + fmtSec(secs).replace(' s', ' seconds') + (best ? ', a new best for ' + NAMES[level] + (ngBoard ? ' (no-guess)' : '') + '!' : '.');
-        $('again').hidden = false;
+        const best = record(true, secs), t = fmtSec(secs).replace(' s', ' seconds');
+        if (level === 'daily' && dailyReplay) setMsg('Daily board cleared in ' + t + withHints() + '. Today’s result was already in, so replays don’t count.', 'win');
+        else if (level === 'daily') {
+            const n = dailyStreak();
+            setMsg('Daily board cleared in ' + t + withHints() + (best ? ', your best today' : '') + '. Streak: ' + n + (n === 1 ? ' day.' : ' days.'), 'win');
+        } else setMsg('Cleared in ' + t + withHints() + (best ? ', a new best for ' + NAMES[level] + (ngBoard ? ' (no-guess)' : '') + '!' : '.'), 'win');
+        showEnd();
+        [523, 659, 784, 1046].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.14, 'triangle', 0.03), k * 90));
     }
     // how: 'primary' (click, tap, Enter), 'secondary' (right-click, long-press, F), or 'chord'
     function act(i, how) {
-        if (over) return;
+        if (over || paused) return;
+        if (laid) begin();
+        if (hintAt === i) clearHint();
         if (st[i] === OPEN) {
-            if (how === 'chord' || (how === 'primary' && opt.chord)) { const n = chord(i); if (n && !over) say(n + (n > 1 ? ' squares' : ' square') + ' opened.'); }
+            if (how === 'chord' || (how === 'primary' && opt.chord)) { const n = chord(i); if (n && !over) { say(n + (n > 1 ? ' squares' : ' square') + ' opened.'); G.tone(520, 780, 0.08, 'triangle', 0.025); } }
             return;
         }
         if (how === 'chord') return;
         if (how === 'secondary') { cycleMark(i); say(board.children[i].getAttribute('aria-label').replace(/^.*: /, '')); return; }
         if (st[i] === FLAG) return;
         const n = reveal(i);
-        if (n && !over) say(n === 1 ? board.children[i].getAttribute('aria-label').replace(/^.*: /, '') : n + ' squares opened.');
+        if (n && !over) { say(n === 1 ? board.children[i].getAttribute('aria-label').replace(/^.*: /, '') : n + ' squares opened.'); G.tone(n > 1 ? 520 : 660, n > 1 ? 780 : 660, n > 1 ? 0.08 : 0.035, 'triangle', 0.022); }
     }
 
     // ── Pointer input ──
@@ -430,40 +610,63 @@ document.addEventListener('DOMContentLoaded', () => {
         if (k === 'f' || k === 'F') { e.preventDefault(); act(i, 'secondary'); }
         else if (k === 'c' || k === 'C') { e.preventDefault(); act(i, 'chord'); }
     });
+    // Anywhere on the page (not while typing or in the settings): H hint, P pause, N or F2 new game
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+        if (e.target.closest && e.target.closest('input, select, textarea, dialog')) return;
+        const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+        if (k === 'h') { e.preventDefault(); hint(); }
+        else if (k === 'p') { if (started && !over) { e.preventDefault(); setPause(!paused); } }
+        else if (k === 'n' || k === 'F2') { e.preventDefault(); const f = board.contains(document.activeElement); newGame(true); if (f) board.children[focusI].focus({ preventScroll: true }); }
+    });
 
     // ── Controls ──
     $('flagmode').addEventListener('click', () => { flagMode = !flagMode; $('flagmode').classList.toggle('on', flagMode); $('flagmode').setAttribute('aria-pressed', flagMode); });
-    $('face').addEventListener('click', newGame);
-    $('again').addEventListener('click', () => { newGame(); board.children[focusI].focus(); });
-    $('level').addEventListener('change', newGame);
-    $('custom').addEventListener('submit', e => { e.preventDefault(); newGame(); });
+    $('face').addEventListener('click', () => newGame(true));
+    $('again').addEventListener('click', () => { newGame(true); board.children[focusI].focus({ preventScroll: true }); });
+    $('hint').addEventListener('click', hint);
+    $('pause').addEventListener('click', () => setPause(!paused));
+    $('resume').addEventListener('click', () => setPause(false));
+    $('level').addEventListener('change', () => newGame(true));
+    $('custom').addEventListener('submit', e => { e.preventDefault(); newGame(true); });
     [['noguess', 'noguess', 'mines-noguess'], ['qmarks', 'qmarks', 'mines-qmarks'], ['chordclick', 'chord', 'mines-chordclick']].forEach(([id, key, store]) => {
-        const box = $(id); box.checked = opt[key];
-        box.addEventListener('change', () => { opt[key] = box.checked; G.set(store, box.checked ? '1' : '0'); if (key === 'noguess') showBest(); });
+        const el = $(id); el.checked = opt[key];
+        el.addEventListener('change', () => { opt[key] = el.checked; G.set(store, el.checked ? '1' : '0'); if (key === 'noguess') showBest(); });
     });
+    $('sound').checked = G.soundOn;
+    $('sound').addEventListener('change', () => { G.soundOn = $('sound').checked; G.set('games-sound', G.soundOn ? '1' : '0'); G.audio(); });
+    const dlg = $('settings-dlg');
+    $('settings').addEventListener('click', () => { $('sound').checked = G.soundOn; if (started && !over) setPause(true); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', ''); });
+    $('set-close').addEventListener('click', () => { if (dlg.close) dlg.close(); else dlg.removeAttribute('open'); });
+    dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });     // a click on the backdrop
+    dlg.addEventListener('keydown', e => { if (e.key === 'Escape') e.stopPropagation(); });   // Esc closes the settings, not the full-screen view
+    dlg.addEventListener('close', () => $('settings').focus({ preventScroll: true }));
     let resetArmed = null;
     $('reset-stats').addEventListener('click', () => {
         const btn = $('reset-stats');
         if (!resetArmed) { btn.textContent = 'Click again to reset'; resetArmed = setTimeout(() => { resetArmed = null; btn.textContent = 'Reset statistics'; }, 4000); return; }
         clearTimeout(resetArmed); resetArmed = null; btn.textContent = 'Reset statistics';
         for (const k in stats) delete stats[k];
-        for (const l in LEVELS) G.set('mines-best-' + l, '');      // the old best-time keys would otherwise come back
-        for (const l in LEVELS) rec(l).best = null;
-        G.setJSON('mines-stats', stats); renderStats(); showBest(); say('Statistics reset.');
+        for (const l of STD) G.set('mines-best-' + l, '');      // the old best-time keys would otherwise come back
+        for (const l of STD) rec(l).best = null;
+        Object.assign(daily, { days: 0, wins: 0, streak: 0, bestStreak: 0, best: null, last: '', lastWin: '', todayBest: null, todayDate: '' });
+        G.setJSON('mines-stats', stats); G.setJSON('mines-daily', daily); renderStats(); showBest(); say('Statistics reset.');
     });
-    let lastW = 0;
-    window.addEventListener('resize', () => { const w = $('scroll').clientWidth; if (w !== lastW) { lastW = w; sizeCells(); } });
+    G.fullButton($('full'));
+    G.watch([play, stage], sizeCells);
 
     const saved = G.getJSON('mines-custom');
     if (Array.isArray(saved) && saved.length === 3) { $('cw').value = saved[0]; $('ch').value = saved[1]; $('cm').value = saved[2]; }
     const l = G.get('mines-level', 'beginner'); if (l === 'custom' || LEVELS[l]) $('level').value = l;
-    for (const k in LEVELS) if (!stats[k] && +G.get('mines-best-' + k, 0)) rec(k);   // best times saved before statistics existed
-    renderStats(); newGame();
+    for (const k of STD) if (!stats[k] && +G.get('mines-best-' + k, 0)) rec(k);   // best times saved before statistics existed
+    renderStats(); newGame(false);
     window.__mines = {
-        reveal: i => act(i, 'primary'), flag: i => act(i, 'secondary'), chord: i => act(i, 'chord'), newGame, opt,
-        state: () => ({ W, H, M, opened, flags, over, won, started, ngBoard, elapsed: clockMs() }),
-        mines: () => Array.from(mine), adj: () => Array.from(adj), cells: () => Array.from(st), stats: () => JSON.parse(JSON.stringify(stats)),
-        solvable: start => solvable(start)
+        reveal: i => act(i, 'primary'), flag: i => act(i, 'secondary'), chord: i => act(i, 'chord'), newGame: () => newGame(false), opt, hint, pause: setPause, safeNow,
+        state: () => ({ W, H, M, level, opened, flags, over, won, started, paused, ngBoard, hints, hintAt, elapsed: clockMs(), dailyDate }),
+        mines: () => Array.from(mine), adj: () => Array.from(adj), cells: () => Array.from(st), stats: () => JSON.parse(JSON.stringify(stats)), daily: () => ({ ...daily }),
+        solvable: start => solvable(start), dailyFor: date => { const s = dailyLayout(date); return { start: s, ng: ngBoard, mines: Array.from(mine) }; },
+        fit: () => ({ cell: parseInt(board.style.getPropertyValue('--cell'), 10), overflow: G.overflow(play), pan: scroll.classList.contains('pan'), room: room(), W, H }),
+        show: () => G.reveal(play, true)          // scroll the play block into view (reveal opens a square)
     };
 });
 </script>

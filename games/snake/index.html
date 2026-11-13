@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Snake Game: Play Free Online</title>
-<meta name="description" content="Play the classic Snake game free online: steer a laser beam to collect photons. Three speeds, three board sizes, walls or wrap, and an obstacle mode. No ads.">
+<meta name="description" content="Play the classic Snake game free online: steer a laser beam to collect photons. Three speeds and board sizes, wrap, obstacles, and a daily challenge.">
 <link rel="canonical" href="https://cdfoley.com/games/snake/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Snake">
-<meta property="og:description" content="Play the classic Snake game free online: steer a laser beam to collect photons. Three speeds, three board sizes, walls or wrap, and an obstacle mode. No ads.">
+<meta property="og:description" content="Play the classic Snake game free online: steer a laser beam to collect photons. Three speeds and board sizes, wrap, obstacles, and a daily challenge.">
 <meta property="og:url" content="https://cdfoley.com/games/snake/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-snake.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Snake Game. Play the classic Snake game free online: steer a laser beam to collect photons. Three speeds, three board sizes, walls or wrap, and an obstacle mode. No ads.">
+<meta property="og:image:alt" content="Snake Game. Play the classic Snake game free online: steer a laser beam to collect photons. Three speeds and board sizes, wrap, obstacles, and a daily challenge.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -23,17 +23,31 @@
 <script src="/assets/js/site.js"></script>
 <script src="/assets/js/games.js"></script>
 <style>
-    .game-stage { max-width: 520px; margin: 0 auto; }
-    #board { display: block; width: 100%; aspect-ratio: 1; border-radius: var(--radius-lg); border: 1px solid var(--border); touch-action: none; user-select: none; -webkit-user-select: none; }
-    .sn-opts { margin-bottom: .8rem; }
-    .sn-opts > label:not(.toggle) { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; color: var(--text-2); }
-    .sn-opts select:disabled, .sn-opts input:disabled { opacity: .55; }
-    .dpad { display: grid; grid-template-columns: repeat(3, 64px); grid-template-rows: repeat(2, 54px); gap: 6px; justify-content: center; margin-top: 0.9rem; }
+    #box:not([style]) { width: min(100%, 520px); aspect-ratio: 1; }   /* before games.js sizes the board */
+    #board { display: block; width: 100%; height: 100%; border-radius: var(--radius-lg); border: 1px solid var(--border); touch-action: none; user-select: none; -webkit-user-select: none; }
+    /* Game options on the start screen: they pick the next game, so they show only between games */
+    .sn-opts { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.45rem 0.9rem; }
+    .sn-opts label { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.88rem; color: var(--text-2); }
+    .sn-opts select { padding: 0.35rem 0.5rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: 0.9rem; }
+    .sn-opts select:disabled { opacity: 0.6; }
+    .dpad { display: grid; grid-template-columns: repeat(3, 64px); grid-template-rows: repeat(2, 54px); gap: 6px; justify-content: center; }
     .dpad button { font-size: 1.2rem; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
     .dpad button:active { background: var(--accent-soft); }
     .dpad .up { grid-column: 2; grid-row: 1; } .dpad .left { grid-column: 1; grid-row: 2; } .dpad .down { grid-column: 2; grid-row: 2; } .dpad .right { grid-column: 3; grid-row: 2; }
     @media (hover: hover) and (pointer: fine) { .dpad { display: none; } }
-    @media (pointer: coarse) { .game-stage { max-width: min(520px, max(240px, calc(100svh - 150px))); } }   /* board and arrow pad fit on screen together */
+    .st-nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 0.5rem; margin: 0 0 0.9rem; }
+    .st-nums div { background: var(--surface-2); border-radius: var(--radius-sm); padding: 0.45rem 0.6rem; }
+    .st-nums b { display: block; font: 650 1.15rem var(--mono); color: var(--text); font-variant-numeric: tabular-nums; }
+    .st-nums span { font-size: 0.8rem; color: var(--text-2); }
+    .st-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; font-variant-numeric: tabular-nums; margin-bottom: 0.6rem; }
+    .st-table th, .st-table td { padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--border); text-align: right; }
+    .st-table th:first-child, .st-table td:first-child { text-align: left; }
+    .st-table thead th { color: var(--text-2); font-weight: 600; }
+    .fold p { font-size: 0.88rem; color: var(--text-2); }
+    /* The start screen sits high on the board, so its Start button shows without scrolling on a laptop */
+    .game-overlay.ov-start { justify-content: flex-start; padding-top: clamp(1rem, 8%, 3.5rem); }
+    /* Touch screens: every control at least 40 px tall */
+    @media (pointer: coarse) { .game-play .btn-sm, .sn-opts select { min-height: 40px; } .game-full { min-width: 40px; } }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -43,7 +57,7 @@
    "@type": "VideoGame",
    "name": "Snake",
    "url": "https://cdfoley.com/games/snake/",
-   "description": "Play the classic Snake game free online: steer a laser beam to collect photons. Three speeds, three board sizes, walls or wrap, and an obstacle mode. No ads.",
+   "description": "Play the classic Snake game free online: steer a laser beam to collect photons. Three speeds and board sizes, wrap, obstacles, and a daily challenge.",
    "genre": "Arcade",
    "gamePlatform": "Web browser",
    "playMode": "SinglePlayer",
@@ -100,38 +114,65 @@
             <h1>Snake Game</h1>
             <p class="lede">Steer the beam to collect photons. Each one makes it longer and a little faster. Don’t run into yourself.</p>
         </header>
-        <div class="game-actions sn-opts" id="opts">
-            <label>Speed <select id="speed"><option value="relaxed">Relaxed</option><option value="normal">Normal</option><option value="fast">Fast</option></select></label>
-            <label>Board <select id="size"><option value="14">Small, 14 × 14</option><option value="20">Medium, 20 × 20</option><option value="26">Large, 26 × 26</option></select></label>
-            <label class="toggle"><input type="checkbox" id="wrap"> Wrap edges</label>
-            <label class="toggle"><input type="checkbox" id="obstacles"> Obstacles</label>
-            <button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button>
-        </div>
-        <div class="game-bar">
-            <div class="chips"><span class="chip">Score<b id="score">0</b></span><span class="chip">Best<b id="best">0</b></span><span class="chip">Speed<b id="level">1</b></span></div>
-            <div class="game-actions">
-                <button class="btn btn-secondary btn-sm" type="button" id="pause" disabled>Pause</button>
-                <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
+        <div class="game-play" id="play">
+            <div class="game-bar">
+                <div class="chips"><span class="chip">Score<b id="score">0</b></span><span class="chip"><span id="best-label">Best</span><b id="best">0</b></span><span class="chip">Speed<b id="level">1</b></span></div>
+                <div class="game-actions">
+                    <button class="btn btn-secondary btn-sm" type="button" id="sound">Sound on</button>
+                    <button class="btn btn-secondary btn-sm" type="button" id="pause" disabled>Pause</button>
+                    <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
+                    <button class="btn btn-secondary btn-sm game-full" type="button" id="full"></button>
+                </div>
             </div>
-        </div>
-        <div class="game-stage">
-            <canvas id="board" aria-label="Snake game board" aria-describedby="ov-text" tabindex="0"></canvas>
-            <div class="game-overlay" id="overlay">
-                <h2 id="ov-title">Snake</h2>
-                <p id="ov-text">Steer with the arrow keys or WASD, swipe the board, or use the arrow pad. The beam waits for your first move.</p>
-                <button class="btn btn-primary" type="button" id="start">Start</button>
+            <div class="game-row">
+                <div class="game-stage">
+                    <div class="game-box" id="box">
+                        <canvas id="board" aria-label="Snake game board" aria-describedby="ov-text" tabindex="0"></canvas>
+                        <div class="game-overlay ov-start" id="overlay">
+                            <h2 id="ov-title">Snake</h2>
+                            <p id="ov-text">Steer with the arrow keys or WASD, swipe the board, or use the arrow pad.</p>
+                            <div class="sn-opts" id="opts">
+                                <label>Mode <select id="mode"><option value="free">Free play</option><option value="daily">Daily challenge</option></select></label>
+                                <label>Speed <select id="speed"><option value="relaxed">Relaxed</option><option value="normal">Normal</option><option value="fast">Fast</option></select></label>
+                                <label>Board <select id="size"><option value="14">14 × 14</option><option value="20">20 × 20</option><option value="26">26 × 26</option></select></label>
+                                <label>Edges <select id="wrap"><option value="0">Walls</option><option value="1">Wrap</option></select></label>
+                                <label>Obstacles <select id="obstacles"><option value="0">Off</option><option value="1">On</option></select></label>
+                            </div>
+                            <button class="btn btn-primary" type="button" id="start">Start</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="dpad game-pad" role="group" aria-label="Direction pad">
+                    <button class="up" type="button" data-d="up" aria-label="Up">▲</button>
+                    <button class="left" type="button" data-d="left" aria-label="Left">◀</button>
+                    <button class="down" type="button" data-d="down" aria-label="Down">▼</button>
+                    <button class="right" type="button" data-d="right" aria-label="Right">▶</button>
+                </div>
             </div>
-        </div>
-        <div class="dpad" role="group" aria-label="Direction pad">
-            <button class="up" type="button" data-d="up" aria-label="Up">▲</button>
-            <button class="left" type="button" data-d="left" aria-label="Left">◀</button>
-            <button class="down" type="button" data-d="down" aria-label="Down">▼</button>
-            <button class="right" type="button" data-d="right" aria-label="Right">▶</button>
         </div>
         <p class="visually-hidden" id="sr" role="status" aria-live="polite"></p>
         <p class="game-help"><strong>How to play.</strong> Each photon you collect adds a segment and speeds the beam up a little. Hitting a wall, an obstacle, or your own tail ends the game; fill the whole board to win. After you press Start, the beam waits until you choose a direction, so you can get ready.</p>
-        <p class="game-help"><strong>Controls.</strong> <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> steer; on a touch screen, swipe the board or use the arrow pad. <kbd>Space</kbd> or <kbd>P</kbd> pauses and resumes (so does steering), and the game pauses itself when you switch tabs. <kbd>Enter</kbd> starts a new game once one has ended.</p>
-        <p class="game-help"><strong>Options.</strong> <em>Relaxed</em> starts slow and speeds up gently; <em>Fast</em> is for experts. With <em>Wrap edges</em> on, the beam passes through one wall and comes back through the opposite one. <em>Obstacles</em> scatters blocks across the board, always leaving every open square reachable. Options can be changed between games, and your best score is kept separately for each combination.</p>
+        <p class="game-help"><strong>Controls.</strong> <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> steer; on a touch screen, swipe the board or use the arrow pad. <kbd>Space</kbd>, <kbd>P</kbd>, or <kbd>Esc</kbd> pauses (steering or <kbd>Space</kbd> resumes), and the game pauses itself when you switch tabs. <kbd>Enter</kbd> starts a new game once one has ended. New game during a game takes you back to the start screen and its options. The square button next to New game shows the game full screen.</p>
+        <p class="game-help"><strong>Options.</strong> Pick them on the start screen before each game. <em>Relaxed</em> starts slow and speeds up gently; <em>Fast</em> is for experts. With <em>Wrap</em> edges, the beam passes through one wall and comes back through the opposite one. <em>Obstacles</em> scatters blocks across the board, always leaving every open square reachable. Your best score is kept separately for each combination.</p>
+        <p class="game-help"><strong>Daily challenge.</strong> One board a day, the same for everyone: normal speed, 20 × 20 with walls, and obstacles, with the same photons in the same order for as long as your path doesn’t cover the next spot. Play it as often as you like; your best score of the day counts, and the streak counts the days in a row you played it.</p>
+        <details class="fold" id="stats-box">
+            <summary>Statistics</summary>
+            <div class="st-nums">
+                <div><b id="st-played">0</b><span>Games played</span></div>
+                <div><b id="st-photons">0</b><span>Photons collected</span></div>
+                <div><b id="st-longest">0</b><span>Longest beam</span></div>
+                <div><b id="st-filled">0</b><span>Boards filled</span></div>
+                <div><b id="st-streak">0</b><span>Daily streak</span></div>
+                <div><b id="st-beststreak">0</b><span>Longest daily streak</span></div>
+            </div>
+            <table class="st-table">
+                <caption class="visually-hidden">Best score for each set of options</caption>
+                <thead><tr><th scope="col">Free play options</th><th scope="col">Best</th></tr></thead>
+                <tbody id="st-bests"></tbody>
+            </table>
+            <p>A game counts once it ends or you start a new one. Statistics stay in this browser.</p>
+            <p><button class="btn btn-secondary btn-sm" type="button" id="reset-stats">Reset statistics</button></p>
+        </details>
     </div>
 </main>
 
@@ -140,34 +181,63 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const G = window.Games, $ = id => document.getElementById(id);
-    const cv = $('board'), ctx = cv.getContext('2d');
+    const cv = $('board'), ctx = cv.getContext('2d'), play = $('play');
+    // The board is the largest square that leaves the score bar and the arrow pad on screen with it
+    const fitter = G.fit($('box'), { aspect: 1, maxW: 600 });
+    G.fullButton($('full'));
     const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
     const KEYS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
     // [first step in ms, fastest step in ms, ms faster per photon]
     const SPEEDS = { relaxed: [200, 110, 3], normal: [140, 62, 4], fast: [95, 50, 3] };
-    const OPTS = ['speed', 'size', 'wrap', 'obstacles'];
+    const OPTS = ['speed', 'size', 'wrap', 'obstacles'], STORE = { speed: 'snake-speed', size: 'snake-size', wrap: 'snake-wrap', obstacles: 'snake-obstacles' };
+    const DAILY = { speed: 'normal', size: '20', wrap: '0', obstacles: '1' };   // the daily challenge's fixed options
+    const coarse = window.matchMedia('(pointer: coarse)');
     // state: idle (start screen), ready (waiting for the first move), run, pause, over
-    let N = 20, speed = SPEEDS.normal, wrap = false, obstaclesOn = false;
+    let N = 20, speed = SPEEDS.normal, speedName = 'normal', wrap = false, obstaclesOn = false, daily = false, rnd = Math.random, dateOverride = null;
     let snake, dir, queue, food, score, tick, walls = new Set(), state = 'idle', timer = 0;
 
-    // Saved options (games.js storage, safe when storage is blocked)
+    // Saved options (games.js storage, safe when storage is blocked). The free-play choices are kept apart, so the
+    // daily challenge can show its own fixed options without overwriting them.
     const pick = (v, list, fb) => (list.includes(v) ? v : fb);
-    $('speed').value = pick(G.get('snake-speed', 'normal'), Object.keys(SPEEDS), 'normal');
-    $('size').value = pick(G.get('snake-size', '20'), ['14', '20', '26'], '20');
-    $('wrap').checked = G.get('snake-wrap', '0') === '1';
-    $('obstacles').checked = G.get('snake-obstacles', '0') === '1';
+    const free = {
+        speed: pick(G.get('snake-speed', 'normal'), Object.keys(SPEEDS), 'normal'), size: pick(G.get('snake-size', '20'), ['14', '20', '26'], '20'),
+        wrap: G.get('snake-wrap', '0') === '1' ? '1' : '0', obstacles: G.get('snake-obstacles', '0') === '1' ? '1' : '0'
+    };
+    $('mode').value = G.get('snake-mode', 'free') === 'daily' ? 'daily' : 'free';
     let bests = G.getJSON('snake-bests');
     if (!bests || typeof bests !== 'object' || Array.isArray(bests)) {
         bests = {};
         const old = +G.get('snake-best', 0) || 0;   // the single best score saved before options existed
-        if (old > 0) { bests['normal-20-' + ($('wrap').checked ? 'wrap' : 'walls')] = old; G.setJSON('snake-bests', bests); }
+        if (old > 0) { bests['normal-20-' + (free.wrap === '1' ? 'wrap' : 'walls')] = old; G.setJSON('snake-bests', bests); }
     }
-    const modeKey = () => $('speed').value + '-' + N + '-' + (wrap ? 'wrap' : 'walls') + (obstaclesOn ? '-obstacles' : '');
-    const best = () => Math.max(0, Math.floor(+bests[modeKey()] || 0));
+    // Daily challenge record and statistics
+    const num = v => (Number.isFinite(+v) ? Math.max(0, Math.floor(+v)) : 0);
+    const day = (offset) => { const d = dateOverride ? new Date(dateOverride + 'T12:00:00') : new Date(); d.setDate(d.getDate() + (offset || 0)); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    const rawDaily = G.getJSON('snake-daily') || {};
+    const dailyRec = { date: typeof rawDaily.date === 'string' ? rawDaily.date : '', best: num(rawDaily.best), tries: num(rawDaily.tries), streak: num(rawDaily.streak), bestStreak: num(rawDaily.bestStreak) };
+    const rawStats = G.getJSON('snake-stats') || {};
+    const stats = { played: num(rawStats.played), photons: num(rawStats.photons), longest: num(rawStats.longest), filled: num(rawStats.filled) };
+    const dailyBest = () => (dailyRec.date === day() ? dailyRec.best : 0);
+    const modeKey = () => (daily ? 'daily-' + day() : speedName + '-' + N + '-' + (wrap ? 'wrap' : 'walls') + (obstaclesOn ? '-obstacles' : ''));
+    const best = () => (daily ? dailyBest() : Math.max(0, Math.floor(+bests[modeKey()] || 0)));
     G.soundButton($('sound'));
 
+    // A small seeded generator (mulberry32) so the daily board and photons are the same for everyone on a date
+    function seeded(text) {
+        let h = 2166136261;
+        for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+        let a = h >>> 0;
+        return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    }
+    function syncOpts() {             // the option selects show the daily options (locked) or the free-play choices
+        daily = $('mode').value === 'daily';
+        OPTS.forEach(id => { $(id).value = daily ? DAILY[id] : free[id]; $(id).disabled = daily; });
+        $('best-label').textContent = daily ? 'Best today' : 'Best';
+    }
     function readOptions() {
-        N = +$('size').value; speed = SPEEDS[$('speed').value]; wrap = $('wrap').checked; obstaclesOn = $('obstacles').checked;
+        syncOpts();
+        const o = daily ? DAILY : free;
+        N = +o.size; speedName = o.speed; speed = SPEEDS[o.speed]; wrap = o.wrap === '1'; obstaclesOn = o.obstacles === '1';
     }
     function size() {
         const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, s = Math.round(r.width * dpr);
@@ -177,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const at = (x, y) => y * N + x;
     function reset() {
         readOptions();
+        rnd = daily ? seeded('snake-' + day()) : Math.random;
         const m = N >> 1;
         snake = [{ x: m, y: m }, { x: m - 1, y: m }, { x: m - 2, y: m }];
         dir = 'right'; queue = []; score = 0; tick = speed[0];
@@ -190,8 +261,8 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let attempt = 0; attempt < 300; attempt++) {
             const w = new Set();
             for (let guard = 0; w.size < target && guard < 400; guard++) {
-                const len = 1 + Math.floor(Math.random() * 3), horiz = Math.random() < 0.5;
-                const x0 = Math.floor(Math.random() * N), y0 = Math.floor(Math.random() * N), cells = [];
+                const len = 1 + Math.floor(rnd() * 3), horiz = rnd() < 0.5;
+                const x0 = Math.floor(rnd() * N), y0 = Math.floor(rnd() * N), cells = [];
                 for (let i = 0; i < len; i++) { const x = x0 + (horiz ? i : 0), y = y0 + (horiz ? 0 : i); if (x < N && y < N) cells.push([x, y]); }
                 if (cells.some(([x, y]) => y === m || (Math.abs(y - m) <= 2 && x >= m - 5 && x <= m + 3))) continue;
                 cells.forEach(([x, y]) => w.add(at(x, y)));
@@ -223,10 +294,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return seen.size === open;
     }
+    // The next photon: a random open square. The daily challenge draws squares from its seeded sequence and skips any the
+    // beam or a block covers, so everyone sees the same photons as long as their paths don't block the spot.
     function placeFood() {
-        const body = new Set(snake.map(p => at(p.x, p.y))), free = [];
-        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const k = at(x, y); if (!body.has(k) && !walls.has(k)) free.push({ x, y }); }
-        food = free.length ? free[Math.floor(Math.random() * free.length)] : null;   // null: the beam fills the board
+        const body = new Set(snake.map(p => at(p.x, p.y))), open = [];
+        for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const k = at(x, y); if (!body.has(k) && !walls.has(k)) open.push({ x, y }); }
+        if (!open.length) { food = null; return; }   // the beam fills the board
+        if (daily) for (let i = 0; i < 64; i++) { const k = Math.floor(rnd() * N * N); if (!body.has(k) && !walls.has(k)) { food = { x: k % N, y: Math.floor(k / N) }; return; } }
+        food = open[Math.floor(rnd() * open.length)];
     }
     function update() {
         $('score').textContent = score;
@@ -234,25 +309,34 @@ document.addEventListener('DOMContentLoaded', () => {
         $('level').textContent = Math.min(10, 1 + Math.round((speed[0] - tick) / ((speed[0] - speed[1]) / 9)));
         $('pause').textContent = state === 'pause' ? 'Resume' : 'Pause';
         $('pause').disabled = state !== 'run' && state !== 'pause';
-        const locked = state === 'run' || state === 'pause';
-        OPTS.forEach(id => { $(id).disabled = locked; });
-        $('opts').title = locked ? 'Options can be changed between games' : '';
     }
     const say = msg => { $('sr').textContent = msg; };
     function opposite(a, b) { return DIRS[a][0] === -DIRS[b][0] && DIRS[a][1] === -DIRS[b][1]; }
+    // The start screen's words for the chosen mode
+    function intro() {
+        if (daily) {
+            const d = new Date(day() + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+            $('ov-title').textContent = 'Daily challenge';
+            $('ov-text').textContent = 'One board for everyone on ' + d + '.' + (dailyRec.date === day() && dailyRec.tries ? ' Your best: ' + dailyRec.best + ' in ' + dailyRec.tries + (dailyRec.tries === 1 ? ' try.' : ' tries.') : ' Your best try counts.');
+        } else {
+            $('ov-title').textContent = 'Snake';
+            $('ov-text').textContent = coarse.matches ? 'Swipe the board or use the arrow pad to steer.' : 'Steer with the arrow keys or WASD, swipe the board, or use the arrow pad.';
+        }
+        $('start').textContent = 'Start'; $('overlay').classList.add('ov-start');
+    }
 
     function newGame() {
-        if (state === 'run' || state === 'pause') saveBest();
+        if (state === 'run' || state === 'pause') endRun(false);   // a game abandoned for a new one still counts
         clearTimeout(timer); reset();
         state = 'ready'; $('overlay').hidden = true; update(); draw();
-        cv.focus({ preventScroll: true }); reveal();
-        say('Ready. Choose a direction to start.');
+        cv.focus({ preventScroll: true }); G.reveal(play);   // the score bar, board, and arrow pad all on screen
+        say((daily ? 'Daily challenge. ' : '') + 'Ready. Choose a direction to start.');
     }
-    // Scroll so the whole board, and the arrow pad when it is shown, is on screen
-    function reveal() {
-        const pad = document.querySelector('.dpad'), r = cv.getBoundingClientRect();
-        const bottom = pad.offsetParent ? pad.getBoundingClientRect().bottom : r.bottom, need = bottom + 8 - window.innerHeight;
-        if (need > 0) window.scrollBy({ top: Math.min(need, r.top - 8), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    // New game during a game: back to the start screen and its options (an arrow key, Space, or Start begins)
+    function toStart() {
+        if (state === 'run' || state === 'pause') endRun(false);
+        clearTimeout(timer); state = 'idle'; reset(); intro(); $('overlay').hidden = false; update(); draw();
+        G.reveal(play); $('start').focus({ preventScroll: true }); say('New game. Pick the options, then steer or press Start.');
     }
     // Leave the ready state: the first move may go any way, even back past the tail (the beam turns around)
     function go(d) {
@@ -291,17 +375,25 @@ document.addEventListener('DOMContentLoaded', () => {
         update(); draw();
         later(false);
     }
-    function saveBest() {
+    // A game ends (or is abandoned): best score, daily record, and statistics. Returns true for a new best.
+    function endRun(won) {
         const record = score > best();
-        if (record) { bests[modeKey()] = score; G.setJSON('snake-bests', bests); }
-        return record;
+        if (daily) {
+            const t = day();
+            if (dailyRec.date !== t) { dailyRec.streak = dailyRec.date === day(-1) ? dailyRec.streak + 1 : 1; dailyRec.date = t; dailyRec.best = 0; dailyRec.tries = 0; }
+            dailyRec.tries++; dailyRec.best = Math.max(dailyRec.best, score); dailyRec.bestStreak = Math.max(dailyRec.bestStreak, dailyRec.streak);
+            G.setJSON('snake-daily', dailyRec);
+        } else if (record) { bests[modeKey()] = score; G.setJSON('snake-bests', bests); }
+        stats.played++; stats.photons += score; stats.longest = Math.max(stats.longest, 3 + score); if (won) stats.filled++;   // the beam starts 3 long and grows by one per photon
+        G.setJSON('snake-stats', stats); renderStats();
+        return record && score > 0;
     }
     function gameOver(won) {
         state = 'over'; clearTimeout(timer);
-        const record = saveBest();
-        $('ov-title').textContent = won ? 'Board filled!' : 'Game over';
-        $('ov-text').textContent = 'Score ' + score + (record ? ', a new best!' : '. Best ' + best() + '.');
-        $('start').textContent = 'Play again';
+        const record = endRun(won);
+        $('ov-title').textContent = won ? 'Board filled!' : record ? (daily ? 'Best today!' : 'New best!') : 'Game over';
+        $('ov-text').textContent = 'Score ' + score + ', beam ' + (3 + score) + ' long.' + (daily ? ' Best today ' + dailyBest() + ' in ' + dailyRec.tries + (dailyRec.tries === 1 ? ' try.' : ' tries.') : record ? '' : ' Best ' + best() + '.');
+        $('start').textContent = 'Play again'; $('overlay').classList.remove('ov-start');
         $('overlay').hidden = false; update(); draw();
         if (won || record) [523, 659, 784].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.12, 'square', 0.03), k * 100));
         else G.tone(300, 90, 0.45, 'sawtooth', 0.035);
@@ -317,7 +409,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function css(v, fb) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || fb; }
     function mix(a, b, t) { return a.map((x, i) => Math.round(x + (b[i] - x) * t)); }
-    const coarse = window.matchMedia('(pointer: coarse)');
     function banner(text) {
         const W = cv.width;
         ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, W * 0.16, W, W * 0.12);
@@ -357,22 +448,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const px = -v[1], py = v[0];   // perpendicular to the direction of travel
         [1, -1].forEach(s => { ctx.beginPath(); ctx.arc(ex + v[0] * c * 0.18 + px * s * c * 0.17, ey + v[1] * c * 0.18 + py * s * c * 0.17, c * 0.07, 0, 2 * Math.PI); ctx.fill(); });
         if (state === 'ready') banner(coarse.matches ? 'Swipe or tap the pad to go' : 'Press an arrow key to go');
-        if (state === 'pause') { ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(0, 0, W, W); ctx.fillStyle = '#fff'; ctx.font = '600 ' + Math.round(W / 14) + 'px ' + css('--font', 'sans-serif'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Paused', W / 2, W / 2); }
+        if (state === 'pause') {
+            ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(0, 0, W, W); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.font = '600 ' + Math.round(W / 14) + 'px ' + css('--font', 'sans-serif'); ctx.fillText('Paused', W / 2, W / 2);
+            ctx.font = '500 ' + Math.round(W / 30) + 'px ' + css('--font', 'sans-serif'); ctx.fillText(coarse.matches ? 'Steer to go on' : 'Steer or press Space to go on', W / 2, W / 2 + W / 12);
+        }
     }
 
     document.addEventListener('keydown', e => {
         if (e.ctrlKey || e.metaKey || e.altKey) return;
         const t = e.target, is = sel => t.matches && t.matches(sel);
-        if (is('select, textarea, input:not([type="checkbox"])')) return;
+        if (is('select, textarea, input')) return;
         if (KEYS[e.key]) {
-            if (state === 'over' || is('input')) return;   // after a game ends, arrows scroll the page instead of restarting
+            if (state === 'over') return;   // after a game ends, arrows scroll the page instead of restarting
             e.preventDefault(); steer(KEYS[e.key]);
         } else if (e.key === ' ' || e.key === 'p' || e.key === 'P' || e.key === 'Enter') {
-            if ((e.key === ' ' || e.key === 'Enter') && is('button, a, summary, input')) return;   // let focused controls handle their own keys
+            if ((e.key === ' ' || e.key === 'Enter') && is('button, a, summary')) return;   // let focused controls handle their own keys
             if (state === 'run' || state === 'pause') { if (e.key !== 'Enter') { e.preventDefault(); togglePause(); } }
             else if (state === 'ready') { if (e.key !== 'p' && e.key !== 'P') { e.preventDefault(); go(dir); } }
             else if (e.key !== 'p' && e.key !== 'P') { e.preventDefault(); newGame(); }
-        }
+        } else if (e.key === 'Escape' && state === 'run') { e.preventDefault(); togglePause(); }   // otherwise Esc leaves the full-window view
     });
     // Swipes turn as soon as the finger has moved far enough; keep dragging to turn again without lifting
     let t0 = null;
@@ -391,23 +486,59 @@ document.addEventListener('DOMContentLoaded', () => {
         b.addEventListener('click', e => { if (e.detail === 0) steer(b.dataset.d); });   // keyboard activation
     });
     $('start').addEventListener('click', newGame);
-    $('new').addEventListener('click', newGame);
+    $('new').addEventListener('click', () => (state === 'run' || state === 'pause' || state === 'ready' ? toStart() : newGame()));
     $('pause').addEventListener('click', () => { togglePause(); cv.focus({ preventScroll: true }); });
-    const optKeys = { speed: 'snake-speed', size: 'snake-size', wrap: 'snake-wrap', obstacles: 'snake-obstacles' };
     OPTS.forEach(id => $(id).addEventListener('change', () => {
-        const el = $(id); G.set(optKeys[id], el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value);
-        if (state === 'run' || state === 'pause') return;   // the controls are disabled during a game anyway
+        if (daily) return;                                  // locked while the daily challenge is chosen
+        free[id] = $(id).value; G.set(STORE[id], free[id]);
+        if (state === 'run' || state === 'pause') return;   // options sit on the start screen, hidden during a game
         reset(); update(); draw();
     }));
+    $('mode').addEventListener('change', () => {
+        G.set('snake-mode', $('mode').value);
+        if (state === 'run' || state === 'pause') return;
+        reset(); intro(); update(); draw();
+    });
     document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'run') togglePause(); });
     document.addEventListener('themechange', draw);
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
     new ResizeObserver(size).observe(cv);
-    reset(); size();
+
+    // Statistics
+    const label = k => {                    // 'normal-20-walls-obstacles' -> 'Normal, 20 × 20, walls, obstacles'
+        const m = /^(relaxed|normal|fast)-(14|20|26)-(walls|wrap)(-obstacles)?$/.exec(k);
+        return m && m[1][0].toUpperCase() + m[1].slice(1) + ', ' + m[2] + ' × ' + m[2] + ', ' + m[3] + (m[4] ? ', obstacles' : '');
+    };
+    function renderStats() {
+        $('st-played').textContent = G.fmt(stats.played); $('st-photons').textContent = G.fmt(stats.photons);
+        $('st-longest').textContent = G.fmt(stats.longest); $('st-filled').textContent = G.fmt(stats.filled);
+        $('st-streak').textContent = dailyRec.date === day() || dailyRec.date === day(-1) ? dailyRec.streak : 0;
+        $('st-beststreak').textContent = dailyRec.bestStreak;
+        const order = Object.keys(SPEEDS).flatMap(s => ['14', '20', '26'].flatMap(n => ['walls', 'wrap'].flatMap(w => [s + '-' + n + '-' + w, s + '-' + n + '-' + w + '-obstacles'])));
+        const rows = order.filter(k => +bests[k] > 0).map(k => '<tr><td>' + label(k) + '</td><td>' + G.fmt(+bests[k]) + '</td></tr>');
+        $('st-bests').innerHTML = rows.join('') || '<tr><td colspan="2">No free-play games yet.</td></tr>';
+    }
+    let resetArmed = null;
+    $('reset-stats').addEventListener('click', () => {      // two clicks, so one stray click can't wipe the record
+        const btn = $('reset-stats');
+        if (!resetArmed) { btn.textContent = 'Click again to reset statistics and best scores'; resetArmed = setTimeout(() => { resetArmed = null; btn.textContent = 'Reset statistics'; }, 4000); return; }
+        clearTimeout(resetArmed); resetArmed = null; btn.textContent = 'Reset statistics';
+        for (const k in stats) stats[k] = 0;
+        for (const k in bests) delete bests[k];
+        Object.assign(dailyRec, { date: '', best: 0, tries: 0, streak: 0, bestStreak: 0 });
+        G.setJSON('snake-stats', stats); G.setJSON('snake-bests', bests); G.setJSON('snake-daily', dailyRec); G.set('snake-best', 0);
+        renderStats(); update(); if (state === 'idle') intro(); say('Statistics reset.');
+    });
+
+    reset(); intro(); size(); renderStats();
     window.__snake = {
-        state: () => ({ snake, food, score, state, tick, N, dir, queue: [...queue], walls: [...walls], best: best(), mode: modeKey() }),
+        state: () => ({ snake, food, score, state, tick, N, dir, queue: [...queue], walls: [...walls], best: best(), mode: modeKey(), daily, date: day() }),
         setFood: (x, y) => { food = { x, y }; }, setSnake: s => { snake = s.map(p => ({ x: p.x, y: p.y })); },
-        steer, step: () => { clearTimeout(timer); step(); }, newGame, makeWalls, fair, draw
+        steer, step: () => { clearTimeout(timer); step(); }, newGame, toStart, makeWalls, fair, draw, togglePause,
+        setMode: m => { $('mode').value = m; $('mode').dispatchEvent(new Event('change')); },
+        setDate: d => { dateOverride = d; if (state === 'idle' || state === 'over') { reset(); intro(); } renderStats(); },   // tests: pretend today is d (YYYY-MM-DD)
+        get stats() { return { ...stats }; }, get dailyRec() { return { ...dailyRec }; },
+        fit: () => ({ w: fitter.w, h: fitter.h, overflow: G.overflow(play), canvas: cv.width }), reveal: () => G.reveal(play, true)
     };
 });
 </script>

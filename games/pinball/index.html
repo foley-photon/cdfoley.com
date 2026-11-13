@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orbit Pinball: Free 3D Space Pinball Game Online</title>
-<meta name="description" content="Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the solar system, with multiball. No ads.">
+<meta name="description" content="Play a free 3D space pinball game online: complete missions on a grand tour of the solar system, with multiball, three table levels, and achievements. No ads.">
 <link rel="canonical" href="https://cdfoley.com/games/pinball/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Orbit Pinball">
-<meta property="og:description" content="Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the solar system, with multiball. No ads.">
+<meta property="og:description" content="Play a free 3D space pinball game online: complete missions on a grand tour of the solar system, with multiball, three table levels, and achievements. No ads.">
 <meta property="og:url" content="https://cdfoley.com/games/pinball/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-pinball.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Orbit Pinball: 3D Space Pinball. Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the solar system, with multiball. No ads.">
+<meta property="og:image:alt" content="Orbit Pinball: 3D Space Pinball. Play a free 3D space pinball game online: complete missions on a grand tour of the solar system, with multiball, three table levels, and achievements. No ads.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -23,47 +23,101 @@
 <script src="/assets/js/site.js"></script>
 <script src="/assets/js/games.js"></script>
 <style>
-    .pb { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 1rem; align-items: start; max-width: 940px; margin: 0 auto; }
-    .pb-stage { position: relative; }
-    #table { display: block; margin: 0 auto; border-radius: var(--radius-lg); background: #04060d; touch-action: none; outline: none; user-select: none; -webkit-user-select: none; }
+    /* Layout: the table and the scoreboard side by side, centered as a group. games.js keeps the whole block on screen. */
+    .pb { display: flex; justify-content: center; align-items: flex-start; gap: 1rem; }
+    .pb-main { flex: 0 1 auto; min-width: 0; }
+    .pb-stage { position: relative; margin: 0 auto; }
+    #table { display: block; border-radius: var(--radius-lg); background: #04060d; touch-action: none; outline: none; user-select: none; -webkit-user-select: none; }
     #table:focus-visible { outline: 2px solid #a78bfa; outline-offset: 3px; }
-    .pb-overlay { background: rgba(4, 6, 13, .72); color: #e2e8f0; backdrop-filter: none; left: 50%; right: auto; width: var(--cw, 100%); transform: translateX(-50%); }
+    .pb-overlay { background: rgba(4, 6, 13, .74); color: #e2e8f0; backdrop-filter: none; }
     .pb-overlay p { color: #cbd5e1; }
     .pb-overlay h2 { color: #f5f3ff; }
-    .pb-hud { background: #0a0d1c; color: #e2e8f0; border: 1px solid #3b0764; border-radius: var(--radius-lg); padding: 1rem; display: grid; gap: 0.8rem; box-shadow: inset 0 0 30px rgba(124, 58, 237, .18); }
+    .pb-overlay kbd { font-family: var(--mono); font-size: 0.8rem; background: #1e1b4b; border: 1px solid #6d28d9; border-radius: 4px; padding: 0 0.3rem; color: #f5f3ff; }
+    .pb-overlay .btn-secondary { background: #160f2e; color: #e9d5ff; border-color: #6d28d9; }
+    .pb-overlay .btn-secondary:hover { background: #2e1065; color: #fff; border-color: #a78bfa; }
+    .pb-level { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #cbd5e1; }
+    .pb-level select { min-height: 36px; max-width: 100%; padding: 0.25rem 0.4rem; border: 1px solid #6d28d9; border-radius: var(--radius-sm); background: #160f2e; color: #f5f3ff; font: inherit; font-size: 0.85rem; }
+    .pb-new { color: #fbbf24 !important; font-weight: 700; }
+    .pb-hud { flex: 0 0 250px; min-width: 0; background: #0a0d1c; color: #e2e8f0; border: 1px solid #3b0764; border-radius: var(--radius-lg); padding: 1rem; display: grid; gap: 0.8rem; box-shadow: inset 0 0 30px rgba(124, 58, 237, .18); }
     .pb-score { font: 700 2rem/1 var(--mono); color: #fbbf24; text-shadow: 0 0 12px rgba(251, 191, 36, .45); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
     .pb-label { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: #a78bfa; margin-bottom: 0.15rem; }
-    .pb-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: #cbd5e1; }
+    .pb-row { display: flex; justify-content: space-between; gap: 0.8rem; font-size: 0.9rem; color: #cbd5e1; }
     .pb-row b, .pb-best b { font-family: var(--mono); color: #f8fafc; }
     .pb-mission { border-top: 1px solid #2e1065; border-bottom: 1px solid #2e1065; padding: 0.6rem 0; }
     #mission { font-weight: 700; font-size: 1.1rem; color: #f0abfc; }
-    #goal { font-size: 0.88rem; color: #cbd5e1; }
-    .pb-msg { min-height: 2.6em; font: 600 0.9rem/1.3 var(--mono); color: #22d3ee; }
-    .pb-best { font-size: 0.85rem; color: #94a3b8; }
+    #goal { min-height: 2.6em; line-height: 1.3; font-size: 0.88rem; color: #cbd5e1; }   /* two lines, so a longer goal does not move the buttons */
+    .pb-msg { height: 3.9em; overflow: hidden; font: 600 0.9rem/1.3 var(--mono); color: #22d3ee; }   /* three lines, always: the buttons under it never move */
+    .pb-best { font-size: 0.85rem; color: #a5b4c8; }
     .pb-btns { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .pb-mission, .pb-msg, .pb-best { order: 1; }   /* the buttons sit under the score, high in the panel: in view on a laptop's first screen */
     .pb-btns button { flex: 1 1 auto; font: 600 0.8rem var(--font); padding: 0.45rem 0.6rem; border-radius: 8px; border: 1px solid #4c1d95; background: #160f2e; color: #e9d5ff; cursor: pointer; }
     .pb-btns button:hover { background: #2e1065; }
+    .pb-btns button:focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
     .pb-btns button[aria-pressed="true"] { background: #4c1d95; color: #fff; }
+    .pb-top { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; min-width: 0; }
+    .pb-full { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border-radius: 8px; border: 1px solid #4c1d95; background: #160f2e; color: #e9d5ff; cursor: pointer; }
+    .pb-full:hover { background: #2e1065; }
+    .pb-full:focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
     .pb-ov-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
+    @media (max-width: 600px) { #overlay { justify-content: flex-start; padding-top: 1.2rem; } }   /* a phone: the Start button high on the table, in view on arrival */
     .pb-ov-note { font-size: 0.85rem; }
-    .pb-rules { justify-content: flex-start; overflow-y: auto; gap: 0.5rem; background: rgba(4, 6, 13, .94); }
-    .pb-rules ol { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 22rem; text-align: left; font-size: 0.86rem; color: #cbd5e1; }
-    .pb-rules li { display: grid; grid-template-columns: 1.3rem 4.4rem 1fr; gap: 0.3rem; padding: 0.22rem 0; border-bottom: 1px solid #2e1065; }
-    .pb-rules li b { color: #f0abfc; font-weight: 700; }
+    /* Missions and records card: the list scrolls, the button stays in view */
+    .pb-rules { justify-content: flex-start; overflow: hidden; gap: 0.5rem; background: rgba(4, 6, 13, .95); }
+    .pb-rules-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; width: 100%; max-width: 23rem; display: grid; gap: 0.45rem; align-content: start; text-align: left; }
+    .pb-rules-body:focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
+    .pb-rules h3 { margin: 0.35rem 0 0; font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: #a78bfa; }
+    .pb-rules ol, .pb-ach { list-style: none; margin: 0; padding: 0; font-size: 0.86rem; color: #cbd5e1; }
+    .pb-rules ol li { display: grid; grid-template-columns: 1.3rem 4.4rem 1fr; gap: 0.3rem; padding: 0.22rem 0; border-bottom: 1px solid #2e1065; }
+    .pb-rules ol li b { color: #f0abfc; font-weight: 700; }
     .pb-rules li.now { color: #fff; }
     .pb-rules li.now b { color: #22d3ee; }
-    .pb-rules li.done { color: #94a3b8; }
-    .pb-rules .pb-ov-note { max-width: 22rem; text-align: left; }
-    .pb-touch { display: none; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-top: 0.6rem; }
-    .pb-touch button { height: 64px; border-radius: 14px; border: 1px solid #4c1d95; background: #160f2e; color: #e9d5ff; font: 700 1rem var(--font); touch-action: none; user-select: none; -webkit-user-select: none; }
-    .pb-touch button:active, .pb-touch button.on { background: #6d28d9; color: #fff; }
-    @media (pointer: coarse) { .pb-touch { display: grid; } }
-    @media (max-width: 760px) {
-        .pb { grid-template-columns: 1fr; }
-        .pb-hud { grid-template-columns: 1fr 1fr; gap: 0.5rem 1rem; padding: 0.7rem 0.9rem; }
-        .pb-score { font-size: 1.5rem; grid-column: 1 / -1; }
-        .pb-mission, .pb-msg, .pb-btns { grid-column: 1 / -1; }
-        .pb-msg { min-height: 1.3em; }
+    .pb-rules li.done { color: #a5b4c8; }
+    .pb-rules .pb-ov-note { margin: 0; text-align: left; }
+    .pb-ach li { display: grid; grid-template-columns: 1.3rem 1fr; gap: 0.3rem; padding: 0.22rem 0; border-bottom: 1px solid #2e1065; color: #a5b4c8; }
+    .pb-ach li b { color: #e2e8f0; font-weight: 700; }
+    .pb-ach li.got b { color: #fbbf24; }
+    #rules-close { flex: none; }
+    /* Touch: flipper and launch buttons under the table */
+    .pb-pad { display: none; }
+    .pb-pad button { border-radius: 14px; border: 1px solid #4c1d95; background: #160f2e; color: #e9d5ff; font: 700 1rem var(--font); touch-action: none; user-select: none; -webkit-user-select: none; }
+    .pb-pad button:active, .pb-pad button.on { background: #6d28d9; color: #fff; }
+    @media (pointer: coarse) {
+        .pb-main { display: grid; grid-template-columns: 1fr 2fr; grid-template-areas: "stage stage" "l r"; gap: 0.5rem; }
+        .pb-stage { grid-area: stage; }
+        .pb-pad { display: flex; gap: 0.5rem; }
+        .pb-pad-l { grid-area: l; } .pb-pad-r { grid-area: r; }
+        .pb-pad button { flex: 1 1 0; min-width: 0; height: 56px; }
+        .pb-btns button { min-height: 40px; }
+        .pb-full { width: 40px; height: 40px; }
+        .pb-level select { min-height: 40px; }
+    }
+    /* A narrow window held upright: the scoreboard becomes a compact bar above the table, which shows the mission and messages */
+    @media (max-width: 699px) and (orientation: portrait), (max-width: 699px) and (min-height: 561px) {
+        .pb { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+        .pb-hud { order: -1; flex: none; grid-template-columns: auto 1fr; align-items: center; gap: 0.4rem 0.8rem; padding: 0.5rem 0.7rem; }
+        .pb-score { font-size: 1.45rem; }
+        .pb-row { justify-content: flex-end; }
+        .pb-mission, .pb-msg, .pb-best { display: none; }
+        .pb-btns { grid-column: 1 / -1; flex-wrap: nowrap; gap: 0.3rem; }   /* one row of buttons */
+        .pb-btns button { min-width: 0; padding: 0.45rem 0.35rem; font-size: 0.78rem; }
+        .pb-main { align-self: center; }
+    }
+    /* A phone held sideways: a narrow scoreboard, and the flipper buttons beside the table */
+    @media (orientation: landscape) and (max-height: 560px) {
+        .pb { gap: 0.6rem; }
+        .pb-hud { flex-basis: 196px; padding: 0.55rem 0.7rem; gap: 0.4rem; }
+        .pb-score { font-size: 1.45rem; }
+        .pb-mission { padding: 0.35rem 0; }
+        #mission { font-size: 0.95rem; }
+        #goal, .pb-row { font-size: 0.8rem; }
+        .pb-msg { font-size: 0.76rem; }
+        .pb-btns button { flex: 1 1 40%; padding: 0.45rem 0.3rem; font-size: 0.78rem; }
+    }
+    @media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) {
+        .pb-main { grid-template-columns: auto auto auto; grid-template-areas: "l stage r"; align-items: stretch; gap: 0.6rem; }
+        .pb-pad { flex-direction: column; width: 84px; }
+        .pb-pad button { height: auto; }
+        #t-right { order: -1; flex-grow: 2; }
     }
     .mission-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
     .mission-table th, .mission-table td { text-align: left; padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--border); }
@@ -76,7 +130,7 @@
    "@type": "VideoGame",
    "name": "Orbit Pinball",
    "url": "https://cdfoley.com/games/pinball/",
-   "description": "Play a free 3D space pinball game online: launch, flip, hit bumpers, and complete missions on a grand tour of the solar system, with multiball. No ads.",
+   "description": "Play a free 3D space pinball game online: complete missions on a grand tour of the solar system, with multiball, three table levels, and achievements. No ads.",
    "genre": "Pinball",
    "gamePlatform": "Web browser",
    "playMode": "SinglePlayer",
@@ -133,44 +187,54 @@
         <p class="lede">A 3D space pinball table. Launch the ball, keep it in play, and complete a mission at each planet on a grand tour of the solar system.</p>
     </header>
 
-    <div class="pb">
-        <div class="pb-stage" id="stage">
-            <canvas id="table" aria-label="Pinball table" tabindex="0"></canvas>
-            <div class="game-overlay pb-overlay" id="overlay">
-                <h2 id="ov-title">Orbit Pinball</h2>
-                <p id="ov-text">Press <strong>Space</strong> or tap <strong>Launch</strong> to start.</p>
-                <div class="pb-ov-btns">
-                    <button class="btn btn-primary" type="button" id="start">Start</button>
-                    <button class="btn btn-secondary" type="button" id="practice">Practice</button>
+    <div class="game-play" id="play">
+        <div class="pb" id="pb">
+            <div class="pb-main" id="pb-main">
+                <div class="pb-pad pb-pad-l" id="pad-l"><button type="button" id="t-left" aria-label="Left flipper">◀ Flip</button></div>
+                <div class="pb-stage" id="stage">
+                    <canvas id="table" aria-label="Pinball table" aria-describedby="ov-text" tabindex="0"></canvas>
+                    <div class="game-overlay pb-overlay" id="overlay">
+                        <h2 id="ov-title">Orbit Pinball</h2>
+                        <p id="ov-text">Flippers: <kbd>Z</kbd> and <kbd>/</kbd> or <kbd>←</kbd> <kbd>→</kbd>. Launch: hold <kbd>Space</kbd>, then let go.</p>
+                        <div class="pb-ov-btns">
+                            <button class="btn btn-primary" type="button" id="start">Start</button>
+                            <button class="btn btn-secondary" type="button" id="practice">Practice</button>
+                            <button class="btn btn-secondary" type="button" id="resume" hidden>Resume</button>
+                        </div>
+                        <label class="pb-level">Table <select id="level"><option value="easy">Easy: 5 balls, gentle slope</option><option value="normal" selected>Normal: 3 balls</option><option value="hard">Hard: steep, short shield</option></select></label>
+                        <p class="pb-ov-note" id="ov-note">Practice: unlimited balls, no high score or records.</p>
+                    </div>
+                    <div class="game-overlay pb-overlay pb-rules" id="rules" role="dialog" aria-modal="true" aria-labelledby="rules-title" hidden>
+                        <h2 id="rules-title">Missions and records</h2>
+                        <div class="pb-rules-body" id="rules-body" tabindex="0" aria-label="Missions, records, and achievements">
+                            <ol id="rules-list"></ol>
+                            <p class="pb-ov-note">Bumpers, slings, targets, and lanes add to the end-of-ball bonus; the top lanes multiply it. The shield light returns a drained ball.</p>
+                            <h3>Records</h3>
+                            <p class="pb-ov-note" id="rec-line"></p>
+                            <h3 id="ach-head">Achievements</h3>
+                            <ul class="pb-ach" id="ach-list"></ul>
+                        </div>
+                        <button class="btn btn-primary" type="button" id="rules-close">Back to the table</button>
+                    </div>
                 </div>
-                <p class="pb-ov-note">Practice: unlimited balls, no high score.</p>
+                <div class="pb-pad pb-pad-r" id="pad-r"><button type="button" id="t-launch">Launch</button><button type="button" id="t-right" aria-label="Right flipper">Flip ▶</button></div>
             </div>
-            <div class="game-overlay pb-overlay pb-rules" id="rules" role="dialog" aria-modal="true" aria-labelledby="rules-title" hidden>
-                <h2 id="rules-title">Missions</h2>
-                <ol id="rules-list"></ol>
-                <p class="pb-ov-note">Bumpers, slings, targets, and lanes add to the end-of-ball bonus; the top lanes multiply it. The shield light returns a drained ball.</p>
-                <button class="btn btn-primary" type="button" id="rules-close">Back to the table</button>
-            </div>
-            <div class="pb-touch">
-                <button type="button" id="t-left" aria-label="Left flipper">◀ Flip</button>
-                <button type="button" id="t-launch">Launch</button>
-                <button type="button" id="t-right" aria-label="Right flipper">Flip ▶</button>
-            </div>
+            <aside class="pb-hud" aria-label="Scoreboard">
+                <div class="pb-top"><div class="pb-score" id="score">0</div><button type="button" class="pb-full" id="full"></button></div>
+                <div class="pb-row"><span>Ball <b id="ball">–</b> <span id="of">of 3</span></span><span>Bonus ×<b id="mult">1</b></span></div>
+                <div class="pb-mission"><div class="pb-label">Mission</div><div id="mission">Moon</div><div id="goal">Hit the pop bumpers</div></div>
+                <div class="pb-msg" id="msg" aria-live="polite"></div>
+                <div class="pb-best">High score, <span id="best-level">Normal</span> <b id="best">0</b></div>
+                <div class="pb-btns"><button type="button" id="new">New game</button><button type="button" id="pause">Pause</button><button type="button" id="rules-open" aria-haspopup="dialog">Missions</button><button type="button" id="sound">Sound on</button></div>
+            </aside>
         </div>
-        <aside class="pb-hud" aria-label="Scoreboard">
-            <div class="pb-score" id="score">0</div>
-            <div class="pb-row"><span>Ball <b id="ball">–</b> <span id="of">of 3</span></span><span>Bonus ×<b id="mult">1</b></span></div>
-            <div class="pb-mission"><div class="pb-label">Mission</div><div id="mission">Moon</div><div id="goal">Hit the pop bumpers</div></div>
-            <div class="pb-msg" id="msg" aria-live="polite"></div>
-            <div class="pb-best">High score <b id="best">0</b></div>
-            <div class="pb-btns"><button type="button" id="new">New game</button><button type="button" id="pause">Pause</button><button type="button" id="rules-open" aria-haspopup="dialog">Missions</button><button type="button" id="sound">Sound on</button></div>
-        </aside>
     </div>
 
     <section class="game-help" style="max-width:940px;margin:1.6rem auto 0">
         <h2 style="font-size:1.2rem;color:var(--text)">How to play</h2>
-        <p><strong>Flippers:</strong> <kbd>Z</kbd>, <kbd>←</kbd>, or <kbd>Left Shift</kbd> for the left; <kbd>/</kbd>, <kbd>→</kbd>, or <kbd>Right Shift</kbd> for the right. On a touch screen, tap the left or right half of the table, or use the buttons. <strong>Launch:</strong> hold <kbd>Space</kbd> or <kbd>↓</kbd> (or the Launch button) to pull the plunger back and release to fire; the longer you hold, the harder the shot. <strong>Nudge:</strong> <kbd>↑</kbd> or <kbd>N</kbd> shoves the table; nudge too often and it tilts, the flippers go dead, and the ball’s bonus is lost. <kbd>P</kbd> or <kbd>Esc</kbd> pauses; on a touch screen, tap the paused table to resume.</p>
-        <p><strong>Shield:</strong> for the first 10 seconds after a launch, a drained ball is sent back once; while the shield light glows after a multiball starts (12 seconds), every drained ball comes back. <strong>Top lanes:</strong> roll through all three to raise the end-of-ball bonus multiplier (up to 5×); the flippers shift which lanes are lit. <strong>Wormhole:</strong> the hole on the right captures the ball and fires it back toward the bumpers. Reaching Jupiter and Pluto starts a two-ball multiball. The <strong>Missions</strong> button shows the tour and your progress, and <strong>Practice</strong> gives unlimited balls (no high score).</p>
+        <p><strong>Flippers:</strong> <kbd>Z</kbd>, <kbd>←</kbd>, or <kbd>Left Shift</kbd> for the left; <kbd>/</kbd>, <kbd>→</kbd>, or <kbd>Right Shift</kbd> for the right. On a touch screen, tap the left or right half of the table, or use the buttons. <strong>Launch:</strong> hold <kbd>Space</kbd> or <kbd>↓</kbd> (or the Launch button) to pull the plunger back and release to fire; the longer you hold, the harder the shot. <strong>Nudge:</strong> <kbd>↑</kbd> or <kbd>N</kbd> shoves the table; nudge too often and it tilts, the flippers go dead, and the ball’s bonus is lost. <kbd>P</kbd> or <kbd>Esc</kbd> pauses; on a touch screen, tap the paused table to resume. The square button shows the table full screen; leaving full screen pauses the game.</p>
+        <p><strong>Shield:</strong> for the first seconds after a launch (10 on Normal), a drained ball is sent back once; while the shield light glows after a multiball starts, every drained ball comes back. <strong>Top lanes:</strong> roll through all three to raise the end-of-ball bonus multiplier (up to 5×); the flippers shift which lanes are lit. <strong>Wormhole:</strong> the hole on the right captures the ball and fires it back toward the bumpers. Reaching Jupiter and Pluto starts a two-ball multiball. The <strong>Missions</strong> button shows the tour and your progress, your records, and your achievements.</p>
+        <p><strong>Table:</strong> <em>Easy</em> gives five balls, a gentler slope, and a longer shield; <em>Hard</em> tilts the table steeper, shortens the shield, and tilts sooner. Each level keeps its own high score. <strong>Practice</strong> gives unlimited balls and counts toward no score or record. New game during a game pauses it and asks first.</p>
         <table class="mission-table">
             <thead><tr><th>Planet</th><th>Mission</th></tr></thead>
             <tbody id="mission-list"></tbody>
@@ -185,11 +249,20 @@
 document.addEventListener('DOMContentLoaded', () => {
     'use strict';
     const $ = id => document.getElementById(id), GM = window.Games;
-    const cv = $('table'), ctx = cv.getContext('2d'), stage = $('stage');
+    const cv = $('table'), ctx = cv.getContext('2d'), stage = $('stage'), play = $('play'), pb = $('pb'), main = $('pb-main'), hudEl = document.querySelector('.pb-hud');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)'), coarse = window.matchMedia('(pointer: coarse)');
+    const sideways = window.matchMedia('(orientation: landscape) and (max-height: 560px)');   // a phone held sideways: flipper buttons beside the table
 
     // ── Table geometry, in table units: x to the right, y toward the player, z up ──────────
-    const TL = 1010, G = 1150, BR = 11, PLY = 968, VMAX = 3000;
+    const TL = 1010, BR = 11, PLY = 968, VMAX = 3000;
+    // Table levels: balls per game, the slope (gravity along the table), shield seconds after a launch and after a
+    // multiball starts, and how much nudging the table takes before it tilts
+    const LEVELS = {
+        easy: { name: 'Easy', balls: 5, g: 980, shield: 20, multi: 16, tilt: 4.2 },
+        normal: { name: 'Normal', balls: 3, g: 1150, shield: 10, multi: 12, tilt: 3.2 },
+        hard: { name: 'Hard', balls: 3, g: 1320, shield: 5, multi: 8, tilt: 2.6 }
+    };
+    let level = 'normal', lv = LEVELS.normal, G = lv.g;
     const walls = [], circles = [], flippers = [], slings = [], lanes = [], drops = [], fuels = [];
     function seg(a, b, o) {
         const s = Object.assign({ ax: a[0], ay: a[1], bx: b[0], by: b[1], e: 0.4, h: 20, rad: 2.5, kind: 'wall', draw: true }, o || {});
@@ -246,36 +319,78 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Game state ──────────────────────────────────────────────────────────────────────────
     let balls = [], state = 'attract', paused = false, time = 0, score = 0, ballNo = 0, mult = 1, bonus = 0;
     let missionIdx = 0, missionCount = 0, shieldUntil = 0, multiShield = false, armShield = false, dropResetAt = 0, autoLaunchAt = 0, nextBallAt = 0;
-    let msgUntil = 0, hudDirty = true, redraw = true, practice = false, tilt = 0, tilted = false, nudgeCd = 0;
-    let best = +GM.get('pinball-best', 0) || 0;
-    const plunger = { pull: 0, held: false }, timers = [];
+    let msgUntil = 0, hudDirty = true, redraw = true, practice = false, tilt = 0, tilted = false, nudgeCd = 0, sinks = 0, asking = false;
+    const bestKey = k => k === 'normal' ? 'pinball-best' : 'pinball-best-' + k;     // Normal keeps the original key
+    const bestOf = k => +GM.get(bestKey(k), 0) || 0;
+    let best = bestOf(level);
+    const plunger = { pull: 0, held: false }, timers = [], msgQueue = [];
+
+    // ── Records and achievements (kept in this browser; practice games do not count) ─────────
+    const ACH = [
+        ['liftoff', 'Liftoff', 'Reach the Moon.'],
+        ['assist', 'Gravity assist', 'Start a multiball.'],
+        ['burn', 'Full burn', 'Raise the bonus multiplier to 5×.'],
+        ['lagrange', 'Lagrange point', 'Hold the ball still on a raised flipper for 3 seconds.'],
+        ['horizon', 'Event horizon', 'Sink the wormhole three times with one ball.'],
+        ['deep', 'Deep space', 'Reach Saturn on Hard.'],
+        ['escape', 'Escape velocity', 'Score 500,000 points in one game.'],
+        ['tour', 'Grand tour', 'Reach Pluto, the end of the tour.']
+    ];
+    let rec = GM.getJSON('pinball-records');
+    if (!rec || typeof rec !== 'object') rec = {};
+    rec = { games: +rec.games || 0, planets: +rec.planets || 0, far: +rec.far || 0, multis: +rec.multis || 0, ach: rec.ach && typeof rec.ach === 'object' ? rec.ach : {} };
+    let earnedNow = [];
+    const saveRec = () => GM.setJSON('pinball-records', rec);
+    function earn(id) {
+        if (practice || rec.ach[id] || (state !== 'play' && state !== 'bonus')) return;
+        const a = ACH.find(x => x[0] === id); if (!a) return;
+        rec.ach[id] = new Date().toISOString().slice(0, 10); earnedNow.push(a[1]); saveRec();
+        say('Achievement: ' + a[1] + '!', 3, true);
+        [784, 988, 1175].forEach((f, i) => later(0.3 + i * 0.08, () => tone(f, f, 0.1, 'triangle', 0.03)));
+    }
 
     const mission = () => { const p = PLANETS[missionIdx % PLANETS.length], lap = Math.floor(missionIdx / PLANETS.length); return Object.assign({}, p, { n: p.n * (lap + 1), lap }); };
     const fmt = GM.fmt;
     // say(text, secs): a status line, read out by screen readers; secs = 0 keeps it until the next message
-    function say(text, secs) { $('msg').textContent = text; msgUntil = secs === 0 ? 0 : time + (secs || 2.5); redraw = true; }
-    function add(points, b) { score += points; bonus += b || 0; hudDirty = true; }
+    // queued: wait for the current message to run its time (an achievement does not cut a mission message short)
+    function say(text, secs, queued) {
+        if (queued && msgUntil && time < msgUntil - 0.2) { msgQueue.push([text, secs]); return; }
+        $('msg').textContent = text; msgUntil = secs === 0 ? 0 : time + (secs || 2.5); redraw = true;
+    }
+    function add(points, b) { score += points; bonus += b || 0; hudDirty = true; if (score >= 500000) earn('escape'); }
     function later(secs, fn) { timers.push({ at: time + secs, fn }); }     // game-time timers: they wait while the game is paused
     function newBall() { return { x: 520, y: PLY - BR - 0.5, vx: 0, vy: 0, held: 0, launched: false, still: 0, flipT: -1, ejectCd: 0, py: PLY }; }
     const launchHint = () => coarse.matches ? 'hold Launch and release to fire' : 'hold Space and release to fire';
 
+    function setLevel(k) {
+        if (!LEVELS[k]) return;
+        level = k; lv = LEVELS[k]; G = lv.g; best = bestOf(k); $('level').value = k; GM.set('pinball-level', k); hudDirty = true;
+    }
     function newGame(mode) {
         GM.audio();
         if (mode !== undefined) practice = !!mode;
+        setLevel($('level').value);
         balls = []; score = 0; ballNo = 1; mult = 1; bonus = 0; missionIdx = 0; missionCount = 0; shieldUntil = 0; multiShield = false;
         lanes.forEach(l => { l.lit = false; }); drops.forEach(d => { d.up = true; }); dropResetAt = 0; autoLaunchAt = 0; timers.length = 0;
-        tilt = 0; tilted = false; plunger.pull = 0; plunger.held = false;
+        tilt = 0; tilted = false; plunger.pull = 0; plunger.held = false; sinks = 0; earnedNow = []; msgQueue.length = 0; asking = false;
         serve(false); state = 'play'; paused = false; $('pause').textContent = 'Pause'; $('pause').setAttribute('aria-pressed', 'false');
-        $('overlay').hidden = true; hudDirty = true;
+        $('overlay').hidden = true; $('resume').hidden = true; hudDirty = true;
         say((practice ? 'Practice, unlimited balls: ' : 'Ball 1: ') + launchHint() + '.', 4);
-        cv.focus({ preventScroll: true }); showTable();
+        cv.focus({ preventScroll: true }); GM.reveal(play);      // the whole table and scoreboard in view, below the site header
     }
-    // Bring the whole table into view when a game starts (the page scrolls only if part of it is hidden)
-    function showTable() {
-        const r = stage.getBoundingClientRect(), top = headerH() + 8;
-        if (r.top < top - 1 || r.bottom > window.innerHeight + 1) stage.scrollIntoView({ block: 'start' });
+    // New game in the middle of a game pauses it and asks first
+    function askNew() {
+        if (!((state === 'play' || state === 'bonus') && (score > 0 || ballNo > 1))) { newGame(false); return; }
+        if (!$('rules').hidden) closeRules();
+        setPaused(true); releaseAll(); asking = true;
+        $('ov-title').textContent = 'New game?'; $('ov-title').classList.remove('pb-new'); $('ov-text').textContent = 'This game is paused. Start a new one, or resume it.';
+        $('start').textContent = 'New game'; $('resume').hidden = false; $('overlay').hidden = false; redraw = true;
+        $('resume').focus({ preventScroll: true });
     }
-    function headerH() { return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 60; }
+    function resume() {
+        if (!asking) return;
+        asking = false; $('overlay').hidden = true; $('resume').hidden = true; setPaused(false); cv.focus({ preventScroll: true });
+    }
     function serve(auto) { balls.push(newBall()); armShield = !auto; if (auto) autoLaunchAt = time + 0.6; }
     function fire(pull) {
         let fired = false;
@@ -293,11 +408,16 @@ document.addEventListener('DOMContentLoaded', () => {
             [523, 659, 784, 1046].forEach((f, i) => later(i * 0.09, () => tone(f, f, 0.12, 'square', 0.035)));
             missionIdx++; missionCount = 0;
             if (m.multiball) startMultiball();
+            earn('liftoff');
+            if (missionIdx >= 5 && level === 'hard') earn('deep');
+            if (missionIdx >= 8) earn('tour');
         }
     }
     function startMultiball() {
-        serve(true); shieldUntil = time + 12; multiShield = true;
-        later(1.2, () => say('Gravity assist: multiball! Shield on for 12 seconds.', 3));
+        serve(true); shieldUntil = time + lv.multi; multiShield = true;
+        later(1.2, () => say('Gravity assist: multiball! Shield on for ' + lv.multi + ' seconds.', 3));
+        if (!practice) { rec.multis++; saveRec(); }
+        later(1.3, () => earn('assist'));
     }
     function drained(b) {
         balls.splice(balls.indexOf(b), 1);
@@ -315,18 +435,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function nextBall() {
         ballNo++; bonus = 0; mult = 1; tilt = 0; tilted = false; hudDirty = true;
-        if (ballNo > 3 && !practice) return gameOver();
-        state = 'play'; serve(false); say('Ball ' + ballNo + '.', 2.5);
+        if (ballNo > lv.balls && !practice) return gameOver();
+        sinks = 0; state = 'play'; serve(false); say('Ball ' + ballNo + '.', 2.5);
     }
     function gameOver() {
-        state = 'over'; ballNo = 3; plunger.held = false; plunger.pull = 0; timers.length = 0;
-        const record = score > best;
-        if (record) { best = score; GM.set('pinball-best', best); }
-        const text = 'Score ' + fmt(score) + (record && score ? ': a new high score!' : '. High score ' + fmt(best) + '.') + ' Planets reached: ' + missionIdx + '.';
-        $('ov-title').textContent = 'Game over'; $('ov-text').textContent = text;
-        $('start').textContent = 'Play again'; $('overlay').hidden = false; hudDirty = true;
-        say('Game over. ' + text, 0);
-        if (document.activeElement === cv) $('start').focus({ preventScroll: true });
+        state = 'over'; ballNo = lv.balls; plunger.held = false; plunger.pull = 0; timers.length = 0; msgQueue.length = 0; asking = false;
+        const record = score > best && score > 0;
+        if (record) { best = score; GM.set(bestKey(level), best); }
+        rec.games++; rec.planets += missionIdx; rec.far = Math.max(rec.far, missionIdx); saveRec();
+        const far = missionIdx ? PLANETS[(missionIdx - 1) % PLANETS.length].name : '';
+        const text = 'Score ' + fmt(score) + (record ? ': a new high score on ' + lv.name + '!' : '. High score on ' + lv.name + ': ' + fmt(best) + '.')
+            + ' Planets reached: ' + missionIdx + (far ? ' (last, ' + far + ')' : '') + '.'
+            + (earnedNow.length ? ' New achievement' + (earnedNow.length > 1 ? 's' : '') + ': ' + earnedNow.join(', ') + '.' : '');
+        $('ov-title').textContent = record ? 'New high score!' : 'Game over'; $('ov-title').classList.toggle('pb-new', record);
+        $('ov-text').textContent = text;
+        $('start').textContent = 'Play again'; $('resume').hidden = true; $('overlay').hidden = false; hudDirty = true;
+        say('Game over. Score ' + fmt(score) + (record ? ', a new high score!' : '.'), 0);
+        if (record) [523, 659, 784, 1046, 1318].forEach((f, i) => setTimeout(() => tone(f, f, 0.14, 'square', 0.035), i * 110));
+        if (document.activeElement === cv || document.activeElement === document.body) $('start').focus({ preventScroll: true });
     }
     // Nudge: shove the table. Nudging too often in a short time tilts it: the flippers go dead until the ball drains.
     function nudge() {
@@ -334,10 +460,10 @@ document.addEventListener('DOMContentLoaded', () => {
         nudgeCd = 0.25; tilt += 1; redraw = true;
         for (const b of balls) if (!b.held && !(b.x > 500 && b.y > 330)) { b.vy -= 150; b.vx += (Math.random() - 0.5) * 140; b.still = 0; }
         GM.noise(0.12, 0.08, 400);
-        if (tilt > 3.2) {
+        if (tilt > lv.tilt) {
             tilted = true; shieldUntil = 0; multiShield = false; say('TILT! Flippers off until the ball drains.', 4);
             tone(160, 80, 0.6, 'sawtooth', 0.045);
-        } else if (tilt > 2.2) say('Careful: tilt warning!', 2);
+        } else if (tilt > lv.tilt - 1) say('Careful: tilt warning!', 2);
     }
 
     // ── Physics ─────────────────────────────────────────────────────────────────────────────
@@ -436,13 +562,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 l.cd = 0.4; add(500, 200); tone(1046, 1046, 0.06, 'sine', 0.035);
                 if (!l.lit) { l.lit = true; if (lanes.every(q => q.lit)) {
                     lanes.forEach(q => { q.lit = false; }); mult = Math.min(5, mult + 1); add(10000, 1000);
-                    say('Lanes complete! Bonus ×' + mult); progress('lanes'); } }
+                    say('Lanes complete! Bonus ×' + mult); progress('lanes'); if (mult >= 5) earn('burn'); } }
             }
             if (b.ejectCd <= 0 && Math.hypot(b.x - SAUCER.x, b.y - SAUCER.y) < 12 && !balls.some(o => o.held > 0)) {   // one ball at a time
                 b.held = 1.0; b.x = SAUCER.x; b.y = SAUCER.y; b.vx = b.vy = 0;
                 add(5000, 1000); tone(220, 60, 0.4, 'sine', 0.05); progress('wormhole');
+                if (++sinks >= 3) earn('horizon');
             }
-            if (!b.launched && b.y < 330) { b.launched = true; if (armShield) { shieldUntil = Math.max(shieldUntil, time + 10); armShield = false; multiShield = false; } }
+            if (!b.launched && b.y < 330) { b.launched = true; if (armShield) { shieldUntil = Math.max(shieldUntil, time + lv.shield); armShield = false; multiShield = false; } }
             if (b.y > TL + 40) b.dead = true;
         }
         for (let i = 0; i < balls.length; i++) for (let j = i + 1; j < balls.length; j++) {
@@ -476,7 +603,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const inLane = b.x > 500 && b.y > 330;
             if (b.y < 600) b.slingRun = 0;
             if (b.y > 600) b.bumpRun = 0;
-            const cradled = time - b.flipT < 0.2 && b.flipHeld;
+            // Cradled: on the blade of a raised flipper, or rolled down to its base against the inlane guide (the ball
+            // rests a hair off the pivot cap there). A cradled ball gets no auto nudge; an idle player never holds one.
+            const cradled = (time - b.flipT < 0.2 && b.flipHeld) || (!tilted && flippers.some(f => f.pressed && Math.hypot(b.x - f.px, b.y - f.py) < f.r0 + BR + 4));
+            b.cradleT = cradled && Math.hypot(b.vx, b.vy) < 40 ? (b.cradleT || 0) + dt : 0;     // held still on a raised flipper
+            if (b.cradleT >= 3) earn('lagrange');
             if (!inLane && Math.hypot(b.vx, b.vy) < 15 && !cradled) {
                 b.still += dt;
                 // a ball parked against a flipper pivot (between it and the guide rail above) gets help sooner
@@ -490,17 +621,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dropResetAt && time > dropResetAt) { drops.forEach(d => { d.up = true; }); dropResetAt = 0; }
         if (autoLaunchAt && time > autoLaunchAt) { autoLaunchAt = 0; fire(0.85); }
         if (state === 'bonus' && time > nextBallAt) nextBall();
-        if (msgUntil && time > msgUntil) { $('msg').textContent = ''; msgUntil = 0; }
+        if (msgUntil && time > msgUntil) { msgUntil = 0; if (msgQueue.length) say(...msgQueue.shift()); else { $('msg').textContent = ''; redraw = true; } }
         if (hudDirty) hud();
     }
     function hud() {
         hudDirty = false; redraw = true;
         const m = mission();
         $('score').textContent = fmt(score);
-        $('ball').textContent = ballNo ? (practice ? ballNo : Math.min(ballNo, 3)) : '–';
-        $('of').textContent = practice ? '(practice)' : 'of 3';
+        $('ball').textContent = ballNo ? (practice ? ballNo : Math.min(ballNo, lv.balls)) : '–';
+        $('of').textContent = practice ? '(practice)' : 'of ' + lv.balls;
         $('mult').textContent = mult;
         $('best').textContent = fmt(practice ? best : Math.max(best, score));
+        $('best-level').textContent = lv.name;
+        $('pause').disabled = !(state === 'play' || state === 'bonus');
         $('mission').textContent = m.name + (m.lap ? ' · lap ' + (m.lap + 1) : '');
         $('goal').textContent = GOALS[m.goal] + (state === 'attract' ? '' : ' (' + missionCount + '/' + m.n + ')');
     }
@@ -523,21 +656,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const dx = x - CAM.x, dy = y - CAM.y, dz = z - CAM.z, k = PS / (dx * F[0] + dy * F[1] + dz * F[2]);
         return [POX + k * (dx * R[0] + dy * R[1] + dz * R[2]), POY - k * (dx * U[0] + dy * U[1] + dz * U[2]), k];
     }
-    let floor = null, cssW = 0;
-    function fit() {
+    let floor = null, cssW = 0, fitKey = '', TB = null;
+    const num = v => parseFloat(v) || 0;
+    // The table's outline as the camera sees it, in projection units: it sets the canvas's aspect ratio
+    function tableBounds() {
         PS = 1; POX = 0; POY = 0;
         let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
         for (const p of OUTLINE) for (const z of [0, 34]) { const q = P(p[0], p[1], z); x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); }
-        // Fit the table, and the touch buttons under it, between the sticky site header and the bottom of the window
-        const touch = document.querySelector('.pb-touch'), touchH = touch.offsetHeight ? touch.offsetHeight + 10 : 0;
-        const aspect = (x1 - x0) / (y1 - y0), avail = stage.clientWidth, maxH = Math.max(360, window.innerHeight - headerH() - 24 - touchH);
-        cssW = Math.floor(Math.min(avail, maxH * aspect));
-        const dpr = Math.min(2, window.devicePixelRatio || 1), pad = 6 * dpr;
+        return [x0, x1, y0, y1];
+    }
+    // Size the table so that it, the scoreboard, and the touch buttons fit the window together (Games.band: the window
+    // below the sticky site header, or all of it in full screen). The scoreboard sits beside the table, or above it in a
+    // narrow window held upright; the touch buttons sit under the table, or beside it on a phone held sideways.
+    function fit() {
+        if (!TB) TB = tableBounds();
+        if (!stage.getClientRects().length) return;
+        const [x0, x1, y0, y1] = TB, aspect = (x1 - x0) / (y1 - y0), pad = 6;
+        const ps = getComputedStyle(play), bs = getComputedStyle(pb), ms = getComputedStyle(main), column = bs.flexDirection === 'column';
+        let availH = GM.band(play).height - num(ps.paddingTop) - num(ps.paddingBottom), availW = pb.clientWidth;
+        if (column) availH -= hudEl.offsetHeight + num(bs.rowGap); else availW -= hudEl.offsetWidth + num(bs.columnGap);
+        if (coarse.matches) {
+            const l = $('pad-l'), r = $('pad-r');
+            if (sideways.matches) availW -= l.offsetWidth + r.offsetWidth + 2 * num(ms.columnGap);
+            else availH -= Math.max(l.offsetHeight, r.offsetHeight) + num(ms.rowGap);
+        }
+        const w = Math.floor(Math.max(150, Math.min(availW, (availH - 2 * pad) * aspect + 2 * pad)));
+        const dpr = Math.min(2, window.devicePixelRatio || 1), key = w + '@' + dpr;
+        if (key === fitKey) return;        // unchanged: keep the drawing (resizing a canvas clears it)
+        fitKey = key; cssW = w;
+        const dp = pad * dpr;
         cv.width = Math.round(cssW * dpr);
-        PS = (cv.width - 2 * pad) / (x1 - x0);
-        cv.height = Math.round((y1 - y0) * PS + 2 * pad);
-        cv.style.width = cssW + 'px'; cv.style.height = (cv.height / dpr) + 'px'; stage.style.setProperty('--cw', cssW + 'px');   // overlays cover the table, not the empty column beside it
-        POX = pad - PS * x0; POY = pad - PS * y0;
+        PS = (cv.width - 2 * dp) / (x1 - x0);
+        cv.height = Math.round((y1 - y0) * PS + 2 * dp);
+        cv.style.width = cssW + 'px'; cv.style.height = (cv.height / dpr) + 'px'; stage.style.width = cssW + 'px';   // the overlays cover the table exactly
+        POX = dp - PS * x0; POY = dp - PS * y0;
         buildFloor(); redraw = true;
     }
 
@@ -663,7 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (active && m.goal === 'wormhole' && blink) glow(c, SAUCER.x, SAUCER.y, 60, 'rgba(192,132,252,A)', 0.6);
         if (active && m.goal === 'bumpers' && blink) bumpers.forEach(b => glow(c, b.x, b.y, 54, 'rgba(217,70,239,A)', 0.35));
         c.globalCompositeOperation = 'source-over';
-        if (!hudSeen && active && $('msg').textContent) floorMsg(c, $('msg').textContent);
+        if (!msgSeen && active && $('msg').textContent) floorMsg(c, $('msg').textContent);
         for (const b of balls) if (!b.held) flat(c, circ(b.x + 5, b.y + 3, BR * 0.95, 16), 0, 'rgba(0,0,0,.5)');
 
         const items = [];
@@ -707,19 +859,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 c.globalAlpha = o.held ? 0.55 : 1; c.beginPath(); c.arc(p[0], p[1], r, 0, Math.PI * 2); c.fillStyle = g; c.fill(); c.globalAlpha = 1;
             }
         }
-        if (!hudSeen && active) miniHud(c, m);
+        if (active && (!scoreSeen || !missionSeen)) miniHud(c, m);
         if (tilted) { c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '900 ' + Math.round(cv.width / 9) + 'px Inter, system-ui, sans-serif'; c.fillStyle = 'rgba(248,113,113,.9)'; const p = P(260, 690, 0); c.fillText('TILT', p[0], p[1]); }
         if (paused) { c.fillStyle = 'rgba(4,6,13,.55)'; c.fillRect(0, 0, cv.width, cv.height); }
-        if (paused && $('rules').hidden) { c.fillStyle = '#e9d5ff'; c.font = '800 ' + Math.round(cv.width / 12) + 'px Inter, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Paused', cv.width / 2, cv.height / 2); c.font = '600 ' + Math.round(cv.width / 26) + 'px Inter, system-ui, sans-serif'; c.fillText(coarse.matches ? 'Tap the table to resume' : 'Press P to resume', cv.width / 2, cv.height / 2 + cv.width / 10); }
+        if (paused && $('rules').hidden && !asking) { c.fillStyle = '#e9d5ff'; c.font = '800 ' + Math.round(cv.width / 12) + 'px Inter, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Paused', cv.width / 2, cv.height / 2); c.font = '600 ' + Math.round(cv.width / 26) + 'px Inter, system-ui, sans-serif'; c.fillText(coarse.matches ? 'Tap the table to resume' : 'Press P to resume', cv.width / 2, cv.height / 2 + cv.width / 10); }
     }
 
-    // When the scoreboard is scrolled out of view (phones: it sits below the table), the table shows the essentials:
-    // score and ball in the top-left corner, the mission in the top-right, and the latest message on the playfield.
-    let hudSeen = true;
-    const seen = new Map();
+    // What the scoreboard cannot show, the table does: in a narrow window the mission and the message line are hidden,
+    // so the mission goes in the table's top-right corner and the latest message on the playfield; a scoreboard
+    // scrolled out of view also puts the score and ball in the top-left corner.
+    let scoreSeen = true, missionSeen = true, msgSeen = true;
     if ('IntersectionObserver' in window) {
-        const io = new IntersectionObserver(es => { es.forEach(e => seen.set(e.target, e.intersectionRatio > 0.9)); hudSeen = [...seen.values()].every(Boolean); redraw = true; }, { threshold: [0, 0.9, 1] });
-        io.observe($('score')); io.observe($('msg'));
+        const io = new IntersectionObserver(es => {
+            es.forEach(e => { const v = e.intersectionRatio > 0.9; if (e.target.id === 'score') scoreSeen = v; else if (e.target.id === 'mission') missionSeen = v; else msgSeen = v; });
+            redraw = true;
+        }, { threshold: [0, 0.9, 1] });
+        io.observe($('score')); io.observe($('mission')); io.observe($('msg'));
     }
     function cornerText(c, lines, x, align) {
         c.textAlign = align; c.textBaseline = 'top';
@@ -732,8 +887,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function miniHud(c, m) {
         const sans = 'Inter, system-ui, sans-serif', mono = 'ui-monospace, Consolas, monospace', pad = cv.width * 0.025;
-        cornerText(c, [[fmt(score), 0.05, '#fbbf24', 700, mono], [practice ? 'Ball ' + ballNo + ' · practice' : 'Ball ' + Math.min(ballNo, 3) + ' of 3', 0.032, '#e2e8f0', 600, sans]].concat(mult > 1 ? [['Bonus ×' + mult, 0.032, '#e2e8f0', 600, sans]] : []), pad, 'left');
-        cornerText(c, [[m.name, 0.04, '#f0abfc', 800, sans], [missionCount + ' / ' + m.n, 0.032, '#e2e8f0', 600, sans]], cv.width - pad, 'right');
+        if (!scoreSeen) cornerText(c, [[fmt(score), 0.05, '#fbbf24', 700, mono], [practice ? 'Ball ' + ballNo + ' · practice' : 'Ball ' + Math.min(ballNo, lv.balls) + ' of ' + lv.balls, 0.032, '#e2e8f0', 600, sans]].concat(mult > 1 ? [['Bonus ×' + mult, 0.032, '#e2e8f0', 600, sans]] : []), pad, 'left');
+        if (!missionSeen) cornerText(c, [[m.name, 0.04, '#f0abfc', 800, sans], [missionCount + ' / ' + m.n, 0.032, '#e2e8f0', 600, sans]], cv.width - pad, 'right');
     }
     function floorMsg(c, text) {
         const size = Math.round(cv.width * 0.034), maxW = cv.width * 0.62, p = P(260, 700, 0);
@@ -763,8 +918,8 @@ document.addEventListener('DOMContentLoaded', () => {
         $('pause').textContent = paused ? 'Resume' : 'Pause'; $('pause').setAttribute('aria-pressed', paused ? 'true' : 'false');
         say(paused ? 'Paused.' : 'Resumed.', paused ? 0 : 1.2);
     }
-    const togglePause = () => setPaused(!paused);
-    function releaseAll() { sides.clear(); setFlip(FL, false); setFlip(FR, false); launchUp(); document.querySelectorAll('.pb-touch .on').forEach(el => el.classList.remove('on')); }
+    const togglePause = () => asking ? resume() : setPaused(!paused);
+    function releaseAll() { sides.clear(); setFlip(FL, false); setFlip(FR, false); launchUp(); document.querySelectorAll('.pb-pad .on').forEach(el => el.classList.remove('on')); }
 
     // Missions card: pauses a running game while it is open
     let rulesPaused = false;
@@ -775,9 +930,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return '<li class="' + (done ? 'done' : now ? 'now' : '') + '"><span aria-hidden="true">' + (done ? '✓' : now ? '▶' : '') + '</span><b>' + p.name + '</b><span>'
                 + goalText(p, p.n * (lap + 1)) + (p.multiball ? '; starts multiball' : '') + (done ? ' (done)' : now ? ' (now: ' + missionCount + ' of ' + p.n * (lap + 1) + ')' : '') + '</span></li>';
         }).join('');
+        const bests = Object.keys(LEVELS).map(k => LEVELS[k].name + ' ' + fmt(bestOf(k))).join(', '), lapOf = n => Math.floor((n - 1) / PLANETS.length) + 1;
+        $('rec-line').textContent = 'Games ' + fmt(rec.games) + ' · planets reached ' + fmt(rec.planets) + ' · multiballs ' + fmt(rec.multis)
+            + (rec.far ? ' · farthest ' + PLANETS[(rec.far - 1) % PLANETS.length].name + (lapOf(rec.far) > 1 ? ' (lap ' + lapOf(rec.far) + ')' : '') : '') + '. High scores: ' + bests + '.';
+        $('ach-head').textContent = 'Achievements, ' + ACH.filter(a => rec.ach[a[0]]).length + ' of ' + ACH.length;
+        $('ach-list').innerHTML = ACH.map(a => { const got = !!rec.ach[a[0]]; return '<li class="' + (got ? 'got' : '') + '"><span aria-hidden="true">' + (got ? '★' : '☆') + '</span><span><b>' + a[1] + '</b>' + (got ? '<span class="visually-hidden"> (earned)</span>' : '') + ': ' + a[2] + '</span></li>'; }).join('');
         rulesPaused = (state === 'play' || state === 'bonus') && !paused;
         if (rulesPaused) setPaused(true);
-        releaseAll(); $('rules').hidden = false; redraw = true; $('rules-close').focus({ preventScroll: true });
+        releaseAll(); $('rules').hidden = false; $('rules-body').scrollTop = 0; redraw = true; $('rules-close').focus({ preventScroll: true });
     }
     function closeRules() {
         if ($('rules').hidden) return;
@@ -791,15 +951,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', e => {
         if (e.target.matches && e.target.matches('input, select, textarea')) return;
         if (e.ctrlKey || e.metaKey || e.altKey) return;
-        if (!$('rules').hidden) {                                      // the open card keeps the keys: Escape closes it, Tab stays on its button
+        if (!$('rules').hidden) {                                      // the open card keeps the keys: Escape closes it, Tab stays inside it
             if (e.code === 'Escape') { e.preventDefault(); closeRules(); }
-            else if (e.code === 'Tab') { e.preventDefault(); $('rules-close').focus(); }
+            else if (e.code === 'Tab') { e.preventDefault(); (document.activeElement === $('rules-close') ? $('rules-body') : $('rules-close')).focus(); }   // the list (arrow keys scroll it) and the button
             return;
         }
         if (LEFT.includes(e.code)) { e.preventDefault(); setFlip(FL, true); }
         else if (RIGHT.includes(e.code)) { e.preventDefault(); setFlip(FR, true); }
         else if (LAUNCH.includes(e.code)) { if (e.target.matches && e.target.matches('a, button')) return; e.preventDefault(); if (!e.repeat) launchDown(); }   // Enter and Space on a focused button activate it
         else if (NUDGE.includes(e.code)) { e.preventDefault(); if (!e.repeat) nudge(); }
+        else if (e.code === 'Escape' && play.classList.contains('game-focus')) { if (!paused) setPaused(true); }   // games.js leaves the focus view
         else if (e.code === 'KeyP' || e.code === 'Escape') { e.preventDefault(); togglePause(); }
     });
     document.addEventListener('keyup', e => {
@@ -825,7 +986,10 @@ document.addEventListener('DOMContentLoaded', () => {
     [['t-left', FL], ['t-right', FR]].forEach(([id, f]) => $(id).addEventListener('click', e => { if (e.detail) return; setFlip(f, true); setTimeout(() => setFlip(f, false), 150); }));
     $('start').addEventListener('click', () => newGame(false));
     $('practice').addEventListener('click', () => newGame(true));
-    $('new').addEventListener('click', () => newGame(false));
+    $('resume').addEventListener('click', resume);
+    $('new').addEventListener('click', askNew);
+    $('level').addEventListener('change', () => { GM.set('pinball-level', $('level').value); if (state === 'attract' || state === 'over') setLevel($('level').value); });
+    GM.fullButton($('full'));
     $('pause').addEventListener('click', () => { togglePause(); cv.focus({ preventScroll: true }); });
     $('rules-open').addEventListener('click', openRules);
     $('rules-close').addEventListener('click', closeRules);
@@ -834,11 +998,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('visibilitychange', () => { if (document.hidden) { releaseAll(); if (state === 'play' || state === 'bonus') setPaused(true); } });
     window.addEventListener('blur', releaseAll);
 
-    let lastW = stage.clientWidth, lastH = window.innerHeight;
+    const saved = GM.get('pinball-level', 'normal');
+    setLevel(LEVELS[saved] ? saved : 'normal');
+    $('ov-text').innerHTML = coarse.matches ? 'Tap the left or right half of the table, or the Flip buttons, to flip. Hold <strong>Launch</strong>, then let go.'
+        : 'Flippers: <kbd>Z</kbd> and <kbd>/</kbd> or <kbd>←</kbd> <kbd>→</kbd>. Launch: hold <kbd>Space</kbd>, then let go.';
     fit();                                     // size the table before the first paint (no layout shift)
-    new ResizeObserver(() => { if (stage.clientWidth !== lastW) { lastW = stage.clientWidth; requestAnimationFrame(fit); } }).observe(stage);
-    // A rotated phone or resized window refits; small height changes (a phone's address bar sliding away) don't
-    window.addEventListener('resize', () => { if (Math.abs(window.innerHeight - lastH) > 120) { lastH = window.innerHeight; requestAnimationFrame(fit); } });
+    // Refit when the window, the scoreboard, the touch buttons, full screen, or the web font change. Games.band uses the
+    // small viewport height, so a phone's address bar sliding in and out does not resize the table.
+    GM.watch([play, pb, main, hudEl, $('pad-l'), $('pad-r')], fit);
+    // Leaving full screen in the middle of a ball pauses the game, so the jump in layout does not cost the ball
+    let wasFull = false;
+    ['fullscreenchange', 'webkitfullscreenchange', 'gamefocuschange'].forEach(t => document.addEventListener(t, () => {
+        const full = GM.isFull(play);
+        if (wasFull && !full && (state === 'play' || state === 'bonus')) setPaused(true);
+        wasFull = full;
+    }));
     reduceMotion.addEventListener('change', () => { redraw = true; });
     let last = performance.now(), frames = 0, drawn = 0;
     function frame(t) {
@@ -852,13 +1026,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Test hook: run the simulation synchronously and inspect state
     window.__pinball = {
-        newGame, fire, progress, nudge, openRules, closeRules, setPaused,
+        newGame, fire, progress, nudge, openRules, closeRules, setPaused, askNew, resume, setLevel, earn,
+        gameOverNow() { if (state === 'attract') newGame(false); practice = false; gameOver(); },
+        fit: () => ({ w: cssW, h: Math.round(cv.getBoundingClientRect().height), overflow: GM.overflow(play) }), reveal: () => GM.reveal(play, true),
+        get records() { return JSON.parse(JSON.stringify(rec)); },
         sim(sec, hz) { const k = hz || 120; for (let i = 0; i < Math.round(sec * k); i++) update(1 / k); },
         step(dt) { update(dt); },
         flip(side, on) { setFlip(side === 'L' ? FL : FR, on); }, setPull(p) { plunger.pull = p; },
         get balls() { return balls; }, get flippers() { return flippers.map(f => ({ ang: f.ang, w: f.w, pressed: f.pressed })); },
         get frames() { return { frames, drawn }; },
-        get state() { return { state, score, ballNo, mult, missionIdx, missionCount, shieldUntil, time, bonus, practice, paused, tilt, tilted, hudSeen, best, lanes: lanes.map(l => l.lit), drops: drops.map(d => d.up) }; },
+        get state() { return { state, score, ballNo, mult, missionIdx, missionCount, shieldUntil, time, bonus, practice, paused, tilt, tilted, scoreSeen, missionSeen, msgSeen, best, level, G, ballsPerGame: lv.balls, sinks, asking, earnedNow: earnedNow.slice(), msg: $('msg').textContent, lanes: lanes.map(l => l.lit), drops: drops.map(d => d.up) }; },
         place(x, y, vx, vy) { balls.length = 0; const b = newBall(); Object.assign(b, { x, y, vx, vy, launched: true }); balls.push(b); return b; },
         render
     };

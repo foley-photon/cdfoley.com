@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sudoku: Free Online Puzzles, Easy to Expert</title>
-<meta name="description" content="Play free Sudoku online: new puzzles with one solution each, easy to expert, plus a daily puzzle, pencil notes, hints that explain, and saved progress.">
+<meta name="description" content="Play free Sudoku online: fresh puzzles with one solution, easy to expert, a daily puzzle with streaks, pencil notes, hints that explain, and statistics.">
 <link rel="canonical" href="https://cdfoley.com/games/sudoku/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Sudoku">
-<meta property="og:description" content="Play free Sudoku online: new puzzles with one solution each, easy to expert, plus a daily puzzle, pencil notes, hints that explain, and saved progress.">
+<meta property="og:description" content="Play free Sudoku online: fresh puzzles with one solution, easy to expert, a daily puzzle with streaks, pencil notes, hints that explain, and statistics.">
 <meta property="og:url" content="https://cdfoley.com/games/sudoku/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-sudoku.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Sudoku Puzzles. Play free Sudoku online: new puzzles with one solution each, easy to expert, plus a daily puzzle, pencil notes, hints that explain, and saved progress.">
+<meta property="og:image:alt" content="Sudoku Puzzles. Play free Sudoku online: fresh puzzles with one solution, easy to expert, a daily puzzle with streaks, pencil notes, hints that explain, and statistics.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -23,8 +23,9 @@
 <script src="/assets/js/site.js"></script>
 <script src="/assets/js/games.js"></script>
 <style>
-    .sd { display: grid; grid-template-columns: repeat(9, 1fr); width: 100%; max-width: 480px; aspect-ratio: 1; margin: 0 auto; border: 2px solid var(--text); border-radius: 6px; overflow: hidden; background: var(--surface); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
-    .sd button { border: 0; border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); background: var(--surface); color: var(--accent); font: 600 clamp(1rem, 4.8vw, 1.6rem)/1 var(--font); padding: 0; position: relative; cursor: pointer; min-width: 0; touch-action: manipulation; }
+    #box:not([style]) { width: min(100%, 480px); aspect-ratio: 1; }   /* before games.js sizes the grid */
+    .sd { display: grid; grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(9, 1fr); width: 100%; height: 100%; border: 2px solid var(--text); border-radius: 6px; overflow: hidden; background: var(--surface); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+    .sd button { border: 0; border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); background: var(--surface); color: var(--accent); font: 600 calc(var(--cell, 2.9rem) * .56)/1 var(--font); padding: 0; position: relative; cursor: pointer; min-width: 0; min-height: 0; touch-action: manipulation; }
     .sd button:focus { outline: none; }
     .sd button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
     .sd button.given { color: var(--text); font-weight: 750; }
@@ -40,27 +41,76 @@
     .sd button.conflict { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--danger) 55%, transparent); }
     .sd button.flash { animation: sd-flash .9s ease; }
     @keyframes sd-flash { 0%, 100% { box-shadow: none; } 30% { box-shadow: inset 0 0 0 3px var(--accent); } }
-    .sd .notes { position: absolute; inset: 2px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); font: 500 clamp(.5rem, 2.1vw, .74rem)/1 var(--font); color: var(--muted); align-items: center; justify-items: center; }
+    .sd button.win { animation: sd-win .7s ease both; animation-delay: calc(var(--d, 0) * 32ms); }
+    @keyframes sd-win { 0%, 100% { background: var(--surface); } 45% { background: color-mix(in srgb, var(--ok) 38%, var(--surface)); } }
+    .sd .notes { position: absolute; inset: 2px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); font: 500 max(8px, calc(var(--cell, 2.9rem) * .25))/1 var(--font); color: var(--muted); align-items: center; justify-items: center; }
     .sd .notes .hl { color: var(--accent); font-weight: 800; }
     .sd.paused button { color: transparent !important; }
     .sd.paused .notes, .sd.paused button::after { visibility: hidden; }
-    .sd-info { text-align: center; font-size: .88rem; color: var(--text-2); margin: 0 0 .5rem; min-height: 1.3em; }
-    .sd-pad { display: grid; grid-template-columns: repeat(9, 1fr); gap: .35rem; max-width: 480px; margin: .8rem auto 0; }
-    .sd-pad button { height: 52px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 700 1.25rem/1 var(--font); cursor: pointer; padding: 0; touch-action: manipulation; }
-    .sd-pad button small { display: block; font-size: .7rem; color: var(--muted); font-weight: 600; margin-top: .2rem; }
+    /* Stacked (portrait phones and tablets): message, grid, number pad, tools. Side by side (landscape, wide enough):
+       the grid on the left; the message, a 3 × 3 number pad, and the tools beside it, as tall as the grid. */
+    #play { margin: 0 auto; }
+    .sd-main { display: flex; flex-direction: column; gap: .6rem; }
+    .sd-side { display: contents; }
+    .sd-msg, .sd-pad, .sd-tools { width: min(100%, max(var(--gw, 480px), 20rem)); margin: 0 auto; }
+    .sd-msg { order: -1; min-height: 2.7em; font-size: .86rem; line-height: 1.35; color: var(--text-2); text-align: center; }
+    .sd-msg .sd-status { color: var(--text); }
+    .sd-msg.has-status .sd-info { display: none; }
+    .sd-pad { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 3px; }
+    .sd-pad button { height: 50px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: 700 1.25rem/1 var(--font); cursor: pointer; padding: 0; min-width: 0; touch-action: manipulation; }
+    .sd-pad button:hover:not(:disabled) { border-color: var(--text-2); }
+    .sd-pad button small { display: block; font-size: .68rem; color: var(--muted); font-weight: 600; margin-top: .2rem; white-space: nowrap; }
     .sd-pad button:disabled { opacity: .35; cursor: default; }
-    .sd-tools { display: flex; gap: .4rem; justify-content: center; flex-wrap: wrap; align-items: center; margin-top: .7rem; }
-    .sd-toggles { display: flex; gap: .4rem 1.1rem; justify-content: center; flex-wrap: wrap; margin-top: .6rem; }
-    .sd-status { text-align: center; font-size: .9rem; color: var(--text); margin: .7rem auto 0; max-width: 480px; min-height: 1.4em; }
-    .sd-stats { text-align: center; font-size: .85rem; color: var(--text-2); margin: .4rem 0 0; font-variant-numeric: tabular-nums; }
+    .sd-pad.notes-on button { border-style: dashed; border-color: var(--accent); color: var(--accent); }
+    .sd-tools { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .3rem; }
+    .sd-tools .btn { padding: .4rem .15rem; min-width: 0; min-height: 36px; font-size: .8rem; }
+    .sd-long { display: none; }
+    .chip.hot { border-color: var(--ok); background: var(--ok-soft); }
+    .chip.hot b { color: var(--ok); }
+    .sd-icon { padding-left: .5rem; padding-right: .5rem; }
+    @media (min-width: 560px) { .sd-long { display: inline; } }
+    @media (max-height: 560px) { .sd-pad button { height: 44px; } }
+    @media (orientation: landscape) and (min-width: 600px) {
+        .sd-main { flex-direction: row; justify-content: center; align-items: flex-start; gap: 1rem; }
+        .sd-stage { flex: 0 0 auto; }
+        .sd-side { display: flex; flex-direction: column; gap: .6rem; flex: 0 0 auto; width: clamp(11.5rem, 30vw, 15rem); height: var(--gw, 480px); }
+        .sd-msg, .sd-pad, .sd-tools { width: auto; margin: 0; }
+        .sd-msg { order: 0; flex: 1 1 auto; min-height: 2.7em; overflow-y: auto; text-align: left; }
+        .sd-msg.has-status .sd-info { display: block; }
+        .sd-info { display: block; color: var(--muted); margin-bottom: .35rem; }
+        .sd-pad { grid-template-columns: repeat(3, 1fr); gap: .4rem; }
+        .sd-pad button { height: clamp(40px, calc(var(--gw, 480px) * .13), 72px); font-size: 1.45rem; }
+        .sd-tools { grid-template-columns: 1fr 1fr; gap: .4rem; }
+        .sd-tools .btn { min-height: 36px; font-size: .85rem; }
+        .sd-long { display: inline; }
+    }
+    @media (pointer: coarse) { .game-bar .btn, .game-bar select, .sd-tools .btn, .game-overlay .btn { min-height: 40px; } .game-bar .btn.sd-icon, .game-bar .game-full { min-width: 40px; } }
+    .sd-below { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; justify-content: center; margin-top: .9rem; }
+    .sd-stats-box { max-width: 760px; margin: 1.2rem auto 0; }
+    .sd-stats-box .tbl { overflow-x: auto; }
+    .sd-stats-box table { width: 100%; border-collapse: collapse; font-size: .88rem; font-variant-numeric: tabular-nums; }
+    .sd-stats-box th, .sd-stats-box td { padding: .35rem .5rem; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+    .sd-stats-box th:first-child, .sd-stats-box td:first-child { text-align: left; }
+    .sd-stats-box thead th { color: var(--text-2); font-weight: 600; }
+    .sd-stats-box p { font-size: .85rem; color: var(--text-2); margin: .6rem 0; }
+    .sd-dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 1.1rem 1.1rem 1rem; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+    .sd-dialog::backdrop { background: rgba(10, 15, 28, .55); }
+    .sd-dialog h2 { margin: 0 0 .7rem; font-size: 1.2rem; }
+    .sd-dialog fieldset { border: 0; margin: 0 0 .9rem; padding: 0; }
+    .sd-dialog legend { font-weight: 650; font-size: .95rem; margin-bottom: .35rem; padding: 0; }
+    .sd-dialog label { display: flex; align-items: flex-start; gap: .45rem; font-size: .92rem; padding: .25rem 0; }
+    .sd-dialog label input { margin-top: .2rem; }
+    .sd-dialog label span small { display: block; color: var(--text-2); font-size: .8rem; }
+    @media (pointer: coarse) { .sd-dialog input { width: 20px; height: 20px; } }
     .sd-print { display: none; }
-    @media (prefers-reduced-motion: reduce) { .sd button.flash { animation: none; outline: 3px solid var(--accent); outline-offset: -4px; } }
+    @media (prefers-reduced-motion: reduce) { .sd button.flash { animation: none; outline: 3px solid var(--accent); outline-offset: -4px; } .sd button.win { animation: none; } }
     @media print {
-        .breadcrumbs, .page-head .lede, .game-bar, .sd-info, .sd-pad, .sd-tools, .sd-toggles, .sd-status, .sd-stats, .game-help, .game-overlay { display: none !important; }
+        .breadcrumbs, .page-head .lede, .game-bar, .sd-side, .sd-below, .sd-stats-box, .game-help, .game-overlay { display: none !important; }
         .page-head h1 { font-size: 20pt; margin: 0 0 4pt; }
         .sd-print { display: block; text-align: center; font-size: 11pt; color: #000; margin: 0 0 10pt; }
-        .sd { max-width: 15cm; border: 3px solid #000; border-radius: 0; background: #fff; break-inside: avoid; }
-        .sd button { background: #fff !important; color: transparent !important; box-shadow: none !important; outline: none !important; border-color: #777 !important; font-size: 22pt; }
+        #box { width: 15cm !important; height: 15cm !important; }
+        .sd { border: 3px solid #000; border-radius: 0; background: #fff; break-inside: avoid; }
+        .sd button { background: #fff !important; color: transparent !important; box-shadow: none !important; outline: none !important; border-color: #777 !important; font-size: 22pt; animation: none !important; }
         .sd button.given { color: #000 !important; }
         .sd button.c2, .sd button.c5 { border-right-color: #000 !important; }
         .sd button.r2, .sd button.r5 { border-bottom-color: #000 !important; }
@@ -75,7 +125,7 @@
    "@type": "VideoGame",
    "name": "Sudoku",
    "url": "https://cdfoley.com/games/sudoku/",
-   "description": "Play free Sudoku online: new puzzles with one solution each, easy to expert, plus a daily puzzle, pencil notes, hints that explain, and saved progress.",
+   "description": "Play free Sudoku online: fresh puzzles with one solution, easy to expert, a daily puzzle with streaks, pencil notes, hints that explain, and statistics.",
    "genre": "Puzzle",
    "gamePlatform": "Web browser",
    "playMode": "SinglePlayer",
@@ -127,53 +177,79 @@
 
 <main id="main" class="wrap page">
     <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Sudoku</li></ol></nav>
-    <div class="game-shell" style="max-width:560px">
+    <div class="game-shell" style="max-width:880px">
         <header class="page-head" style="margin-bottom:1rem">
             <h1>Sudoku Puzzles</h1>
             <p class="lede">Fill the grid so that every row, every column, and every 3 × 3 box contains the digits 1 to 9 exactly once. Every puzzle is freshly generated, has exactly one solution, and can be solved by logic alone, without guessing.</p>
         </header>
-        <div class="game-bar">
-            <div class="chips"><span class="chip">Time<b id="time">0:00</b></span><span class="chip" id="mistakes-chip">Mistakes<b id="mistakes">0</b></span><span class="chip">Best<b id="best">—</b></span></div>
-            <div class="game-actions">
-                <select id="level" aria-label="Difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option><option value="expert">Expert</option></select>
-                <button class="btn btn-primary btn-sm" type="button" id="new">New puzzle</button>
-                <button class="btn btn-secondary btn-sm" type="button" id="daily">Daily puzzle</button>
+        <p class="sd-print" id="print-info"></p>
+        <div class="game-play" id="play">
+            <div class="game-bar">
+                <div class="chips"><span class="chip" id="time-chip">Time<b id="time">0:00</b></span><span class="chip" id="mistakes-chip">Mistakes<b id="mistakes">0</b></span><span class="chip" id="best-chip">Best<b id="best">—</b></span></div>
+                <div class="game-actions">
+                    <select id="level" aria-label="Difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option><option value="expert">Expert</option></select>
+                    <button class="btn btn-primary btn-sm" type="button" id="new"><span>New<span class="sd-long"> puzzle</span></span></button>
+                    <button class="btn btn-secondary btn-sm" type="button" id="daily" title="Today’s puzzle, the same for everyone"><span>Daily<span class="sd-long"> puzzle</span></span></button>
+                    <button class="btn btn-secondary btn-sm sd-icon" type="button" id="settings" aria-label="Settings" title="Settings: highlights, timer, sound" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button>
+                    <button class="btn btn-secondary btn-sm game-full" type="button" id="full"></button>
+                </div>
+            </div>
+            <div class="sd-main" id="sd-main">
+                <div class="game-stage sd-stage">
+                    <div class="game-box" id="box">
+                        <div class="sd" id="grid" role="group" aria-label="Sudoku grid"></div>
+                        <div class="game-overlay" id="overlay" role="dialog" aria-labelledby="ov-title" aria-describedby="ov-text" hidden><h2 id="ov-title">Solved!</h2><p id="ov-text"></p><div><button class="btn btn-primary" type="button" id="again">New puzzle</button> <button class="btn btn-secondary" type="button" id="keep" hidden>Keep playing</button></div></div>
+                    </div>
+                </div>
+                <div class="sd-side" id="side">
+                    <p class="sd-msg" id="msg"><span class="sd-info" id="info"></span><span class="sd-status" id="status" role="status" aria-live="polite"></span></p>
+                    <div class="sd-pad" id="pad" role="group" aria-label="Number pad"></div>
+                    <div class="sd-tools">
+                        <button class="btn btn-secondary btn-sm" type="button" id="undo" title="Undo (Ctrl+Z)">Undo</button>
+                        <button class="btn btn-secondary btn-sm" type="button" id="erase" title="Erase the square (Backspace)">Erase</button>
+                        <button class="btn btn-secondary btn-sm" type="button" id="notes" aria-pressed="false" title="Pencil notes (N, or hold Shift)">Notes</button>
+                        <button class="btn btn-secondary btn-sm" type="button" id="fill" title="Pencil in every digit that still fits"><span>Fill<span class="sd-long"> notes</span></span></button>
+                        <button class="btn btn-secondary btn-sm" type="button" id="hint" title="Fill one square and say why (H)">Hint</button>
+                        <button class="btn btn-secondary btn-sm" type="button" id="pause" aria-pressed="false" title="Pause (P)">Pause</button>
+                    </div>
+                </div>
             </div>
         </div>
-        <p class="sd-info" id="info"></p>
-        <p class="sd-print" id="print-info"></p>
-        <div class="game-stage">
-            <div class="sd" id="grid" role="group" aria-label="Sudoku grid"></div>
-            <div class="game-overlay" id="overlay" role="dialog" aria-labelledby="ov-title" aria-describedby="ov-text" hidden><h2 id="ov-title">Solved!</h2><p id="ov-text"></p><div><button class="btn btn-primary" type="button" id="again">New puzzle</button> <button class="btn btn-secondary" type="button" id="keep" hidden>Keep playing</button></div></div>
-        </div>
-        <div class="sd-pad" id="pad" role="group" aria-label="Number pad"></div>
-        <div class="sd-tools">
-            <button class="btn btn-secondary btn-sm" type="button" id="undo">Undo</button>
-            <button class="btn btn-secondary btn-sm" type="button" id="erase">Erase</button>
-            <button class="btn btn-secondary btn-sm" type="button" id="notes" aria-pressed="false">Notes: off</button>
-            <button class="btn btn-secondary btn-sm" type="button" id="fill">Fill notes</button>
-            <button class="btn btn-secondary btn-sm" type="button" id="hint">Hint</button>
-            <button class="btn btn-secondary btn-sm" type="button" id="pause" aria-pressed="false">Pause</button>
-            <button class="btn btn-secondary btn-sm" type="button" id="print">Print</button>
-        </div>
-        <div class="sd-toggles">
-            <label class="toggle"><input type="checkbox" id="showbad" checked> Show mistakes</label>
-            <label class="toggle"><input type="checkbox" id="showcon" checked> Highlight conflicts</label>
-        </div>
-        <p class="sd-status" id="status" role="status" aria-live="polite"></p>
-        <p class="sd-stats" id="stats"></p>
+        <div class="sd-below"><button class="btn btn-secondary btn-sm" type="button" id="print">Print this puzzle</button></div>
         <p class="visually-hidden" id="sr" aria-live="polite"></p>
-        <p class="game-help"><strong>How to play:</strong> click or tap a square, then a number. <strong>Show mistakes</strong> marks a digit that doesn’t match the solution (red, underlined) and counts it; <strong>Highlight conflicts</strong> rings two equal digits in the same row, column, or box. <strong>Notes</strong> pencil in candidates, and placing a digit clears it from the notes in its row, column, and box; <strong>Fill notes</strong> pencils in every digit that still fits. <strong>Hint</strong> fills one square and says why it must hold that digit. A best time counts only if you solve without hints.</p>
-        <p class="game-help"><strong>Levels:</strong> Easy needs only singles (a digit with one possible square, or a square with one possible digit). Medium needs locked candidates as well (a digit confined to one line inside a box, or to one box along a line). Hard needs a naked or hidden pair or triple, and Expert an X-wing, swordfish, XY-wing, or XYZ-wing. The <strong>Daily puzzle</strong> is the same for everyone on the same date, one per level. <strong>Print</strong> gives a clean copy of the puzzle to solve on paper.</p>
-        <p class="game-help"><strong>Keys:</strong> <kbd>1</kbd>–<kbd>9</kbd> enter a digit, <kbd>0</kbd>, <kbd>Backspace</kbd>, or <kbd>Delete</kbd> erases, the arrow keys move, <kbd>N</kbd> switches to notes, <kbd>P</kbd> pauses, and <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes. Your puzzle is saved in this browser.</p>
+        <p class="game-help"><strong>How to play:</strong> click or tap a square, then a number. <strong>Notes</strong> pencils in candidates instead (or hold <kbd>Shift</kbd> while you type a digit), and placing a digit clears it from the notes in its row, column, and box; <strong>Fill notes</strong> pencils in every digit that still fits. <strong>Hint</strong> fills one square and says why it must hold that digit. A best time counts only if you solve without hints. The small number under each digit on the pad says how many are still to place.</p>
+        <p class="game-help"><strong>Levels:</strong> Easy needs only singles (a digit with one possible square, or a square with one possible digit). Medium needs locked candidates as well (a digit confined to one line inside a box, or to one box along a line). Hard needs a naked or hidden pair or triple, and Expert an X-wing, swordfish, XY-wing, or XYZ-wing. The <strong>Daily puzzle</strong> is the same for everyone on the same date, one per level; a replay of one you already solved that day is practice, with no best time or statistics. Solve one on consecutive days to build a streak.</p>
+        <p class="game-help"><strong>Settings</strong> (the slider button): <em>Show mistakes</em> marks a digit that doesn’t match the solution (red, underlined) and counts it; <em>Highlight conflicts</em> rings two equal digits in the same row, column, or box; you can also turn off the matching-digit highlight, hide the timer, or turn off the sound. The square button beside it shows the game full screen. <strong>Print this puzzle</strong> gives a clean copy to solve on paper.</p>
+        <p class="game-help"><strong>Keys:</strong> <kbd>1</kbd>–<kbd>9</kbd> enter a digit (<kbd>Shift</kbd> for a note), <kbd>0</kbd>, <kbd>Backspace</kbd>, or <kbd>Delete</kbd> erases, the arrow keys move, <kbd>N</kbd> switches to notes, <kbd>H</kbd> gives a hint, <kbd>P</kbd> pauses, and <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes. Your puzzle is saved in this browser.</p>
+        <details class="fold sd-stats-box" id="stats-box">
+            <summary>Statistics</summary>
+            <div class="tbl"><table><thead><tr><th scope="col">Level</th><th scope="col">Started</th><th scope="col">Solved</th><th scope="col">Solve rate</th><th scope="col">Best time</th><th scope="col">Average</th><th scope="col">Clean solves</th></tr></thead><tbody id="stats-rows"></tbody></table></div>
+            <p id="stats-daily"></p>
+            <p>A puzzle counts as started once you enter a digit or a note. A clean solve has no hints and no mistakes. Statistics stay in this browser.</p>
+            <p><button class="btn btn-secondary btn-sm" type="button" id="reset-stats">Reset statistics</button></p>
+        </details>
     </div>
 </main>
+
+<dialog class="sd-dialog" id="settings-dlg" aria-labelledby="set-title">
+    <h2 id="set-title">Settings</h2>
+    <fieldset><legend>While you play</legend>
+        <label><input type="checkbox" id="showbad" checked><span>Show mistakes<small>A digit that doesn’t match the solution turns red and counts as a mistake.</small></span></label>
+        <label><input type="checkbox" id="showcon" checked><span>Highlight conflicts<small>Rings two equal digits in the same row, column, or box.</small></span></label>
+        <label><input type="checkbox" id="showsame" checked><span>Highlight matching digits<small>Shades every square with the digit you selected.</small></span></label>
+        <label><input type="checkbox" id="showtime" checked><span>Show the timer<small>The clock still runs for your best times.</small></span></label>
+    </fieldset>
+    <fieldset><legend>Sound</legend>
+        <label><input type="checkbox" id="sound"><span>Sound effects</span></label>
+    </fieldset>
+    <button class="btn btn-primary btn-sm" type="button" id="set-close">Done</button>
+</dialog>
 
 <div id="site-footer"></div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const G = window.Games, $ = id => document.getElementById(id), gridEl = $('grid'), ov = $('overlay');
+    const G = window.Games, $ = id => document.getElementById(id), gridEl = $('grid'), ov = $('overlay'), play = $('play'), mainEl = $('sd-main'), side = $('side'), box = $('box');
     const ROW = i => (i / 9) | 0, COL = i => i % 9, BOX = i => ((ROW(i) / 3) | 0) * 3 + ((COL(i) / 3) | 0);
     const PEERS = Array.from({ length: 81 }, (_, i) => { const s = []; for (let j = 0; j < 81; j++) if (j !== i && (ROW(j) === ROW(i) || COL(j) === COL(i) || BOX(j) === BOX(i))) s.push(j); return s; });
     const UNITS = Array.from({ length: 27 }, () => []);              // rows 0–8, columns 9–17, boxes 18–26
@@ -359,22 +435,77 @@ document.addEventListener('DOMContentLoaded', () => {
         })();
     }
 
-    const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    const isoOf = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const today = () => isoOf(new Date());
+    const dayBefore = iso => { const [y, m, d] = iso.split('-').map(Number); return isoOf(new Date(y, m - 1, d - 1)); };
     const longDate = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }); };
+    const shortDate = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
     const dailySeed = (iso, level) => hash('cdfoley.com sudoku ' + iso + ' ' + level);
     const fmtT = t => { const s = Math.floor(t); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
     const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+    const coarse = matchMedia('(pointer: coarse)');
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
     let S = null, sel = -1, notesMode = false, history = [], paused = false, mode = '', busy = false, pendingAction = null, flip = false;
-    let tick = null, lastT = 0, lastSave = 0;
+    let tick = null, lastT = 0, lastSave = 0, winTimer = 0;
     const level = () => $('level').value;
-    const say = msg => { flip = !flip; $('sr').textContent = msg + (flip ? '' : '\u00a0'); };
-    const status = msg => { $('status').textContent = msg; };
-    const opts = { bad: true, con: true };
+    const dlg = $('settings-dlg');
+    const say = msg => { flip = !flip; $('sr').textContent = msg + (flip ? '' : ' '); };
+    const status = msg => { $('status').textContent = msg; $('msg').classList.toggle('has-status', !!msg); };
+    const opts = { bad: true, con: true, same: true, time: true };
     const save = () => { if (S) G.setJSON('sudoku-state', S); };
 
-    // Clock: counts only while the puzzle is open, unpaused, unsolved, and the tab is visible
-    const running = () => !!S && !S.done && !paused && !document.hidden && !busy;
+    // ── Fit: the grid is the largest square that leaves the bar, pad, and tools on screen with it. Side by side
+    // (landscape, wide enough) the panel beside the grid takes its width and matches its height. ──
+    const sideMQ = matchMedia('(orientation: landscape) and (min-width: 600px)'), shell = play.parentElement, bar = play.querySelector('.game-bar');
+    const sideRoom = () => sideMQ.matches ? side.getBoundingClientRect().width + (parseFloat(getComputedStyle(mainEl).columnGap) || 0) : 0;
+    const roomW = () => shell.clientWidth - sideRoom();
+    // Side by side, the play block is only as wide as the grid and panel (or the bar on one row), so the bar lines up with them.
+    function align(w) {
+        if (!sideMQ.matches || G.isFull(play)) { play.style.maxWidth = ''; return; }
+        const need = [...bar.children].reduce((a, el) => a + el.getBoundingClientRect().width, 0) + 40;
+        play.style.maxWidth = Math.ceil(Math.max(w + sideRoom(), need)) + 'px';
+    }
+    const fitter = G.fit(box, {
+        aspect: 1, host: shell,
+        get maxW() { return Math.max(160, Math.min(600, roomW())); },
+        get fullMaxW() { return Math.max(160, mainEl.clientWidth - sideRoom()); },
+        set(w, h) { box.style.width = w + 'px'; box.style.height = h + 'px'; mainEl.style.setProperty('--gw', w + 'px'); gridEl.style.setProperty('--cell', (w - 4) / 9 + 'px'); align(w); }
+    });
+    G.watch([shell], () => align(fitter.w));
+    G.fullButton($('full'));
+
+    // ── Statistics: per level, plus the daily streak (best times keep their older keys) ──
+    const LVS = Object.keys(LEVELS);
+    function readStats() {
+        const raw = G.getJSON('sudoku-stats'), old = G.getJSON('sudoku-solved') || {}, out = { lv: {}, daily: { solved: 0, streak: 0, best: 0, last: '' } };
+        for (const l of LVS) {
+            const o = (raw && raw.lv && raw.lv[l]) || {}, n = k => Math.max(0, Math.floor(+o[k] || 0));
+            out.lv[l] = raw ? { started: n('started'), solved: n('solved'), clean: n('clean'), timeSum: n('timeSum'), timed: n('timed') }
+                : { started: +old[l] || 0, solved: +old[l] || 0, clean: 0, timeSum: 0, timed: 0 };       // counts saved before this table existed
+        }
+        const d = raw && raw.daily;
+        if (d && typeof d === 'object') { out.daily.solved = +d.solved || 0; out.daily.streak = +d.streak || 0; out.daily.best = +d.best || 0; out.daily.last = /^\d{4}-\d\d-\d\d$/.test(d.last) ? d.last : ''; }
+        return out;
+    }
+    let ST = readStats();
+    const saveStats = () => { G.setJSON('sudoku-stats', ST); renderStats(); };
+    const streakNow = () => (ST.daily.last === today() || ST.daily.last === dayBefore(today())) ? ST.daily.streak : 0;
+    function renderStats() {
+        $('stats-rows').innerHTML = LVS.map(l => {
+            const s = ST.lv[l], b = +G.get('sudoku-best-' + l, 0), started = Math.max(s.started, s.solved);
+            return '<tr><th scope="row">' + NAMES[l] + '</th><td>' + started + '</td><td>' + s.solved + '</td><td>' + (started ? Math.round(100 * s.solved / started) + '%' : '—') + '</td><td>' + (b ? fmtT(b) : '—') + '</td><td>' + (s.timed ? fmtT(s.timeSum / s.timed) : '—') + '</td><td>' + s.clean + '</td></tr>';
+        }).join('');
+        const d = ST.daily, now = streakNow();
+        $('stats-daily').textContent = 'Daily puzzles: ' + plural(d.solved, 'solve') + ' · current streak ' + plural(now, 'day') + ' · longest ' + plural(d.best, 'day') + '.' + (d.last === today() ? ' Today’s is done.' : now ? ' Solve today’s to keep it going.' : '');
+    }
+    function touch() {               // the first entry in a puzzle counts it as started
+        if (!S || S.counted) return;
+        S.counted = true; ST.lv[S.level].started++; saveStats();
+    }
+
+    // Clock: counts only while the puzzle is open, unpaused, unsolved, the settings are closed, and the tab is visible
+    const running = () => !!S && !S.done && !paused && !document.hidden && !busy && !dlg.open;
     function step() { const now = performance.now(); if (S) S.elapsed += (now - lastT) / 1000; lastT = now; $('time').textContent = fmtT(S ? S.elapsed : 0); if (now - lastSave > 5000) { lastSave = now; save(); } }
     function clock() {
         const run = running();
@@ -389,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gridEl.textContent = '';
         for (let i = 0; i < 81; i++) {
             const b = document.createElement('button');
-            b.type = 'button'; b.className = 'c' + COL(i) + ' r' + ROW(i); b.dataset.i = i;
+            b.type = 'button'; b.className = 'c' + COL(i) + ' r' + ROW(i); b.dataset.i = i; b.style.setProperty('--d', ROW(i) + COL(i));
             gridEl.appendChild(b);
         }
         $('pad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => '<button type="button" data-d="' + d + '">' + d + '<small></small></button>').join('');
@@ -399,20 +530,21 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < 81; i++) {
             const b = cells[i], v = S.vals[i], given = S.puzzle[i] > 0, nm = S.notes[i];
             if (v) counts[v]++;
-            const keyStr = v ? 'v' + v : nm ? 'n' + nm + ':' + selV : '';
+            const keyStr = v ? 'v' + v : nm ? 'n' + nm + ':' + (opts.same ? selV : 0) : '';
             if (b._k !== keyStr) {
                 b._k = keyStr;
                 if (v) b.textContent = v;
-                else if (nm) { let h = '<span class="notes" aria-hidden="true">'; for (let d = 1; d <= 9; d++) h += nm & (1 << d) ? '<span' + (d === selV ? ' class="hl"' : '') + '>' + d + '</span>' : '<span></span>'; b.innerHTML = h + '</span>'; }
+                else if (nm) { let h = '<span class="notes" aria-hidden="true">'; for (let d = 1; d <= 9; d++) h += nm & (1 << d) ? '<span' + (opts.same && d === selV ? ' class="hl"' : '') + '>' + d + '</span>' : '<span></span>'; b.innerHTML = h + '</span>'; }
                 else b.textContent = '';
             }
             const wrong = opts.bad && !given && !!v && v !== S.solution[i], conflict = opts.con && !!v && PEERS[i].some(j => S.vals[j] === v);
             b.classList.toggle('given', given);
             b.classList.toggle('sel', i === sel);
             b.classList.toggle('peer', sel >= 0 && i !== sel && SEES(i, sel));
-            b.classList.toggle('same', !!selV && v === selV && i !== sel);
+            b.classList.toggle('same', opts.same && !!selV && v === selV && i !== sel);
             b.classList.toggle('bad', wrong);
             b.classList.toggle('conflict', conflict);
+            if (!S.done) b.classList.remove('win');
             const ns = []; for (let d = 1; d <= 9; d++) if (nm & (1 << d)) ns.push(d);
             b.setAttribute('aria-label', 'Row ' + (ROW(i) + 1) + ', column ' + (COL(i) + 1) + ': ' + (v ? v + (given ? ', given' : '') : 'empty' + (ns.length ? ', notes ' + ns.join(' ') : ''))
                 + (wrong ? ', incorrect' : '') + (conflict ? ', conflicts with another ' + v : ''));
@@ -421,63 +553,76 @@ document.addEventListener('DOMContentLoaded', () => {
         [...$('pad').children].forEach(btn => {
             const d = +btn.dataset.d, left = 9 - counts[d];
             btn.querySelector('small').textContent = left > 0 ? left + ' left' : '';
-            btn.disabled = left <= 0 && !notesMode;
+            btn.disabled = (left <= 0 && !notesMode) || paused;
             btn.setAttribute('aria-label', notesMode ? 'Note ' + d : d + (left > 0 ? ', ' + left + ' left' : ', all placed'));
         });
-        $('undo').disabled = !history.length;
-        $('notes').textContent = 'Notes: ' + (notesMode ? 'on' : 'off'); $('notes').setAttribute('aria-pressed', notesMode); $('notes').classList.toggle('on', notesMode);
+        $('pad').classList.toggle('notes-on', notesMode);
+        $('undo').disabled = !history.length || S.done || paused;
+        $('erase').disabled = $('fill').disabled = $('hint').disabled = S.done || paused;
+        $('notes').setAttribute('aria-pressed', notesMode); $('notes').classList.toggle('on', notesMode); $('notes').disabled = S.done || paused;
         $('pause').textContent = paused ? 'Resume' : 'Pause'; $('pause').setAttribute('aria-pressed', paused); $('pause').disabled = S.done;
         gridEl.classList.toggle('paused', paused);
         $('mistakes').textContent = opts.bad ? S.mistakes : '—'; $('mistakes-chip').title = opts.bad ? '' : 'Counted when Show mistakes is on';
     }
     function info() {
         const name = NAMES[S.level], daily = S.daily;
-        let t = daily ? 'Daily ' + name.toLowerCase() + ' puzzle for ' + longDate(daily) : name + ' puzzle';
+        let t = daily ? 'Daily ' + name.toLowerCase() + ' · ' + shortDate(daily) : name + ' puzzle';
         const rec = G.getJSON('sudoku-daily');
         if (daily && rec && rec.date === daily && rec.times && rec.times[S.level] != null) t += ' · solved in ' + fmtT(rec.times[S.level]);
+        if (daily && streakNow()) t += ' · streak ' + plural(streakNow(), 'day');
         $('info').textContent = t;
         $('print-info').textContent = (daily ? 'Daily ' + name.toLowerCase() + ' puzzle, ' + longDate(daily) : name + ' puzzle') + ' · cdfoley.com/games/sudoku/';
         const b = +G.get('sudoku-best-' + S.level, 0); $('best').textContent = b ? fmtT(b) : '—';
-        const solved = G.getJSON('sudoku-solved') || {};
-        $('stats').textContent = 'Best times: ' + Object.keys(NAMES).map(l => { const x = +G.get('sudoku-best-' + l, 0); return NAMES[l] + ' ' + (x ? fmtT(x) : '—'); }).join(' · ')
-            + ' · ' + plural(Object.values(solved).reduce((a, n) => a + (+n || 0), 0), 'puzzle') + ' solved';
+        renderStats();
     }
-    function select(i, noFocus) { sel = i; paint(); if (i >= 0 && !noFocus) gridEl.children[i].focus({ preventScroll: true }); }
+    function select(i, noFocus, user) {
+        sel = i; paint();
+        if (i >= 0 && !noFocus) gridEl.children[i].focus({ preventScroll: true });
+        if (user) G.reveal(play);
+    }
     const blocked = () => !S || S.done || paused || busy || !!mode;
     const snap = () => { history.push({ v: S.vals.slice(), n: S.notes.slice(), sel }); if (history.length > 300) history.shift(); };
     function setDigit(i, d) {             // place d (0 clears) and tidy the notes it rules out
         S.vals[i] = d; S.notes[i] = 0;
         if (d) PEERS[i].forEach(j => { S.notes[j] &= ~(1 << d); });
     }
-    function input(d) {
+    function input(d, asNote) {
         if (blocked() || sel < 0 || S.puzzle[sel]) return;
         const i = sel;
-        if (notesMode) {
+        if (notesMode || asNote) {
             if (S.vals[i]) { say('Erase the digit first to add notes.'); return; }
-            snap(); S.notes[i] ^= 1 << d; say('Note ' + d + (S.notes[i] & (1 << d) ? ' added' : ' removed'));
+            touch(); snap(); S.notes[i] ^= 1 << d; say('Note ' + d + (S.notes[i] & (1 << d) ? ' added' : ' removed'));
+            G.tone(1040, 1040, 0.03, 'sine', 0.012);
         } else if (S.vals[i] === d) { snap(); setDigit(i, 0); say(d + ' erased'); }
         else {
-            snap(); setDigit(i, d);
+            touch(); snap(); setDigit(i, d);
             const wrong = d !== S.solution[i];
             if (wrong) S.mistakes++;
             if (opts.bad && wrong) { G.tone(200, 150, 0.12, 'triangle', 0.03); say(d + ', incorrect'); }
             else { G.tone(660, 660, 0.05, 'sine', 0.025); say(String(d) + (opts.con && PEERS[i].some(j => S.vals[j] === d) ? ', conflicts with another ' + d : '')); }
+            unitDone(i);
         }
-        paint(); save(); checkWin();
+        status(''); paint(); save(); checkWin();
+    }
+    // A short rising note when a digit completes its row, column, or box correctly.
+    function unitDone(i) {
+        const full = u => UNITS[u].every(j => S.vals[j] && S.vals[j] === S.solution[j]);
+        if (S.vals.every((v, k) => v === S.solution[k])) return;
+        if ([ROW(i), 9 + COL(i), 18 + BOX(i)].some(full)) setTimeout(() => G.tone(784, 1046, 0.09, 'sine', 0.02), 60);
     }
     function erase() {
         if (blocked() || sel < 0 || S.puzzle[sel] || (!S.vals[sel] && !S.notes[sel])) return;
-        snap(); setDigit(sel, 0); paint(); save(); say('Erased');
+        snap(); setDigit(sel, 0); status(''); paint(); save(); say('Erased');
     }
     function undo() {
         if (blocked()) return;
         const h = history.pop(); if (!h) return;
-        S.vals = h.v; S.notes = h.n; sel = h.sel; paint(); save(); say('Undone');
+        S.vals = h.v; S.notes = h.n; sel = h.sel; status(''); paint(); save(); say('Undone');
         if (sel >= 0) gridEl.children[sel].focus({ preventScroll: true });
     }
     function fillNotes() {
         if (blocked()) return;
-        snap();
+        touch(); snap();
         for (let i = 0; i < 81; i++) S.notes[i] = S.vals[i] ? 0 : candidates(S.vals, i);
         paint(); save(); status('Notes filled with every digit that still fits each empty square.');
     }
@@ -500,31 +645,55 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (r.first.after > 1) why += ', once ' + ['', '', 'locked candidates', 'a pair or triple', 'an X-wing, swordfish, or wing'][r.first.after] + ' rule' + (r.first.after === 2 ? '' : 's') + ' out other digits';
             } else { const open = []; for (let k = 0; k < 81; k++) if (!S.vals[k]) open.push(k); if (!open.length) return; i = open[0]; }
         }
-        snap(); setDigit(i, S.solution[i]); S.hints++;
+        touch(); snap(); setDigit(i, S.solution[i]); S.hints++;
         select(i);
         gridEl.children[i].classList.remove('flash'); void gridEl.children[i].offsetWidth; gridEl.children[i].classList.add('flash');
         status('Hint: row ' + (ROW(i) + 1) + ', column ' + (COL(i) + 1) + ' is ' + S.solution[i] + (why ? ': ' + why + '.' : '.'));
+        say($('status').textContent);
+        requestAnimationFrame(() => G.reveal(play));         // a long hint may push the pad down: keep all of it in view
         G.tone(880, 990, 0.08, 'sine', 0.025);
         save(); checkWin();
     }
+    let dayMem = null;    // today's daily results, also kept here for a browser that blocks storage
     function checkWin() {
         if (!S.vals.every((v, i) => v === S.solution[i])) return;
         if (tick) step();
         S.done = true; clock(); save();
-        const key = 'sudoku-best-' + S.level, prev = +G.get(key, 0), secs = Math.max(1, Math.floor(S.elapsed)), record = !S.hints && (!prev || secs < prev);
+        // A daily puzzle already solved today is practice: the same puzzle again sets no best time and no statistics.
+        const dayRec = S.daily ? G.getJSON('sudoku-daily') || dayMem : null, first = dayRec && dayRec.date === S.daily && dayRec.times ? dayRec.times[S.level] : null;
+        const replay = first != null;
+        const key = 'sudoku-best-' + S.level, prev = +G.get(key, 0), secs = Math.max(1, Math.floor(S.elapsed)), record = !replay && !S.hints && (!prev || secs < prev);
         if (record) G.set(key, secs);
-        const solved = G.getJSON('sudoku-solved') || {}; solved[S.level] = (+solved[S.level] || 0) + 1; G.setJSON('sudoku-solved', solved);
-        if (S.daily) { let rec = G.getJSON('sudoku-daily'); if (!rec || rec.date !== S.daily) rec = { date: S.daily, times: {} }; if (rec.times[S.level] == null) rec.times[S.level] = secs; G.setJSON('sudoku-daily', rec); }
-        info(); paint();
-        const text = (S.daily ? 'Daily ' + S.level : NAMES[S.level]) + ' puzzle in ' + fmtT(secs) + (S.mistakes ? ', ' + plural(S.mistakes, 'mistake') : ', no mistakes') + (S.hints ? ', ' + plural(S.hints, 'hint') + '.' : '.') + (record ? ' A new best time!' : '');
-        show('solved', 'Solved!', text);
+        const s = ST.lv[S.level];
+        if (!replay) {
+            if (!S.counted) { S.counted = true; s.started++; }
+            s.solved++; s.timeSum += secs; s.timed++; if (!S.hints && !S.mistakes) s.clean++;
+        }
+        let streakNote = '';
+        if (replay) streakNote = ' You solved today’s puzzle in ' + fmtT(first) + ' already, so this one was practice.';
+        else if (S.daily) {
+            let rec = G.getJSON('sudoku-daily') || dayMem; if (!rec || rec.date !== S.daily) rec = { date: S.daily, times: {} }; if (rec.times[S.level] == null) rec.times[S.level] = secs; G.setJSON('sudoku-daily', rec); dayMem = rec;
+            const d = ST.daily; d.solved++;
+            if (d.last !== S.daily && (!d.last || S.daily > d.last)) { d.streak = d.last && dayBefore(S.daily) === d.last ? d.streak + 1 : 1; d.last = S.daily; d.best = Math.max(d.best, d.streak); }
+            streakNote = ' Daily streak: ' + plural(streakNow() || d.streak, 'day') + '.';
+        }
+        saveStats();
+        sel = -1; info(); paint();
+        const text = (S.daily ? 'Daily ' + S.level : NAMES[S.level]) + ' puzzle in ' + fmtT(secs) + (S.mistakes ? ', ' + plural(S.mistakes, 'mistake') : ', no mistakes') + (S.hints ? ', ' + plural(S.hints, 'hint') + '.' : ', no hints.')
+            + (record ? (prev ? ' A new best time, ' + fmtT(prev - secs) + ' faster than before!' : ' Your first best time at this level.') : replay ? '' : S.hints ? ' Best times count only without hints.' : prev ? ' Best ' + fmtT(prev) + '.' : '')
+            + streakNote;
+        if (record) { $('best-chip').classList.add('hot'); setTimeout(() => $('best-chip').classList.remove('hot'), 2600); }
         [523, 659, 784, 1046].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.14, 'square', 0.03), k * 110));
+        const wave = !reduced.matches;
+        if (wave) [...gridEl.children].forEach(b => b.classList.add('win'));
+        clearTimeout(winTimer);
+        winTimer = setTimeout(() => { if (S.done) show('solved', record ? 'Solved, new best!' : 'Solved!', text); }, wave ? 900 : 0);
     }
     // One overlay for 'solved', 'paused', and 'confirm' (abandon the puzzle in progress?)
     function show(m, title, text) {
         mode = m; ov.hidden = false;
         $('ov-title').textContent = title; $('ov-text').textContent = text;
-        $('again').textContent = m === 'paused' ? 'Resume' : m === 'confirm' ? 'Start new puzzle' : 'New puzzle';
+        $('again').textContent = m === 'paused' ? 'Resume' : m === 'confirm' ? 'Start new puzzle' : 'New ' + S.level + ' puzzle';
         $('keep').hidden = m !== 'confirm';
         say(title + ' ' + text);
         (m === 'confirm' ? $('keep') : $('again')).focus({ preventScroll: true });
@@ -543,66 +712,102 @@ document.addEventListener('DOMContentLoaded', () => {
         pendingAction = action;
         show('confirm', 'Start a new puzzle?', 'Your ' + (S.daily ? 'daily ' : '') + S.level + ' puzzle in progress (' + fmtT(S.elapsed) + ') will be lost' + (what ? ' when you ' + what : '') + '.');
     }
-    function fresh(lv, daily) {
+    function firstTip() {
+        if (Object.values(ST.lv).some(s => s.started || s.solved)) return '';
+        return (coarse.matches ? 'Tap a square, then a number.' : 'Click a square, then type or click a number.') + ' Hint explains the next step.';
+    }
+    function fresh(lv, daily, user) {
         if (busy) return;
-        busy = true; clock(); hide(); paused = false;
-        $('new').disabled = $('daily').disabled = true; (daily ? $('daily') : $('new')).textContent = 'Generating…';
+        busy = true; clock(); hide(); paused = false; clearTimeout(winTimer);
+        $('new').disabled = $('daily').disabled = true; gridEl.setAttribute('aria-busy', 'true');
         status(''); $('info').textContent = 'Generating ' + (daily ? 'the daily ' : 'a new ') + lv + ' puzzle…';
+        if (user) G.reveal(play);
         const seed = daily ? dailySeed(daily, lv) : (crypto.getRandomValues(new Uint32Array(1))[0]);
         setTimeout(() => makePuzzle(lv, seed, ({ puzzle, solution }) => {
-            S = { level: lv, puzzle, solution, vals: puzzle.slice(), notes: new Array(81).fill(0), elapsed: 0, mistakes: 0, hints: 0, done: false, daily: daily || null };
-            busy = false; sel = -1; history = [];
-            $('new').disabled = $('daily').disabled = false; $('new').textContent = 'New puzzle'; $('daily').textContent = 'Daily puzzle';
+            S = { level: lv, puzzle, solution, vals: puzzle.slice(), notes: new Array(81).fill(0), elapsed: 0, mistakes: 0, hints: 0, done: false, daily: daily || null, counted: false };
+            busy = false; sel = -1; history = []; notesMode = false;
+            $('new').disabled = $('daily').disabled = false; gridEl.removeAttribute('aria-busy');
             $('level').value = lv; G.set('sudoku-level', lv);
-            paint(); info(); save(); clock();
+            paint(); info(); save(); clock(); status(firstTip());
             say((daily ? 'Daily ' : 'New ') + lv + ' puzzle ready.');
+            const f = document.activeElement;                       // focus lost with the overlay: back to the grid
+            if (user && (!f || f === document.body || ov.contains(f))) gridEl.children[0].focus({ preventScroll: true });
         }), 20);
     }
     function startDaily() {
         const d = today();
-        if (S && S.daily === d && S.level === level() && !S.done) { status('This is today’s ' + S.level + ' puzzle.'); return; }
-        guard('open the daily puzzle', () => fresh(level(), d));
+        if (S && S.daily === d && S.level === level() && !S.done) { status('This is today’s ' + S.level + ' puzzle.'); G.reveal(play); return; }
+        guard('open the daily puzzle', () => fresh(level(), d, true));
     }
 
-    gridEl.addEventListener('click', e => { const b = e.target.closest('button'); if (b) select(+b.dataset.i); });
+    gridEl.addEventListener('click', e => { const b = e.target.closest('button'); if (b) select(+b.dataset.i, false, true); });
     gridEl.addEventListener('focusin', e => { const b = e.target.closest('button'); if (b && +b.dataset.i !== sel) select(+b.dataset.i, true); });
-    $('pad').addEventListener('click', e => { const b = e.target.closest('button'); if (b) input(+b.dataset.d); });
+    $('pad').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { input(+b.dataset.d); G.reveal(play); } });
     $('erase').addEventListener('click', erase);
     $('undo').addEventListener('click', undo);
     $('hint').addEventListener('click', hint);
     $('fill').addEventListener('click', fillNotes);
     $('pause').addEventListener('click', () => setPaused(!paused));
     $('print').addEventListener('click', () => window.print());
-    $('notes').addEventListener('click', () => { notesMode = !notesMode; paint(); });
-    $('showbad').addEventListener('change', () => { opts.bad = $('showbad').checked; G.set('sudoku-showbad', opts.bad ? '1' : '0'); paint(); });
-    $('showcon').addEventListener('change', () => { opts.con = $('showcon').checked; G.set('sudoku-conflicts', opts.con ? '1' : '0'); paint(); });
-    $('new').addEventListener('click', () => guard('', () => fresh(level())));
+    $('notes').addEventListener('click', () => { notesMode = !notesMode; paint(); say('Notes ' + (notesMode ? 'on' : 'off')); });
+    $('new').addEventListener('click', () => guard('', () => fresh(level(), null, true)));
     $('daily').addEventListener('click', startDaily);
     $('again').addEventListener('click', () => {
         if (mode === 'paused') return setPaused(false);
         if (mode === 'confirm') { const a = pendingAction; pendingAction = null; hide(); if (a) a(); return; }
-        fresh(level());
+        fresh(level(), null, true);
     });
     $('keep').addEventListener('click', () => { if (mode === 'confirm') { pendingAction = null; $('level').value = S.level; hide(); } });
     // Changing the level starts a new puzzle, so a puzzle in progress asks first (the menu shows its level until confirmed).
     $('level').addEventListener('change', () => {
         const lv = level();
-        if (!inProgress()) { fresh(lv); return; }
+        if (!inProgress()) { fresh(lv, null, true); return; }
         $('level').value = S.level;
-        guard('switch to ' + lv, () => { $('level').value = lv; fresh(lv); });
+        guard('switch to ' + lv, () => { $('level').value = lv; fresh(lv, null, true); });
     });
+
+    // Settings: highlights, timer, sound. The clock stops while the dialog is open.
+    function applyOpts() {
+        $('time-chip').hidden = !opts.time;
+        if (S) paint();
+    }
+    $('settings').addEventListener('click', () => {
+        $('sound').checked = G.soundOn;
+        if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+        clock();
+    });
+    $('set-close').addEventListener('click', () => { if (dlg.close) dlg.close(); else { dlg.removeAttribute('open'); dlg.dispatchEvent(new Event('close')); } });
+    dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });                  // a click on the backdrop
+    dlg.addEventListener('keydown', e => { if (e.key === 'Escape') e.stopPropagation(); });     // Esc closes the settings, not the full-screen view
+    dlg.addEventListener('close', () => { clock(); $('settings').focus({ preventScroll: true }); });
+    [['showbad', 'bad', 'sudoku-showbad'], ['showcon', 'con', 'sudoku-conflicts'], ['showsame', 'same', 'sudoku-same'], ['showtime', 'time', 'sudoku-timer']].forEach(([id, k, key]) => {
+        $(id).addEventListener('change', () => { opts[k] = $(id).checked; G.set(key, opts[k] ? '1' : '0'); applyOpts(); });
+    });
+    $('sound').addEventListener('change', () => { G.soundOn = $('sound').checked; G.set('games-sound', G.soundOn ? '1' : '0'); G.audio(); });
+    let resetArmed = null;
+    $('reset-stats').addEventListener('click', () => {
+        const btn = $('reset-stats');
+        if (!resetArmed) { btn.textContent = 'Click again to reset'; resetArmed = setTimeout(() => { resetArmed = null; btn.textContent = 'Reset statistics'; }, 4000); return; }
+        clearTimeout(resetArmed); resetArmed = null; btn.textContent = 'Reset statistics';
+        for (const l of LVS) G.set('sudoku-best-' + l, '');
+        G.set('sudoku-solved', ''); G.setJSON('sudoku-stats', null); ST = readStats();
+        if (S && S.counted && !S.done) ST.lv[S.level].started = 1;    // the puzzle on the board still counts
+        saveStats(); if (S) info(); say('Statistics reset.');
+    });
+
     document.addEventListener('keydown', e => {
-        if (e.target.matches && e.target.matches('input, select, textarea') || e.altKey) return;
-        if (e.code === 'Escape' && mode === 'confirm') { $('keep').click(); return; }
-        if (e.code === 'Escape' && mode === 'paused') { setPaused(false); return; }
+        if (e.target.matches && e.target.matches('input, select, textarea') || e.altKey || dlg.open) return;
+        if (e.code === 'Escape' && mode === 'confirm') { e.preventDefault(); $('keep').click(); return; }
+        if (e.code === 'Escape' && mode === 'paused') { e.preventDefault(); setPaused(false); return; }
         if (!(e.target === document.body || e.target.closest('.game-shell'))) return;
         const m = /^(?:Digit|Numpad)([0-9])$/.exec(e.code);
         if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); undo(); return; }
         if (e.ctrlKey || e.metaKey) return;
-        if (m) { e.preventDefault(); +m[1] ? input(+m[1]) : erase(); }
+        if (m) { e.preventDefault(); +m[1] ? input(+m[1], e.shiftKey) : erase(); }
         else if (e.code === 'Backspace' || e.code === 'Delete') { e.preventDefault(); erase(); }
-        else if (e.code === 'KeyN') { notesMode = !notesMode; paint(); say('Notes ' + (notesMode ? 'on' : 'off')); }
-        else if (e.code === 'KeyP') setPaused(!paused);
+        else if (e.code === 'KeyN' && !e.repeat) { e.preventDefault(); notesMode = !notesMode; if (S) paint(); say('Notes ' + (notesMode ? 'on' : 'off')); }
+        else if (e.code === 'KeyP' && !e.repeat) { e.preventDefault(); setPaused(!paused); }
+        else if (e.code === 'KeyH' && !e.repeat) { e.preventDefault(); hint(); }
         else if (e.code.startsWith('Arrow') && !blocked()) {
             e.preventDefault(); if (sel < 0) return select(40);
             const r = ROW(sel), c = COL(sel), d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.code];
@@ -612,19 +817,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     opts.bad = $('showbad').checked = G.get('sudoku-showbad', '1') !== '0';
     opts.con = $('showcon').checked = G.get('sudoku-conflicts', '1') !== '0';
+    opts.same = $('showsame').checked = G.get('sudoku-same', '1') !== '0';
+    opts.time = $('showtime').checked = G.get('sudoku-timer', '1') !== '0';
+    applyOpts();
     const lv0 = G.get('sudoku-level', 'medium'); $('level').value = LEVELS[lv0] ? lv0 : 'medium';
     build();
+    renderStats();
     const saved = G.getJSON('sudoku-state'), arr = (a, f) => Array.isArray(a) && a.length === 81 && a.every(f);
     if (saved && !saved.done && LEVELS[saved.level] && arr(saved.puzzle, v => v >= 0 && v <= 9) && arr(saved.solution, v => v >= 1 && v <= 9) && arr(saved.vals, v => v >= 0 && v <= 9)) {
         S = Object.assign({ notes: new Array(81).fill(0), elapsed: 0, mistakes: 0, hints: 0, daily: null }, saved);
         if (!arr(S.notes, v => Number.isInteger(v))) S.notes = new Array(81).fill(0);
         S.elapsed = +S.elapsed || 0;
+        if (typeof S.counted !== 'boolean') S.counted = inProgress();           // saved before puzzles were counted
         $('level').value = S.level; paint(); info(); clock();
     } else fresh(level());
     window.__sudoku = {
-        grade, solutions, makePuzzle, attempt, rng, dailySeed, LEVELS, input, select, undo, hint, erase, fillNotes, today,
-        pause: setPaused, fresh, setNotes(on) { notesMode = on; paint(); },
-        get state() { return S && { level: S.level, daily: S.daily, givens: S.puzzle.filter(Boolean).length, vals: S.vals.slice(), solution: S.solution.slice(), puzzle: S.puzzle.slice(), notes: S.notes.slice(), done: S.done, mistakes: S.mistakes, hints: S.hints, elapsed: S.elapsed, paused, mode, busy, sel, history: history.length, ticking: !!tick }; }
+        grade, solutions, makePuzzle, attempt, rng, dailySeed, LEVELS, input, select, undo, hint, erase, fillNotes, today, dayBefore,
+        pause: setPaused, fresh, startDaily, setNotes(on) { notesMode = on; paint(); },
+        get state() { return S && { level: S.level, daily: S.daily, givens: S.puzzle.filter(Boolean).length, vals: S.vals.slice(), solution: S.solution.slice(), puzzle: S.puzzle.slice(), notes: S.notes.slice(), done: S.done, mistakes: S.mistakes, hints: S.hints, elapsed: S.elapsed, counted: S.counted, paused, mode, busy, sel, history: history.length, ticking: !!tick, notesMode }; },
+        stats: () => JSON.parse(JSON.stringify(ST)), opts: () => Object.assign({}, opts),
+        // fill every square but one (the selected one stays empty) to test the end of a puzzle
+        nearlySolve() { if (!S || S.done || busy) return -1; const k = S.puzzle.findIndex(v => !v); S.vals = S.solution.slice(); S.vals[k] = 0; S.notes.fill(0); paint(); save(); select(k); return k; },
+        setElapsed(t) { if (S) { S.elapsed = t; clock(); } },
+        fit: () => ({ w: fitter.w, h: fitter.h, overflow: G.overflow(play), side: sideMQ.matches }), reveal: () => G.reveal(play, true)
     };
 });
 </script>

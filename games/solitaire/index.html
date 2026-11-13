@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Solitaire: Free Klondike Card Game Online</title>
-<meta name="description" content="Play Klondike solitaire free online: draw one or three, standard or Vegas scoring, winnable deals, hints that explain, and stats. No ads, no sign-up.">
+<meta name="description" content="Play Klondike solitaire free online: draw one or three, a daily deal, winnable deals, Vegas scoring, hints that explain, and stats. No ads, no sign-up.">
 <link rel="canonical" href="https://cdfoley.com/games/solitaire/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Casey D. Foley, PhD">
 <meta property="og:title" content="Solitaire (Klondike)">
-<meta property="og:description" content="Play Klondike solitaire free online: draw one or three, standard or Vegas scoring, winnable deals, hints that explain, and stats. No ads, no sign-up.">
+<meta property="og:description" content="Play Klondike solitaire free online: draw one or three, a daily deal, winnable deals, Vegas scoring, hints that explain, and stats. No ads, no sign-up.">
 <meta property="og:url" content="https://cdfoley.com/games/solitaire/">
 <meta property="og:image" content="https://cdfoley.com/assets/img/og/game-solitaire.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Klondike Solitaire. Play Klondike solitaire free online: draw one or three, standard or Vegas scoring, winnable deals, hints that explain, and stats. No ads, no sign-up.">
+<meta property="og:image:alt" content="Klondike Solitaire. Play Klondike solitaire free online: draw one or three, a daily deal, winnable deals, Vegas scoring, hints that explain, and stats. No ads, no sign-up.">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -23,13 +23,17 @@
 <script src="/assets/js/site.js"></script>
 <script src="/assets/js/games.js"></script>
 <style>
-    .felt { position: relative; border-radius: var(--radius-lg); background: radial-gradient(ellipse at 50% 30%, #17785a 0%, #0f5a43 60%, #0b4634 100%); box-shadow: inset 0 0 40px rgba(0,0,0,.25); overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+    .felt { position: relative; height: 420px; border-radius: var(--radius-lg); background: radial-gradient(ellipse at 50% 30%, #17785a 0%, #0f5a43 60%, #0b4634 100%); box-shadow: inset 0 0 40px rgba(0,0,0,.25); overflow: hidden; isolation: isolate; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }   /* isolation: the cards stay under the overlay */
     .felt.busy { opacity: .6; }
+    .felt.won { animation: sol-won 1.4s ease; }
+    @keyframes sol-won { 35% { box-shadow: inset 0 0 0 4px #fbbf24, inset 0 0 70px rgba(251, 191, 36, .35); } }
     .slot { position: absolute; width: var(--cw); height: var(--ch); border-radius: calc(var(--cw) * 0.08); border: 2px dashed rgba(255,255,255,.28); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.35); font: 700 calc(var(--cw) * 0.32) var(--font); cursor: pointer; }
     .slot.stock::after { content: "↻"; font-size: calc(var(--cw) * 0.4); }
     .slot.stock.spent::after { content: "×"; }
     .card { position: absolute; left: 0; top: 0; width: var(--cw); height: var(--ch); border-radius: calc(var(--cw) * 0.08); transition: transform .18s ease; cursor: pointer; touch-action: none; }
     .card.dragging { transition: none; filter: drop-shadow(0 8px 14px rgba(0,0,0,.35)); }
+    .card.hop { animation: sol-hop .45s ease both; animation-delay: var(--hd, 0ms); }
+    @keyframes sol-hop { 50% { scale: 1.14; } }
     .card .face, .card .back { position: absolute; inset: 0; border-radius: inherit; }
     .card .face { display: none; background: #fdfdfb; border: 1px solid #c9d1dc; color: #18181b; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
     .card.up .face { display: block; } .card.up .back { display: none; }
@@ -46,9 +50,15 @@
     .felt:focus-visible { outline-offset: 0; }
     .felt:focus-visible .kb { outline: 3px solid #fff; outline-offset: 2px; }   /* the keyboard cursor, shown only while the table has keyboard focus */
     .sol-bar .chip { background: var(--surface); }
-    .sol-msg { min-height: 1.5em; margin: -0.3rem 0 0.5rem; font-size: 0.92rem; color: var(--text); }
-    .sol-opts { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; align-items: center; justify-content: center; margin-top: 0.8rem; }
-    .sol-opts select { padding: 0.3rem 0.5rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: 0.85rem; }
+    .sol-msg { min-height: 1.35em; margin: 0; font-size: .88rem; line-height: 1.35; color: var(--text); }
+    .sol-long { display: none; }
+    @media (max-width: 600px) { .sol-msg { min-height: 2.7em; } }   /* phones: room for a two-line hint without moving the table */
+    .sol-icon { padding-left: .5rem; padding-right: .5rem; }
+    .chip.hot { border-color: var(--ok); background: var(--ok-soft); }
+    .chip.hot b { color: var(--ok); }
+    @media (min-width: 560px) and (min-height: 561px) { .sol-long { display: inline; } }
+    @media (pointer: coarse) { .game-bar .btn, .game-bar select, .game-overlay .btn { min-height: 40px; } .game-bar .sol-icon, .game-bar .game-full { min-width: 40px; } }
+    .sol-overlay .game-actions { justify-content: center; }
     .sol-stats { max-width: 760px; margin: 1.2rem auto 0; }
     .sol-stats .tbl { overflow-x: auto; }
     .sol-stats table { width: 100%; border-collapse: collapse; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
@@ -56,7 +66,18 @@
     .sol-stats th:first-child, .sol-stats td:first-child { text-align: left; }
     .sol-stats thead th { color: var(--text-2); font-weight: 600; }
     .sol-stats p { font-size: 0.85rem; color: var(--text-2); margin: 0.6rem 0; }
-    @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+    .sol-dialog { width: min(440px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 1.1rem 1.1rem 1rem; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+    .sol-dialog::backdrop { background: rgba(10, 15, 28, .55); }
+    .sol-dialog h2 { margin: 0 0 .7rem; font-size: 1.2rem; }
+    .sol-dialog fieldset { border: 0; margin: 0 0 .9rem; padding: 0; }
+    .sol-dialog legend { font-weight: 650; font-size: .95rem; margin-bottom: .35rem; padding: 0; }
+    .sol-dialog label { display: flex; align-items: flex-start; gap: .45rem; font-size: .92rem; padding: .25rem 0; }
+    .sol-dialog label input { margin-top: .2rem; }
+    .sol-dialog label span small { display: block; color: var(--text-2); font-size: .8rem; }
+    .sol-dialog p { margin: .35rem 0 0; font-size: .82rem; color: var(--text-2); }
+    .sol-dialog select { padding: .35rem .5rem; border: 1px solid var(--border-input); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: .9rem; }
+    @media (pointer: coarse) { .sol-dialog input { width: 20px; height: 20px; } .sol-dialog select, .sol-dialog .btn { min-height: 40px; } }
+    @media (prefers-reduced-motion: reduce) { .card { transition: none; } .felt.won, .card.hop { animation: none; } }
 </style>
 <script type="application/ld+json" id="ld-page">
 {
@@ -66,7 +87,7 @@
    "@type": "VideoGame",
    "name": "Solitaire",
    "url": "https://cdfoley.com/games/solitaire/",
-   "description": "Play Klondike solitaire free online: draw one or three, standard or Vegas scoring, winnable deals, hints that explain, and stats. No ads, no sign-up.",
+   "description": "Play Klondike solitaire free online: draw one or three, a daily deal, winnable deals, Vegas scoring, hints that explain, and stats. No ads, no sign-up.",
    "genre": "Card game",
    "gamePlatform": "Web browser",
    "playMode": "SinglePlayer",
@@ -118,49 +139,71 @@
 
 <main id="main" class="wrap page">
     <nav class="breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="/games/">Games</a></li><li aria-current="page">Solitaire</li></ol></nav>
-    <div class="game-shell" style="max-width:900px">
+    <div class="game-shell" style="max-width:960px">
         <header class="page-head" style="margin-bottom:1rem">
             <h1>Klondike Solitaire</h1>
             <p class="lede">Klondike: build each suit up from ace to king on the four foundations. In the tableau, stack cards down in alternating colors; only kings go in empty columns.</p>
         </header>
-        <div class="game-bar sol-bar">
-            <div class="chips"><span class="chip">Moves<b id="moves">0</b></span><span class="chip">Time<b id="time">0:00</b></span><span class="chip" id="score-chip" hidden>Score<b id="score">0</b></span><span class="chip">Best<b id="best">—</b></span></div>
-            <div class="game-actions">
-                <select id="draw" aria-label="Draw mode"><option value="1">Draw 1</option><option value="3">Draw 3</option></select>
-                <button class="btn btn-secondary btn-sm" type="button" id="undo">Undo</button>
-                <button class="btn btn-secondary btn-sm" type="button" id="hint">Hint</button>
-                <button class="btn btn-secondary btn-sm" type="button" id="finish" hidden>Auto-finish</button>
-                <button class="btn btn-primary btn-sm" type="button" id="new">New game</button>
+        <div class="game-play" id="play">
+            <div class="game-bar sol-bar">
+                <div class="chips"><span class="chip">Moves<b id="moves">0</b></span><span class="chip">Time<b id="time">0:00</b></span><span class="chip" id="score-chip" hidden>Score<b id="score">0</b></span><span class="chip" id="best-chip">Best<b id="best">—</b></span></div>
+                <div class="game-actions">
+                    <select id="draw" aria-label="Draw mode"><option value="1">Draw 1</option><option value="3">Draw 3</option></select>
+                    <button class="btn btn-secondary btn-sm" type="button" id="undo" title="Undo (U or Ctrl+Z)">Undo</button>
+                    <button class="btn btn-secondary btn-sm" type="button" id="hint" title="Suggest a move (H)">Hint</button>
+                    <button class="btn btn-primary btn-sm" type="button" id="finish" title="Play every card up to the foundations" hidden>Finish</button>
+                    <button class="btn btn-primary btn-sm" type="button" id="new"><span>New<span class="sol-long"> game</span></span></button>
+                    <button class="btn btn-secondary btn-sm" type="button" id="daily" title="Today’s deal, the same for everyone, and always winnable"><span>Daily<span class="sol-long"> deal</span></span></button>
+                    <button class="btn btn-secondary btn-sm sol-icon" type="button" id="settings" aria-label="Settings" title="Settings: scoring, winnable deals, auto-play, sound, restart" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button>
+                    <button class="btn btn-secondary btn-sm game-full" type="button" id="full"></button>
+                </div>
+            </div>
+            <p class="sol-msg" id="msg" role="status" aria-live="polite"></p>
+            <div class="game-stage">
+                <div class="felt" id="table" tabindex="0" role="application" aria-label="Solitaire table" aria-describedby="sol-keys"></div>
+                <div class="game-overlay sol-overlay" id="overlay" role="dialog" aria-labelledby="ov-head" aria-describedby="ov-text" hidden><h2 id="ov-head">You won!</h2><p id="ov-text"></p><div class="game-actions"><button class="btn btn-primary" type="button" id="again">Deal again</button><button class="btn btn-secondary" type="button" id="restart" hidden>Restart this deal</button><button class="btn btn-secondary" type="button" id="keep" hidden>Keep playing</button></div></div>
             </div>
         </div>
-        <p class="sol-msg" id="msg" role="status" aria-live="polite"></p>
-        <div class="game-stage">
-            <div class="felt" id="table" tabindex="0" role="application" aria-label="Solitaire table" aria-describedby="sol-keys"></div>
-            <div class="game-overlay" id="overlay" hidden><h2 id="ov-head">You won!</h2><p id="ov-text"></p><div class="game-actions"><button class="btn btn-primary" type="button" id="again">Deal again</button><button class="btn btn-secondary" type="button" id="keep" hidden>Keep playing</button></div></div>
-        </div>
-        <div class="sol-opts">
-            <label class="toggle">Scoring <select id="scoring"><option value="none">None</option><option value="standard">Standard</option><option value="vegas">Vegas</option></select></label>
-            <label class="toggle"><input type="checkbox" id="winnable"> Winnable deals only</label>
-        </div>
         <p class="visually-hidden" id="sr" aria-live="polite"></p>
-        <p class="game-help"><strong>Drag</strong> cards to move them, or <strong>tap</strong> a card to send it to the best legal spot (foundations first). Tap the deck to draw; tap the empty deck to turn the waste pile over. Face-down cards flip automatically when uncovered. To take a card back off a foundation, drag it.</p>
+        <p class="game-help"><strong>Drag</strong> cards to move them, or <strong>tap</strong> a card to send it to the best legal spot (foundations first). Tap the deck to draw; tap the empty deck to turn the waste pile over. Face-down cards flip automatically when uncovered. To take a card back off a foundation, drag it. When every card is face up, <strong>Finish</strong> takes the place of Hint and plays the rest up for you.</p>
+        <p class="game-help"><strong>Daily deal:</strong> one deal a day for each draw mode, the same for everyone on that date, and checked to be winnable even with Vegas pass limits. Win one on consecutive days to build a streak. Once you have won the day’s deal, replaying it is practice and changes no statistics. <strong>Hint</strong> shows the most useful move and why; when nothing helps, it offers to restart the deal or deal a new one.</p>
         <p class="game-help" id="sol-keys">Keyboard: <kbd>Tab</kbd> to the table, then the arrow keys choose a pile or card (<kbd>↑</kbd> in a column reaches a run). <kbd>Enter</kbd> or <kbd>Space</kbd> draws or sends the card to its best spot, <kbd>1</kbd>–<kbd>7</kbd> move it to that column, <kbd>F</kbd> to a foundation. <kbd>D</kbd> draws, <kbd>H</kbd> gives a hint, and <kbd>U</kbd> or <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.</p>
-        <p class="game-help"><strong>Standard scoring:</strong> 5 points for a card from the waste to the tableau, 10 for a card to a foundation, 5 for each card turned over, −15 for a card taken back off a foundation, and −100 (Draw 1) or −20 (Draw 3) each time you turn the waste over; the score never drops below 0. <strong>Vegas scoring:</strong> each game costs $52 and every card on a foundation pays $5; you get one pass through the deck in Draw 1 and three in Draw 3.</p>
+        <p class="game-help"><strong>Settings</strong> (the slider button) hold the scoring, winnable deals, sending safe cards to the foundations by themselves (an ace or two, or a card that both piles of the other color are ready for), the sound, and <em>Restart this deal</em>, which deals the same cards again (Undo brings you back). The square button beside it shows the game full screen.</p>
+        <p class="game-help"><strong>Standard scoring:</strong> 5 points for a card from the waste to the tableau, 10 for a card to a foundation, 5 for each card turned over, −15 for a card taken back off a foundation, and −100 (Draw 1) or −20 (Draw 3) each time you turn the waste over; the score never drops below 0. <strong>Vegas scoring:</strong> each game costs $52 and every card on a foundation pays $5; you get one pass through the deck in Draw 1 and three in Draw 3. A new scoring choice starts with your next game.</p>
         <p class="game-help"><strong>Winnable deals:</strong> before a deal reaches you, the computer plays it through with the face-down cards in view, under your draw and scoring rules, and deals it only if it wins. A win is always possible, but you can still get stuck, because you can’t see the face-down cards; Undo is unlimited. Your game in progress is saved in this browser.</p>
         <details class="fold sol-stats" id="stats-box">
             <summary>Statistics</summary>
             <div class="tbl"><table><thead><tr><th scope="col">Game</th><th scope="col">Played</th><th scope="col">Won</th><th scope="col">Win %</th><th scope="col">Streak</th><th scope="col">Best streak</th><th scope="col">Best time</th><th scope="col">Fewest moves</th></tr></thead><tbody id="stats"></tbody></table></div>
-            <p>A game counts once you make a move, and starting another before you win counts as a loss. Winnable deals are kept separately. Statistics stay in this browser.</p>
+            <p id="stats-daily"></p>
+            <p>A game counts once you make a move, and starting another before you win counts as a loss. Winnable and daily deals are kept separately. Statistics stay in this browser.</p>
             <p><button class="btn btn-secondary btn-sm" type="button" id="reset-stats">Reset statistics</button></p>
         </details>
     </div>
 </main>
 
+<dialog class="sol-dialog" id="settings-dlg" aria-labelledby="set-title">
+    <h2 id="set-title">Settings</h2>
+    <fieldset><legend>Scoring</legend>
+        <select id="scoring" aria-label="Scoring"><option value="none">None</option><option value="standard">Standard</option><option value="vegas">Vegas</option></select>
+        <p>Starts with your next game. Vegas allows one pass through the deck in Draw 1 and three in Draw 3.</p>
+    </fieldset>
+    <fieldset><legend>Deals and moves</legend>
+        <label><input type="checkbox" id="winnable"><span>Winnable deals only<small>The computer plays each deal through before it reaches you. Starts with your next game.</small></span></label>
+        <label><input type="checkbox" id="auto"><span>Send safe cards to the foundations<small>Aces, twos, and cards that both piles of the other color are ready for go up by themselves.</small></span></label>
+        <label><input type="checkbox" id="sound"><span>Sound effects</span></label>
+    </fieldset>
+    <fieldset><legend>This game</legend>
+        <button class="btn btn-secondary btn-sm" type="button" id="restart-deal">Restart this deal</button>
+        <p>Deals the same cards again. The clock keeps running, and Undo brings you back.</p>
+    </fieldset>
+    <button class="btn btn-primary btn-sm" type="button" id="set-close">Done</button>
+</dialog>
+
 <div id="site-footer"></div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const G = window.Games, $ = id => document.getElementById(id), table = $('table');
+    const G = window.Games, $ = id => document.getElementById(id), table = $('table'), play = $('play'), ov = $('overlay'), dlg = $('settings-dlg');
     const SUITS = ['♠', '♥', '♦', '♣'], RANKS = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
     const NAMES = ['', 'Ace', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Jack', 'Queen', 'King'], SUIT_NAMES = ['spades', 'hearts', 'diamonds', 'clubs'];
     const red = c => c.s === 1 || c.s === 2;
@@ -168,12 +211,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const short = c => RANKS[c.r] + SUITS[c.s], long = c => NAMES[c.r] + ' of ' + SUIT_NAMES[c.s];
     const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let S, moves, score, undoStack, els = {}, L = {}, drag = null, won = false, counted = false, kb = { i: 0, depth: 0 }, kbEl = null;
-    let elapsed = 0, runFrom = null, tick = null, finishing = 0, dealing = 0, busy = false, solution = null;
+    let elapsed = 0, runFrom = null, tick = null, finishing = 0, dealing = 0, busy = false, solution = null, ovMode = '', pending = null;
     const stats = G.getJSON('sol-stats') || {};
+    const opt = { auto: G.get('sol-auto', '0') === '1' };
+
+    // Dates and a seeded shuffle, so a date names the same daily deal on every device
+    const isoOf = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const today = () => isoOf(new Date());
+    const dayBefore = iso => { const [y, m, d] = iso.split('-').map(Number); return isoOf(new Date(y, m - 1, d - 1)); };
+    const shortDate = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
+    const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+    const hash = s => { let h = 2166136261; for (let k = 0; k < s.length; k++) { h ^= s.charCodeAt(k); h = Math.imul(h, 16777619); } return h >>> 0; };
+    const ISO = /^\d{4}-\d\d-\d\d$/;
+    const daily = (() => {           // the daily deals won: { 'date:draw': { t, m } }, and the streak of dates with one won
+        const o = G.getJSON('sol-daily'), out = { won: {}, streak: 0, best: 0, last: '' };
+        if (o && typeof o === 'object') {
+            if (o.won && typeof o.won === 'object') for (const k in o.won) if (/^\d{4}-\d\d-\d\d:[13]$/.test(k) && o.won[k]) out.won[k] = { t: +o.won[k].t || 0, m: +o.won[k].m || 0 };
+            out.streak = +o.streak || 0; out.best = +o.best || 0; out.last = ISO.test(o.last) ? o.last : '';
+        }
+        return out;
+    })();
+    const streakNow = () => (daily.last === today() || daily.last === dayBefore(today())) ? daily.streak : 0;
+    // A daily deal you have already won is practice: replaying it changes no statistics.
+    const practice = () => !!(S && S.daily && daily.won[S.daily + ':' + S.draw]);
 
     // ── Model ──
     // S.stock and S.waste have their top card last. S.passes counts how many times the waste has been turned over.
-    function shuffled() { const d = []; for (let id = 1; id <= 52; id++) d.push(id); for (let i = d.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; } return d; }
+    function shuffled(rnd) { rnd = rnd || Math.random; const d = []; for (let id = 1; id <= 52; id++) d.push(id); for (let i = d.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; } return d; }
     function layoutDeck(deck, draw, scoring, winnable) {
         const d = deck.map(cardOf), s = { stock: [], waste: [], found: [[], [], [], []], tab: [[], [], [], [], [], [], []], passes: 0, draw, scoring, winnable };
         for (let c = 0; c < 7; c++) for (let k = 0; k <= c; k++) { const card = d.pop(); card.up = k === c; s.tab[c].push(card); }
@@ -186,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dec = a => a.map(v => { const c = cardOf(v >> 1); c.up = !!(v & 1); return c; });
     const pack = () => ({ st: enc(S.stock), wa: enc(S.waste), fo: S.found.map(enc), ta: S.tab.map(enc), passes: S.passes, moves, score });
     function unpack(o) { S.stock = dec(o.st); S.waste = dec(o.wa); S.found = o.fo.map(dec); S.tab = o.ta.map(dec); S.passes = o.passes; moves = o.moves; score = o.score; }
+    const okPack = o => { try { const ids = [].concat(o.st, o.wa, ...o.fo, ...o.ta).map(v => v >> 1); return o.fo.length === 4 && o.ta.length === 7 && ids.length === 52 && new Set(ids).size === 52 && ids.every(i => i >= 1 && i <= 52); } catch (e) { return false; } };
     const pileOf = p => p.pile === 'tab' ? S.tab[p.idx] : p.pile === 'found' ? S.found[p.idx] : S[p.pile];
     function locate(id) {
         for (const pile of ['stock', 'waste']) { const k = S[pile].findIndex(c => c.id === id); if (k >= 0) return { pile, idx: 0, pos: k }; }
@@ -207,14 +272,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const foundCount = () => S.found.reduce((n, f) => n + f.length, 0);
     const where = dest => dest.pile === 'found' ? 'a foundation' : 'column ' + (dest.idx + 1);
-    function begin() {                       // the first move of a game starts the clock and counts the game as played
-        undoStack.push(pack()); runClock();
-        if (!counted) { counted = true; rec(statKey()).played++; saveStats(); }
+    function begin(snap) {                   // the first move of a game starts the clock and counts the game as played
+        if (snap !== false) undoStack.push(pack());
+        runClock();
+        if (!counted) { counted = true; if (!practice()) { rec(statKey()).played++; saveStats(); } }
     }
-    function move(src, dest, quiet) {
+    // chain: a move made by the game itself right after the player's (auto-play): no undo step or sound of its own
+    function move(src, dest, quiet, chain) {
         const cards = movable(src);
         if (!cards || busy || won || (src.pile === dest.pile && src.idx === dest.idx) || !accepts(cards, dest)) return false;
-        begin();
+        begin(!chain);
         pileOf(src).splice(src.pos, cards.length);
         pileOf(dest).push(...cards);
         let flipped = null;
@@ -228,23 +295,45 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (S.scoring === 'vegas') score = 5 * foundCount() - 52;
         moves++;
         if (!quiet) say(long(cards[0]) + (cards.length > 1 ? ' and ' + (cards.length - 1) + (cards.length > 2 ? ' cards' : ' card') + ' on it' : '') + ' to ' + where(dest) + (flipped ? ', turning over the ' + long(flipped) : '') + '.');
+        if (!chain) { sfx(dest.pile === 'found' ? 'found' : 'move'); if (flipped) setTimeout(() => sfx('flip'), 90); autoPlay(); }
         changed(); checkWin();
         return true;
     }
     function drawStock() {
         if (busy || won) return false;
-        if (!S.stock.length && (!S.waste.length || !canRecycle())) { if (S.waste.length) say('No more passes through the deck under Vegas rules.'); return false; }
+        if (!S.stock.length && (!S.waste.length || !canRecycle())) { if (S.waste.length) { say('No more passes through the deck under Vegas rules.'); sfx('bad'); } return false; }
         begin();
         if (!S.stock.length) {
             S.stock = S.waste.reverse().map(c => (c.up = false, c)); S.waste = []; S.passes++;
             if (S.scoring === 'standard') score = Math.max(0, score - (S.draw === 1 ? 100 : 20));
-            say('Turned the waste over.');
+            say('Turned the waste over.'); sfx('deal');
         } else {
             for (let i = 0; i < S.draw && S.stock.length; i++) { const c = S.stock.pop(); c.up = true; S.waste.push(c); }
-            say('Drew the ' + long(S.waste[S.waste.length - 1]) + '.');
+            say('Drew the ' + long(S.waste[S.waste.length - 1]) + '.'); sfx('draw');
         }
-        moves++; changed();
+        moves++; autoPlay(); changed(); checkWin();
         return true;
+    }
+    // Safe cards go up by themselves when the setting is on: aces and twos, and any card whose two other-color suits are
+    // up to one rank below it on the foundations (no card left in play could ever need it as a place to build).
+    const suitHeight = s => { for (const f of S.found) if (f.length && f[0].s === s) return f.length; return 0; };
+    const safeCard = c => c.r <= 2 || (red(c) ? [0, 3] : [1, 2]).every(s => suitHeight(s) >= c.r - 1);
+    function autoPlay() {
+        if (!opt.auto || won) return 0;
+        let n = 0;
+        for (let again = true; again && !won;) {
+            again = false;
+            const tops = S.tab.map((p, i) => ({ pile: 'tab', idx: i, pos: p.length - 1 })).filter(l => l.pos >= 0);
+            if (S.waste.length) tops.push({ pile: 'waste', idx: 0, pos: S.waste.length - 1 });
+            for (const loc of tops) {
+                const c = pileOf(loc)[loc.pos];
+                if (!c.up || !safeCard(c)) continue;
+                for (let f = 0; f < 4 && !again; f++) if (move(loc, { pile: 'found', idx: f }, true, true)) { n++; again = true; }
+                if (again) break;
+            }
+        }
+        if (n) { setTimeout(() => sfx('found'), 120); $('sr').textContent += ' ' + (n === 1 ? 'One card' : n + ' cards') + ' went up to the foundations.'; }
+        return n;
     }
     function autoMove(loc) {
         const cards = movable(loc); if (!cards) return false;
@@ -259,61 +348,87 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!undoStack.length || won || busy) return;
         finishing++; unpack(undoStack.pop()); say('Undone.'); changed();
     }
+    // Restart: the same deal from the beginning, as one undoable step (the clock keeps running).
+    function restart() {
+        if (!S || !S.start || won || busy || !counted) return false;
+        finishing++; hintClear(); closeOverlay();
+        undoStack.push(pack()); unpack(S.start); sfx('deal'); changed();
+        $('msg').textContent = 'Back to the start of this deal. Undo returns you to where you were.';
+        say($('msg').textContent);
+        return true;
+    }
 
-    // ── Clock: runs from the first move while the tab is visible ──
+    // ── Sound: soft card sounds (Settings turns them off) ──
+    function sfx(kind) {
+        if (kind === 'move') G.noise(0.045, 0.05, 2600);
+        else if (kind === 'draw') G.noise(0.035, 0.04, 1800);
+        else if (kind === 'found') { G.noise(0.04, 0.04, 2600); G.tone(740, 990, 0.08, 'sine', 0.018); }
+        else if (kind === 'flip') G.tone(520, 620, 0.05, 'triangle', 0.012);
+        else if (kind === 'bad') G.tone(190, 150, 0.09, 'triangle', 0.02);
+        else if (kind === 'deal') G.noise(0.14, 0.035, 1500);
+        else if (kind === 'win') [523, 659, 784, 1046, 1319].forEach((f, k) => setTimeout(() => G.tone(f, f, 0.16, 'triangle', 0.028), k * 120));
+    }
+
+    // ── Clock: runs from the first move while the tab is visible and the settings are closed ──
     const clockMs = () => elapsed + (runFrom !== null ? performance.now() - runFrom : 0);
     const fmtTime = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
     const showTime = () => { $('time').textContent = fmtTime(Math.floor(clockMs() / 1000)); };
-    function runClock() { if (runFrom !== null || won) return; runFrom = performance.now(); clearInterval(tick); tick = setInterval(showTime, 500); }
+    function runClock() { if (runFrom !== null || won || document.hidden || dlg.open) return; runFrom = performance.now(); clearInterval(tick); tick = setInterval(showTime, 500); }
     function pauseClock() { if (runFrom !== null) { elapsed += performance.now() - runFrom; runFrom = null; } clearInterval(tick); tick = null; }
     document.addEventListener('visibilitychange', () => { if (document.hidden) { pauseClock(); save(); } else if (counted && !won) runClock(); });
 
     // ── Statistics and saving ──
-    const statKey = () => S.draw + (S.winnable ? 'w' : '');
+    const statKey = () => S.draw + (S.daily ? 'd' : S.winnable ? 'w' : '');
     function rec(k) {
         if (!stats[k]) { const old = k.length === 1 ? +G.get('sol-best-' + k, 0) : 0; stats[k] = { played: 0, won: 0, streak: 0, bestStreak: 0, bestTime: old || null, fewest: null }; }
         return stats[k];
     }
     function saveStats() { G.setJSON('sol-stats', stats); renderStats(); }
+    const KIND = { '': '', w: ', winnable deals', d: ', daily deals' };
     function renderStats() {
-        const keys = ['1', '3'].concat(['1w', '3w'].filter(k => stats[k]));
+        const keys = ['1', '3'].concat(['1w', '3w', '1d', '3d'].filter(k => stats[k]));
         $('stats').innerHTML = keys.map(k => {
             const s = stats[k] || { played: 0, won: 0, streak: 0, bestStreak: 0, bestTime: null, fewest: null };
-            return '<tr><th scope="row">Draw ' + k[0] + (k[1] ? ', winnable deals' : '') + '</th><td>' + s.played + '</td><td>' + s.won + '</td><td>' + (s.played ? Math.round(100 * s.won / s.played) + '%' : '—') + '</td><td>' + s.streak + '</td><td>' + s.bestStreak + '</td><td>' + (s.bestTime ? fmtTime(s.bestTime) : '—') + '</td><td>' + (s.fewest || '—') + '</td></tr>';
+            return '<tr><th scope="row">Draw ' + k[0] + KIND[k[1] || ''] + '</th><td>' + s.played + '</td><td>' + s.won + '</td><td>' + (s.played ? Math.round(100 * s.won / s.played) + '%' : '—') + '</td><td>' + s.streak + '</td><td>' + s.bestStreak + '</td><td>' + (s.bestTime ? fmtTime(s.bestTime) : '—') + '</td><td>' + (s.fewest || '—') + '</td></tr>';
         }).join('');
+        const nWon = Object.keys(daily.won).length, now = streakNow(), plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+        $('stats-daily').textContent = 'Daily deals: ' + plural(nWon, 'win') + ' · current streak ' + plural(now, 'day') + ' · longest ' + plural(daily.best, 'day') + '.' + (daily.last === today() ? ' Today’s is won.' : now ? ' Win today’s to keep it going.' : '');
     }
     function showBest() { const s = stats[statKey()]; $('best').textContent = s && s.bestTime ? fmtTime(s.bestTime) : '—'; }
     function save() {
         if (!S) return;
         if (won || !counted) { G.set('sol-game', ''); return; }
-        G.setJSON('sol-game', Object.assign(pack(), { draw: S.draw, scoring: S.scoring, winnable: S.winnable, elapsed: clockMs(), undo: undoStack.slice(-300) }));
+        G.setJSON('sol-game', Object.assign(pack(), { draw: S.draw, scoring: S.scoring, winnable: S.winnable, daily: S.daily || null, start: S.start || null, elapsed: clockMs(), undo: undoStack.slice(-300) }));
     }
     function restore() {
         const o = G.getJSON('sol-game');
         try {
-            if (!o || ![1, 3].includes(o.draw) || !['none', 'standard', 'vegas'].includes(o.scoring)) return false;
-            const ids = [].concat(o.st, o.wa, ...o.fo, ...o.ta).map(v => v >> 1);
-            if (ids.length !== 52 || new Set(ids).size !== 52 || ids.some(i => !(i >= 1 && i <= 52))) return false;
-            S = { draw: o.draw, scoring: o.scoring, winnable: !!o.winnable }; unpack(o);
+            if (!o || ![1, 3].includes(o.draw) || !['none', 'standard', 'vegas'].includes(o.scoring) || !okPack(o)) return false;
+            S = { draw: o.draw, scoring: o.scoring, winnable: !!o.winnable, daily: ISO.test(o.daily) ? o.daily : null, start: o.start && okPack(o.start) ? o.start : null }; unpack(o);
             undoStack = Array.isArray(o.undo) ? o.undo.filter(u => u && Array.isArray(u.st) && Array.isArray(u.ta) && u.ta.length === 7) : []; won = false; counted = true;
             elapsed = +o.elapsed || 0; runFrom = null;
-            $('draw').value = S.draw; $('scoring').value = S.scoring;
+            $('draw').value = S.draw;
             return true;
         } catch (e) { return false; }
     }
 
     // ── Dealing ──
-    function startGame(deck, draw, scoring, winnable) {
+    function startGame(deck, draw, scoring, winnable, dailyIso) {
         finishing++; pauseClock(); elapsed = 0; runFrom = null;
-        S = layoutDeck(deck, draw, scoring, winnable);
+        S = layoutDeck(deck, draw, scoring, winnable); S.daily = dailyIso || null;
         moves = 0; score = scoring === 'vegas' ? -52 : 0; undoStack = []; won = false; counted = false;
-        $('overlay').hidden = true; showTime(); changed();
+        S.start = pack();
+        table.classList.remove('won');
+        closeOverlay(); showTime(); changed(); sfx('deal');
     }
-    function newGame() {
-        if (counted && !won) { counted = false; rec(statKey()).streak = 0; saveStats(); G.set('sol-game', ''); }   // an abandoned game counts as a loss
-        const draw = +$('draw').value, scoring = $('scoring').value, token = ++dealing;
-        hintClear(); $('msg').textContent = '';
-        if (!$('winnable').checked) { busy = false; table.classList.remove('busy'); solution = null; startGame(shuffled(), draw, scoring, false); return; }
+    // how: { daily: date } for the daily deal; user: started by the player (bring the table into view)
+    function newGame(how, user) {
+        if (counted && !won) { counted = false; if (!practice()) { rec(statKey()).streak = 0; saveStats(); } G.set('sol-game', ''); }   // an abandoned game counts as a loss
+        const draw = +$('draw').value, scoring = $('scoring').value, token = ++dealing, dIso = how && how.daily;
+        hintClear(); closeOverlay(); $('msg').textContent = '';
+        if (user) G.reveal(play);
+        if (dIso) { dealDaily(dIso, draw, scoring, token); return; }
+        if (!$('winnable').checked) { busy = false; table.classList.remove('busy'); solution = null; startGame(shuffled(), draw, scoring, false); $('msg').textContent = firstTip(); return; }
         busy = true; table.classList.add('busy'); $('msg').textContent = 'Dealing a winnable game…';
         const t0 = performance.now();
         (function attempt() {
@@ -326,9 +441,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (r.path || late) {
                     busy = false; table.classList.remove('busy'); solution = r.path;
                     startGame(deck, draw, scoring, !!r.path);
-                    $('msg').textContent = r.path ? '' : 'No winnable deal turned up in time, so this deal is random and may not be winnable.';
+                    $('msg').textContent = r.path ? firstTip() : 'No winnable deal turned up in time, so this deal is random and may not be winnable.';
                     return;
                 }
+            } while (performance.now() < until);
+            setTimeout(attempt, 0);
+        })();
+    }
+    // A first visit (no game played yet) gets one line on how to move cards.
+    const firstTip = () => Object.values(stats).some(s => s && s.played) ? '' : (matchMedia('(pointer: coarse)').matches ? 'Tap a card to send it to its best spot, or drag it. Tap the deck to draw.' : 'Drag a card, or click it to send it to its best spot. Click the deck to draw.');
+    // The daily deal: the first seeded deck for the date and draw mode that the solver wins with Vegas pass limits
+    // (one pass in Draw 1, three in Draw 3), so it can be won under any scoring. The search is deterministic.
+    const dailyDeck = (iso, draw, n) => shuffled(rng(hash('cdfoley.com solitaire ' + iso + ' draw ' + draw + ' #' + n)));
+    function dealDaily(iso, draw, scoring, token) {
+        busy = true; table.classList.add('busy'); $('msg').textContent = 'Dealing the daily deal…';
+        let n = 0;
+        (function attempt() {
+            if (token !== dealing) return;
+            const until = performance.now() + 60;
+            do {
+                const deck = dailyDeck(iso, draw, n), s = layoutDeck(deck, draw, 'vegas', true);
+                const r = solveDeal({ tab: s.tab.map(p => p.map(c => c.id)), down: s.tab.map(p => p.length - 1), found: [0, 0, 0, 0], talon: s.stock.map(c => c.id).reverse(), p: 0, rec: 0 }, draw, maxPasses(s), 30000);
+                if (r.path || n >= 400) {
+                    busy = false; table.classList.remove('busy'); solution = r.path;
+                    startGame(r.path ? deck : dailyDeck(iso, draw, 0), draw, scoring, !!r.path, iso);
+                    const done = daily.won[iso + ':' + draw];
+                    $('msg').textContent = 'Daily deal for ' + shortDate(iso) + ', Draw ' + draw + ': the same cards for everyone today.' + (done ? ' You won it already, in ' + fmtTime(done.t) + '.' : '');
+                    say($('msg').textContent);
+                    return;
+                }
+                n++;
             } while (performance.now() < until);
             setTimeout(attempt, 0);
         })();
@@ -460,13 +602,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function showHint() {
         if (won || busy) return;
-        hintClear();
+        hintClear(); closeOverlay();
         const h = findHint();
+        if (h.none) {
+            $('msg').textContent = '';
+            sfx('bad');
+            openOverlay('stuck', 'No useful moves left', 'Nothing on the table or in the deck helps now. Undo some moves, start this deal over, or deal a new game.');
+            return;
+        }
         $('msg').textContent = h.text;
         if (h.stock) hintEls = [S.stock.length ? els[S.stock[S.stock.length - 1].id] : L.slots.stock];
         else if (h.src) hintEls = [els[pileOf(h.src)[h.src.pos].id], destEl(h.dest)];
         hintEls.forEach(el => el.classList.add('hint'));
         hintTimer = setTimeout(hintClear, 2500);
+        requestAnimationFrame(() => G.reveal(play));         // a long hint may push the table down: keep all of it in view
     }
 
     // ── View ──
@@ -485,73 +634,138 @@ document.addEventListener('DOMContentLoaded', () => {
             table.appendChild(d); els[id] = d;
         }
     }
+    // Card size comes from both the width of the table and the height left for it on screen (Games.space), so the
+    // whole table, the bar, and the message line fit in the window together. The felt keeps one height for the whole
+    // game; long columns close up their fan instead of growing it. On a short, wide screen (a phone held sideways) the
+    // stock and waste move to a column on the left and the foundations to a 2 x 2 block on the right, when that gives
+    // clearly bigger cards than the usual row across the top.
     function layout() {
-        const W = table.clientWidth, gap = W < 520 ? 4 : Math.max(6, Math.round(W * 0.014));
-        const cw = Math.min(110, Math.floor((W - 8 * gap) / 7)), ch = Math.round(cw * 1.4);
+        const W = table.clientWidth; if (!W) return;
+        const gap = W < 520 ? 4 : Math.max(6, Math.round(W * 0.014));
+        const room = Math.max(170, Math.floor(G.space(table, play)));
+        // a message that wraps to a second line only shortens the felt; the cards keep their size (no jump in size)
+        const msgEl = $('msg'), line = parseFloat(getComputedStyle(msgEl).minHeight) || 0, cardRoom = room + Math.max(0, msgEl.offsetHeight - line);
+        const sized = (cols, rows) => {            // the card width that fits `cols` columns and `rows` card heights
+            let cw = Math.min(110, Math.floor((W - (cols + 1) * gap) / cols));
+            const chMax = Math.floor((cardRoom - (rows > 3.5 ? 4 : 2) * gap) / rows);
+            if (Math.round(cw * 1.4) > chMax) cw = Math.floor(chMax / 1.4);
+            return Math.max(28, cw);
+        };
+        const cwTop = sized(7, 3.6), cwWide = sized(10, 3.3), wide = cwWide >= sized(7, 4.2) * 1.15;   // 3.6 card heights: the top row, a card, and room for a long column to close up its fan
+        const cw = wide ? cwWide : cwTop, ch = Math.round(cw * 1.4);
+        const H = Math.min(room, Math.ceil(wide ? 2 * gap + 4.6 * ch : 4 * gap + 6 * ch));
         table.style.setProperty('--cw', cw + 'px'); table.style.setProperty('--ch', ch + 'px');
-        const ox = Math.round((W - 7 * cw - 6 * gap) / 2), x = i => ox + i * (cw + gap);
-        Object.assign(L, { W, gap, cw, ch, x, top: gap, tabY: gap * 2 + ch });
-        const place = (el, i, y) => { el.style.left = x(i) + 'px'; el.style.top = y + 'px'; };
-        place(L.slots.stock, 0, L.top); place(L.slots.waste, 1, L.top);
-        L.slots.found.forEach((el, i) => place(el, 3 + i, L.top));
-        L.slots.tab.forEach((el, i) => place(el, i, L.tabY));
+        if (table.style.height !== H + 'px') table.style.height = H + 'px';
+        const cols = wide ? 10 : 7, ox = Math.round((W - cols * cw - (cols - 1) * gap) / 2), x = i => ox + i * (cw + gap);
+        let pos;
+        if (wide) {
+            const tx = i => x(1 + i);
+            pos = { stock: [x(0), gap], waste: [x(0), 2 * gap + ch], fan: [0, ch * 0.22], found: [0, 1, 2, 3].map(i => [x(8 + i % 2), gap + (i >> 1) * (ch + gap)]), tab: [0, 1, 2, 3, 4, 5, 6].map(i => [tx(i), gap]) };
+        } else {
+            pos = { stock: [x(0), gap], waste: [x(1), gap], fan: [cw * 0.24, 0], found: [0, 1, 2, 3].map(i => [x(3 + i), gap]), tab: [0, 1, 2, 3, 4, 5, 6].map(i => [x(i), 2 * gap + ch]) };
+        }
+        const tabY = pos.tab[0][1];
+        Object.assign(L, { W, H, gap, cw, ch, wide, pos, tabY, avail: H - tabY - gap * 2 });
+        table.classList.toggle('wide', wide);
+        const place = (el, p) => { el.style.left = p[0] + 'px'; el.style.top = p[1] + 'px'; };
+        place(L.slots.stock, pos.stock); place(L.slots.waste, pos.waste);
+        L.slots.found.forEach((el, i) => place(el, pos.found[i]));
+        L.slots.tab.forEach((el, i) => place(el, pos.tab[i]));
     }
     function render() {
-        if (!L.cw) return;
-        const { x, cw, ch, top, tabY, gap } = L;
+        if (!L.cw || !S) return;
+        const { cw, ch, pos, avail } = L;
         let z = 1;
         const put = (c, px, py, zi) => { const el = els[c.id]; el.classList.toggle('up', c.up); el.style.transform = 'translate(' + px + 'px,' + py + 'px)'; el.style.zIndex = zi; el.setAttribute('aria-label', c.up ? long(c) : 'Face-down card'); };
-        S.stock.forEach((c, k) => put(c, x(0) + Math.min(k, 6) * 0.4, top - Math.min(k, 6) * 0.4, z++));
+        S.stock.forEach((c, k) => put(c, pos.stock[0] + Math.min(k, 6) * 0.4, pos.stock[1] - Math.min(k, 6) * 0.4, z++));
         const nShow = S.draw === 3 ? 3 : 1, w0 = Math.max(0, S.waste.length - nShow);
-        S.waste.forEach((c, k) => put(c, x(1) + Math.max(0, k - w0) * cw * 0.24, top, z++));
-        S.found.forEach((f, i) => f.forEach(c => put(c, x(3 + i), top, z++)));
+        S.waste.forEach((c, k) => { const f = Math.max(0, k - w0); put(c, pos.waste[0] + f * pos.fan[0], pos.waste[1] + f * pos.fan[1], z++); });
+        S.found.forEach((f, i) => f.forEach(c => put(c, pos.found[i][0], pos.found[i][1], z++)));
         const spent = !S.stock.length && !canRecycle();
         L.slots.stock.classList.toggle('spent', spent);
         L.slots.stock.setAttribute('aria-label', S.stock.length ? 'Stock, ' + S.stock.length + ' cards' : spent ? 'Stock, empty, no passes left' : 'Stock, empty: turn the waste over');
-        const avail = Math.max(window.innerHeight * 0.62, ch * 4.2);
-        let maxH = ch;
         S.tab.forEach((p, i) => {
             const down = p.filter(c => !c.up).length, upN = p.length - down;
-            let dDown = ch * 0.1, dUp = ch * 0.27;
-            const need = down * dDown + Math.max(0, upN - 1) * dUp + ch;
-            if (need > avail && upN > 1) dUp = Math.max(ch * 0.14, (avail - ch - down * dDown) / (upN - 1));
-            let y = tabY;
-            p.forEach((c, k) => { put(c, x(i), y, 100 + k); y += c.up ? dUp : dDown; });
-            maxH = Math.max(maxH, y - tabY + ch - (p.length ? (p[p.length - 1].up ? dUp : dDown) : 0));
+            let dDown = ch * 0.1, dUp = ch * 0.3;
+            const fit = () => (avail - ch - down * dDown) / Math.max(1, upN - 1);
+            if (down * dDown + Math.max(0, upN - 1) * dUp + ch > avail && upN > 1) {
+                dUp = fit();
+                if (dUp < ch * 0.18 && down) { dDown = ch * 0.05; dUp = fit(); }      // a very long column: close up the face-down cards too
+                dUp = Math.max(ch * 0.1, Math.min(ch * 0.3, dUp));
+            }
+            let y = pos.tab[i][1];
+            p.forEach((c, k) => { put(c, pos.tab[i][0], y, 100 + k); y += c.up ? dUp : dDown; });
         });
-        table.style.height = Math.ceil(tabY + maxH + gap * 2) + 'px';
         kbShow();
     }
     function update() {
         $('moves').textContent = moves;
         $('undo').disabled = !undoStack.length || won;
-        $('finish').hidden = won || !canFinish();
+        const fin = !won && canFinish();
+        $('finish').hidden = !fin; $('hint').hidden = fin;
         $('score-chip').hidden = S.scoring === 'none';
         $('score').textContent = S.scoring === 'vegas' ? (score < 0 ? '−$' : '$') + Math.abs(score) : score;
         showBest();
     }
     function changed() { hintClear(); $('msg').textContent = ''; render(); update(); save(); }
     function checkWin() {
-        if (foundCount() !== 52) return;
+        if (won || foundCount() !== 52) return;
+        const replay = practice();
         won = true; finishing++; pauseClock();
-        const secs = Math.max(1, Math.round(clockMs() / 1000)), s = rec(statKey());
+        if (replay) {
+            const secs = Math.max(1, Math.round(clockMs() / 1000)), first = daily.won[S.daily + ':' + S.draw];
+            save(); update(); showTime(); sfx('win');
+            const text = moves + ' moves in ' + fmtTime(secs) + '. You won this deal already today, in ' + fmtTime(first.t) + ', so a replay is practice and changes no statistics.';
+            say('You won! ' + text);
+            setTimeout(() => { if (won) openOverlay('won', 'You won!', text); }, reduced() ? 0 : 700);
+            return;
+        }
+        const secs = Math.max(1, Math.round(clockMs() / 1000)), s = rec(statKey()), prevBest = s.bestTime;
         const record = !s.bestTime || secs < s.bestTime;
         s.won++; s.streak++; s.bestStreak = Math.max(s.bestStreak, s.streak);
         if (record) s.bestTime = secs;
         if (!s.fewest || moves < s.fewest) s.fewest = moves;
+        let dailyNote = '';
+        if (S.daily) {
+            const k = S.daily + ':' + S.draw;
+            if (!daily.won[k]) daily.won[k] = { t: secs, m: moves };
+            if (daily.last !== S.daily && (!daily.last || S.daily > daily.last)) { daily.streak = daily.last === dayBefore(S.daily) ? daily.streak + 1 : 1; daily.last = S.daily; daily.best = Math.max(daily.best, daily.streak); }
+            const keys = Object.keys(daily.won).sort(); while (keys.length > 120) delete daily.won[keys.shift()];
+            G.setJSON('sol-daily', daily);
+            const n = streakNow() || daily.streak; dailyNote = ' Daily streak: ' + n + (n === 1 ? ' day.' : ' days.');
+        }
         saveStats(); save(); update(); showTime();
-        $('ov-head').textContent = 'You won!'; $('keep').hidden = true; $('again').textContent = 'Deal again';
-        $('ov-text').textContent = moves + ' moves in ' + fmtTime(secs) + (S.scoring === 'none' ? '' : ', scoring ' + $('score').textContent) + (record ? '. A new best time for Draw ' + S.draw + '.' : '.');
-        say('You won! ' + $('ov-text').textContent);
-        setTimeout(() => { if (won) { $('overlay').hidden = false; $('again').focus(); } }, reduced() ? 0 : 350);
+        const head = S.daily ? 'You won the daily deal!' : 'You won!';
+        const text = moves + ' moves in ' + fmtTime(secs) + (S.scoring === 'none' ? '' : ', scoring ' + $('score').textContent) + '.'
+            + (record ? (prevBest ? ' A new best time, ' + fmtTime(prevBest - secs) + ' faster than before.' : '') : ' Best ' + fmtTime(prevBest) + '.')
+            + ' Win streak ' + s.streak + ', ' + Math.round(100 * s.won / Math.max(1, s.played)) + '% won.' + dailyNote;
+        if (record) { $('best-chip').classList.add('hot'); setTimeout(() => $('best-chip').classList.remove('hot'), 2600); }
+        sfx('win');
+        if (!reduced()) {
+            table.classList.add('won');
+            S.found.forEach((f, i) => { const top = f[f.length - 1]; if (top) { const el = els[top.id]; el.style.setProperty('--hd', i * 120 + 'ms'); el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop'); } });
+        }
+        say(head + ' ' + text);
+        setTimeout(() => { if (won) openOverlay('won', head, text); }, reduced() ? 0 : 700);
     }
     const say = t => { $('sr').textContent = t; };
+    // One overlay over the table: 'won', 'confirm' (abandon this game?), and 'stuck' (no useful move left)
+    function openOverlay(m, head, text) {
+        ovMode = m;
+        $('ov-head').textContent = head; $('ov-text').textContent = text;
+        $('again').textContent = m === 'won' ? 'Deal again' : m === 'stuck' ? 'New game' : pending && pending.kind === 'daily' ? 'Deal today’s deal' : 'Deal a new game';
+        $('restart').hidden = m !== 'stuck' || !S.start || !counted;
+        $('keep').hidden = m === 'won';
+        ov.hidden = false;
+        (m === 'won' ? $('again') : $('keep')).focus({ preventScroll: true });
+    }
+    function closeOverlay() { const had = !ov.hidden && ov.contains(document.activeElement); ov.hidden = true; ovMode = ''; if (had) table.focus({ preventScroll: true }); }
 
     // ── Pointer input ──
     function dropTarget(px, py) {
-        const { x, cw, ch, top, tabY, gap } = L;
-        for (let i = 0; i < 4; i++) if (px > x(3 + i) - gap && px < x(3 + i) + cw + gap && py > top - gap && py < top + ch + gap) return { pile: 'found', idx: i };
-        if (py > tabY - gap) for (let i = 0; i < 7; i++) if (px > x(i) - gap / 2 && px < x(i) + cw + gap / 2) return { pile: 'tab', idx: i };
+        const { cw, ch, gap, pos, tabY } = L;
+        for (let i = 0; i < 4; i++) { const [fx, fy] = pos.found[i]; if (px > fx - gap && px < fx + cw + gap && py > fy - gap && py < fy + ch + gap) return { pile: 'found', idx: i }; }
+        if (py > tabY - gap) for (let i = 0; i < 7; i++) { const tx = pos.tab[i][0]; if (px > tx - gap / 2 && px < tx + cw + gap / 2) return { pile: 'tab', idx: i }; }
         return null;
     }
     const tablePoint = e => { const r = table.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
@@ -582,9 +796,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (d.moved) {
             const [px, py] = tablePoint(e), dx = px - d.sx, dy = py - d.sy;
             const dest = dropTarget(d.base[0][0] + dx + L.cw / 2, d.base[0][1] + dy + L.ch * 0.3);
-            if (!(dest && move(d.loc, dest))) render();
-        } else if (d.loc.pile !== 'found' && !autoMove(d.loc)) shake(els[d.ids[0]]);   // a tap never takes a card off a foundation
+            if (!(dest && move(d.loc, dest))) { render(); if (dest) sfx('bad'); }
+        } else if (d.loc.pile !== 'found' && !autoMove(d.loc)) { shake(els[d.ids[0]]); sfx('bad'); }   // a tap never takes a card off a foundation
     });
+    table.addEventListener('pointerup', () => G.reveal(play));          // a player who starts on a half-visible table gets all of it
     table.addEventListener('pointercancel', () => { if (drag) { drag.ids.forEach(id => els[id].classList.remove('dragging')); drag = null; render(); } });
     function shake(el) { if (!reduced()) el.animate([{ marginLeft: '0' }, { marginLeft: '-5px' }, { marginLeft: '5px' }, { marginLeft: '0' }], { duration: 220 }); }
 
@@ -618,16 +833,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function kbAct() {
         if (kb.i === 0) { drawStock(); return; }
         const loc = kbCard(); if (!loc || loc.pile === 'found') return;
-        if (!autoMove(loc)) { shake(els[pileOf(loc)[loc.pos].id]); say('No move for the ' + long(pileOf(loc)[loc.pos]) + '.'); }
+        if (!autoMove(loc)) { shake(els[pileOf(loc)[loc.pos].id]); sfx('bad'); say('No move for the ' + long(pileOf(loc)[loc.pos]) + '.'); }
     }
     function kbTo(dest) {
         const loc = kbCard(); if (!loc || loc.pile === 'stock') return;
         const ok = dest.pile === 'found' ? [0, 1, 2, 3].some(i => move(loc, { pile: 'found', idx: i })) : move(loc, dest);
-        if (!ok) { shake(els[pileOf(loc)[loc.pos].id]); say('The ' + long(pileOf(loc)[loc.pos]) + ' can’t go to ' + where(dest) + '.'); }
+        if (!ok) { shake(els[pileOf(loc)[loc.pos].id]); sfx('bad'); say('The ' + long(pileOf(loc)[loc.pos]) + ' can’t go to ' + where(dest) + '.'); }
     }
     table.addEventListener('focus', kbShow);
     const typing = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
     document.addEventListener('keydown', e => {
+        if (dlg.open) return;
+        if (e.key === 'Escape' && (ovMode === 'confirm' || ovMode === 'stuck')) { e.preventDefault(); $('keep').click(); return; }
         if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'z' && !typing(document.activeElement)) { e.preventDefault(); undo(); return; }
         if (document.activeElement !== table || won || e.altKey || e.ctrlKey || e.metaKey) return;
         const k = e.key, top = kb.i < 6;
@@ -638,7 +855,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (k >= '1' && k <= '7') { e.preventDefault(); kbTo({ pile: 'tab', idx: +k - 1 }); kbShow(); return; }
         else if (k === 'f' || k === 'F') { e.preventDefault(); kbTo({ pile: 'found', idx: 0 }); kbShow(); return; }
         else if (k === 'd' || k === 'D') { e.preventDefault(); drawStock(); return; }
-        else if (k === 'h' || k === 'H') { e.preventDefault(); showHint(); return; }
+        else if (k === 'h' || k === 'H') { e.preventDefault(); if (canFinish()) $('finish').click(); else showHint(); return; }
         else if (k === 'u' || k === 'U') { e.preventDefault(); undo(); return; }
         else return;
         e.preventDefault(); kbShow(); say(kbLabel());
@@ -646,27 +863,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Controls ──
     $('undo').addEventListener('click', undo);
-    $('new').addEventListener('click', newGame);
     $('hint').addEventListener('click', showHint);
-    // Changing the draw mode or scoring deals a new game, so a game in progress asks first (the select keeps showing the current setting until confirmed).
-    let pending = null;
     const saveSettings = () => { G.set('sol-draw', $('draw').value); G.set('sol-scoring', $('scoring').value); };
-    [['draw', v => 'Draw ' + v], ['scoring', v => ({ none: 'no', standard: 'standard', vegas: 'Vegas' })[v] + ' scoring']].forEach(([id, name]) => {
-        $(id).addEventListener('change', () => {
-            const v = $(id).value;
-            if (counted && !won) {
-                pending = { id, v }; $(id).value = id === 'draw' ? S.draw : S.scoring;
-                $('ov-head').textContent = 'Start a new game?';
-                $('ov-text').textContent = 'Switching to ' + name(v) + ' deals a new game. This one (' + moves + (moves === 1 ? ' move' : ' moves') + ') will count as a loss.';
-                $('again').textContent = 'Deal a new game'; $('keep').hidden = false; $('overlay').hidden = false; $('keep').focus();
-                return;
-            }
-            saveSettings(); newGame();
-        });
+    // A game in progress asks before it is abandoned (it counts as a loss): New game, Daily deal, and a new draw mode.
+    function ask(p) {
+        if (!counted || won) return false;
+        pending = p;
+        const mv = moves + (moves === 1 ? ' move' : ' moves');
+        if (p.kind === 'draw') openOverlay('confirm', 'Start a new game?', 'Switching to Draw ' + p.v + ' deals a new game. This one (' + mv + ') will count as a loss.');
+        else if (p.kind === 'daily') openOverlay('confirm', 'Play today’s deal?', 'The daily deal replaces this game (' + mv + '), which will count as a loss.');
+        else openOverlay('confirm', 'Start a new game?', 'This game (' + mv + ') will count as a loss.');
+        return true;
+    }
+    $('new').addEventListener('click', () => { if (!ask({ kind: 'new' })) newGame(null, true); });
+    $('daily').addEventListener('click', () => {
+        if (S && S.daily === today() && S.draw === +$('draw').value && !won && !busy) { $('msg').textContent = 'This is today’s deal for Draw ' + S.draw + '.'; G.reveal(play); return; }
+        if (!ask({ kind: 'daily' })) newGame({ daily: today() }, true);
     });
-    $('again').addEventListener('click', () => { if (pending) { $(pending.id).value = pending.v; pending = null; saveSettings(); } $('overlay').hidden = true; newGame(); table.focus(); });
-    $('keep').addEventListener('click', () => { const id = pending ? pending.id : 'draw'; pending = null; $('overlay').hidden = true; $(id).focus(); });
-    $('winnable').addEventListener('change', () => { G.set('sol-winnable', $('winnable').checked ? '1' : '0'); $('msg').textContent = $('winnable').checked ? 'Winnable deals start with your next game.' : 'Deals are fully random from your next game.'; });
+    $('draw').addEventListener('change', () => {
+        const v = $('draw').value;
+        if (counted && !won) { $('draw').value = S.draw; ask({ kind: 'draw', v }); return; }
+        saveSettings(); newGame(S && S.daily && !won ? { daily: today() } : null, true);
+    });
+    $('again').addEventListener('click', () => {
+        const p = ovMode === 'confirm' ? pending : null; pending = null;
+        if (p && p.kind === 'draw') { $('draw').value = p.v; saveSettings(); }
+        closeOverlay(); newGame(p && p.kind === 'daily' ? { daily: today() } : null, true); table.focus({ preventScroll: true });
+    });
+    $('keep').addEventListener('click', () => { const p = pending; pending = null; closeOverlay(); if (p && p.kind === 'draw') $('draw').focus(); else table.focus({ preventScroll: true }); });
+    $('restart').addEventListener('click', () => { pending = null; closeOverlay(); restart(); table.focus({ preventScroll: true }); });
     $('finish').addEventListener('click', () => {
         const token = ++finishing;
         (function step() {
@@ -678,6 +903,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         })();
     });
+
+    // Settings: scoring, winnable deals, auto-play, sound, and Restart this deal. The clock stops while they are open.
+    $('settings').addEventListener('click', () => {
+        $('sound').checked = G.soundOn; $('auto').checked = opt.auto;
+        $('restart-deal').disabled = !(S && S.start && counted && !won && !busy);
+        pauseClock();
+        if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    });
+    const closeDlg = () => { if (dlg.close) dlg.close(); else { dlg.removeAttribute('open'); dlg.dispatchEvent(new Event('close')); } };
+    $('set-close').addEventListener('click', closeDlg);
+    dlg.addEventListener('click', e => { if (e.target === dlg) closeDlg(); });                   // a click on the backdrop
+    dlg.addEventListener('keydown', e => { if (e.key === 'Escape') e.stopPropagation(); });     // Esc closes the settings, not the full-screen view
+    dlg.addEventListener('close', () => { if (counted && !won) runClock(); $('settings').focus({ preventScroll: true }); });
+    $('scoring').addEventListener('change', () => {
+        saveSettings();
+        if (!counted && !busy) newGame(S && S.daily ? { daily: today() } : null);                 // nothing played yet: deal again under the new scoring
+        else if (!won) $('msg').textContent = 'The new scoring starts with your next game.';
+    });
+    $('winnable').addEventListener('change', () => { G.set('sol-winnable', $('winnable').checked ? '1' : '0'); $('msg').textContent = $('winnable').checked ? 'Winnable deals start with your next game.' : 'Deals are fully random from your next game.'; });
+    $('auto').addEventListener('change', () => { opt.auto = $('auto').checked; G.set('sol-auto', opt.auto ? '1' : '0'); $('msg').textContent = opt.auto ? 'Safe cards go up to the foundations after your next move.' : 'Cards stay where they are until you move them.'; });
+    $('sound').addEventListener('change', () => { G.soundOn = $('sound').checked; G.set('games-sound', G.soundOn ? '1' : '0'); G.audio(); });
+    $('restart-deal').addEventListener('click', () => { closeDlg(); restart(); });
     let resetArmed = null;
     $('reset-stats').addEventListener('click', () => {
         const btn = $('reset-stats');
@@ -685,6 +932,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(resetArmed); resetArmed = null; btn.textContent = 'Reset statistics';
         for (const k in stats) delete stats[k];
         G.set('sol-best-1', ''); G.set('sol-best-3', '');
+        daily.won = {}; daily.streak = 0; daily.best = 0; daily.last = ''; G.setJSON('sol-daily', daily);
         if (counted && !won) { const s = rec(statKey()); s.played = 1; }   // the game on the table still counts
         saveStats(); showBest(); say('Statistics reset.');
     });
@@ -698,10 +946,21 @@ document.addEventListener('DOMContentLoaded', () => {
     build(); layout();
     if (restore()) { changed(); showTime(); if (!document.hidden) runClock(); say('Your saved game is back on the table.'); }
     else newGame();
-    new ResizeObserver(() => { const w = table.clientWidth; if (w !== L.W) { layout(); render(); } }).observe(table);
-    window.addEventListener('resize', () => render());
-    window.__sol = { get state() { return S; }, get moves() { return moves; }, get score() { return score; }, get won() { return won; }, get busy() { return busy; }, get solution() { return solution; },
-        move, autoMove, locate, drawStock, accepts, canFinish, render, undo, newGame, findHint, solveDeal, stats: () => JSON.parse(JSON.stringify(stats)), clockMs };
+    G.watch([play, table].concat([...play.children]), () => { layout(); render(); });
+    G.fullButton($('full'));
+    window.__sol = { get state() { return S; }, get moves() { return moves; }, get score() { return score; }, get won() { return won; }, get busy() { return busy; }, get solution() { return solution; }, get overlay() { return ovMode; },
+        move, autoMove, autoPlay, locate, drawStock, accepts, canFinish, render, undo, restart, newGame: how => newGame(how), daily: () => newGame({ daily: today() }), findHint, showHint, solveDeal, dailyDeck, today, dayBefore,
+        stats: () => JSON.parse(JSON.stringify(stats)), dailyStats: () => JSON.parse(JSON.stringify(daily)), clockMs, setAuto(on) { opt.auto = !!on; },
+        // put every card but the king of spades on the foundations, then play it up: a win, for testing the end of a game
+        forceWin() {
+            if (won || busy) return false;
+            const all = []; for (const p of [S.stock, S.waste, ...S.found, ...S.tab]) all.push(...p.splice(0));
+            for (let s = 0; s < 4; s++) S.found[s] = all.filter(c => c.s === s && (s > 0 || c.r < 13)).sort((a, b) => a.r - b.r).map(c => (c.up = true, c));
+            const k = all.find(c => c.s === 0 && c.r === 13); k.up = true; S.tab[0] = [k];
+            render();
+            return move({ pile: 'tab', idx: 0, pos: 0 }, { pile: 'found', idx: 0 });
+        },
+        fit: () => ({ w: table.clientWidth, h: table.clientHeight, cw: L.cw, ch: L.ch, wide: L.wide, overflow: Math.round(G.overflow(play)) }), reveal: () => G.reveal(play, true) };
 });
 </script>
 </body>
